@@ -1,4 +1,4 @@
-# A-NIM-PACT
+# cocci
 
 Plateforme SaaS de pilotage RSE (Responsabilité Sociétale des Entreprises) destinée aux TPE, PME et ETI françaises.
 

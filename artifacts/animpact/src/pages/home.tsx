@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Leaf, BarChart3, ShieldCheck, ArrowRight, CheckCircle2, Building2 } from "lucide-react";
+import { Leaf, BarChart3, ShieldCheck, ArrowRight, Building2 } from "lucide-react";
 
 export function Home() {
   return (
@@ -9,14 +9,14 @@ export function Home() {
         <div className="container h-full mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Leaf className="h-6 w-6 text-primary" />
-            <span className="font-bold text-xl tracking-tight text-foreground">A-NIM-PACT</span>
+            <span className="font-bold text-xl tracking-tight text-foreground">cocci</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/sign-in">
-              <Button variant="ghost" className="font-medium">Log in</Button>
+              <Button variant="ghost" className="font-medium">Se connecter</Button>
             </Link>
             <Link href="/sign-up">
-              <Button className="font-medium">Get Started</Button>
+              <Button className="font-medium">Commencer</Button>
             </Link>
           </div>
         </div>
@@ -27,23 +27,24 @@ export function Home() {
           <div className="container mx-auto max-w-5xl text-center space-y-8">
             <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary mb-4">
               <span className="flex h-2 w-2 rounded-full bg-primary mr-2"></span>
-              The enterprise RSE platform
+              La plateforme RSE professionnelle
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground max-w-4xl mx-auto leading-tight">
-              Pilot your RSE strategy with <span className="text-primary">rigor and confidence.</span>
+              Pilotez votre stratégie RSE avec <span className="text-primary">rigueur et confiance.</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              A-NIM-PACT is the authoritative business intelligence platform for French SMEs and mid-sized companies to manage, track, and report on their corporate social responsibility.
+              cocci est la plateforme dédiée aux TPE, PME et ETI françaises pour gérer, suivre et
+              rendre compte de leur responsabilité sociétale des entreprises.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
               <Link href="/sign-up">
                 <Button size="lg" className="h-12 px-8 text-base font-medium w-full sm:w-auto">
-                  Start your transformation <ArrowRight className="ml-2 h-4 w-4" />
+                  Commencer votre démarche <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link href="/sign-in">
                 <Button size="lg" variant="outline" className="h-12 px-8 text-base font-medium w-full sm:w-auto">
-                  Sign in to portal
+                  Accéder à mon espace
                 </Button>
               </Link>
             </div>
@@ -57,27 +58,30 @@ export function Home() {
                 <div className="h-12 w-12 rounded-md bg-primary/10 flex items-center justify-center mb-6">
                   <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Enterprise Grade</h3>
+                <h3 className="text-xl font-bold mb-3">Niveau professionnel</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Built for CFOs and CSR directors. Dense, information-rich dashboards that treat sustainability data with the same rigor as financial metrics.
+                  Conçu pour les DAF et directeurs RSE. Des tableaux de bord denses et informatifs qui
+                  traitent les données RSE avec la même rigueur que les données financières.
                 </p>
               </div>
               <div className="bg-background p-8 rounded-lg border border-border shadow-sm">
                 <div className="h-12 w-12 rounded-md bg-primary/10 flex items-center justify-center mb-6">
                   <ShieldCheck className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Compliant & Secure</h3>
+                <h3 className="text-xl font-bold mb-3">Conforme & sécurisé</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Stay ahead of French and European regulations. Structured reporting that stands up to auditor scrutiny and stakeholder expectations.
+                  Restez en conformité avec les réglementations françaises et européennes. Un reporting
+                  structuré qui résiste à l'examen des auditeurs et aux attentes des parties prenantes.
                 </p>
               </div>
               <div className="bg-background p-8 rounded-lg border border-border shadow-sm">
                 <div className="h-12 w-12 rounded-md bg-primary/10 flex items-center justify-center mb-6">
                   <Building2 className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Multi-Entity</h3>
+                <h3 className="text-xl font-bold mb-3">Multi-entités</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Manage multiple organizations, subsidiaries, or portfolios from a single pane of glass with granular role-based access control.
+                  Gérez plusieurs organisations, filiales ou portefeuilles depuis une interface unique
+                  avec un contrôle d'accès granulaire basé sur les rôles.
                 </p>
               </div>
             </div>
@@ -89,10 +93,10 @@ export function Home() {
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Leaf className="h-5 w-5 text-muted-foreground" />
-            <span className="font-semibold text-muted-foreground">A-NIM-PACT</span>
+            <span className="font-semibold text-muted-foreground">cocci</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} A-NIM-PACT SaaS. All rights reserved.
+            © {new Date().getFullYear()} cocci. Tous droits réservés.
           </p>
         </div>
       </footer>

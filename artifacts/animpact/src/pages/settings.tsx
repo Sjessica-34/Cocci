@@ -16,14 +16,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, User as UserIcon } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const profileSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters."),
-  lastName: z.string().min(2, "Last name must be at least 2 characters."),
+  firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères."),
+  lastName: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
 });
 
 export function UserSettings() {
@@ -33,7 +33,7 @@ export function UserSettings() {
   const { data: user, isLoading } = useGetMe({
     query: { queryKey: getGetMeQueryKey() }
   });
-  
+
   const updateMe = useUpdateMe();
 
   const form = useForm<z.infer<typeof profileSchema>>({
@@ -62,16 +62,16 @@ export function UserSettings() {
       {
         onSuccess: (updatedUser) => {
           toast({
-            title: "Profile saved",
-            description: "Your personal details have been updated.",
+            title: "Profil enregistré",
+            description: "Vos informations personnelles ont été mises à jour.",
           });
           queryClient.setQueryData(getGetMeQueryKey(), updatedUser);
         },
         onError: () => {
           toast({
             variant: "destructive",
-            title: "Failed to save profile",
-            description: "An error occurred while updating your details.",
+            title: "Échec de la sauvegarde",
+            description: "Une erreur est survenue. Veuillez réessayer.",
           });
         },
       }
@@ -82,8 +82,8 @@ export function UserSettings() {
     <AppLayout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Profile Settings</h1>
-          <p className="text-muted-foreground mt-1">Manage your personal account preferences.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Mon profil</h1>
+          <p className="text-muted-foreground mt-1">Gérez vos informations personnelles.</p>
         </div>
 
         {isLoading ? (
@@ -101,7 +101,12 @@ export function UserSettings() {
                 <div>
                   <CardTitle className="text-xl">{user?.email}</CardTitle>
                   <CardDescription className="mt-1">
-                    Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
+                    Membre depuis le{" "}
+                    {new Date(user?.createdAt || Date.now()).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </CardDescription>
                 </div>
               </div>
@@ -115,7 +120,7 @@ export function UserSettings() {
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>First Name</FormLabel>
+                          <FormLabel>Prénom</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -129,7 +134,7 @@ export function UserSettings() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Last Name</FormLabel>
+                          <FormLabel>Nom</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -146,7 +151,7 @@ export function UserSettings() {
                       ) : (
                         <Save className="mr-2 h-4 w-4" />
                       )}
-                      Save Profile
+                      Enregistrer
                     </Button>
                   </div>
                 </form>

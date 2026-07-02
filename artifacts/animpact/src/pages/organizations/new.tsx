@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,10 +27,35 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Building2, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 
+const SECTORS = [
+  "Agriculture & Agro-alimentaire",
+  "Aéronautique & Défense",
+  "Bâtiment & Travaux publics",
+  "Chimie & Matériaux",
+  "Commerce & Distribution",
+  "Culture & Média",
+  "Énergie & Environnement",
+  "Finance & Assurance",
+  "Immobilier",
+  "Industrie manufacturière",
+  "Informatique & Numérique",
+  "Logistique & Transport",
+  "Luxe & Mode",
+  "Santé & Pharmaceutique",
+  "Services aux entreprises",
+  "Tourisme & Hôtellerie",
+  "Autre",
+];
+
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
+  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
   legalName: z.string().optional(),
-  siret: z.string().optional(),
+  siret: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^\d{14}$/.test(v.replace(/\s/g, "")), {
+      message: "Le SIRET doit contenir 14 chiffres.",
+    }),
   sector: z.string().optional(),
   size: z.enum(["TPE", "PME", "ETI", "GE"]).optional(),
 });
@@ -59,8 +83,8 @@ export function OrganizationNew() {
       {
         onSuccess: (org) => {
           toast({
-            title: "Organization created",
-            description: `${org.name} has been successfully created.`,
+            title: "Organisation créée",
+            description: `${org.name} a été créée avec succès.`,
           });
           queryClient.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
           setLocation(`/organizations/${org.id}`);
@@ -68,8 +92,8 @@ export function OrganizationNew() {
         onError: () => {
           toast({
             variant: "destructive",
-            title: "Failed to create organization",
-            description: "An error occurred. Please try again.",
+            title: "Échec de la création",
+            description: "Une erreur est survenue. Veuillez réessayer.",
           });
         },
       }
@@ -86,8 +110,8 @@ export function OrganizationNew() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Create Organization</h1>
-            <p className="text-muted-foreground text-sm">Add a new entity to your RSE portfolio.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Créer une organisation</h1>
+            <p className="text-muted-foreground text-sm">Ajoutez une nouvelle entité à votre portefeuille RSE.</p>
           </div>
         </div>
 
@@ -95,10 +119,10 @@ export function OrganizationNew() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
-              Company Details
+              Informations de l'entreprise
             </CardTitle>
             <CardDescription>
-              Enter the basic information about the company. This can be changed later.
+              Renseignez les informations de base. Vous pourrez les compléter ultérieurement.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -109,9 +133,9 @@ export function OrganizationNew() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Organization Name *</FormLabel>
+                      <FormLabel>Nom commercial *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Acme Corp" {...field} />
+                        <Input placeholder="Mon Entreprise" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -124,9 +148,9 @@ export function OrganizationNew() {
                     name="legalName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Legal Name</FormLabel>
+                        <FormLabel>Raison sociale</FormLabel>
                         <FormControl>
-                          <Input placeholder="Acme Corporation SAS" {...field} />
+                          <Input placeholder="Mon Entreprise SAS" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -140,7 +164,7 @@ export function OrganizationNew() {
                       <FormItem>
                         <FormLabel>SIRET</FormLabel>
                         <FormControl>
-                          <Input placeholder="123 456 789 00012" {...field} />
+                          <Input placeholder="14 chiffres" maxLength={17} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -154,10 +178,19 @@ export function OrganizationNew() {
                     name="sector"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Industry Sector</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Manufacturing" {...field} />
-                        </FormControl>
+                        <FormLabel>Secteur d'activité</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {SECTORS.map((s) => (
+                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -168,18 +201,18 @@ export function OrganizationNew() {
                     name="size"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company Size</FormLabel>
+                        <FormLabel>Taille de l'entreprise</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select size" />
+                              <SelectValue placeholder="Sélectionner" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="TPE">TPE ({"<"} 10 employees)</SelectItem>
-                            <SelectItem value="PME">PME (10-249 employees)</SelectItem>
-                            <SelectItem value="ETI">ETI (250-4999 employees)</SelectItem>
-                            <SelectItem value="GE">GE (5000+ employees)</SelectItem>
+                            <SelectItem value="TPE">TPE — moins de 10 salariés</SelectItem>
+                            <SelectItem value="PME">PME — 10 à 249 salariés</SelectItem>
+                            <SelectItem value="ETI">ETI — 250 à 4 999 salariés</SelectItem>
+                            <SelectItem value="GE">GE — 5 000+ salariés</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -188,15 +221,15 @@ export function OrganizationNew() {
                   />
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-border">
+                <div className="flex justify-end gap-3 pt-4 border-t border-border">
                   <Link href="/organizations">
-                    <Button type="button" variant="outline" className="mr-4">
-                      Cancel
+                    <Button type="button" variant="outline">
+                      Annuler
                     </Button>
                   </Link>
                   <Button type="submit" disabled={createOrg.isPending}>
                     {createOrg.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create Organization
+                    Créer l'organisation
                   </Button>
                 </div>
               </form>
