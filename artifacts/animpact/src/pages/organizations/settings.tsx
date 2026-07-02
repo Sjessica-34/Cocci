@@ -1,7 +1,14 @@
+import { useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout";
-import { useGetOrganization, useUpdateOrganization, getGetOrganizationQueryKey, getListOrganizationsQueryKey } from "@workspace/api-client-react";
+import { OrgSubNav } from "@/components/shared/OrgSubNav";
+import {
+  useGetOrganization,
+  useUpdateOrganization,
+  getGetOrganizationQueryKey,
+  getListOrganizationsQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -14,6 +21,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,14 +32,40 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Building2, Loader2, Save } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Building2, Loader2, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { Separator } from "@/components/ui/separator";
+
+const SECTORS = [
+  "Agriculture & Agro-alimentaire",
+  "Aéronautique & Défense",
+  "Bâtiment & Travaux publics",
+  "Chimie & Matériaux",
+  "Commerce & Distribution",
+  "Culture & Média",
+  "Énergie & Environnement",
+  "Finance & Assurance",
+  "Immobilier",
+  "Industrie manufacturière",
+  "Informatique & Numérique",
+  "Logistique & Transport",
+  "Luxe & Mode",
+  "Santé & Pharmaceutique",
+  "Services aux entreprises",
+  "Tourisme & Hôtellerie",
+  "Autre",
+];
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
+  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
   legalName: z.string().optional(),
-  siret: z.string().optional(),
+  siret: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^\d{14}$/.test(v.replace(/\s/g, "")), {
+      message: "Le SIRET doit contenir 14 chiffres.",
+    }),
   sector: z.string().optional(),
   size: z.enum(["TPE", "PME", "ETI", "GE"]).optional(),
 });
@@ -42,10 +76,15 @@ export function OrganizationSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (orgId > 0) setCurrentOrg(orgId);
+    return () => setCurrentOrg(null);
+  }, [orgId]);
+
   const { data: org, isLoading } = useGetOrganization(orgId, {
-    query: { enabled: !!orgId, queryKey: getGetOrganizationQueryKey(orgId) }
+    query: { enabled: !!orgId, queryKey: getGetOrganizationQueryKey(orgId) },
   });
-  
+
   const updateOrg = useUpdateOrganization();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -68,7 +107,7 @@ export function OrganizationSettings() {
         legalName: org.legalName || "",
         siret: org.siret || "",
         sector: org.sector || "",
-        size: (org.size as any) || undefined,
+        size: (org.size as "TPE" | "PME" | "ETI" | "GE") || undefined,
       });
       initializedRef.current = true;
     }
@@ -80,8 +119,8 @@ export function OrganizationSettings() {
       {
         onSuccess: (updatedOrg) => {
           toast({
-            title: "Settings saved",
-            description: "Organization details have been updated successfully.",
+            title: "Paramètres sauvegardés",
+            description: "Les informations de l'organisation ont été mises à jour.",
           });
           queryClient.setQueryData(getGetOrganizationQueryKey(orgId), updatedOrg);
           queryClient.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
@@ -89,51 +128,50 @@ export function OrganizationSettings() {
         onError: () => {
           toast({
             variant: "destructive",
-            title: "Failed to save settings",
-            description: "An error occurred while updating the organization.",
+            title: "Erreur lors de la sauvegarde",
+            description: "Une erreur est survenue. Réessayez.",
           });
         },
-      }
+      },
     );
   }
 
   return (
     <AppLayout>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href={`/organizations/${orgId}`}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Organization Settings</h1>
-            <p className="text-muted-foreground text-sm">Update company details and profile.</p>
-          </div>
+      <div className="space-y-1 max-w-2xl">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Paramètres</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Gérez les informations et le profil de l'organisation.
+          </p>
         </div>
 
+        <OrgSubNav orgId={orgId} />
+
         {isLoading ? (
-          <Skeleton className="h-[400px] w-full rounded-xl" />
+          <Skeleton className="h-[480px] w-full rounded-xl" />
         ) : (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-primary" />
-                Company Profile
+                Profil de l'entreprise
               </CardTitle>
               <CardDescription>
-                Manage public and administrative details for this entity.
+                Renseignez les informations légales et organisationnelles.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Nom commercial */}
                   <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Organization Name *</FormLabel>
+                        <FormLabel>Nom commercial *</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -142,84 +180,117 @@ export function OrganizationSettings() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="legalName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Legal Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <Separator />
 
-                    <FormField
-                      control={form.control}
-                      name="siret"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>SIRET</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="sector"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Industry Sector</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="size"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Company Size</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                  {/* Informations légales */}
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-4">Informations légales</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <FormField
+                        control={form.control}
+                        name="legalName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Raison sociale</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select size" />
-                              </SelectTrigger>
+                              <Input placeholder="SAS, SARL, SA…" {...field} />
                             </FormControl>
-                            <SelectContent>
-                              <SelectItem value="TPE">TPE ({"<"} 10 employees)</SelectItem>
-                              <SelectItem value="PME">PME (10-249 employees)</SelectItem>
-                              <SelectItem value="ETI">ETI (250-4999 employees)</SelectItem>
-                              <SelectItem value="GE">GE (5000+ employees)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="siret"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>SIRET</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="14 chiffres"
+                                {...field}
+                                maxLength={17}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs">
+                              14 chiffres sans espaces
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex justify-end pt-6 border-t border-border">
-                    <Button type="submit" disabled={updateOrg.isPending || !form.formState.isDirty}>
+                  <Separator />
+
+                  {/* Classification */}
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-4">Classification</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <FormField
+                        control={form.control}
+                        name="sector"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Secteur d'activité</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Sélectionner" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {SECTORS.map((s) => (
+                                  <SelectItem key={s} value={s}>
+                                    {s}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="size"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Taille de l'entreprise</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Sélectionner" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="TPE">TPE — moins de 10 salariés</SelectItem>
+                                <SelectItem value="PME">PME — 10 à 249 salariés</SelectItem>
+                                <SelectItem value="ETI">ETI — 250 à 4 999 salariés</SelectItem>
+                                <SelectItem value="GE">GE — 5 000+ salariés</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-4 border-t border-border">
+                    <Button
+                      type="submit"
+                      disabled={updateOrg.isPending || !form.formState.isDirty}
+                    >
                       {updateOrg.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
                         <Save className="mr-2 h-4 w-4" />
                       )}
-                      Save Changes
+                      Enregistrer
                     </Button>
                   </div>
                 </form>
