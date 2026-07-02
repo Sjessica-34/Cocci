@@ -1,0 +1,3 @@
+- [Clerk multi-tenancy](clerk-multitenant.md) — Replit-managed Clerk ne supporte pas les Organizations Clerk → gérer le multi-tenant en DB.
+- [OpenAPI body naming](openapi-body-naming.md) — Nommer les body schemas avec des noms d'entité (jamais operation-shaped) pour éviter TS2308.
+- [Module order](module-order.md) — Ordre de développement convenu avec le client pour A-NIM-PACT.

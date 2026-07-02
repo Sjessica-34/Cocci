@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <rect width="200" height="60" rx="8" fill="#0C4A4E" />
+  <circle cx="30" cy="30" r="14" fill="#14b8a6" />
+  <circle cx="40" cy="30" r="14" fill="#0f766e" opacity="0.8" />
+  <text x="65" y="38" font-family="Inter, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" letter-spacing="1">A-NIM-PACT</text>
+</svg>
