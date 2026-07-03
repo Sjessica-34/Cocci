@@ -23,6 +23,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { DebugBadge } from "@/components/debug-badge";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -209,6 +210,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
+          <DebugBadge />
           <Switch>
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in/*?" component={SignInPage} />
