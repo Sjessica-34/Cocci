@@ -12,6 +12,7 @@ import {
 const router: IRouter = Router();
 
 router.get("/users/me", requireAuth, async (req, res): Promise<void> => {
+  res.setHeader("Cache-Control", "no-store");
   const user = await getOrCreateUser(req.clerkUserId!);
   res.json(GetMeResponse.parse(user));
 });
