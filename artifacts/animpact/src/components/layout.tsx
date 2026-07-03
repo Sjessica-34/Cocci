@@ -12,6 +12,7 @@ import {
   User as UserIcon,
   Leaf,
   ChevronsUpDown,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const currentOrg = orgs?.find((o) => o.id === currentOrgId) ?? null;
 
   const insideOrg = location.startsWith("/organizations/") && location !== "/organizations/new";
+  const { isSuperAdmin } = useIsSuperAdmin();
 
   const navItems = [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -133,6 +135,30 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Link>
           );
         })}
+
+        {/* Lien back-office superadmin */}
+        {isSuperAdmin && (
+          <>
+            <div className="my-2 border-t border-sidebar-border" />
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 px-2 mb-1.5">
+              Administration
+            </p>
+            <Link href="/admin">
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start h-9",
+                  location.startsWith("/admin")
+                    ? "bg-destructive/10 text-destructive font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive",
+                )}
+              >
+                <ShieldCheck className="h-4 w-4 mr-3" />
+                Back-office
+              </Button>
+            </Link>
+          </>
+        )}
       </div>
 
       {/* User profile */}
