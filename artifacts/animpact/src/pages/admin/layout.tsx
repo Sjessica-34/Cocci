@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Building2, Users, Shield, Leaf, ChevronDown, LogOut } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Shield, ChevronDown, LogOut, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -58,8 +58,21 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
 
+        {/* Bouton switch Espace client */}
+        <div className="px-3 pb-2">
+          <Link href="/dashboard">
+            <Button
+              variant="ghost"
+              className="w-full justify-start h-9 text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            >
+              <UserIcon className="h-4 w-4 mr-3" />
+              Espace client
+            </Button>
+          </Link>
+        </div>
+
         {/* Profil utilisateur */}
-        <div className="p-3 border-t border-sidebar-border bg-sidebar shrink-0">
+        <div className="px-3 pb-3 border-t border-sidebar-border bg-sidebar shrink-0 pt-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -89,13 +102,6 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
                 Back-office superadmin
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <Link href="/dashboard">
-                <DropdownMenuItem className="cursor-pointer">
-                  <Leaf className="h-4 w-4 mr-2 text-primary" />
-                  Espace client
-                </DropdownMenuItem>
-              </Link>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive cursor-pointer"
