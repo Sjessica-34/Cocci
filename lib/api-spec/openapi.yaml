@@ -18,6 +18,8 @@ tags:
     description: Organization membership management
   - name: dashboard
     description: Dashboard summary endpoints
+  - name: admin
+    description: Superadmin back-office endpoints
 
 paths:
   /healthz:
@@ -300,6 +302,118 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── ADMIN ───────────────────────────────────────────────────────────────────
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Global platform statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/organizations:
+    get:
+      operationId: listAdminOrganizations
+      tags: [admin]
+      summary: List all organizations (superadmin)
+      responses:
+        "200":
+          description: All organizations with member counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminOrganization"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/organizations/{id}/members:
+    get:
+      operationId: listAdminOrgMembers
+      tags: [admin]
+      summary: List members of any organization (superadmin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Members list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminMember"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users (superadmin)
+      responses:
+        "200":
+          description: All users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/users/{id}/superadmin:
+    patch:
+      operationId: updateUserSuperAdmin
+      tags: [admin]
+      summary: Promote or demote superadmin status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuperAdminUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -313,7 +427,7 @@ components:
     # ─── USER ──────────────────────────────────────────────────────────────────
     User:
       type: object
-      required: [id, clerkId, email, createdAt]
+      required: [id, clerkId, email, isSuperAdmin, createdAt]
       properties:
         id:
           type: integer
@@ -328,6 +442,8 @@ components:
           type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
+        isSuperAdmin:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -446,6 +562,103 @@ components:
         status:
           type: string
           enum: [active, suspended]
+
+    # ─── ADMIN ─────────────────────────────────────────────────────────────────
+    AdminStats:
+      type: object
+      required: [organizationCount, userCount, memberCount]
+      properties:
+        organizationCount:
+          type: integer
+        userCount:
+          type: integer
+        memberCount:
+          type: integer
+
+    AdminOrganization:
+      type: object
+      required: [id, name, createdAt, memberCount]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        legalName:
+          type: ["string", "null"]
+        siret:
+          type: ["string", "null"]
+        sector:
+          type: ["string", "null"]
+        size:
+          type: ["string", "null"]
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminUser:
+      type: object
+      required: [id, clerkId, email, isSuperAdmin, createdAt]
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        isSuperAdmin:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminMember:
+      type: object
+      required: [id, role, status, createdAt, user]
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+          enum: [owner, admin, member, viewer]
+        status:
+          type: string
+          enum: [active, invited, suspended]
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          required: [id, email, isSuperAdmin]
+          properties:
+            id:
+              type: integer
+            email:
+              type: string
+              format: email
+            firstName:
+              type: ["string", "null"]
+            lastName:
+              type: ["string", "null"]
+            avatarUrl:
+              type: ["string", "null"]
+            isSuperAdmin:
+              type: boolean
+
+    SuperAdminUpdate:
+      type: object
+      required: [isSuperAdmin]
+      properties:
+        isSuperAdmin:
+          type: boolean
 
     # ─── DASHBOARD SUMMARY ─────────────────────────────────────────────────────
     DashboardSummary:

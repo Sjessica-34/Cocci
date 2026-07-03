@@ -28,6 +28,7 @@ export const GetMeResponse = zod.object({
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -48,6 +49,7 @@ export const UpdateMeResponse = zod.object({
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -169,6 +171,7 @@ export const ListMembersResponseItem = zod.object({
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 }).optional(),
@@ -202,6 +205,7 @@ export const InviteMemberResponse = zod.object({
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 }).optional(),
@@ -235,6 +239,7 @@ export const UpdateMemberResponse = zod.object({
   "firstName": zod.string().nullish(),
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 }).optional(),
@@ -267,6 +272,95 @@ export const GetOrganizationDashboardResponse = zod.object({
   "activeModules": zod.number(),
   "completionRate": zod.number().describe('RSE completion rate as a percentage (0-100)'),
   "lastActivityAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Global platform statistics
+ */
+export const GetAdminStatsResponse = zod.object({
+  "organizationCount": zod.number(),
+  "userCount": zod.number(),
+  "memberCount": zod.number()
+})
+
+
+/**
+ * @summary List all organizations (superadmin)
+ */
+export const ListAdminOrganizationsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "legalName": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "sector": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "memberCount": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAdminOrganizationsResponse = zod.array(ListAdminOrganizationsResponseItem)
+
+
+/**
+ * @summary List members of any organization (superadmin)
+ */
+export const ListAdminOrgMembersParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListAdminOrgMembersResponseItem = zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['owner', 'admin', 'member', 'viewer']),
+  "status": zod.enum(['active', 'invited', 'suspended']),
+  "createdAt": zod.coerce.date(),
+  "user": zod.object({
+  "id": zod.number(),
+  "email": zod.string().email(),
+  "firstName": zod.string().nullish(),
+  "lastName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean()
+})
+})
+export const ListAdminOrgMembersResponse = zod.array(ListAdminOrgMembersResponseItem)
+
+
+/**
+ * @summary List all users (superadmin)
+ */
+export const ListAdminUsersResponseItem = zod.object({
+  "id": zod.number(),
+  "clerkId": zod.string(),
+  "email": zod.string().email(),
+  "firstName": zod.string().nullish(),
+  "lastName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
+
+
+/**
+ * @summary Promote or demote superadmin status
+ */
+export const UpdateUserSuperAdminParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateUserSuperAdminBody = zod.object({
+  "isSuperAdmin": zod.boolean()
+})
+
+export const UpdateUserSuperAdminResponse = zod.object({
+  "id": zod.number(),
+  "clerkId": zod.string(),
+  "email": zod.string().email(),
+  "firstName": zod.string().nullish(),
+  "lastName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean(),
+  "createdAt": zod.coerce.date()
 })
 
 

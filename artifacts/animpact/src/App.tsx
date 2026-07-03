@@ -16,9 +16,13 @@ import { OrganizationDetail } from "@/pages/organizations/detail";
 import { OrganizationSettings } from "@/pages/organizations/settings";
 import { OrganizationMembers } from "@/pages/organizations/members";
 import { UserSettings } from "@/pages/settings";
+import { AdminDashboard } from "@/pages/admin/index";
+import { AdminOrganizations } from "@/pages/admin/organizations";
+import { AdminUsers } from "@/pages/admin/users";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -174,6 +178,20 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isSuperAdmin, isLoading } = useIsSuperAdmin();
+  return (
+    <>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+      <Show when="signed-in">
+        {isLoading ? null : isSuperAdmin ? <Component /> : <Redirect to="/dashboard" />}
+      </Show>
+    </>
+  );
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -203,6 +221,10 @@ function ClerkProviderWithRoutes() {
             <Route path="/organizations/:id/settings"><ProtectedRoute component={OrganizationSettings} /></Route>
             <Route path="/organizations/:id/members"><ProtectedRoute component={OrganizationMembers} /></Route>
             <Route path="/settings"><ProtectedRoute component={UserSettings} /></Route>
+
+            <Route path="/admin"><AdminRoute component={AdminDashboard} /></Route>
+            <Route path="/admin/organizations"><AdminRoute component={AdminOrganizations} /></Route>
+            <Route path="/admin/users"><AdminRoute component={AdminUsers} /></Route>
 
             <Route component={NotFound} />
           </Switch>

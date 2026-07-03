@@ -16,6 +16,7 @@ export interface User {
   lastName?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  isSuperAdmin: boolean;
   createdAt: Date;
   updatedAt?: Date;
 }

@@ -19,6 +19,7 @@ export interface User {
   lastName?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  isSuperAdmin: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -149,6 +150,84 @@ export const MemberUpdateStatus = {
 export interface MemberUpdate {
   role?: MemberUpdateRole;
   status?: MemberUpdateStatus;
+}
+
+export interface AdminStats {
+  organizationCount: number;
+  userCount: number;
+  memberCount: number;
+}
+
+export interface AdminOrganization {
+  id: number;
+  name: string;
+  /** @nullable */
+  legalName?: string | null;
+  /** @nullable */
+  siret?: string | null;
+  /** @nullable */
+  sector?: string | null;
+  /** @nullable */
+  size?: string | null;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface AdminUser {
+  id: number;
+  clerkId: string;
+  email: string;
+  /** @nullable */
+  firstName?: string | null;
+  /** @nullable */
+  lastName?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  isSuperAdmin: boolean;
+  createdAt: string;
+}
+
+export type AdminMemberRole = typeof AdminMemberRole[keyof typeof AdminMemberRole];
+
+
+export const AdminMemberRole = {
+  owner: 'owner',
+  admin: 'admin',
+  member: 'member',
+  viewer: 'viewer',
+} as const;
+
+export type AdminMemberStatus = typeof AdminMemberStatus[keyof typeof AdminMemberStatus];
+
+
+export const AdminMemberStatus = {
+  active: 'active',
+  invited: 'invited',
+  suspended: 'suspended',
+} as const;
+
+export type AdminMemberUser = {
+  id: number;
+  email: string;
+  /** @nullable */
+  firstName?: string | null;
+  /** @nullable */
+  lastName?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  isSuperAdmin: boolean;
+};
+
+export interface AdminMember {
+  id: number;
+  role: AdminMemberRole;
+  status: AdminMemberStatus;
+  createdAt: string;
+  user: AdminMemberUser;
+}
+
+export interface SuperAdminUpdate {
+  isSuperAdmin: boolean;
 }
 
 export interface DashboardSummary {

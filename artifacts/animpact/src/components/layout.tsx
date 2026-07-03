@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { cn } from "@/lib/utils";
 
 export function AppLayout({ children }: { children: ReactNode }) {

@@ -20,6 +20,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminMember,
+  AdminOrganization,
+  AdminStats,
+  AdminUser,
   DashboardSummary,
   HealthStatus,
   Member,
@@ -28,6 +32,7 @@ import type {
   Organization,
   OrganizationInput,
   OrganizationUpdate,
+  SuperAdminUpdate,
   User,
   UserUpdate
 } from './api.schemas';
@@ -951,4 +956,383 @@ export function useGetOrganizationDashboard<TData = Awaited<ReturnType<typeof ge
 
 
 
+
+export const getGetAdminStatsUrl = () => {
+
+
+
+
+  return `/api/admin/stats`
+}
+
+/**
+ * @summary Global platform statistics
+ */
+export const getAdminStats = async ( options?: RequestInit): Promise<AdminStats> => {
+
+  return customFetch<AdminStats>(getGetAdminStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminStatsQueryKey = () => {
+    return [
+    `/api/admin/stats`
+    ] as const;
+    }
+
+
+export const getGetAdminStatsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminStats>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminStats>>> = ({ signal }) => getAdminStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminStats>>>
+export type GetAdminStatsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Global platform statistics
+ */
+
+export function useGetAdminStats<TData = Awaited<ReturnType<typeof getAdminStats>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAdminOrganizationsUrl = () => {
+
+
+
+
+  return `/api/admin/organizations`
+}
+
+/**
+ * @summary List all organizations (superadmin)
+ */
+export const listAdminOrganizations = async ( options?: RequestInit): Promise<AdminOrganization[]> => {
+
+  return customFetch<AdminOrganization[]>(getListAdminOrganizationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminOrganizationsQueryKey = () => {
+    return [
+    `/api/admin/organizations`
+    ] as const;
+    }
+
+
+export const getListAdminOrganizationsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminOrganizations>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminOrganizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminOrganizationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminOrganizations>>> = ({ signal }) => listAdminOrganizations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminOrganizations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminOrganizationsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminOrganizations>>>
+export type ListAdminOrganizationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all organizations (superadmin)
+ */
+
+export function useListAdminOrganizations<TData = Awaited<ReturnType<typeof listAdminOrganizations>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminOrganizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminOrganizationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAdminOrgMembersUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/organizations/${id}/members`
+}
+
+/**
+ * @summary List members of any organization (superadmin)
+ */
+export const listAdminOrgMembers = async (id: number, options?: RequestInit): Promise<AdminMember[]> => {
+
+  return customFetch<AdminMember[]>(getListAdminOrgMembersUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminOrgMembersQueryKey = (id: number,) => {
+    return [
+    `/api/admin/organizations/${id}/members`
+    ] as const;
+    }
+
+
+export const getListAdminOrgMembersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminOrgMembers>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminOrgMembers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminOrgMembersQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminOrgMembers>>> = ({ signal }) => listAdminOrgMembers(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminOrgMembers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminOrgMembersQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminOrgMembers>>>
+export type ListAdminOrgMembersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List members of any organization (superadmin)
+ */
+
+export function useListAdminOrgMembers<TData = Awaited<ReturnType<typeof listAdminOrgMembers>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminOrgMembers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminOrgMembersQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAdminUsersUrl = () => {
+
+
+
+
+  return `/api/admin/users`
+}
+
+/**
+ * @summary List all users (superadmin)
+ */
+export const listAdminUsers = async ( options?: RequestInit): Promise<AdminUser[]> => {
+
+  return customFetch<AdminUser[]>(getListAdminUsersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminUsersQueryKey = () => {
+    return [
+    `/api/admin/users`
+    ] as const;
+    }
+
+
+export const getListAdminUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminUsersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminUsers>>> = ({ signal }) => listAdminUsers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminUsers>>>
+export type ListAdminUsersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all users (superadmin)
+ */
+
+export function useListAdminUsers<TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminUsersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateUserSuperAdminUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/users/${id}/superadmin`
+}
+
+/**
+ * @summary Promote or demote superadmin status
+ */
+export const updateUserSuperAdmin = async (id: number,
+    superAdminUpdate: SuperAdminUpdate, options?: RequestInit): Promise<AdminUser> => {
+
+  return customFetch<AdminUser>(getUpdateUserSuperAdminUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(superAdminUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateUserSuperAdminMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserSuperAdmin>>, TError,{id: number;data: BodyType<SuperAdminUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateUserSuperAdmin>>, TError,{id: number;data: BodyType<SuperAdminUpdate>}, TContext> => {
+
+const mutationKey = ['updateUserSuperAdmin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUserSuperAdmin>>, {id: number;data: BodyType<SuperAdminUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateUserSuperAdmin(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateUserSuperAdminMutationResult = NonNullable<Awaited<ReturnType<typeof updateUserSuperAdmin>>>
+    export type UpdateUserSuperAdminMutationBody = BodyType<SuperAdminUpdate>
+    export type UpdateUserSuperAdminMutationError = ErrorType<void>
+
+    /**
+ * @summary Promote or demote superadmin status
+ */
+export const useUpdateUserSuperAdmin = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserSuperAdmin>>, TError,{id: number;data: BodyType<SuperAdminUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateUserSuperAdmin>>,
+        TError,
+        {id: number;data: BodyType<SuperAdminUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateUserSuperAdminMutationOptions(options));
+    }
 
