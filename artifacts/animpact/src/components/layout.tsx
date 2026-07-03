@@ -38,7 +38,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const insideOrg = location.startsWith("/organizations/") && location !== "/organizations/new";
 
   const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/organizations", label: "Entreprises", icon: Building2 },
     { href: "/settings", label: "Paramètres", icon: Settings },
   ];

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
+import { frFR } from "@clerk/localizations";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -17,6 +18,7 @@ import { OrganizationMembers } from "@/pages/organizations/members";
 import { UserSettings } from "@/pages/settings";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Leaf } from "lucide-react";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -30,6 +32,24 @@ function stripBase(path: string): string {
 }
 
 if (!clerkPubKey) throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
+
+const clerkLocalization = {
+  ...frFR,
+  signIn: {
+    ...frFR.signIn,
+    start: {
+      ...(frFR.signIn?.start ?? {}),
+      subtitle: "pour continuer vers cocci",
+    },
+  },
+  signUp: {
+    ...frFR.signUp,
+    start: {
+      ...(frFR.signUp?.start ?? {}),
+      subtitle: "pour créer votre compte cocci",
+    },
+  },
+};
 
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
@@ -83,8 +103,8 @@ const clerkAppearance = {
     identityPreviewEditButton: "text-primary hover:text-primary/90",
     formFieldSuccessText: "text-sm text-green-600",
     alertText: "text-sm text-destructive",
-    logoBox: "mb-6 flex justify-center",
-    logoImage: "h-10",
+    logoBox: "hidden",
+    logoImage: "hidden",
     socialButtonsBlockButton: "border-input bg-background hover:bg-muted/50",
     formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-sm h-10 font-medium",
     formFieldInput: "flex h-10 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
@@ -97,10 +117,22 @@ const clerkAppearance = {
   },
 };
 
+function AuthBrand() {
+  return (
+    <div className="flex items-center justify-center gap-2 mb-6">
+      <Leaf className="h-7 w-7 text-primary" />
+      <span className="text-2xl font-bold tracking-tight text-foreground">cocci</span>
+    </div>
+  );
+}
+
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4 py-12">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <div className="w-full max-w-[440px]">
+        <AuthBrand />
+        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      </div>
     </div>
   );
 }
@@ -108,7 +140,10 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4 py-12">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      <div className="w-full max-w-[440px]">
+        <AuthBrand />
+        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      </div>
     </div>
   );
 }
@@ -147,6 +182,7 @@ function ClerkProviderWithRoutes() {
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
+      localization={clerkLocalization}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       routerPush={(to) => setLocation(stripBase(to))}
@@ -159,7 +195,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
-            
+
             <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
             <Route path="/organizations"><ProtectedRoute component={OrganizationsList} /></Route>
             <Route path="/organizations/new"><ProtectedRoute component={OrganizationNew} /></Route>
@@ -167,7 +203,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/organizations/:id/settings"><ProtectedRoute component={OrganizationSettings} /></Route>
             <Route path="/organizations/:id/members"><ProtectedRoute component={OrganizationMembers} /></Route>
             <Route path="/settings"><ProtectedRoute component={UserSettings} /></Route>
-            
+
             <Route component={NotFound} />
           </Switch>
           <Toaster />
