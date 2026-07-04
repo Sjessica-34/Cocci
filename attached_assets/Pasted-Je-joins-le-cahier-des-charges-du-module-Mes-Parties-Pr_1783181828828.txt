@@ -1,0 +1,115 @@
+Je joins le cahier des charges du module "Mes Parties Prenantes".
+
+À partir de ce document, je souhaite développer le premier véritable module métier de Cocci.
+
+IMPORTANT
+
+Je ne souhaite pas uniquement développer l'interface.
+
+Je souhaite développer le module complet :
+
+• Frontend
+• Backend
+• Base de données
+• API
+• Logique métier
+• Génération automatique des visualisations
+
+Le document fait foi.
+
+Respecte son contenu, son organisation et les exemples fournis.
+
+--------------------------------------------
+
+Je souhaite développer les 5 onglets suivants :
+
+1. Tutoriel
+
+Créer une véritable page pédagogique.
+
+Le contenu pourra être complété ultérieurement.
+
+Prévoir une architecture permettant facilement d'ajouter du texte, des illustrations, des vidéos et des FAQ.
+
+--------------------------------------------
+
+2. Saisie
+
+Développer le formulaire complet décrit dans le document.
+
+Créer les tables de base de données.
+
+Créer les API.
+
+Créer toutes les opérations CRUD.
+
+Créer la sauvegarde automatique.
+
+Les catégories du menu déroulant devront être stockées dans la base de données afin de pouvoir être administrées plus tard depuis le back-office.
+
+--------------------------------------------
+
+3. Cartographie
+
+La cartographie doit être générée automatiquement à partir des données saisies.
+
+Aucune donnée ne doit être dessinée manuellement.
+
+Chaque ajout, modification ou suppression doit mettre à jour automatiquement la cartographie.
+
+La cartographie doit être interactive.
+
+Elle devra rester facilement personnalisable.
+
+--------------------------------------------
+
+4. Matrice d'influence
+
+Construire automatiquement une matrice Influence / Intérêt.
+
+Les coordonnées sont calculées à partir des notes saisies.
+
+Prévoir :
+
+- zoom
+- déplacement
+- recherche
+- filtres
+- export PNG
+- export PDF
+
+Prévoir une architecture permettant facilement de modifier les règles de calcul ultérieurement.
+
+--------------------------------------------
+
+5. Synthèse
+
+Créer automatiquement une synthèse à partir des données enregistrées.
+
+Afficher notamment :
+
+- la liste des parties prenantes
+- les catégories
+- les notes
+- les scores
+- le positionnement
+- les statistiques
+- les indicateurs principaux
+
+Cette synthèse servira ensuite à alimenter le rapport RSE.
+
+--------------------------------------------
+
+ARCHITECTURE
+
+Je souhaite un véritable module SaaS.
+
+Le code doit être propre, documenté, modulaire et maintenable.
+
+Je ne veux pas de code spécifique à ce module.
+
+Toutes les briques développées devront pouvoir être réutilisées dans les futurs modules (Enjeux, Biodiversité, Démarche RSE, Numérique Responsable...).
+
+Avant de commencer le développement, analyse le document et propose le modèle de données, les tables, les relations et l'architecture technique du module.
+
+Ne commence pas à coder avant de me présenter cette architecture.
