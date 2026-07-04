@@ -18,7 +18,9 @@ import { OrganizationMembers } from "@/pages/organizations/members";
 import { UserSettings } from "@/pages/settings";
 import { AdminDashboard } from "@/pages/admin/index";
 import { AdminOrganizations } from "@/pages/admin/organizations";
+import { AdminOrganizationDetail } from "@/pages/admin/organization-detail";
 import { AdminUsers } from "@/pages/admin/users";
+import { Resources } from "@/pages/resources";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
@@ -237,7 +239,10 @@ function ClerkProviderWithRoutes() {
 
             <Route path="/admin"><AdminRoute component={AdminDashboard} /></Route>
             <Route path="/admin/organizations"><AdminRoute component={AdminOrganizations} /></Route>
+            <Route path="/admin/organizations/:id"><AdminRoute component={AdminOrganizationDetail} /></Route>
             <Route path="/admin/users"><AdminRoute component={AdminUsers} /></Route>
+
+            <Route path="/resources"><ProtectedRoute component={Resources} /></Route>
 
             <Route component={NotFound} />
           </Switch>

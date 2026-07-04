@@ -32,6 +32,9 @@ import type {
   Organization,
   OrganizationInput,
   OrganizationUpdate,
+  Resource,
+  ResourceInput,
+  ResourcePublishUpdate,
   SuperAdminUpdate,
   User,
   UserUpdate
@@ -1335,4 +1338,441 @@ export const useUpdateUserSuperAdmin = <TError = ErrorType<void>,
       > => {
       return useMutation(getUpdateUserSuperAdminMutationOptions(options));
     }
+
+export const getListAdminOrgResourcesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/admin/organizations/${orgId}/resources`
+}
+
+/**
+ * @summary List all resources of an organization (superadmin)
+ */
+export const listAdminOrgResources = async (orgId: number, options?: RequestInit): Promise<Resource[]> => {
+
+  return customFetch<Resource[]>(getListAdminOrgResourcesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminOrgResourcesQueryKey = (orgId: number,) => {
+    return [
+    `/api/admin/organizations/${orgId}/resources`
+    ] as const;
+    }
+
+
+export const getListAdminOrgResourcesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminOrgResources>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminOrgResources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminOrgResourcesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminOrgResources>>> = ({ signal }) => listAdminOrgResources(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminOrgResources>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminOrgResourcesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminOrgResources>>>
+export type ListAdminOrgResourcesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all resources of an organization (superadmin)
+ */
+
+export function useListAdminOrgResources<TData = Awaited<ReturnType<typeof listAdminOrgResources>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminOrgResources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminOrgResourcesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminResourceUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/admin/organizations/${orgId}/resources`
+}
+
+/**
+ * @summary Create a resource for an organization (superadmin)
+ */
+export const createAdminResource = async (orgId: number,
+    resourceInput: ResourceInput, options?: RequestInit): Promise<Resource> => {
+
+  return customFetch<Resource>(getCreateAdminResourceUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(resourceInput)
+  }
+);}
+
+
+
+
+export const getCreateAdminResourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminResource>>, TError,{orgId: number;data: BodyType<ResourceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminResource>>, TError,{orgId: number;data: BodyType<ResourceInput>}, TContext> => {
+
+const mutationKey = ['createAdminResource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminResource>>, {orgId: number;data: BodyType<ResourceInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createAdminResource(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminResourceMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminResource>>>
+    export type CreateAdminResourceMutationBody = BodyType<ResourceInput>
+    export type CreateAdminResourceMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a resource for an organization (superadmin)
+ */
+export const useCreateAdminResource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminResource>>, TError,{orgId: number;data: BodyType<ResourceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminResource>>,
+        TError,
+        {orgId: number;data: BodyType<ResourceInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminResourceMutationOptions(options));
+    }
+
+export const getUpdateAdminResourceUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/resources/${id}`
+}
+
+/**
+ * @summary Update a resource (superadmin)
+ */
+export const updateAdminResource = async (id: number,
+    resourceInput: ResourceInput, options?: RequestInit): Promise<Resource> => {
+
+  return customFetch<Resource>(getUpdateAdminResourceUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(resourceInput)
+  }
+);}
+
+
+
+
+export const getUpdateAdminResourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminResource>>, TError,{id: number;data: BodyType<ResourceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminResource>>, TError,{id: number;data: BodyType<ResourceInput>}, TContext> => {
+
+const mutationKey = ['updateAdminResource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminResource>>, {id: number;data: BodyType<ResourceInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminResource(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminResourceMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminResource>>>
+    export type UpdateAdminResourceMutationBody = BodyType<ResourceInput>
+    export type UpdateAdminResourceMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a resource (superadmin)
+ */
+export const useUpdateAdminResource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminResource>>, TError,{id: number;data: BodyType<ResourceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminResource>>,
+        TError,
+        {id: number;data: BodyType<ResourceInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminResourceMutationOptions(options));
+    }
+
+export const getDeleteAdminResourceUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/resources/${id}`
+}
+
+/**
+ * @summary Delete a resource (superadmin)
+ */
+export const deleteAdminResource = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteAdminResourceUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAdminResourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminResource>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminResource>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteAdminResource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminResource>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAdminResource(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminResourceMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminResource>>>
+
+    export type DeleteAdminResourceMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a resource (superadmin)
+ */
+export const useDeleteAdminResource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminResource>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminResource>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAdminResourceMutationOptions(options));
+    }
+
+export const getPublishAdminResourceUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/resources/${id}/publish`
+}
+
+/**
+ * @summary Publish or unpublish a resource (superadmin)
+ */
+export const publishAdminResource = async (id: number,
+    resourcePublishUpdate: ResourcePublishUpdate, options?: RequestInit): Promise<Resource> => {
+
+  return customFetch<Resource>(getPublishAdminResourceUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(resourcePublishUpdate)
+  }
+);}
+
+
+
+
+export const getPublishAdminResourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishAdminResource>>, TError,{id: number;data: BodyType<ResourcePublishUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishAdminResource>>, TError,{id: number;data: BodyType<ResourcePublishUpdate>}, TContext> => {
+
+const mutationKey = ['publishAdminResource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishAdminResource>>, {id: number;data: BodyType<ResourcePublishUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  publishAdminResource(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishAdminResourceMutationResult = NonNullable<Awaited<ReturnType<typeof publishAdminResource>>>
+    export type PublishAdminResourceMutationBody = BodyType<ResourcePublishUpdate>
+    export type PublishAdminResourceMutationError = ErrorType<void>
+
+    /**
+ * @summary Publish or unpublish a resource (superadmin)
+ */
+export const usePublishAdminResource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishAdminResource>>, TError,{id: number;data: BodyType<ResourcePublishUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof publishAdminResource>>,
+        TError,
+        {id: number;data: BodyType<ResourcePublishUpdate>},
+        TContext
+      > => {
+      return useMutation(getPublishAdminResourceMutationOptions(options));
+    }
+
+export const getListOrgResourcesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/resources`
+}
+
+/**
+ * @summary List published resources for an organization (client)
+ */
+export const listOrgResources = async (orgId: number, options?: RequestInit): Promise<Resource[]> => {
+
+  return customFetch<Resource[]>(getListOrgResourcesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOrgResourcesQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/resources`
+    ] as const;
+    }
+
+
+export const getListOrgResourcesQueryOptions = <TData = Awaited<ReturnType<typeof listOrgResources>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOrgResources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOrgResourcesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrgResources>>> = ({ signal }) => listOrgResources(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrgResources>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListOrgResourcesQueryResult = NonNullable<Awaited<ReturnType<typeof listOrgResources>>>
+export type ListOrgResourcesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List published resources for an organization (client)
+ */
+
+export function useListOrgResources<TData = Awaited<ReturnType<typeof listOrgResources>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOrgResources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListOrgResourcesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

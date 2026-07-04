@@ -13,6 +13,7 @@ import {
   Leaf,
   ChevronsUpDown,
   Wrench,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const navItems = [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/organizations", label: "Entreprises", icon: Building2 },
+    { href: "/resources", label: "Mes ressources", icon: BookOpen },
     { href: "/settings", label: "Paramètres", icon: Settings },
   ];
 

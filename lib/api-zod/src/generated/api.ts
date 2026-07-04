@@ -364,3 +364,158 @@ export const UpdateUserSuperAdminResponse = zod.object({
 })
 
 
+/**
+ * @summary List all resources of an organization (superadmin)
+ */
+export const ListAdminOrgResourcesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListAdminOrgResourcesResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "documentType": zod.string().nullish().describe('PDF, Word, Excel, Vidéo, Lien, Autre'),
+  "imageUrl": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+export const ListAdminOrgResourcesResponse = zod.array(ListAdminOrgResourcesResponseItem)
+
+
+/**
+ * @summary Create a resource for an organization (superadmin)
+ */
+export const CreateAdminResourceParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+
+
+
+export const CreateAdminResourceBody = zod.object({
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "category": zod.string().optional(),
+  "documentType": zod.string().optional(),
+  "imageUrl": zod.string().optional(),
+  "fileUrl": zod.string().optional()
+})
+
+export const CreateAdminResourceResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "documentType": zod.string().nullish().describe('PDF, Word, Excel, Vidéo, Lien, Autre'),
+  "imageUrl": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a resource (superadmin)
+ */
+export const UpdateAdminResourceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const UpdateAdminResourceBody = zod.object({
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "category": zod.string().optional(),
+  "documentType": zod.string().optional(),
+  "imageUrl": zod.string().optional(),
+  "fileUrl": zod.string().optional()
+})
+
+export const UpdateAdminResourceResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "documentType": zod.string().nullish().describe('PDF, Word, Excel, Vidéo, Lien, Autre'),
+  "imageUrl": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete a resource (superadmin)
+ */
+export const DeleteAdminResourceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAdminResourceResponse = zod.void()
+
+
+/**
+ * @summary Publish or unpublish a resource (superadmin)
+ */
+export const PublishAdminResourceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PublishAdminResourceBody = zod.object({
+  "isPublished": zod.boolean()
+})
+
+export const PublishAdminResourceResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "documentType": zod.string().nullish().describe('PDF, Word, Excel, Vidéo, Lien, Autre'),
+  "imageUrl": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary List published resources for an organization (client)
+ */
+export const ListOrgResourcesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListOrgResourcesResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "documentType": zod.string().nullish().describe('PDF, Word, Excel, Vidéo, Lien, Autre'),
+  "imageUrl": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+export const ListOrgResourcesResponse = zod.array(ListOrgResourcesResponseItem)
+
+

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, organizationsTable, membersTable } from "@workspace/db";
+import { db, usersTable, organizationsTable, membersTable, resourcesTable } from "@workspace/db";
 import { eq, desc, count } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
@@ -90,6 +90,91 @@ router.get("/admin/users", async (req, res) => {
     .orderBy(desc(usersTable.createdAt));
 
   res.json(users);
+});
+
+// GET /admin/organizations/:orgId/resources — ressources d'une org
+router.get("/admin/organizations/:orgId/resources", async (req, res) => {
+  const rawId = Array.isArray(req.params.orgId) ? req.params.orgId[0] : req.params.orgId;
+  const orgId = Number(rawId);
+  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
+
+  const resources = await db
+    .select()
+    .from(resourcesTable)
+    .where(eq(resourcesTable.organizationId, orgId))
+    .orderBy(desc(resourcesTable.createdAt));
+
+  res.json(resources);
+});
+
+// POST /admin/organizations/:orgId/resources — créer une ressource
+router.post("/admin/organizations/:orgId/resources", async (req, res) => {
+  const rawId = Array.isArray(req.params.orgId) ? req.params.orgId[0] : req.params.orgId;
+  const orgId = Number(rawId);
+  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
+
+  const { title, description, category, documentType, imageUrl, fileUrl } = req.body;
+  if (!title || typeof title !== "string") {
+    res.status(400).json({ error: "title is required" });
+    return;
+  }
+
+  const [created] = await db
+    .insert(resourcesTable)
+    .values({ organizationId: orgId, title, description, category, documentType, imageUrl, fileUrl })
+    .returning();
+
+  res.status(201).json(created);
+});
+
+// PATCH /admin/resources/:id — modifier une ressource
+router.patch("/admin/resources/:id", async (req, res) => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = Number(rawId);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid resource id" }); return; }
+
+  const { title, description, category, documentType, imageUrl, fileUrl } = req.body;
+  const [updated] = await db
+    .update(resourcesTable)
+    .set({ title, description, category, documentType, imageUrl, fileUrl, updatedAt: new Date() })
+    .where(eq(resourcesTable.id, id))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "Resource not found" }); return; }
+  res.json(updated);
+});
+
+// DELETE /admin/resources/:id — supprimer une ressource
+router.delete("/admin/resources/:id", async (req, res) => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = Number(rawId);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid resource id" }); return; }
+
+  const [deleted] = await db.delete(resourcesTable).where(eq(resourcesTable.id, id)).returning();
+  if (!deleted) { res.status(404).json({ error: "Resource not found" }); return; }
+  res.status(204).end();
+});
+
+// PATCH /admin/resources/:id/publish — publier / dépublier
+router.patch("/admin/resources/:id/publish", async (req, res) => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = Number(rawId);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid resource id" }); return; }
+
+  const { isPublished } = req.body;
+  if (typeof isPublished !== "boolean") {
+    res.status(400).json({ error: "isPublished must be a boolean" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(resourcesTable)
+    .set({ isPublished, publishedAt: isPublished ? new Date() : null, updatedAt: new Date() })
+    .where(eq(resourcesTable.id, id))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "Resource not found" }); return; }
+  res.json(updated);
 });
 
 // PATCH /admin/users/:id/superadmin — promouvoir/rétrograder superadmin

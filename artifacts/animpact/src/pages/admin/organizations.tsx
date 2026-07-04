@@ -18,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Building2, Search, Users, ChevronRight, Shield } from "lucide-react";
+import { Building2, Search, Users, ChevronRight, Shield, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 
 const SIZE_COLORS: Record<string, string> = {
   TPE: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -173,6 +174,11 @@ export function AdminOrganizations() {
                     >
                       Membres <ChevronRight className="h-3.5 w-3.5 ml-1" />
                     </Button>
+                    <Link href={`/admin/organizations/${org.id}`}>
+                      <Button variant="outline" size="sm" className="h-8 text-xs">
+                        Fiche <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               ))}

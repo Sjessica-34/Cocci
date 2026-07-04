@@ -230,6 +230,44 @@ export interface SuperAdminUpdate {
   isSuperAdmin: boolean;
 }
 
+export interface Resource {
+  id: number;
+  organizationId: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /**
+     * PDF, Word, Excel, Vidéo, Lien, Autre
+     * @nullable
+     */
+  documentType?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  fileUrl?: string | null;
+  isPublished: boolean;
+  /** @nullable */
+  publishedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ResourceInput {
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  category?: string;
+  documentType?: string;
+  imageUrl?: string;
+  fileUrl?: string;
+}
+
+export interface ResourcePublishUpdate {
+  isPublished: boolean;
+}
+
 export interface DashboardSummary {
   organizationId: number;
   memberCount: number;
