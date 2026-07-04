@@ -233,29 +233,33 @@ export function TabCartographie({ stakeholders }: Props) {
           })}
 
           {/* Center circle */}
-          <circle cx={CX} cy={CY} r={CENTER_R} fill="hsl(175 60% 22%)" />
+          <circle cx={CX} cy={CY} r={CENTER_R} fill="hsl(160 55% 28%)" />
 
-          {/* Building icon */}
-          <g transform={`translate(${CX}, ${CY - 10})`}>
-            {/* Roof */}
-            <polygon points="0,-11 -10,-4 10,-4" fill="white" opacity={0.9} />
-            {/* Body */}
-            <rect x="-10" y="-4" width="20" height="13" fill="white" opacity={0.9} rx="0.5" />
-            {/* Door */}
-            <rect x="-4" y="3" width="7" height="6" fill="hsl(175 60% 22%)" />
-            {/* Windows left */}
-            <rect x="-9" y="-2" width="4" height="3" fill="hsl(175 60% 22%)" rx="0.5" />
-            {/* Windows right */}
-            <rect x="5" y="-2" width="4" height="3" fill="hsl(175 60% 22%)" rx="0.5" />
+          {/* City buildings icon — two office towers */}
+          <g transform={`translate(${CX}, ${CY - 7})`} fill="white" opacity={0.92}>
+            {/* Tower 1 — taller, left */}
+            <rect x="-14" y="-15" width="12" height="23" rx="0.5" />
+            <rect x="-12" y="-13" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            <rect x="-7"  y="-13" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            <rect x="-12" y="-8"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            <rect x="-7"  y="-8"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            <rect x="-12" y="-3"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            <rect x="-7"  y="-3"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            {/* Tower 2 — shorter, right */}
+            <rect x="1" y="-9" width="13" height="17" rx="0.5" />
+            <rect x="3"  y="-7" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            <rect x="8"  y="-7" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            <rect x="3"  y="-2" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            <rect x="8"  y="-2" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
           </g>
           <text
             x={CX}
-            y={CY + 38}
+            y={CY + 37}
             textAnchor="middle"
-            fontSize={7}
+            fontSize={7.5}
             fill="white"
             fontWeight={700}
-            letterSpacing={0.5}
+            letterSpacing={0.8}
           >
             ENTREPRISE
           </text>
