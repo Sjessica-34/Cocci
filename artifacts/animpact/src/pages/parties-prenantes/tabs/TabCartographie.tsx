@@ -227,7 +227,7 @@ export function TabCartographie({ stakeholders }: Props) {
                   fill="white"
                   fontWeight={700}
                 >
-                  {node.name.charAt(0).toUpperCase()}
+                  {((node.name ?? "?")[0] ?? "?").toUpperCase()}
                 </text>
               )}
               <text
@@ -238,7 +238,7 @@ export function TabCartographie({ stakeholders }: Props) {
                 fill="currentColor"
                 className="text-foreground/70"
               >
-                {node.name.length > 14 ? node.name.slice(0, 12) + "…" : node.name}
+                {(node.name ?? "Sans nom").length > 14 ? (node.name ?? "Sans nom").slice(0, 12) + "…" : (node.name ?? "Sans nom")}
               </text>
             </g>
           ))}
@@ -257,7 +257,7 @@ export function TabCartographie({ stakeholders }: Props) {
               className="h-1.5 rounded-full mb-2"
               style={{ backgroundColor: tooltip.node.color }}
             />
-            <p className="font-semibold text-foreground text-sm mb-0.5">{tooltip.node.name}</p>
+            <p className="font-semibold text-foreground text-sm mb-0.5">{tooltip.node.name ?? "Sans nom"}</p>
             <p className="text-muted-foreground">
               {tooltip.node.catIcon} {tooltip.node.catLabel}
             </p>

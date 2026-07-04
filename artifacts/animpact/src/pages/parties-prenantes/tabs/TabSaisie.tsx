@@ -60,7 +60,7 @@ export function TabSaisie({ orgId, stakeholders }: Props) {
   const filtered = stakeholders.filter((s) => {
     const matchSearch =
       search === "" ||
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      (s.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (s.subcategory ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCat = filterCategory === "all" || s.category === filterCategory;
     return matchSearch && matchCat;
@@ -195,10 +195,10 @@ export function TabSaisie({ orgId, stakeholders }: Props) {
                               className="h-8 w-8 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0"
                               style={{ backgroundColor: color }}
                             >
-                              {s.name.charAt(0).toUpperCase()}
+                              {(s.name ?? "?")[0]?.toUpperCase() ?? "?"}
                             </div>
                             <div>
-                              <p className="font-medium text-foreground leading-tight">{s.name}</p>
+                              <p className="font-medium text-foreground leading-tight">{s.name ?? <span className="italic text-muted-foreground">Sans nom</span>}</p>
                               {s.subcategory && (
                                 <p className="text-xs text-muted-foreground">{s.subcategory}</p>
                               )}

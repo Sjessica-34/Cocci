@@ -124,7 +124,7 @@ export function TabSynthese({ stakeholders }: Props) {
                   <p className="text-[10px] text-muted-foreground mt-1.5 truncate">
                     {items
                       .slice(0, 3)
-                      .map((s) => s.name)
+                      .map((s) => s.name ?? "Sans nom")
                       .join(", ")}
                     {items.length > 3 ? ` +${items.length - 3}` : ""}
                   </p>
@@ -181,10 +181,10 @@ export function TabSynthese({ stakeholders }: Props) {
                     className="h-6 w-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: color }}
                   >
-                    {s.name.charAt(0)}
+                    {(s.name ?? "?")[0]?.toUpperCase() ?? "?"}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{s.name}</p>
+                    <p className="text-xs font-medium text-foreground truncate">{s.name ?? "Sans nom"}</p>
                     {cat && (
                       <p className="text-[10px] text-muted-foreground">{cat.icon} {cat.label}</p>
                     )}
@@ -214,10 +214,10 @@ export function TabSynthese({ stakeholders }: Props) {
                     className="h-6 w-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: color }}
                   >
-                    {s.name.charAt(0)}
+                    {(s.name ?? "?")[0]?.toUpperCase() ?? "?"}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{s.name}</p>
+                    <p className="text-xs font-medium text-foreground truncate">{s.name ?? "Sans nom"}</p>
                     {cat && (
                       <p className="text-[10px] text-muted-foreground">{cat.icon} {cat.label}</p>
                     )}
@@ -260,9 +260,9 @@ export function TabSynthese({ stakeholders }: Props) {
                           className="h-5 w-5 rounded text-white flex items-center justify-center font-bold text-[9px] shrink-0"
                           style={{ backgroundColor: color }}
                         >
-                          {s.name.charAt(0)}
+                          {(s.name ?? "?")[0]?.toUpperCase() ?? "?"}
                         </div>
-                        <span className="font-medium text-foreground">{s.name}</span>
+                        <span className="font-medium text-foreground">{s.name ?? "Sans nom"}</span>
                       </div>
                     </td>
                     <td className="px-3 py-2.5 hidden sm:table-cell">
