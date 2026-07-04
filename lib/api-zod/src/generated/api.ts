@@ -693,7 +693,9 @@ export const GetIssuesResponse = zod.object({
   "isCustom": zod.boolean(),
   "customId": zod.number().nullish(),
   "stakeholderScore": zod.number().nullish(),
-  "companyScore": zod.number().nullish()
+  "companyScore": zod.number().nullish(),
+  "impactScore": zod.number().nullish(),
+  "tendance": zod.string().nullish()
 }))
 })
 
@@ -730,12 +732,16 @@ export const upsertIssueRatingBodyStakeholderScoreMax = 5;
 
 export const upsertIssueRatingBodyCompanyScoreMax = 5;
 
+export const upsertIssueRatingBodyImpactScoreMax = 5;
+
 
 
 export const UpsertIssueRatingBody = zod.object({
   "issueKey": zod.string(),
-  "stakeholderScore": zod.number().min(1).max(upsertIssueRatingBodyStakeholderScoreMax).nullable(),
-  "companyScore": zod.number().min(1).max(upsertIssueRatingBodyCompanyScoreMax).nullable()
+  "stakeholderScore": zod.number().min(1).max(upsertIssueRatingBodyStakeholderScoreMax).nullish(),
+  "companyScore": zod.number().min(1).max(upsertIssueRatingBodyCompanyScoreMax).nullish(),
+  "impactScore": zod.number().min(1).max(upsertIssueRatingBodyImpactScoreMax).nullish(),
+  "tendance": zod.enum(['+', '=', '-']).nullish()
 })
 
 export const UpsertIssueRatingResponse = zod.object({
@@ -744,6 +750,8 @@ export const UpsertIssueRatingResponse = zod.object({
   "issueKey": zod.string(),
   "stakeholderScore": zod.number().nullish(),
   "companyScore": zod.number().nullish(),
+  "impactScore": zod.number().nullish(),
+  "tendance": zod.string().nullish(),
   "updatedAt": zod.coerce.date()
 })
 

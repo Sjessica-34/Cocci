@@ -21,6 +21,7 @@ export * from './issueAnalysisResult';
 export * from './issueRatedItem';
 export * from './issueRating';
 export * from './issueRatingInput';
+export * from './issueRatingInputTendance';
 export * from './issuesResponse';
 export * from './member';
 export * from './memberInvite';

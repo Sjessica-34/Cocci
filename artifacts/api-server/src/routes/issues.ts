@@ -46,6 +46,8 @@ router.get("/organizations/:orgId/issues", requireAuth, async (req, res): Promis
       customId: null,
       stakeholderScore: rating?.stakeholderScore ?? null,
       companyScore: rating?.companyScore ?? null,
+      impactScore: rating?.impactScore ?? null,
+      tendance: rating?.tendance ?? null,
     };
   });
 
@@ -60,6 +62,8 @@ router.get("/organizations/:orgId/issues", requireAuth, async (req, res): Promis
       customId: c.id,
       stakeholderScore: rating?.stakeholderScore ?? null,
       companyScore: rating?.companyScore ?? null,
+      impactScore: rating?.impactScore ?? null,
+      tendance: rating?.tendance ?? null,
     };
   });
 
@@ -73,21 +77,25 @@ router.put("/organizations/:orgId/issues/ratings", requireAuth, async (req, res)
   const userId = await verifyMembership(req.clerkUserId!, orgId);
   if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
 
-  const { issueKey, stakeholderScore, companyScore } = req.body as {
+  const { issueKey, stakeholderScore, companyScore, impactScore, tendance } = req.body as {
     issueKey: string;
     stakeholderScore: number | null;
     companyScore: number | null;
+    impactScore: number | null;
+    tendance: string | null;
   };
   if (!issueKey) { res.status(400).json({ error: "issueKey is required" }); return; }
 
   const [upserted] = await db
     .insert(issueRatingsTable)
-    .values({ organizationId: orgId, issueKey, stakeholderScore, companyScore })
+    .values({ organizationId: orgId, issueKey, stakeholderScore, companyScore, impactScore, tendance })
     .onConflictDoUpdate({
       target: [issueRatingsTable.organizationId, issueRatingsTable.issueKey],
       set: {
         stakeholderScore,
         companyScore,
+        impactScore,
+        tendance,
         updatedAt: new Date(),
       },
     })

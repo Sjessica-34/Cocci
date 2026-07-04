@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { IssueRatedItem } from "@workspace/api-client-react";
+import type { IssueRatedItem, IssueRatingInputTendance } from "@workspace/api-client-react";
 import {
   useGetIssues,
   useUpsertIssueRating,
@@ -9,7 +9,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ChevronDown, ChevronRight, Search, Info } from "lucide-react";
+import { Plus, Trash2, Search, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -40,72 +40,106 @@ const ISSUE_CATEGORIES_ORDER = [
   "Excellence opérationnelle",
   "Création de valeur locale",
   "Patrimoine et ancrage territorial",
-  "Personnalisés",
 ];
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "Changements climatiques": "#14b8a6",
-  "Biodiversité": "#22c55e",
-  "Communication / Marketing": "#f97316",
-  "Pratiques responsables des affaires": "#6366f1",
-  "Diversité, égalité et inclusion": "#ec4899",
-  "Santé et sécurité": "#ef4444",
-  "Économie circulaire": "#84cc16",
-  "Bien-être et vie quotidienne": "#8b5cf6",
-  "Excellence opérationnelle": "#3b82f6",
-  "Création de valeur locale": "#f59e0b",
-  "Patrimoine et ancrage territorial": "#10b981",
-  "Personnalisés": "#94a3b8",
-};
+function computePriorite(item: IssueRatedItem): { label: string; color: string } | null {
+  const scores = [item.stakeholderScore, item.companyScore, item.impactScore].filter(
+    (s): s is number => s != null,
+  );
+  if (scores.length === 0) return null;
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  if (avg >= 4) return { label: "Critique", color: "text-red-600 bg-red-50 border-red-200" };
+  if (avg >= 3) return { label: "Majeur", color: "text-amber-600 bg-amber-50 border-amber-200" };
+  return { label: "Modéré", color: "text-emerald-600 bg-emerald-50 border-emerald-200" };
+}
 
-function RatingPicker({
+function ScorePicker({
   value,
   onChange,
-  label,
 }: {
   value: number | null;
   onChange: (v: number | null) => void;
-  label: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] text-muted-foreground w-24 text-right shrink-0">{label}</span>
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            onClick={() => onChange(value === n ? null : n)}
-            className={cn(
-              "h-5 w-5 rounded text-[10px] font-semibold border transition-colors",
-              value === n
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-muted/40 text-muted-foreground border-border hover:border-primary hover:text-primary",
-            )}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          onClick={() => onChange(value === n ? null : n)}
+          className={cn(
+            "h-7 w-7 rounded text-xs font-bold border transition-all",
+            value != null && n <= value
+              ? "bg-slate-800 text-white border-slate-800"
+              : "bg-slate-100 text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600",
+          )}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const TENDANCE_OPTS: { v: IssueRatingInputTendance & string; label: string; active: string }[] = [
+  { v: "+", label: "+", active: "bg-emerald-100 text-emerald-700 border-emerald-300 font-bold" },
+  { v: "=", label: "=", active: "bg-blue-100 text-blue-700 border-blue-300 font-bold" },
+  { v: "-", label: "−", active: "bg-red-100 text-red-700 border-red-300 font-bold" },
+];
+
+function TendancePicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: IssueRatingInputTendance) => void;
+}) {
+  return (
+    <div className="flex gap-0.5">
+      {TENDANCE_OPTS.map((o) => (
+        <button
+          key={o.v}
+          onClick={() => onChange(value === o.v ? null : o.v)}
+          className={cn(
+            "h-7 w-8 rounded text-xs border transition-all",
+            value === o.v ? o.active : "bg-slate-100 text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
 
 type IssueRowProps = {
+  index: number;
   item: IssueRatedItem;
   orgId: number;
   onDelete?: () => void;
 };
 
-function IssueRow({ item, orgId, onDelete }: IssueRowProps) {
+function IssueRow({ index, item, orgId, onDelete }: IssueRowProps) {
   const qc = useQueryClient();
   const { mutate: upsert } = useUpsertIssueRating();
 
   const save = useCallback(
-    (stakeholderScore: number | null, companyScore: number | null) => {
+    (patch: Partial<{
+      stakeholderScore: number | null;
+      companyScore: number | null;
+      impactScore: number | null;
+      tendance: IssueRatingInputTendance;
+    }>) => {
       upsert(
         {
           orgId,
-          data: { issueKey: item.key, stakeholderScore, companyScore },
+          data: {
+            issueKey: item.key,
+            stakeholderScore: item.stakeholderScore ?? null,
+            companyScore: item.companyScore ?? null,
+            impactScore: item.impactScore ?? null,
+            tendance: (item.tendance ?? null) as IssueRatingInputTendance,
+            ...patch,
+          },
         },
         {
           onSuccess: () => {
@@ -114,39 +148,72 @@ function IssueRow({ item, orgId, onDelete }: IssueRowProps) {
         },
       );
     },
-    [upsert, orgId, item.key, qc],
+    [upsert, orgId, item, qc],
   );
 
-  const isRated = item.stakeholderScore != null && item.companyScore != null;
+  const priorite = computePriorite(item);
 
   return (
-    <div className={cn("flex flex-col sm:flex-row sm:items-center gap-2 px-3 py-2.5 border-b border-border last:border-0 hover:bg-muted/10 transition-colors", isRated && "bg-emerald-50/50 dark:bg-emerald-950/20")}>
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        {isRated && <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />}
-        {!isRated && <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/20 shrink-0" />}
-        <p className="text-xs text-foreground truncate">{item.label}</p>
+    <tr className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors group">
+      <td className="pl-4 pr-2 py-3 text-xs text-slate-400 font-medium w-8 select-none">{index}</td>
+      <td className="px-3 py-3 min-w-[180px]">
+        <span className="text-sm text-slate-800 font-medium leading-snug">{item.label}</span>
+        {item.isCustom && (
+          <span className="ml-1.5 text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+            Personnalisé
+          </span>
+        )}
+        <p className="text-[10px] text-slate-400 mt-0.5">{item.category}</p>
+      </td>
+      <td className="px-3 py-3">
+        <ScorePicker
+          value={item.stakeholderScore ?? null}
+          onChange={(v) => save({ stakeholderScore: v })}
+        />
+      </td>
+      <td className="px-3 py-3">
+        <ScorePicker
+          value={item.companyScore ?? null}
+          onChange={(v) => save({ companyScore: v })}
+        />
+      </td>
+      <td className="px-3 py-3">
+        <ScorePicker
+          value={item.impactScore ?? null}
+          onChange={(v) => save({ impactScore: v })}
+        />
+      </td>
+      <td className="px-3 py-3">
+        <TendancePicker
+          value={item.tendance ?? null}
+          onChange={(v) => save({ tendance: v })}
+        />
+      </td>
+      <td className="px-3 py-3 w-24 text-right">
+        {priorite ? (
+          <span
+            className={cn(
+              "inline-flex items-center px-2 py-0.5 rounded border text-xs font-semibold",
+              priorite.color,
+            )}
+          >
+            {priorite.label}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-300">—</span>
+        )}
+      </td>
+      <td className="pr-3 py-3 w-8">
         {item.isCustom && onDelete && (
           <button
             onClick={onDelete}
-            className="ml-auto shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
         )}
-      </div>
-      <div className="flex flex-col gap-1 shrink-0">
-        <RatingPicker
-          label="Parties prenantes"
-          value={item.stakeholderScore ?? null}
-          onChange={(v) => save(v, item.companyScore ?? null)}
-        />
-        <RatingPicker
-          label="Entreprise"
-          value={item.companyScore ?? null}
-          onChange={(v) => save(item.stakeholderScore ?? null, v)}
-        />
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
 
@@ -162,32 +229,22 @@ export function TabBibliotheque({ orgId }: Props) {
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newCategory, setNewCategory] = useState("");
 
   const items = data?.items ?? [];
-  const ratedCount = items.filter((i) => i.stakeholderScore != null && i.companyScore != null).length;
-
-  const toggleCat = (cat: string) =>
-    setCollapsed((s) => {
-      const n = new Set(s);
-      n.has(cat) ? n.delete(cat) : n.add(cat);
-      return n;
-    });
+  const ratedCount = items.filter(
+    (i) => i.stakeholderScore != null || i.companyScore != null || i.impactScore != null,
+  ).length;
 
   const filtered = search.trim()
-    ? items.filter((i) => i.label.toLowerCase().includes(search.toLowerCase()))
+    ? items.filter(
+        (i) =>
+          i.label.toLowerCase().includes(search.toLowerCase()) ||
+          i.category.toLowerCase().includes(search.toLowerCase()),
+      )
     : items;
-
-  const grouped = ISSUE_CATEGORIES_ORDER.map((cat) => {
-    const catItems =
-      cat === "Personnalisés"
-        ? filtered.filter((i) => i.isCustom)
-        : filtered.filter((i) => i.category === cat && !i.isCustom);
-    return { cat, items: catItems };
-  }).filter((g) => g.items.length > 0);
 
   function handleAddCustom() {
     if (!newLabel.trim() || !newCategory) return;
@@ -218,8 +275,10 @@ export function TabBibliotheque({ orgId }: Props) {
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+      <div className="space-y-2">
+        {[...Array(8)].map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full rounded-lg" />
+        ))}
       </div>
     );
   }
@@ -229,10 +288,10 @@ export function TabBibliotheque({ orgId }: Props) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Bibliothèque d'enjeux</h2>
-          <p className="text-sm text-muted-foreground">
-            {ratedCount} / {items.length} enjeux notés
-          </p>
+          <h2 className="text-lg font-semibold text-foreground">
+            Évaluation des enjeux — {filtered.length} entrées
+          </h2>
+          <p className="text-sm text-muted-foreground">{ratedCount} enjeux avec au moins une note</p>
         </div>
         <Button onClick={() => setAddOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1.5" />
@@ -240,19 +299,11 @@ export function TabBibliotheque({ orgId }: Props) {
         </Button>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-        <div
-          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-          style={{ width: items.length ? `${(ratedCount / items.length) * 100}%` : "0%" }}
-        />
-      </div>
-
       {/* Info */}
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200">
         <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-        <p className="text-xs text-blue-700 dark:text-blue-300">
-          Notez l'importance de chaque enjeu de 1 (peu important) à 5 (très important). Les 12 enjeux avec la meilleure moyenne seront analysés par l'IA.
+        <p className="text-xs text-blue-700">
+          Notez chaque enjeu de 1 à 5 sur trois axes : importance pour vos <strong>parties prenantes</strong>, pour votre <strong>entreprise</strong>, et l'<strong>impact</strong> potentiel. La <strong>tendance</strong> (+/=/−) indique si l'enjeu progresse, est stable ou se dégrade.
         </p>
       </div>
 
@@ -267,45 +318,35 @@ export function TabBibliotheque({ orgId }: Props) {
         />
       </div>
 
-      {/* Groups */}
-      <div className="space-y-2">
-        {grouped.map(({ cat, items: catItems }) => {
-          const color = CATEGORY_COLORS[cat] ?? "#94a3b8";
-          const isCollapsed = collapsed.has(cat);
-          const ratedInCat = catItems.filter((i) => i.stakeholderScore != null && i.companyScore != null).length;
-          return (
-            <div key={cat} className="rounded-lg border border-border overflow-hidden">
-              <button
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-muted/20 transition-colors"
-                style={{ backgroundColor: color + "12" }}
-                onClick={() => toggleCat(cat)}
-              >
-                <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                <span className="text-sm font-semibold text-foreground flex-1">{cat}</span>
-                <span className="text-xs text-muted-foreground">
-                  {ratedInCat}/{catItems.length}
-                </span>
-                {isCollapsed ? (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                )}
-              </button>
-              {!isCollapsed && (
-                <div>
-                  {catItems.map((item) => (
-                    <IssueRow
-                      key={item.key}
-                      item={item}
-                      orgId={orgId}
-                      onDelete={item.isCustom ? () => handleDelete(item) : undefined}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Table */}
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="pl-4 pr-2 py-2.5 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest w-8">#</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Enjeu</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest whitespace-nowrap">Parties prenantes</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Entreprise</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Impact</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Tendance</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Priorité</th>
+                <th className="pr-3 py-2.5 w-8" />
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-50">
+              {filtered.map((item, i) => (
+                <IssueRow
+                  key={item.key}
+                  index={i + 1}
+                  item={item}
+                  orgId={orgId}
+                  onDelete={item.isCustom ? () => handleDelete(item) : undefined}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add custom issue dialog */}
@@ -322,7 +363,7 @@ export function TabBibliotheque({ orgId }: Props) {
                   <SelectValue placeholder="Choisir une thématique…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ISSUE_CATEGORIES_ORDER.filter((c) => c !== "Personnalisés").map((c) => (
+                  {ISSUE_CATEGORIES_ORDER.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                   <SelectItem value="Autre">Autre</SelectItem>

@@ -5,6 +5,7 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { IssueRatingInputTendance } from './issueRatingInputTendance';
 
 export interface IssueRatingInput {
   issueKey: string;
@@ -13,11 +14,19 @@ export interface IssueRatingInput {
      * @maximum 5
      * @nullable
      */
-  stakeholderScore: number | null;
+  stakeholderScore?: number | null;
   /**
      * @minimum 1
      * @maximum 5
      * @nullable
      */
-  companyScore: number | null;
+  companyScore?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  impactScore?: number | null;
+  /** @nullable */
+  tendance?: IssueRatingInputTendance;
 }

@@ -14,7 +14,7 @@ const TABS = [
   { value: "guide", label: "Guide", icon: <BookOpen className="h-3.5 w-3.5" /> },
   { value: "bibliotheque", label: "Bibliothèque", icon: <Library className="h-3.5 w-3.5" /> },
   { value: "matrice", label: "Matrice", icon: <BarChart2 className="h-3.5 w-3.5" /> },
-  { value: "synthese", label: "Synthèse IA", icon: <Sparkles className="h-3.5 w-3.5" /> },
+  { value: "synthese", label: "Synthèse", icon: <Sparkles className="h-3.5 w-3.5" /> },
 ];
 
 function computeTop12(items: IssueRatedItem[]): Set<string> {

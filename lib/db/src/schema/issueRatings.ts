@@ -11,6 +11,8 @@ export const issueRatingsTable = pgTable(
     issueKey: text("issue_key").notNull(),
     stakeholderScore: integer("stakeholder_score"),
     companyScore: integer("company_score"),
+    impactScore: integer("impact_score"),
+    tendance: text("tendance"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [unique("issue_ratings_org_key_unique").on(t.organizationId, t.issueKey)],

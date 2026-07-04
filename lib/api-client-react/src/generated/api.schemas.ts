@@ -341,11 +341,27 @@ export interface IssueRatedItem {
   stakeholderScore?: number | null;
   /** @nullable */
   companyScore?: number | null;
+  /** @nullable */
+  impactScore?: number | null;
+  /** @nullable */
+  tendance?: string | null;
 }
 
 export interface IssuesResponse {
   items: IssueRatedItem[];
 }
+
+/**
+ * @nullable
+ */
+export type IssueRatingInputTendance = typeof IssueRatingInputTendance[keyof typeof IssueRatingInputTendance] | null;
+
+
+export const IssueRatingInputTendance = {
+  '+': '+',
+  '=': '=',
+  '-': '-',
+} as const;
 
 export interface IssueRatingInput {
   issueKey: string;
@@ -354,13 +370,21 @@ export interface IssueRatingInput {
      * @maximum 5
      * @nullable
      */
-  stakeholderScore: number | null;
+  stakeholderScore?: number | null;
   /**
      * @minimum 1
      * @maximum 5
      * @nullable
      */
-  companyScore: number | null;
+  companyScore?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  impactScore?: number | null;
+  /** @nullable */
+  tendance?: IssueRatingInputTendance;
 }
 
 export interface IssueRating {
@@ -371,6 +395,10 @@ export interface IssueRating {
   stakeholderScore?: number | null;
   /** @nullable */
   companyScore?: number | null;
+  /** @nullable */
+  impactScore?: number | null;
+  /** @nullable */
+  tendance?: string | null;
   updatedAt: string;
 }
 

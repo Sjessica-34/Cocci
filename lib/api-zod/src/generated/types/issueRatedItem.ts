@@ -17,4 +17,8 @@ export interface IssueRatedItem {
   stakeholderScore?: number | null;
   /** @nullable */
   companyScore?: number | null;
+  /** @nullable */
+  impactScore?: number | null;
+  /** @nullable */
+  tendance?: string | null;
 }
