@@ -16,13 +16,20 @@ export const STAKEHOLDER_CATEGORIES: StakeholderCategory[] = [
       "Représentants du personnel / CSE",
       "Actionnaires / Associés",
       "Alternants, stagiaires et apprentis",
+      "Syndicats",
     ],
   },
   {
     key: "clients",
     label: "Clients et utilisateurs",
     icon: "🤝",
-    subcategories: ["Clients", "Prospects", "Consommateurs / Utilisateurs finaux"],
+    subcategories: [
+      "Clients",
+      "Prospects",
+      "Consommateurs / Utilisateurs finaux",
+      "Distributeurs",
+      "Revendeurs",
+    ],
   },
   {
     key: "suppliers",
@@ -34,6 +41,8 @@ export const STAKEHOLDER_CATEGORIES: StakeholderCategory[] = [
       "Prestataires",
       "Partenaires commerciaux",
       "Organismes de certification / labellisation",
+      "Partenaires financiers",
+      "Partenaires techniques",
     ],
   },
   {
@@ -46,19 +55,38 @@ export const STAKEHOLDER_CATEGORIES: StakeholderCategory[] = [
       "Administrations",
       "Organismes de contrôle",
       "Autorités réglementaires",
+      "Agences publiques (ADEME, OFB, etc.)",
+      "Union européenne",
     ],
   },
   {
     key: "education",
     label: "Formation, recherche et innovation",
     icon: "🎓",
-    subcategories: ["Écoles", "Universités", "Organismes de formation", "Centres de recherche"],
+    subcategories: [
+      "Écoles",
+      "Universités",
+      "Organismes de formation",
+      "Centres de recherche",
+      "Incubateurs / pôles de compétitivité",
+    ],
   },
   {
     key: "civil",
     label: "Société civile",
     icon: "🌍",
-    subcategories: ["Associations", "ONG", "Riverains", "Médias", "Grand public"],
+    subcategories: [
+      "Associations",
+      "ONG",
+      "Riverains",
+      "Grand public",
+      "Médias locaux",
+      "Médias nationaux",
+      "Médias spécialisés",
+      "Influenceurs / Créateurs de contenu",
+      "Leaders d'opinion",
+      "Lanceurs d'alerte",
+    ],
   },
   {
     key: "networks",
@@ -69,13 +97,35 @@ export const STAKEHOLDER_CATEGORIES: StakeholderCategory[] = [
       "Fédérations",
       "Réseaux d'entreprises",
       "Chambres consulaires (CCI, CMA...)",
+      "Clusters",
+      "Associations professionnelles",
     ],
   },
   {
     key: "environment",
     label: "Environnement",
     icon: "🌿",
-    subcategories: ["Biodiversité", "Ressources naturelles", "Climat", "Générations futures"],
+    subcategories: [
+      "Biodiversité",
+      "Ressources naturelles",
+      "Climat",
+      "Générations futures",
+      "Écosystèmes",
+      "Eau",
+      "Sols",
+    ],
+  },
+  {
+    key: "finance",
+    label: "Finance",
+    icon: "📈",
+    subcategories: [
+      "Banques",
+      "Investisseurs",
+      "Assureurs",
+      "Organismes de financement",
+      "Analystes financiers",
+    ],
   },
   {
     key: "other",
@@ -94,6 +144,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   civil: "#10b981",
   networks: "#f97316",
   environment: "#22c55e",
+  finance: "#0ea5e9",
   other: "#94a3b8",
 };
 
@@ -106,6 +157,8 @@ export const CATEGORY_LIGHT_COLORS: Record<string, string> = {
   civil: "#d1fae5",
   networks: "#ffedd5",
   environment: "#dcfce7",
+  finance: "#e0f2fe",
+  other: "#f1f5f9",
 };
 
 export function getCategoryByKey(key: string): StakeholderCategory | undefined {

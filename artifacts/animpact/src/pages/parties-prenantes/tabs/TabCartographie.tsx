@@ -18,7 +18,18 @@ const RING_RADII: Record<number, number> = {
   1: 246,
 };
 const ALL_INTEREST = [5, 4, 3, 2, 1] as const;
-const LABEL_R = 295;
+const LABEL_R = 296;
+
+// Sector arc path (donut slice)
+function arcPath(cx: number, cy: number, r1: number, r2: number, a1: number, a2: number): string {
+  const large = a2 - a1 > Math.PI ? 1 : 0;
+  const p = (r: number, a: number) => [cx + r * Math.cos(a), cy + r * Math.sin(a)] as const;
+  const [x1, y1] = p(r1, a1);
+  const [x2, y2] = p(r2, a1);
+  const [x3, y3] = p(r2, a2);
+  const [x4, y4] = p(r1, a2);
+  return `M${x1},${y1} L${x2},${y2} A${r2},${r2},0,${large},1,${x3},${y3} L${x4},${y4} A${r1},${r1},0,${large},0,${x1},${y1}Z`;
+}
 
 type PlacedNode = Stakeholder & {
   x: number;
@@ -44,18 +55,16 @@ function computePositions(stakeholders: Stakeholder[]): PlacedNode[] {
   activeCats.forEach((cat, ci) => {
     const sectorCenter = ci * sectorAngle - Math.PI / 2;
     const items = byCategory[cat.key] ?? [];
-
     const byInterest: Record<number, Stakeholder[]> = {};
     items.forEach((s) => {
       const lvl = Math.max(1, Math.min(5, Math.round(s.interest)));
       if (!byInterest[lvl]) byInterest[lvl] = [];
       byInterest[lvl].push(s);
     });
-
     Object.entries(byInterest).forEach(([lvlStr, lvlItems]) => {
       const lvl = Number(lvlStr);
       const r = RING_RADII[lvl];
-      const maxSpread = Math.min(sectorAngle * 0.72, (Math.PI * 2) / 5);
+      const maxSpread = Math.min(sectorAngle * 0.7, (Math.PI * 2) / 5);
       lvlItems.forEach((s, si) => {
         const t = lvlItems.length === 1 ? 0.5 : si / (lvlItems.length - 1);
         const angle = sectorCenter + (t - 0.5) * maxSpread;
@@ -74,7 +83,7 @@ function computePositions(stakeholders: Stakeholder[]): PlacedNode[] {
   return placed;
 }
 
-function wrapLabel(text: string, maxChars = 15): string[] {
+function wrapLabel(text: string, maxChars = 14): string[] {
   const upper = text.toUpperCase();
   const words = upper.split(" ");
   const lines: string[] = [];
@@ -135,6 +144,21 @@ export function TabCartographie({ stakeholders }: Props) {
           style={{ maxHeight: 680 }}
           className="select-none"
         >
+          {/* Colored sector backgrounds */}
+          {activeCats.map((cat, ci) => {
+            const halfSector = sectorAngle / 2;
+            const a1 = ci * sectorAngle - Math.PI / 2 - halfSector;
+            const a2 = ci * sectorAngle - Math.PI / 2 + halfSector;
+            return (
+              <path
+                key={cat.key + "_bg"}
+                d={arcPath(CX, CY, CENTER_R + 2, RING_RADII[1] + 8, a1, a2)}
+                fill={CATEGORY_COLORS[cat.key] ?? "#94a3b8"}
+                opacity={0.07}
+              />
+            );
+          })}
+
           {/* 5 concentric rings */}
           {ALL_INTEREST.map((lvl) => (
             <circle
@@ -142,14 +166,14 @@ export function TabCartographie({ stakeholders }: Props) {
               cx={CX}
               cy={CY}
               r={RING_RADII[lvl]}
-              fill={lvl === 5 ? "rgba(20,184,166,0.04)" : "none"}
+              fill="none"
               stroke="#e2e8f0"
               strokeWidth={lvl === 3 ? 1.5 : 1}
-              strokeDasharray={lvl === 3 ? "none" : "5 5"}
+              strokeDasharray={lvl === 3 ? undefined : "5 5"}
             />
           ))}
 
-          {/* Interest level labels on rings */}
+          {/* Interest level labels */}
           {ALL_INTEREST.map((lvl) => (
             <text
               key={lvl}
@@ -163,25 +187,25 @@ export function TabCartographie({ stakeholders }: Props) {
             </text>
           ))}
 
-          {/* Sector dividers (subtle dashed lines) */}
+          {/* Sector dividers */}
           {activeCats.length > 1 &&
             activeCats.map((_, ci) => {
               const angle = ci * sectorAngle - Math.PI / 2 - sectorAngle / 2;
               return (
                 <line
                   key={ci}
-                  x1={CX + (CENTER_R + 2) * Math.cos(angle)}
-                  y1={CY + (CENTER_R + 2) * Math.sin(angle)}
-                  x2={CX + (RING_RADII[1] + 8) * Math.cos(angle)}
-                  y2={CY + (RING_RADII[1] + 8) * Math.sin(angle)}
-                  stroke="#e2e8f0"
+                  x1={CX + (CENTER_R + 3) * Math.cos(angle)}
+                  y1={CY + (CENTER_R + 3) * Math.sin(angle)}
+                  x2={CX + (RING_RADII[1] + 9) * Math.cos(angle)}
+                  y2={CY + (RING_RADII[1] + 9) * Math.sin(angle)}
+                  stroke="#cbd5e1"
                   strokeWidth={1}
                   strokeDasharray="3 5"
                 />
               );
             })}
 
-          {/* Category labels (full name, uppercase, colored) */}
+          {/* Category labels — full name, uppercase, colored */}
           {activeCats.map((cat, ci) => {
             const angle = ci * sectorAngle - Math.PI / 2;
             const lx = CX + LABEL_R * Math.cos(angle);
@@ -200,11 +224,7 @@ export function TabCartographie({ stakeholders }: Props) {
                 letterSpacing={0.3}
               >
                 {lines.map((line, li) => (
-                  <tspan
-                    key={li}
-                    x={lx}
-                    y={ly - totalH / 2 + li * lineH + lineH / 2}
-                  >
+                  <tspan key={li} x={lx} y={ly - totalH / 2 + li * lineH + lineH / 2}>
                     {line}
                   </tspan>
                 ))}
@@ -214,9 +234,30 @@ export function TabCartographie({ stakeholders }: Props) {
 
           {/* Center circle */}
           <circle cx={CX} cy={CY} r={CENTER_R} fill="hsl(175 60% 22%)" />
-          <text textAnchor="middle" fontSize={8} fill="white" fontWeight={700} letterSpacing={0.5}>
-            <tspan x={CX} y={CY - 5}>VOTRE</tspan>
-            <tspan x={CX} y={CY + 7}>ENTREPRISE</tspan>
+
+          {/* Building icon */}
+          <g transform={`translate(${CX}, ${CY - 10})`}>
+            {/* Roof */}
+            <polygon points="0,-11 -10,-4 10,-4" fill="white" opacity={0.9} />
+            {/* Body */}
+            <rect x="-10" y="-4" width="20" height="13" fill="white" opacity={0.9} rx="0.5" />
+            {/* Door */}
+            <rect x="-4" y="3" width="7" height="6" fill="hsl(175 60% 22%)" />
+            {/* Windows left */}
+            <rect x="-9" y="-2" width="4" height="3" fill="hsl(175 60% 22%)" rx="0.5" />
+            {/* Windows right */}
+            <rect x="5" y="-2" width="4" height="3" fill="hsl(175 60% 22%)" rx="0.5" />
+          </g>
+          <text
+            x={CX}
+            y={CY + 38}
+            textAnchor="middle"
+            fontSize={7}
+            fill="white"
+            fontWeight={700}
+            letterSpacing={0.5}
+          >
+            ENTREPRISE
           </text>
 
           {/* Stakeholder nodes */}
@@ -256,7 +297,7 @@ export function TabCartographie({ stakeholders }: Props) {
                 {truncated && (
                   <text
                     x={node.x}
-                    y={node.y + NODE_R + 9}
+                    y={node.y + NODE_R + 10}
                     textAnchor="middle"
                     fontSize={7}
                     fill="#475569"
