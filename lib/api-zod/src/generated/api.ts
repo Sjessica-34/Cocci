@@ -496,6 +496,166 @@ export const PublishAdminResourceResponse = zod.object({
 
 
 /**
+ * @summary List all stakeholders for an organization
+ */
+export const ListStakeholdersParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const listStakeholdersResponseInfluenceMax = 5;
+
+export const listStakeholdersResponseInterestMax = 5;
+
+
+
+export const ListStakeholdersResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "subcategory": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "influence": zod.number().min(1).max(listStakeholdersResponseInfluenceMax),
+  "interest": zod.number().min(1).max(listStakeholdersResponseInterestMax),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListStakeholdersResponse = zod.array(ListStakeholdersResponseItem)
+
+
+/**
+ * @summary Create a stakeholder
+ */
+export const CreateStakeholderParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+
+export const createStakeholderBodyInfluenceMax = 5;
+
+export const createStakeholderBodyInterestMax = 5;
+
+
+
+export const CreateStakeholderBody = zod.object({
+  "name": zod.string().min(1),
+  "category": zod.string(),
+  "subcategory": zod.string().optional(),
+  "description": zod.string().optional(),
+  "influence": zod.number().min(1).max(createStakeholderBodyInfluenceMax),
+  "interest": zod.number().min(1).max(createStakeholderBodyInterestMax),
+  "notes": zod.string().optional()
+})
+
+export const createStakeholderResponseInfluenceMax = 5;
+
+export const createStakeholderResponseInterestMax = 5;
+
+
+
+export const CreateStakeholderResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "subcategory": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "influence": zod.number().min(1).max(createStakeholderResponseInfluenceMax),
+  "interest": zod.number().min(1).max(createStakeholderResponseInterestMax),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get a single stakeholder
+ */
+export const GetStakeholderParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const getStakeholderResponseInfluenceMax = 5;
+
+export const getStakeholderResponseInterestMax = 5;
+
+
+
+export const GetStakeholderResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "subcategory": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "influence": zod.number().min(1).max(getStakeholderResponseInfluenceMax),
+  "interest": zod.number().min(1).max(getStakeholderResponseInterestMax),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a stakeholder
+ */
+export const UpdateStakeholderParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+
+export const updateStakeholderBodyInfluenceMax = 5;
+
+export const updateStakeholderBodyInterestMax = 5;
+
+
+
+export const UpdateStakeholderBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "category": zod.string().optional(),
+  "subcategory": zod.string().optional(),
+  "description": zod.string().optional(),
+  "influence": zod.number().min(1).max(updateStakeholderBodyInfluenceMax).optional(),
+  "interest": zod.number().min(1).max(updateStakeholderBodyInterestMax).optional(),
+  "notes": zod.string().optional()
+})
+
+export const updateStakeholderResponseInfluenceMax = 5;
+
+export const updateStakeholderResponseInterestMax = 5;
+
+
+
+export const UpdateStakeholderResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "subcategory": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "influence": zod.number().min(1).max(updateStakeholderResponseInfluenceMax),
+  "interest": zod.number().min(1).max(updateStakeholderResponseInterestMax),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a stakeholder
+ */
+export const DeleteStakeholderParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const DeleteStakeholderResponse = zod.void()
+
+
+/**
  * @summary List published resources for an organization (client)
  */
 export const ListOrgResourcesParams = zod.object({

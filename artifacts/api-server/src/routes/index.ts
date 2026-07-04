@@ -6,6 +6,7 @@ import membersRouter from "./members";
 import dashboardRouter from "./dashboard";
 import adminRouter from "./admin";
 import resourcesRouter from "./resources";
+import stakeholdersRouter from "./stakeholders";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(membersRouter);
 router.use(dashboardRouter);
 router.use(adminRouter);
 router.use(resourcesRouter);
+router.use(stakeholdersRouter);
 
 export default router;

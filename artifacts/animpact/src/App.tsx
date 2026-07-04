@@ -23,7 +23,6 @@ import { AdminUsers } from "@/pages/admin/users";
 import { Resources } from "@/pages/resources";
 import {
   Enjeux,
-  PartiesPrenantes,
   Biodiversite,
   DemarcheRse,
   BilanCarbone,
@@ -31,6 +30,7 @@ import {
   ImpactScore,
   RapportRse,
 } from "@/pages/stubs";
+import { PartiesPrenantes } from "@/pages/parties-prenantes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";

@@ -35,6 +35,9 @@ import type {
   Resource,
   ResourceInput,
   ResourcePublishUpdate,
+  Stakeholder,
+  StakeholderInput,
+  StakeholderUpdate,
   SuperAdminUpdate,
   User,
   UserUpdate
@@ -1697,6 +1700,381 @@ export const usePublishAdminResource = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getPublishAdminResourceMutationOptions(options));
+    }
+
+export const getListStakeholdersUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/stakeholders`
+}
+
+/**
+ * @summary List all stakeholders for an organization
+ */
+export const listStakeholders = async (orgId: number, options?: RequestInit): Promise<Stakeholder[]> => {
+
+  return customFetch<Stakeholder[]>(getListStakeholdersUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListStakeholdersQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/stakeholders`
+    ] as const;
+    }
+
+
+export const getListStakeholdersQueryOptions = <TData = Awaited<ReturnType<typeof listStakeholders>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listStakeholders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListStakeholdersQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listStakeholders>>> = ({ signal }) => listStakeholders(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listStakeholders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListStakeholdersQueryResult = NonNullable<Awaited<ReturnType<typeof listStakeholders>>>
+export type ListStakeholdersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all stakeholders for an organization
+ */
+
+export function useListStakeholders<TData = Awaited<ReturnType<typeof listStakeholders>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listStakeholders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListStakeholdersQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateStakeholderUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/stakeholders`
+}
+
+/**
+ * @summary Create a stakeholder
+ */
+export const createStakeholder = async (orgId: number,
+    stakeholderInput: StakeholderInput, options?: RequestInit): Promise<Stakeholder> => {
+
+  return customFetch<Stakeholder>(getCreateStakeholderUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(stakeholderInput)
+  }
+);}
+
+
+
+
+export const getCreateStakeholderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStakeholder>>, TError,{orgId: number;data: BodyType<StakeholderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStakeholder>>, TError,{orgId: number;data: BodyType<StakeholderInput>}, TContext> => {
+
+const mutationKey = ['createStakeholder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStakeholder>>, {orgId: number;data: BodyType<StakeholderInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createStakeholder(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStakeholderMutationResult = NonNullable<Awaited<ReturnType<typeof createStakeholder>>>
+    export type CreateStakeholderMutationBody = BodyType<StakeholderInput>
+    export type CreateStakeholderMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a stakeholder
+ */
+export const useCreateStakeholder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStakeholder>>, TError,{orgId: number;data: BodyType<StakeholderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createStakeholder>>,
+        TError,
+        {orgId: number;data: BodyType<StakeholderInput>},
+        TContext
+      > => {
+      return useMutation(getCreateStakeholderMutationOptions(options));
+    }
+
+export const getGetStakeholderUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/stakeholders/${id}`
+}
+
+/**
+ * @summary Get a single stakeholder
+ */
+export const getStakeholder = async (orgId: number,
+    id: number, options?: RequestInit): Promise<Stakeholder> => {
+
+  return customFetch<Stakeholder>(getGetStakeholderUrl(orgId,id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStakeholderQueryKey = (orgId: number,
+    id: number,) => {
+    return [
+    `/api/organizations/${orgId}/stakeholders/${id}`
+    ] as const;
+    }
+
+
+export const getGetStakeholderQueryOptions = <TData = Awaited<ReturnType<typeof getStakeholder>>, TError = ErrorType<void>>(orgId: number,
+    id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStakeholder>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStakeholderQueryKey(orgId,id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStakeholder>>> = ({ signal }) => getStakeholder(orgId,id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined && id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStakeholder>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStakeholderQueryResult = NonNullable<Awaited<ReturnType<typeof getStakeholder>>>
+export type GetStakeholderQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a single stakeholder
+ */
+
+export function useGetStakeholder<TData = Awaited<ReturnType<typeof getStakeholder>>, TError = ErrorType<void>>(
+ orgId: number,
+    id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStakeholder>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStakeholderQueryOptions(orgId,id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateStakeholderUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/stakeholders/${id}`
+}
+
+/**
+ * @summary Update a stakeholder
+ */
+export const updateStakeholder = async (orgId: number,
+    id: number,
+    stakeholderUpdate: StakeholderUpdate, options?: RequestInit): Promise<Stakeholder> => {
+
+  return customFetch<Stakeholder>(getUpdateStakeholderUrl(orgId,id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(stakeholderUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateStakeholderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStakeholder>>, TError,{orgId: number;id: number;data: BodyType<StakeholderUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateStakeholder>>, TError,{orgId: number;id: number;data: BodyType<StakeholderUpdate>}, TContext> => {
+
+const mutationKey = ['updateStakeholder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateStakeholder>>, {orgId: number;id: number;data: BodyType<StakeholderUpdate>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateStakeholder(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateStakeholderMutationResult = NonNullable<Awaited<ReturnType<typeof updateStakeholder>>>
+    export type UpdateStakeholderMutationBody = BodyType<StakeholderUpdate>
+    export type UpdateStakeholderMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a stakeholder
+ */
+export const useUpdateStakeholder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStakeholder>>, TError,{orgId: number;id: number;data: BodyType<StakeholderUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateStakeholder>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<StakeholderUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateStakeholderMutationOptions(options));
+    }
+
+export const getDeleteStakeholderUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/stakeholders/${id}`
+}
+
+/**
+ * @summary Delete a stakeholder
+ */
+export const deleteStakeholder = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteStakeholderUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteStakeholderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStakeholder>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteStakeholder>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteStakeholder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteStakeholder>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteStakeholder(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteStakeholderMutationResult = NonNullable<Awaited<ReturnType<typeof deleteStakeholder>>>
+
+    export type DeleteStakeholderMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a stakeholder
+ */
+export const useDeleteStakeholder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStakeholder>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteStakeholder>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteStakeholderMutationOptions(options));
     }
 
 export const getListOrgResourcesUrl = (orgId: number,) => {

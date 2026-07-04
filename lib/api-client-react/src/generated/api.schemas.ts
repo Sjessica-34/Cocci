@@ -268,6 +268,69 @@ export interface ResourcePublishUpdate {
   isPublished: boolean;
 }
 
+export interface Stakeholder {
+  id: number;
+  organizationId: number;
+  name: string;
+  category: string;
+  /** @nullable */
+  subcategory?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  influence: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  interest: number;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StakeholderInput {
+  /** @minLength 1 */
+  name: string;
+  category: string;
+  subcategory?: string;
+  description?: string;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  influence: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  interest: number;
+  notes?: string;
+}
+
+export interface StakeholderUpdate {
+  /** @minLength 1 */
+  name?: string;
+  category?: string;
+  subcategory?: string;
+  description?: string;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  influence?: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  interest?: number;
+  notes?: string;
+}
+
 export interface DashboardSummary {
   organizationId: number;
   memberCount: number;

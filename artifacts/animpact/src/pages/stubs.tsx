@@ -12,7 +12,6 @@ function ModuleStub({ title }: { title: string }) {
 }
 
 export function Enjeux() { return <ModuleStub title="Mes enjeux" />; }
-export function PartiesPrenantes() { return <ModuleStub title="Mes parties prenantes" />; }
 export function Biodiversite() { return <ModuleStub title="Mes dépendances à la biodiversité" />; }
 export function DemarcheRse() { return <ModuleStub title="Ma démarche RSE" />; }
 export function BilanCarbone() { return <ModuleStub title="Mon bilan carbone" />; }
