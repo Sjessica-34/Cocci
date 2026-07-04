@@ -7,7 +7,7 @@ export const stakeholdersTable = pgTable("stakeholders", {
   organizationId: integer("organization_id")
     .notNull()
     .references(() => organizationsTable.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
+  name: text("name"),
   category: text("category").notNull(),
   subcategory: text("subcategory"),
   description: text("description"),

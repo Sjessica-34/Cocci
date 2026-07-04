@@ -68,15 +68,15 @@ router.post(
       return;
     }
     const { name, category, subcategory, description, influence, interest, notes } = req.body;
-    if (!name || !category || influence == null || interest == null) {
-      res.status(400).json({ error: "Missing required fields: name, category, influence, interest" });
+    if (!category || influence == null || interest == null) {
+      res.status(400).json({ error: "Missing required fields: category, influence, interest" });
       return;
     }
     const [created] = await db
       .insert(stakeholdersTable)
       .values({
         organizationId: orgId,
-        name: String(name),
+        name: name ? String(name) : null,
         category: String(category),
         subcategory: subcategory ? String(subcategory) : null,
         description: description ? String(description) : null,

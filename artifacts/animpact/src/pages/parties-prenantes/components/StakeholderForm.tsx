@@ -91,7 +91,7 @@ export function StakeholderForm({ orgId, stakeholder, open, onClose }: Props) {
   const handleSave = useCallback(
     (values: FormValues = form) => {
       const payload = {
-        name: values.name.trim(),
+        name: values.name.trim() || undefined,
         category: values.category,
         subcategory: values.subcategory || undefined,
         influence: values.influence,
@@ -100,7 +100,7 @@ export function StakeholderForm({ orgId, stakeholder, open, onClose }: Props) {
         notes: values.notes || undefined,
       };
 
-      if (!payload.name || !payload.category) return;
+      if (!payload.category) return;
 
       if (isEdit && stakeholder) {
         setSaveStatus("saving");
@@ -149,14 +149,16 @@ export function StakeholderForm({ orgId, stakeholder, open, onClose }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim() || !form.category) {
-      toast({ variant: "destructive", title: "Le nom et la catégorie sont obligatoires." });
+    if (!form.category) {
+      toast({ variant: "destructive", title: "La catégorie est obligatoire." });
       return;
     }
     handleSave(form);
     if (!isEdit) return;
     onClose();
   }
+
+  const isOtherCategory = form.category === "other";
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -170,68 +172,76 @@ export function StakeholderForm({ orgId, stakeholder, open, onClose }: Props) {
         <form onSubmit={handleSubmit} className="space-y-5 py-1">
           {/* Nom */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Nom <span className="text-destructive">*</span>
-            </label>
+            <label className="text-sm font-medium text-foreground">Nom</label>
             <Input
               placeholder="Ex : Comité de direction, Clients PME…"
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
-              required
             />
           </div>
 
-          {/* Catégorie + Sous-catégorie */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Catégorie */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">
+              Catégorie <span className="text-destructive">*</span>
+            </label>
+            <Select
+              value={form.category}
+              onValueChange={(v) => {
+                set("category", v);
+                set("subcategory", "");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choisir une catégorie…" />
+              </SelectTrigger>
+              <SelectContent>
+                {STAKEHOLDER_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.key} value={cat.key}>
+                    {cat.icon} {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sous-catégorie ou champ libre "Autre" */}
+          {form.category && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">
-                Catégorie <span className="text-destructive">*</span>
+                {isOtherCategory ? "Précisez la catégorie" : "Sous-catégorie"}
               </label>
-              <Select
-                value={form.category}
-                onValueChange={(v) => {
-                  set("category", v);
-                  set("subcategory", "");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STAKEHOLDER_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.key} value={cat.key}>
-                      {cat.icon} {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isOtherCategory ? (
+                <Input
+                  placeholder="Ex : Syndicat, Médias locaux, Partenaire stratégique…"
+                  value={form.subcategory}
+                  onChange={(e) => set("subcategory", e.target.value)}
+                />
+              ) : (
+                <Select
+                  value={form.subcategory}
+                  onValueChange={(v) => set("subcategory", v)}
+                  disabled={subcategories.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Optionnel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>
+                        {getCategoryByKey(form.category)?.label ?? "Catégorie"}
+                      </SelectLabel>
+                      {subcategories.map((sub) => (
+                        <SelectItem key={sub} value={sub}>
+                          {sub}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Sous-catégorie</label>
-              <Select
-                value={form.subcategory}
-                onValueChange={(v) => set("subcategory", v)}
-                disabled={subcategories.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Optionnel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>
-                      {getCategoryByKey(form.category)?.label ?? "Catégorie"}
-                    </SelectLabel>
-                    {subcategories.map((sub) => (
-                      <SelectItem key={sub} value={sub}>
-                        {sub}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          )}
 
           {/* Ratings */}
           <div className="space-y-4 bg-muted/30 rounded-lg p-4">

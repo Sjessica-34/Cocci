@@ -77,6 +77,12 @@ export const STAKEHOLDER_CATEGORIES: StakeholderCategory[] = [
     icon: "🌿",
     subcategories: ["Biodiversité", "Ressources naturelles", "Climat", "Générations futures"],
   },
+  {
+    key: "other",
+    label: "Autre",
+    icon: "✏️",
+    subcategories: [],
+  },
 ];
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -88,6 +94,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   civil: "#10b981",
   networks: "#f97316",
   environment: "#22c55e",
+  other: "#94a3b8",
 };
 
 export const CATEGORY_LIGHT_COLORS: Record<string, string> = {
