@@ -60,6 +60,7 @@ function EspaceClientPanel() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { currentOrgId } = useCurrentOrganization();
+  const [, navigate] = useLocation();
 
   const { data: orgs } = useListAdminOrganizations({
     query: { queryKey: getListAdminOrganizationsQueryKey() },
@@ -86,6 +87,7 @@ function EspaceClientPanel() {
     setCurrentOrg(id);
     setDropdownOpen(false);
     setSearch("");
+    navigate("/dashboard");
   }
 
   return (
@@ -136,18 +138,25 @@ function EspaceClientPanel() {
             <p className="text-[9px] uppercase tracking-widest text-sidebar-foreground/30 font-medium px-0.5">
               Entreprise sélectionnée
             </p>
-            <button
-              onClick={() => setDropdownOpen(true)}
-              className="w-full flex items-center gap-2 bg-white/8 hover:bg-white/12 rounded-md px-2 py-1.5 transition-colors"
-            >
-              <div className="h-6 w-6 rounded bg-sidebar-primary flex items-center justify-center text-[10px] font-bold text-sidebar-primary-foreground shrink-0">
-                {orgInitials(currentOrg.name)}
-              </div>
-              <span className="flex-1 text-[11px] font-medium text-sidebar-foreground truncate text-left">
-                {currentOrg.name}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground/40 shrink-0" />
-            </button>
+            <div className="flex items-center gap-1">
+              <Link href="/dashboard" className="flex-1">
+                <button className="w-full flex items-center gap-2 bg-sidebar-accent/60 hover:bg-sidebar-accent rounded-md px-2 py-1.5 transition-colors">
+                  <div className="h-6 w-6 rounded bg-sidebar-primary flex items-center justify-center text-[10px] font-bold text-sidebar-primary-foreground shrink-0">
+                    {orgInitials(currentOrg.name)}
+                  </div>
+                  <span className="flex-1 text-[11px] font-semibold text-sidebar-foreground truncate text-left">
+                    {currentOrg.name}
+                  </span>
+                </button>
+              </Link>
+              <button
+                onClick={() => setDropdownOpen(true)}
+                className="h-8 w-8 shrink-0 flex items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-white/10 transition-colors"
+                title="Changer d'entreprise"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         )}
 
