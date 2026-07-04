@@ -678,3 +678,120 @@ export const ListOrgResourcesResponseItem = zod.object({
 export const ListOrgResourcesResponse = zod.array(ListOrgResourcesResponseItem)
 
 
+/**
+ * @summary Get all issues with ratings for an organization
+ */
+export const GetIssuesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetIssuesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "category": zod.string(),
+  "label": zod.string(),
+  "isCustom": zod.boolean(),
+  "customId": zod.number().nullish(),
+  "stakeholderScore": zod.number().nullish(),
+  "companyScore": zod.number().nullish()
+}))
+})
+
+
+/**
+ * @summary Add a custom issue
+ */
+export const CreateCustomIssueParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const CreateCustomIssueBody = zod.object({
+  "category": zod.string(),
+  "label": zod.string()
+})
+
+export const CreateCustomIssueResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "category": zod.string(),
+  "label": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Set stakeholder and/or company score for an issue
+ */
+export const UpsertIssueRatingParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const upsertIssueRatingBodyStakeholderScoreMax = 5;
+
+export const upsertIssueRatingBodyCompanyScoreMax = 5;
+
+
+
+export const UpsertIssueRatingBody = zod.object({
+  "issueKey": zod.string(),
+  "stakeholderScore": zod.number().min(1).max(upsertIssueRatingBodyStakeholderScoreMax).nullable(),
+  "companyScore": zod.number().min(1).max(upsertIssueRatingBodyCompanyScoreMax).nullable()
+})
+
+export const UpsertIssueRatingResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "issueKey": zod.string(),
+  "stakeholderScore": zod.number().nullish(),
+  "companyScore": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a custom issue
+ */
+export const DeleteCustomIssueParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "issueId": zod.coerce.number()
+})
+
+export const DeleteCustomIssueResponse = zod.void()
+
+
+/**
+ * @summary Run AI analysis on top 12 material issues
+ */
+export const AnalyzeIssuesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const AnalyzeIssuesResponse = zod.object({
+  "superIssues": zod.array(zod.object({
+  "title": zod.string(),
+  "summary": zod.string(),
+  "issues": zod.array(zod.string()),
+  "avgScore": zod.number()
+})),
+  "generatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the latest saved AI analysis
+ */
+export const GetIssueAnalysisParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetIssueAnalysisResponse = zod.object({
+  "superIssues": zod.array(zod.object({
+  "title": zod.string(),
+  "summary": zod.string(),
+  "issues": zod.array(zod.string()),
+  "avgScore": zod.number()
+})),
+  "generatedAt": zod.coerce.date()
+})
+
+

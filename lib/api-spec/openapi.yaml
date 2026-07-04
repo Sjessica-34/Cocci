@@ -719,6 +719,166 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── ISSUES ─────────────────────────────────────────────────────────────────
+  /organizations/{orgId}/issues:
+    get:
+      operationId: getIssues
+      tags: [issues]
+      summary: Get all issues with ratings for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Issues list with ratings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssuesResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    post:
+      operationId: createCustomIssue
+      tags: [issues]
+      summary: Add a custom issue
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomIssueInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomIssue"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/issues/ratings:
+    put:
+      operationId: upsertIssueRating
+      tags: [issues]
+      summary: Set stakeholder and/or company score for an issue
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueRatingInput"
+      responses:
+        "200":
+          description: Updated rating
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueRating"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/issues/custom/{issueId}:
+    delete:
+      operationId: deleteCustomIssue
+      tags: [issues]
+      summary: Delete a custom issue
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /organizations/{orgId}/issues/analyze:
+    post:
+      operationId: analyzeIssues
+      tags: [issues]
+      summary: Run AI analysis on top 12 material issues
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: AI analysis with super-issues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueAnalysisResult"
+        "400":
+          description: Not enough rated issues
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/issues/analysis:
+    get:
+      operationId: getIssueAnalysis
+      tags: [issues]
+      summary: Get the latest saved AI analysis
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Latest analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueAnalysisResult"
+        "404":
+          description: No analysis yet
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
 components:
   schemas:
     HealthStatus:
@@ -1103,6 +1263,120 @@ components:
           maximum: 5
         notes:
           type: string
+
+    # ─── ISSUES ────────────────────────────────────────────────────────────────
+    IssueRatedItem:
+      type: object
+      required: [key, category, label, isCustom]
+      properties:
+        key:
+          type: string
+        category:
+          type: string
+        label:
+          type: string
+        isCustom:
+          type: boolean
+        customId:
+          type: ["integer", "null"]
+        stakeholderScore:
+          type: ["integer", "null"]
+        companyScore:
+          type: ["integer", "null"]
+
+    IssuesResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/IssueRatedItem"
+
+    IssueRatingInput:
+      type: object
+      required: [issueKey, stakeholderScore, companyScore]
+      properties:
+        issueKey:
+          type: string
+        stakeholderScore:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        companyScore:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+
+    IssueRating:
+      type: object
+      required: [id, organizationId, issueKey, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        issueKey:
+          type: string
+        stakeholderScore:
+          type: ["integer", "null"]
+        companyScore:
+          type: ["integer", "null"]
+        updatedAt:
+          type: string
+          format: date-time
+
+    CustomIssueInput:
+      type: object
+      required: [category, label]
+      properties:
+        category:
+          type: string
+        label:
+          type: string
+
+    CustomIssue:
+      type: object
+      required: [id, organizationId, category, label, createdAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        category:
+          type: string
+        label:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    SuperIssue:
+      type: object
+      required: [title, summary, issues, avgScore]
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        issues:
+          type: array
+          items:
+            type: string
+        avgScore:
+          type: number
+
+    IssueAnalysisResult:
+      type: object
+      required: [superIssues, generatedAt]
+      properties:
+        superIssues:
+          type: array
+          items:
+            $ref: "#/components/schemas/SuperIssue"
+        generatedAt:
+          type: string
+          format: date-time
 
     # ─── DASHBOARD SUMMARY ─────────────────────────────────────────────────────
     DashboardSummary:

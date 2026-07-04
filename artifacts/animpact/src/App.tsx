@@ -22,7 +22,6 @@ import { AdminOrganizationDetail } from "@/pages/admin/organization-detail";
 import { AdminUsers } from "@/pages/admin/users";
 import { Resources } from "@/pages/resources";
 import {
-  Enjeux,
   Biodiversite,
   DemarcheRse,
   BilanCarbone,
@@ -31,6 +30,7 @@ import {
   RapportRse,
 } from "@/pages/stubs";
 import { PartiesPrenantes } from "@/pages/parties-prenantes";
+import { Materialite } from "@/pages/materialite";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
@@ -252,7 +252,7 @@ function ClerkProviderWithRoutes() {
 
             <Route path="/resources"><ProtectedRoute component={Resources} /></Route>
 
-            <Route path="/enjeux"><ProtectedRoute component={Enjeux} /></Route>
+            <Route path="/enjeux"><ProtectedRoute component={Materialite} /></Route>
             <Route path="/parties-prenantes"><ProtectedRoute component={PartiesPrenantes} /></Route>
             <Route path="/biodiversite"><ProtectedRoute component={Biodiversite} /></Route>
             <Route path="/demarche-rse"><ProtectedRoute component={DemarcheRse} /></Route>

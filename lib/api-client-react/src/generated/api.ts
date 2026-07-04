@@ -24,8 +24,14 @@ import type {
   AdminOrganization,
   AdminStats,
   AdminUser,
+  CustomIssue,
+  CustomIssueInput,
   DashboardSummary,
   HealthStatus,
+  IssueAnalysisResult,
+  IssueRating,
+  IssueRatingInput,
+  IssuesResponse,
   Member,
   MemberInvite,
   MemberUpdate,
@@ -2142,6 +2148,444 @@ export function useListOrgResources<TData = Awaited<ReturnType<typeof listOrgRes
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListOrgResourcesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetIssuesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/issues`
+}
+
+/**
+ * @summary Get all issues with ratings for an organization
+ */
+export const getIssues = async (orgId: number, options?: RequestInit): Promise<IssuesResponse> => {
+
+  return customFetch<IssuesResponse>(getGetIssuesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIssuesQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/issues`
+    ] as const;
+    }
+
+
+export const getGetIssuesQueryOptions = <TData = Awaited<ReturnType<typeof getIssues>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIssues>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIssuesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIssues>>> = ({ signal }) => getIssues(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIssues>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetIssuesQueryResult = NonNullable<Awaited<ReturnType<typeof getIssues>>>
+export type GetIssuesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get all issues with ratings for an organization
+ */
+
+export function useGetIssues<TData = Awaited<ReturnType<typeof getIssues>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIssues>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetIssuesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCustomIssueUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/issues`
+}
+
+/**
+ * @summary Add a custom issue
+ */
+export const createCustomIssue = async (orgId: number,
+    customIssueInput: CustomIssueInput, options?: RequestInit): Promise<CustomIssue> => {
+
+  return customFetch<CustomIssue>(getCreateCustomIssueUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(customIssueInput)
+  }
+);}
+
+
+
+
+export const getCreateCustomIssueMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustomIssue>>, TError,{orgId: number;data: BodyType<CustomIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCustomIssue>>, TError,{orgId: number;data: BodyType<CustomIssueInput>}, TContext> => {
+
+const mutationKey = ['createCustomIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCustomIssue>>, {orgId: number;data: BodyType<CustomIssueInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createCustomIssue(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCustomIssueMutationResult = NonNullable<Awaited<ReturnType<typeof createCustomIssue>>>
+    export type CreateCustomIssueMutationBody = BodyType<CustomIssueInput>
+    export type CreateCustomIssueMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a custom issue
+ */
+export const useCreateCustomIssue = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustomIssue>>, TError,{orgId: number;data: BodyType<CustomIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCustomIssue>>,
+        TError,
+        {orgId: number;data: BodyType<CustomIssueInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCustomIssueMutationOptions(options));
+    }
+
+export const getUpsertIssueRatingUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/issues/ratings`
+}
+
+/**
+ * @summary Set stakeholder and/or company score for an issue
+ */
+export const upsertIssueRating = async (orgId: number,
+    issueRatingInput: IssueRatingInput, options?: RequestInit): Promise<IssueRating> => {
+
+  return customFetch<IssueRating>(getUpsertIssueRatingUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(issueRatingInput)
+  }
+);}
+
+
+
+
+export const getUpsertIssueRatingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertIssueRating>>, TError,{orgId: number;data: BodyType<IssueRatingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertIssueRating>>, TError,{orgId: number;data: BodyType<IssueRatingInput>}, TContext> => {
+
+const mutationKey = ['upsertIssueRating'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertIssueRating>>, {orgId: number;data: BodyType<IssueRatingInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertIssueRating(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertIssueRatingMutationResult = NonNullable<Awaited<ReturnType<typeof upsertIssueRating>>>
+    export type UpsertIssueRatingMutationBody = BodyType<IssueRatingInput>
+    export type UpsertIssueRatingMutationError = ErrorType<void>
+
+    /**
+ * @summary Set stakeholder and/or company score for an issue
+ */
+export const useUpsertIssueRating = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertIssueRating>>, TError,{orgId: number;data: BodyType<IssueRatingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertIssueRating>>,
+        TError,
+        {orgId: number;data: BodyType<IssueRatingInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertIssueRatingMutationOptions(options));
+    }
+
+export const getDeleteCustomIssueUrl = (orgId: number,
+    issueId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/issues/custom/${issueId}`
+}
+
+/**
+ * @summary Delete a custom issue
+ */
+export const deleteCustomIssue = async (orgId: number,
+    issueId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteCustomIssueUrl(orgId,issueId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteCustomIssueMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCustomIssue>>, TError,{orgId: number;issueId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCustomIssue>>, TError,{orgId: number;issueId: number}, TContext> => {
+
+const mutationKey = ['deleteCustomIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCustomIssue>>, {orgId: number;issueId: number}> = (props) => {
+          const {orgId,issueId} = props ?? {};
+
+          return  deleteCustomIssue(orgId,issueId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCustomIssueMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCustomIssue>>>
+
+    export type DeleteCustomIssueMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a custom issue
+ */
+export const useDeleteCustomIssue = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCustomIssue>>, TError,{orgId: number;issueId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCustomIssue>>,
+        TError,
+        {orgId: number;issueId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCustomIssueMutationOptions(options));
+    }
+
+export const getAnalyzeIssuesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/issues/analyze`
+}
+
+/**
+ * @summary Run AI analysis on top 12 material issues
+ */
+export const analyzeIssues = async (orgId: number, options?: RequestInit): Promise<IssueAnalysisResult> => {
+
+  return customFetch<IssueAnalysisResult>(getAnalyzeIssuesUrl(orgId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAnalyzeIssuesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeIssues>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeIssues>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['analyzeIssues'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeIssues>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  analyzeIssues(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeIssuesMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeIssues>>>
+
+    export type AnalyzeIssuesMutationError = ErrorType<void>
+
+    /**
+ * @summary Run AI analysis on top 12 material issues
+ */
+export const useAnalyzeIssues = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeIssues>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeIssues>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getAnalyzeIssuesMutationOptions(options));
+    }
+
+export const getGetIssueAnalysisUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/issues/analysis`
+}
+
+/**
+ * @summary Get the latest saved AI analysis
+ */
+export const getIssueAnalysis = async (orgId: number, options?: RequestInit): Promise<IssueAnalysisResult> => {
+
+  return customFetch<IssueAnalysisResult>(getGetIssueAnalysisUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIssueAnalysisQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/issues/analysis`
+    ] as const;
+    }
+
+
+export const getGetIssueAnalysisQueryOptions = <TData = Awaited<ReturnType<typeof getIssueAnalysis>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIssueAnalysis>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIssueAnalysisQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIssueAnalysis>>> = ({ signal }) => getIssueAnalysis(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIssueAnalysis>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetIssueAnalysisQueryResult = NonNullable<Awaited<ReturnType<typeof getIssueAnalysis>>>
+export type GetIssueAnalysisQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the latest saved AI analysis
+ */
+
+export function useGetIssueAnalysis<TData = Awaited<ReturnType<typeof getIssueAnalysis>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIssueAnalysis>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetIssueAnalysisQueryOptions(orgId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

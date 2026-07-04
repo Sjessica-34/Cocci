@@ -330,6 +330,75 @@ export interface StakeholderUpdate {
   notes?: string;
 }
 
+export interface IssueRatedItem {
+  key: string;
+  category: string;
+  label: string;
+  isCustom: boolean;
+  /** @nullable */
+  customId?: number | null;
+  /** @nullable */
+  stakeholderScore?: number | null;
+  /** @nullable */
+  companyScore?: number | null;
+}
+
+export interface IssuesResponse {
+  items: IssueRatedItem[];
+}
+
+export interface IssueRatingInput {
+  issueKey: string;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  stakeholderScore: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  companyScore: number | null;
+}
+
+export interface IssueRating {
+  id: number;
+  organizationId: number;
+  issueKey: string;
+  /** @nullable */
+  stakeholderScore?: number | null;
+  /** @nullable */
+  companyScore?: number | null;
+  updatedAt: string;
+}
+
+export interface CustomIssueInput {
+  category: string;
+  label: string;
+}
+
+export interface CustomIssue {
+  id: number;
+  organizationId: number;
+  category: string;
+  label: string;
+  createdAt: string;
+}
+
+export interface SuperIssue {
+  title: string;
+  summary: string;
+  issues: string[];
+  avgScore: number;
+}
+
+export interface IssueAnalysisResult {
+  superIssues: SuperIssue[];
+  generatedAt: string;
+}
+
 export interface DashboardSummary {
   organizationId: number;
   memberCount: number;
