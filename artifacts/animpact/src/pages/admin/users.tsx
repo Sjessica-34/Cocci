@@ -106,7 +106,7 @@ export function AdminUsers() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground flex items-center gap-2 flex-wrap">
+                      <div className="text-sm font-medium text-foreground flex items-center gap-2 flex-wrap">
                         {displayName}
                         {isMe && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">Vous</Badge>}
                         {user.isSuperAdmin && (
@@ -114,7 +114,7 @@ export function AdminUsers() {
                             <Shield className="h-2.5 w-2.5" /> Superadmin
                           </Badge>
                         )}
-                      </p>
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">

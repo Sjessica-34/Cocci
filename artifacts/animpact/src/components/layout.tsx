@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { useListOrganizations } from "@workspace/api-client-react";
 import {
-  Building2,
   LayoutDashboard,
   Settings,
   LogOut,
@@ -14,6 +13,14 @@ import {
   ChevronsUpDown,
   Wrench,
   BookOpen,
+  Target,
+  Users2,
+  Sprout,
+  BarChart3,
+  Globe,
+  Monitor,
+  Sparkles,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +36,40 @@ import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganiz
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { cn } from "@/lib/utils";
 
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const navGroups: NavItem[][] = [
+  [
+    { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  ],
+  [
+    { href: "/enjeux", label: "Mes enjeux", icon: Target },
+    { href: "/parties-prenantes", label: "Mes parties prenantes", icon: Users2 },
+    { href: "/biodiversite", label: "Mes dépendances à la biodiversité", icon: Sprout },
+  ],
+  [
+    { href: "/demarche-rse", label: "Ma démarche RSE", icon: BarChart3 },
+    { href: "/bilan-carbone", label: "Mon bilan carbone", icon: Globe },
+    { href: "/numerique-responsable", label: "Ma démarche Numérique Responsable", icon: Monitor },
+  ],
+  [
+    { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },
+    { href: "/rapport-rse", label: "Mon rapport RSE", icon: FileText },
+  ],
+  [
+    { href: "/resources", label: "Mes ressources", icon: BookOpen },
+  ],
+  [
+    { href: "/settings", label: "Mes paramètres", icon: Settings },
+  ],
+];
+
+const allNavItems = navGroups.flat();
+
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { user } = useUser();
@@ -41,12 +82,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const insideOrg = location.startsWith("/organizations/") && location !== "/organizations/new";
   const { isSuperAdmin } = useIsSuperAdmin();
 
-  const navItems = [
-    { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-    { href: "/organizations", label: "Entreprises", icon: Building2 },
-    { href: "/resources", label: "Mes ressources", icon: BookOpen },
-    { href: "/settings", label: "Paramètres", icon: Settings },
-  ];
+  function isActive(item: NavItem) {
+    return location === item.href || location.startsWith(`${item.href}/`);
+  }
 
   const sidebarContent = (
     <>
@@ -56,13 +94,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <span className="text-sidebar-foreground font-bold tracking-tight">cocci</span>
       </div>
 
-      <div className="flex-1 py-4 px-3 flex flex-col gap-1 overflow-y-auto">
+      <div className="flex-1 py-3 px-3 flex flex-col overflow-y-auto">
         {/* Org switcher — visible when navigating inside an org */}
         {insideOrg && orgs && orgs.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 px-2 mb-1.5">
-              Entreprise active
-            </p>
+          <div className="mb-2">
             {orgs.length === 1 ? (
               <div className="flex items-center gap-2 px-2 py-2 rounded-md bg-sidebar-accent/60">
                 <div className="h-6 w-6 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
@@ -107,42 +142,40 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            <div className="my-3 border-t border-sidebar-border" />
+            <div className="my-2.5 h-px bg-sidebar-border/40 mx-1" />
           </div>
         )}
 
-        {/* Main nav */}
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 px-2 mb-1.5">
-          Navigation
-        </p>
-        {navItems.map((item) => {
-          const isActive =
-            item.href === "/organizations"
-              ? location === "/organizations" || location === "/organizations/new"
-              : location === item.href || location.startsWith(`${item.href}/`);
-          return (
-            <Link key={item.href} href={item.href}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start h-9",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                )}
-              >
-                <item.icon className="h-4 w-4 mr-3" />
-                {item.label}
-              </Button>
-            </Link>
-          );
-        })}
-
+        {/* Nav groups */}
+        <div className="flex flex-col">
+          {navGroups.map((group, gi) => (
+            <div key={gi}>
+              {gi > 0 && <div className="my-1.5 h-px bg-sidebar-border/35 mx-1" />}
+              {group.map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start h-9 px-3 mb-0.5",
+                      isActive(item)
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 mr-3 shrink-0" />
+                    <span className="truncate text-[13px]">{item.label}</span>
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Bouton switch Administration — superadmin uniquement */}
       {isSuperAdmin && (
         <div className="px-3 pb-2">
+          <div className="h-px bg-sidebar-border/35 mx-1 mb-2" />
           <Link href="/admin">
             <Button
               variant="ghost"
@@ -225,7 +258,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            {navItems.map((item) => (
+            {allNavItems.map((item) => (
               <Link key={item.href} href={item.href}>
                 <DropdownMenuItem className="cursor-pointer">
                   <item.icon className="h-4 w-4 mr-2" />
@@ -233,13 +266,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </DropdownMenuItem>
               </Link>
             ))}
-            <DropdownMenuSeparator />
-            <Link href="/settings">
-              <DropdownMenuItem className="cursor-pointer">
-                <UserIcon className="h-4 w-4 mr-2" />
-                Profil
-              </DropdownMenuItem>
-            </Link>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive cursor-pointer"

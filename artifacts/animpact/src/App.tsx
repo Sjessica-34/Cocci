@@ -21,6 +21,16 @@ import { AdminOrganizations } from "@/pages/admin/organizations";
 import { AdminOrganizationDetail } from "@/pages/admin/organization-detail";
 import { AdminUsers } from "@/pages/admin/users";
 import { Resources } from "@/pages/resources";
+import {
+  Enjeux,
+  PartiesPrenantes,
+  Biodiversite,
+  DemarcheRse,
+  BilanCarbone,
+  NumeriqueResponsable,
+  ImpactScore,
+  RapportRse,
+} from "@/pages/stubs";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
@@ -243,6 +253,15 @@ function ClerkProviderWithRoutes() {
             <Route path="/admin/users"><AdminRoute component={AdminUsers} /></Route>
 
             <Route path="/resources"><ProtectedRoute component={Resources} /></Route>
+
+            <Route path="/enjeux"><ProtectedRoute component={Enjeux} /></Route>
+            <Route path="/parties-prenantes"><ProtectedRoute component={PartiesPrenantes} /></Route>
+            <Route path="/biodiversite"><ProtectedRoute component={Biodiversite} /></Route>
+            <Route path="/demarche-rse"><ProtectedRoute component={DemarcheRse} /></Route>
+            <Route path="/bilan-carbone"><ProtectedRoute component={BilanCarbone} /></Route>
+            <Route path="/numerique-responsable"><ProtectedRoute component={NumeriqueResponsable} /></Route>
+            <Route path="/impact-score"><ProtectedRoute component={ImpactScore} /></Route>
+            <Route path="/rapport-rse"><ProtectedRoute component={RapportRse} /></Route>
 
             <Route component={NotFound} />
           </Switch>
