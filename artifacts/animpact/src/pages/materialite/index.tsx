@@ -113,7 +113,7 @@ export function Materialite() {
             </TabsContent>
 
             <TabsContent value="matrice" className="mt-0">
-              <TabMatriceViz items={items} top12Keys={top12Keys} />
+              <TabMatriceViz items={items} top12Keys={top12Keys} orgId={currentOrgId} />
             </TabsContent>
 
             <TabsContent value="synthese" className="mt-0">

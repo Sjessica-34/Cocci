@@ -1,6 +1,12 @@
 import { useRef, useState } from "react";
 import type { IssueRatedItem } from "@workspace/api-client-react";
+import {
+  useGetIssueAnalysis,
+  useAnalyzeIssues,
+} from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
+import { Loader2, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Changements climatiques": "#14b8a6",
@@ -16,6 +22,13 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Patrimoine et ancrage territorial": "#10b981",
 };
 
+const SUPER_ISSUE_ACCENTS = [
+  { bg: "bg-teal-50 border-teal-200", dot: "#14b8a6", label: "text-teal-700", badge: "bg-teal-100 text-teal-700" },
+  { bg: "bg-violet-50 border-violet-200", dot: "#8b5cf6", label: "text-violet-700", badge: "bg-violet-100 text-violet-700" },
+  { bg: "bg-amber-50 border-amber-200", dot: "#f59e0b", label: "text-amber-700", badge: "bg-amber-100 text-amber-700" },
+  { bg: "bg-rose-50 border-rose-200", dot: "#f43f5e", label: "text-rose-700", badge: "bg-rose-100 text-rose-700" },
+];
+
 const SVG_W = 560;
 const SVG_H = 480;
 const PAD = { top: 30, right: 30, bottom: 50, left: 50 };
@@ -25,32 +38,31 @@ const PLOT_H = SVG_H - PAD.top - PAD.bottom;
 function plotX(v: number) { return PAD.left + ((v - 1) / 4) * PLOT_W; }
 function plotY(v: number) { return PAD.top + PLOT_H - ((v - 1) / 4) * PLOT_H; }
 
-function computeAvg(item: IssueRatedItem): number {
-  const scores = [item.stakeholderScore, item.companyScore, item.impactScore].filter(
-    (s): s is number => s != null,
-  );
-  if (!scores.length) return 0;
-  return scores.reduce((a, b) => a + b, 0) / scores.length;
-}
+type Props = { items: IssueRatedItem[]; top12Keys: Set<string>; orgId: number };
 
-function prioriteBadge(avg: number) {
-  if (avg >= 4) return { label: "Critique", color: "text-red-600 bg-red-50 border-red-200" };
-  if (avg >= 3) return { label: "Majeur", color: "text-amber-600 bg-amber-50 border-amber-200" };
-  return { label: "Modéré", color: "text-emerald-600 bg-emerald-50 border-emerald-200" };
-}
-
-type Props = { items: IssueRatedItem[]; top12Keys: Set<string> };
-
-export function TabMatriceViz({ items, top12Keys }: Props) {
+export function TabMatriceViz({ items, top12Keys, orgId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; item: IssueRatedItem } | null>(null);
 
   const rated = items.filter((i) => i.stakeholderScore != null && i.companyScore != null);
   const categories = [...new Set(rated.map((i) => i.category))];
 
-  const top12 = items
-    .filter((i) => top12Keys.has(i.key))
-    .sort((a, b) => computeAvg(b) - computeAvg(a));
+  const { data: analysis, isLoading: loadingAnalysis, error: analysisError, refetch } = useGetIssueAnalysis(orgId, {
+    query: {
+      enabled: !!orgId,
+      retry: false,
+      queryKey: [`/api/organizations/${orgId}/issues/analysis`],
+    },
+  });
+
+  const { mutate: analyze, isPending: analyzing } = useAnalyzeIssues({
+    mutation: {
+      onSuccess: () => { void refetch(); },
+    },
+  });
+
+  const noAnalysis = !loadingAnalysis && (analysisError || !analysis);
+  const ratedCount = rated.length;
 
   if (rated.length === 0) {
     return (
@@ -68,7 +80,7 @@ export function TabMatriceViz({ items, top12Keys }: Props) {
         <div>
           <h2 className="text-lg font-semibold text-foreground">Matrice de matérialité</h2>
           <p className="text-sm text-muted-foreground">
-            Les <span className="font-medium text-emerald-600">{top12.length} enjeux prioritaires</span> (entourés) s'affichent en détail ci-dessous.
+            {top12Keys.size} enjeux prioritaires identifiés · survolez un point pour voir le détail
           </p>
         </div>
 
@@ -166,10 +178,6 @@ export function TabMatriceViz({ items, top12Keys }: Props) {
                     <span className="font-medium">{tooltip.item.impactScore}/5</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-border pt-1 mt-1">
-                  <span className="text-muted-foreground">Moyenne</span>
-                  <span className="font-semibold text-foreground">{computeAvg(tooltip.item).toFixed(1)}/5</span>
-                </div>
               </div>
               {top12Keys.has(tooltip.item.key) && (
                 <p className="mt-2 text-[10px] text-emerald-600 font-medium">✓ Enjeu prioritaire (top 12)</p>
@@ -189,79 +197,122 @@ export function TabMatriceViz({ items, top12Keys }: Props) {
         </div>
       </div>
 
-      {/* Top 12 below the matrix */}
-      {top12.length > 0 && (
-        <div className="space-y-4">
+      {/* Super-enjeux IA */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <h3 className="text-sm font-semibold text-foreground px-2">
-              Enjeux prioritaires — Top {top12.length}
+            <div className="h-px w-8 bg-border" />
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              Super-enjeux stratégiques
             </h3>
-            <div className="h-px flex-1 bg-border" />
           </div>
+          {analysis && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground gap-1.5"
+              onClick={() => analyze({ orgId })}
+              disabled={analyzing || ratedCount < 4}
+            >
+              {analyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Recalculer
+            </Button>
+          )}
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {top12.map((item, i) => {
-              const avg = computeAvg(item);
-              const badge = prioriteBadge(avg);
-              const color = CATEGORY_COLORS[item.category] ?? "#94a3b8";
+        {/* Loading */}
+        {loadingAnalysis && (
+          <div className="flex items-center justify-center py-10 gap-3 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Chargement de l'analyse…</span>
+          </div>
+        )}
+
+        {/* Generating */}
+        {analyzing && (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground rounded-xl border border-dashed border-violet-200 bg-violet-50/50">
+            <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+            <div className="text-center">
+              <p className="text-sm font-medium text-violet-700">Analyse en cours…</p>
+              <p className="text-xs text-violet-600/70 mt-0.5">Claude identifie vos 4 super-enjeux stratégiques</p>
+            </div>
+          </div>
+        )}
+
+        {/* No analysis yet */}
+        {!analyzing && noAnalysis && (
+          <div className="flex flex-col items-center justify-center py-12 gap-4 rounded-xl border border-dashed border-border bg-muted/10">
+            <Sparkles className="h-8 w-8 text-violet-400 opacity-60" />
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium text-foreground">Analyse IA non générée</p>
+              <p className="text-xs text-muted-foreground">
+                {ratedCount < 4
+                  ? `Notez au moins 4 enjeux pour lancer l'analyse (${ratedCount}/4 notés)`
+                  : "Lancez l'analyse pour regrouper vos enjeux en 4 axes stratégiques"}
+              </p>
+            </div>
+            <Button
+              onClick={() => analyze({ orgId })}
+              disabled={ratedCount < 4}
+              className="gap-2"
+              size="sm"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Générer les super-enjeux
+            </Button>
+          </div>
+        )}
+
+        {/* Super-enjeux cards */}
+        {!analyzing && analysis && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {analysis.superIssues.map((si, i) => {
+              const accent = SUPER_ISSUE_ACCENTS[i % SUPER_ISSUE_ACCENTS.length];
               return (
                 <div
-                  key={item.key}
-                  className="rounded-xl border border-border bg-white dark:bg-muted/10 p-4 space-y-2"
+                  key={i}
+                  className={cn("rounded-xl border p-5 space-y-3", accent.bg)}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-xs font-bold text-muted-foreground/50 w-5 shrink-0 pt-0.5">
-                        {i + 1}
-                      </span>
-                      <p className="text-sm font-semibold text-foreground leading-snug">{item.label}</p>
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5"
+                      style={{ backgroundColor: accent.dot }}
+                    >
+                      {i + 1}
                     </div>
-                    <span className={cn("shrink-0 inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-semibold", badge.color)}>
-                      {badge.label}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 pl-7">
-                    <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                    <span className="text-[11px] text-muted-foreground">{item.category}</span>
-                  </div>
-
-                  <div className="pl-7 flex gap-3 text-[11px]">
-                    {item.stakeholderScore != null && (
-                      <span className="text-muted-foreground">PP <strong className="text-foreground">{item.stakeholderScore}</strong></span>
-                    )}
-                    {item.companyScore != null && (
-                      <span className="text-muted-foreground">Ent. <strong className="text-foreground">{item.companyScore}</strong></span>
-                    )}
-                    {item.impactScore != null && (
-                      <span className="text-muted-foreground">Imp. <strong className="text-foreground">{item.impactScore}</strong></span>
-                    )}
-                    <span className="ml-auto text-muted-foreground">
-                      Moy. <strong className="text-foreground">{avg.toFixed(1)}</strong>
-                    </span>
-                  </div>
-
-                  {item.tendance && (
-                    <div className="pl-7">
-                      <span className={cn(
-                        "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded",
-                        item.tendance === "+" && "text-emerald-700 bg-emerald-50",
-                        item.tendance === "=" && "text-blue-700 bg-blue-50",
-                        item.tendance === "-" && "text-red-700 bg-red-50",
-                      )}>
-                        {item.tendance === "+" && "↗ En amélioration"}
-                        {item.tendance === "=" && "→ Stable"}
-                        {item.tendance === "-" && "↘ En dégradation"}
+                    <div className="flex-1 min-w-0">
+                      <h4 className={cn("text-sm font-bold leading-snug", accent.label)}>{si.title}</h4>
+                      <span className={cn("inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded mt-1", accent.badge)}>
+                        Score {si.avgScore.toFixed(1)}/5 · {si.issues.length} enjeu{si.issues.length > 1 ? "x" : ""}
                       </span>
                     </div>
-                  )}
+                  </div>
+
+                  <p className="text-xs text-foreground/80 leading-relaxed pl-11">{si.summary}</p>
+
+                  <div className="pl-11 flex flex-wrap gap-1.5">
+                    {si.issues.map((label) => (
+                      <span
+                        key={label}
+                        className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full border border-current/20 bg-white/60 text-foreground/70"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+
+        {analysis && (
+          <p className="text-[11px] text-muted-foreground/60 text-right">
+            Générée le {new Date(analysis.generatedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

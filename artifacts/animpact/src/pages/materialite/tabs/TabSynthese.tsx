@@ -130,30 +130,61 @@ export function TabSynthese({ items }: Props) {
         </div>
       )}
 
-      {/* Enjeux par niveau de priorité */}
-      {(["Critique", "Majeur", "Modéré"] as const).map((level) => {
-        const group = top12.filter((i) => getPriorite(computeAvg(i)) === level);
-        if (!group.length) return null;
-        const cfg = PRIORITY_CONFIG[level];
-        return (
-          <div key={level} className="space-y-2">
-            <div className={cn("flex items-center gap-2 px-3 py-2 rounded-lg border", cfg.bg)}>
-              {cfg.icon}
-              <h3 className={cn("text-sm font-semibold", cfg.color)}>{level} — {group.length} enjeu{group.length > 1 ? "x" : ""}</h3>
-            </div>
-            <div className="space-y-1 pl-2">
-              {group.map((item) => (
-                <div key={item.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/20 transition-colors">
-                  <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[item.category] ?? "#94a3b8" }} />
-                  <span className="text-sm text-foreground flex-1">{item.label}</span>
-                  <span className="text-xs text-muted-foreground shrink-0">{item.category}</span>
-                  <span className="text-xs font-semibold text-foreground shrink-0 w-8 text-right">{computeAvg(item).toFixed(1)}</span>
+      {/* Classement Top 12 */}
+      {top12.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Top {top12.length} — Enjeux prioritaires</h3>
+          <div className="rounded-xl border border-border bg-white dark:bg-muted/10 overflow-hidden divide-y divide-border">
+            {top12.map((item, i) => {
+              const avg = computeAvg(item);
+              const prio = getPriorite(avg);
+              const cfg = prio ? PRIORITY_CONFIG[prio] : null;
+              const color = CATEGORY_COLORS[item.category] ?? "#94a3b8";
+              return (
+                <div key={item.key} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/10 transition-colors">
+                  <span className="text-xs font-bold text-muted-foreground/40 w-5 shrink-0 text-right">{i + 1}</span>
+                  <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  <span className="text-sm text-foreground flex-1 min-w-0 truncate">{item.label}</span>
+                  <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:block">{item.category}</span>
+                  {cfg && (
+                    <span className={cn("shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border", cfg.bg, cfg.color)}>
+                      {prio}
+                    </span>
+                  )}
+                  <span className="text-xs font-bold text-foreground shrink-0 w-8 text-right">{avg.toFixed(1)}</span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        );
-      })}
+        </div>
+      )}
+
+      {/* Répartition par niveau */}
+      {(critique.length > 0 || majeur.length > 0 || modere.length > 0) && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-foreground">Répartition par niveau</h3>
+          <div className="flex gap-2">
+            {critique.length > 0 && (
+              <div className="flex-1 rounded-lg border border-red-200 bg-red-50 p-3 text-center">
+                <p className="text-xl font-bold text-red-600">{critique.length}</p>
+                <p className="text-[10px] text-red-500 mt-0.5">Critique{critique.length > 1 ? "s" : ""}</p>
+              </div>
+            )}
+            {majeur.length > 0 && (
+              <div className="flex-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
+                <p className="text-xl font-bold text-amber-600">{majeur.length}</p>
+                <p className="text-[10px] text-amber-500 mt-0.5">Majeur{majeur.length > 1 ? "s" : ""}</p>
+              </div>
+            )}
+            {modere.length > 0 && (
+              <div className="flex-1 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
+                <p className="text-xl font-bold text-emerald-600">{modere.length}</p>
+                <p className="text-[10px] text-emerald-500 mt-0.5">Modéré{modere.length > 1 ? "s" : ""}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Répartition thématique */}
       {topByCategory.length > 0 && (
