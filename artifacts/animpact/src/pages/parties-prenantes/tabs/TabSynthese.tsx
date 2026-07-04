@@ -124,7 +124,7 @@ export function TabSynthese({ stakeholders }: Props) {
                   <p className="text-[10px] text-muted-foreground mt-1.5 truncate">
                     {items
                       .slice(0, 3)
-                      .map((s) => s.name ?? "Sans nom")
+                      .map((s) => s.subcategory ?? s.category)
                       .join(", ")}
                     {items.length > 3 ? ` +${items.length - 3}` : ""}
                   </p>
@@ -181,12 +181,14 @@ export function TabSynthese({ stakeholders }: Props) {
                     className="h-6 w-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: color }}
                   >
-                    {(s.name ?? "?")[0]?.toUpperCase() ?? "?"}
+                    {((s.subcategory ?? s.category)[0] ?? "?").toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{s.name ?? "Sans nom"}</p>
+                    <p className="text-xs font-medium text-foreground truncate">
+                      {s.subcategory ?? <span className="text-muted-foreground italic">—</span>}
+                    </p>
                     {cat && (
-                      <p className="text-[10px] text-muted-foreground">{cat.icon} {cat.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{cat.icon} {cat.label}{s.name ? ` · ${s.name}` : ""}</p>
                     )}
                   </div>
                   <RatingBar value={s.influence} size="sm" />
@@ -214,12 +216,14 @@ export function TabSynthese({ stakeholders }: Props) {
                     className="h-6 w-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: color }}
                   >
-                    {(s.name ?? "?")[0]?.toUpperCase() ?? "?"}
+                    {((s.subcategory ?? s.category)[0] ?? "?").toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{s.name ?? "Sans nom"}</p>
+                    <p className="text-xs font-medium text-foreground truncate">
+                      {s.subcategory ?? <span className="text-muted-foreground italic">—</span>}
+                    </p>
                     {cat && (
-                      <p className="text-[10px] text-muted-foreground">{cat.icon} {cat.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{cat.icon} {cat.label}{s.name ? ` · ${s.name}` : ""}</p>
                     )}
                   </div>
                   <RatingBar value={s.interest} size="sm" />
@@ -260,9 +264,16 @@ export function TabSynthese({ stakeholders }: Props) {
                           className="h-5 w-5 rounded text-white flex items-center justify-center font-bold text-[9px] shrink-0"
                           style={{ backgroundColor: color }}
                         >
-                          {(s.name ?? "?")[0]?.toUpperCase() ?? "?"}
+                          {((s.subcategory ?? s.category)[0] ?? "?").toUpperCase()}
                         </div>
-                        <span className="font-medium text-foreground">{s.name ?? "Sans nom"}</span>
+                        <div>
+                          <span className="font-medium text-foreground">
+                            {s.subcategory ?? <span className="italic text-muted-foreground">—</span>}
+                          </span>
+                          {s.name && (
+                            <span className="text-muted-foreground ml-1 text-[10px]">· {s.name}</span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-3 py-2.5 hidden sm:table-cell">
