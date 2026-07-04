@@ -4,7 +4,7 @@ import type { IssueRatedItem } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, BookOpen, Library, BarChart2, Sparkles } from "lucide-react";
+import { AlertCircle, BookOpen, Library, BarChart2, FileText } from "lucide-react";
 import { TabGuide } from "./tabs/TabGuide";
 import { TabBibliotheque } from "./tabs/TabBibliotheque";
 import { TabMatriceViz } from "./tabs/TabMatrice";
@@ -14,16 +14,18 @@ const TABS = [
   { value: "guide", label: "Guide", icon: <BookOpen className="h-3.5 w-3.5" /> },
   { value: "bibliotheque", label: "Bibliothèque", icon: <Library className="h-3.5 w-3.5" /> },
   { value: "matrice", label: "Matrice", icon: <BarChart2 className="h-3.5 w-3.5" /> },
-  { value: "synthese", label: "Synthèse", icon: <Sparkles className="h-3.5 w-3.5" /> },
+  { value: "synthese", label: "Synthèse", icon: <FileText className="h-3.5 w-3.5" /> },
 ];
 
 function computeTop12(items: IssueRatedItem[]): Set<string> {
   const rated = items
     .filter((i) => i.stakeholderScore != null && i.companyScore != null)
-    .map((i) => ({
-      key: i.key,
-      avg: (i.stakeholderScore! + i.companyScore!) / 2,
-    }))
+    .map((i) => {
+      const scores = [i.stakeholderScore!, i.companyScore!, i.impactScore].filter(
+        (s): s is number => s != null,
+      );
+      return { key: i.key, avg: scores.reduce((a, b) => a + b, 0) / scores.length };
+    })
     .sort((a, b) => b.avg - a.avg)
     .slice(0, 12);
   return new Set(rated.map((r) => r.key));
@@ -115,7 +117,7 @@ export function Materialite() {
             </TabsContent>
 
             <TabsContent value="synthese" className="mt-0">
-              <TabSynthese orgId={currentOrgId} items={items} />
+              <TabSynthese items={items} />
             </TabsContent>
           </Tabs>
         )}

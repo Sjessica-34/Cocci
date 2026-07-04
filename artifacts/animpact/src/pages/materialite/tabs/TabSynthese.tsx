@@ -1,190 +1,181 @@
-import { useState } from "react";
-import type { IssueRatedItem, IssueAnalysisResult, SuperIssue } from "@workspace/api-client-react";
-import { useGetIssueAnalysis, useAnalyzeIssues } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, RefreshCw, TrendingUp, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import type { IssueRatedItem } from "@workspace/api-client-react";
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const CARD_COLORS = [
-  "from-teal-50 to-teal-100/60 border-teal-200 dark:from-teal-950/40 dark:to-teal-900/20 dark:border-teal-800",
-  "from-violet-50 to-violet-100/60 border-violet-200 dark:from-violet-950/40 dark:to-violet-900/20 dark:border-violet-800",
-  "from-amber-50 to-amber-100/60 border-amber-200 dark:from-amber-950/40 dark:to-amber-900/20 dark:border-amber-800",
-  "from-emerald-50 to-emerald-100/60 border-emerald-200 dark:from-emerald-950/40 dark:to-emerald-900/20 dark:border-emerald-800",
-];
-const SCORE_COLORS = [
-  "text-teal-700 dark:text-teal-400",
-  "text-violet-700 dark:text-violet-400",
-  "text-amber-700 dark:text-amber-400",
-  "text-emerald-700 dark:text-emerald-400",
-];
-
-function SuperIssueCard({ superIssue, idx }: { superIssue: SuperIssue; idx: number }) {
-  return (
-    <div className={`rounded-xl border bg-gradient-to-br p-5 space-y-3 ${CARD_COLORS[idx % CARD_COLORS.length]}`}>
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-bold text-foreground leading-snug">{superIssue.title}</h3>
-        <div className="shrink-0 text-right">
-          <p className={`text-2xl font-bold ${SCORE_COLORS[idx % SCORE_COLORS.length]}`}>
-            {superIssue.avgScore.toFixed(1)}
-          </p>
-          <p className="text-[10px] text-muted-foreground">/5</p>
-        </div>
-      </div>
-
-      <p className="text-sm text-muted-foreground leading-relaxed">{superIssue.summary}</p>
-
-      <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-          Enjeux composants ({superIssue.issues.length})
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {superIssue.issues.map((label) => (
-            <span
-              key={label}
-              className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/70 dark:bg-black/20 border border-border text-[10px] font-medium text-foreground"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
+function computeAvg(item: IssueRatedItem): number {
+  const scores = [item.stakeholderScore, item.companyScore, item.impactScore].filter(
+    (s): s is number => s != null,
   );
+  if (!scores.length) return 0;
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
-type Props = { orgId: number; items: IssueRatedItem[] };
+function getPriorite(avg: number): "Critique" | "Majeur" | "Modéré" | null {
+  if (avg === 0) return null;
+  if (avg >= 4) return "Critique";
+  if (avg >= 3) return "Majeur";
+  return "Modéré";
+}
 
-export function TabSynthese({ orgId, items }: Props) {
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+const PRIORITY_CONFIG = {
+  Critique: { color: "text-red-600", bg: "bg-red-50 border-red-200", icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
+  Majeur:   { color: "text-amber-600", bg: "bg-amber-50 border-amber-200", icon: <BarChart3 className="h-4 w-4 text-amber-500" /> },
+  Modéré:   { color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200", icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" /> },
+};
 
-  const { data: analysis, isLoading: loadingAnalysis } = useGetIssueAnalysis(orgId, {
-    query: { queryKey: [`/api/organizations/${orgId}/issues/analysis`], retry: false },
-  });
-  const { mutate: analyze } = useAnalyzeIssues();
+const CATEGORY_COLORS: Record<string, string> = {
+  "Changements climatiques": "#14b8a6",
+  "Biodiversité": "#22c55e",
+  "Communication / Marketing": "#f97316",
+  "Pratiques responsables des affaires": "#6366f1",
+  "Diversité, égalité et inclusion": "#ec4899",
+  "Santé et sécurité": "#ef4444",
+  "Économie circulaire": "#84cc16",
+  "Bien-être et vie quotidienne": "#8b5cf6",
+  "Excellence opérationnelle": "#3b82f6",
+  "Création de valeur locale": "#f59e0b",
+  "Patrimoine et ancrage territorial": "#10b981",
+};
 
-  const ratedCount = items.filter((i) => i.stakeholderScore != null && i.companyScore != null).length;
+type Props = { items: IssueRatedItem[] };
 
-  function handleAnalyze() {
-    setIsAnalyzing(true);
-    analyze(
-      { orgId },
-      {
-        onSuccess: (result) => {
-          qc.setQueryData([`/api/organizations/${orgId}/issues/analysis`], result);
-          setIsAnalyzing(false);
-        },
-        onError: (err: unknown) => {
-          setIsAnalyzing(false);
-          const msg = err instanceof Error ? err.message : "Erreur lors de l'analyse.";
-          toast({ variant: "destructive", title: msg });
-        },
-      },
-    );
-  }
+export function TabSynthese({ items }: Props) {
+  const rated = items.filter((i) => computeAvg(i) > 0);
+  const top12 = [...rated].sort((a, b) => computeAvg(b) - computeAvg(a)).slice(0, 12);
 
-  if (loadingAnalysis) {
+  if (rated.length === 0) {
     return (
-      <div className="space-y-4">
-        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
+      <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+        <BarChart3 className="h-10 w-10 mb-3 opacity-30" />
+        <p className="font-medium">Aucun enjeu noté</p>
+        <p className="text-sm mt-1">Évaluez des enjeux dans la Bibliothèque pour générer la synthèse.</p>
       </div>
     );
   }
+
+  // Stats globales
+  const critique = top12.filter((i) => getPriorite(computeAvg(i)) === "Critique");
+  const majeur   = top12.filter((i) => getPriorite(computeAvg(i)) === "Majeur");
+  const modere   = top12.filter((i) => getPriorite(computeAvg(i)) === "Modéré");
+
+  const globalAvg = rated.length
+    ? rated.reduce((sum, i) => sum + computeAvg(i), 0) / rated.length
+    : 0;
+
+  // Tendances
+  const enAmelioration = rated.filter((i) => i.tendance === "+").length;
+  const stables        = rated.filter((i) => i.tendance === "=").length;
+  const enDegradation  = rated.filter((i) => i.tendance === "-").length;
+
+  // Top enjeu par thématique dans les 12 prioritaires
+  const catMap = new Map<string, IssueRatedItem>();
+  for (const item of top12) {
+    if (!catMap.has(item.category)) catMap.set(item.category, item);
+  }
+  const topByCategory = [...catMap.entries()];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Synthèse stratégique IA</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Analyse de vos {Math.min(12, ratedCount)} enjeux les plus matériels, regroupés en super-enjeux stratégiques.
-          </p>
-        </div>
-        <Button
-          onClick={handleAnalyze}
-          disabled={isAnalyzing || ratedCount < 4}
-          className="shrink-0"
-        >
-          {isAnalyzing ? (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Analyse en cours…
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4 mr-2" />
-              {analysis ? "Relancer l'analyse" : "Générer la synthèse"}
-            </>
-          )}
-        </Button>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Synthèse de la matrice</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Basée sur {rated.length} enjeu{rated.length > 1 ? "x" : ""} évalué{rated.length > 1 ? "s" : ""} — Top {top12.length} prioritaires analysés
+        </p>
       </div>
 
-      {/* Not enough rated */}
-      {ratedCount < 4 && (
-        <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
-          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-              Pas encore assez d'enjeux notés
-            </p>
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-              Notez au moins 4 enjeux (idéalement 12) dans la Bibliothèque avant de générer la synthèse.
-            </p>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-border bg-white dark:bg-muted/10 p-4 text-center">
+          <p className="text-3xl font-bold text-foreground">{rated.length}</p>
+          <p className="text-xs text-muted-foreground mt-1">Enjeux évalués</p>
+        </div>
+        <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/30 p-4 text-center">
+          <p className="text-3xl font-bold text-red-600">{critique.length}</p>
+          <p className="text-xs text-red-600/80 mt-1">Enjeux critiques</p>
+        </div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 p-4 text-center">
+          <p className="text-3xl font-bold text-amber-600">{majeur.length}</p>
+          <p className="text-xs text-amber-600/80 mt-1">Enjeux majeurs</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white dark:bg-muted/10 p-4 text-center">
+          <p className="text-3xl font-bold text-foreground">{globalAvg.toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground mt-1">Score moyen /5</p>
+        </div>
+      </div>
+
+      {/* Tendances */}
+      {(enAmelioration + stables + enDegradation) > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Tendances</h3>
+          <div className="flex flex-wrap gap-3">
+            {enAmelioration > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-emerald-200 bg-emerald-50">
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">{enAmelioration} en amélioration</span>
+              </div>
+            )}
+            {stables > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-blue-200 bg-blue-50">
+                <Minus className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-700">{stables} stable{stables > 1 ? "s" : ""}</span>
+              </div>
+            )}
+            {enDegradation > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-200 bg-red-50">
+                <TrendingDown className="h-4 w-4 text-red-600" />
+                <span className="text-sm font-medium text-red-700">{enDegradation} en dégradation</span>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* No analysis yet */}
-      {!analysis && ratedCount >= 4 && !isAnalyzing && (
-        <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-dashed border-border">
-          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-            <Sparkles className="h-7 w-7 text-primary" />
-          </div>
-          <h3 className="font-semibold text-foreground mb-1">Prêt pour l'analyse</h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            Vous avez noté {ratedCount} enjeux. Cliquez sur "Générer la synthèse" pour que l'IA identifie vos super-enjeux stratégiques.
-          </p>
-        </div>
-      )}
-
-      {/* Analyzing skeleton */}
-      {isAnalyzing && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5">
-            <RefreshCw className="h-5 w-5 text-primary animate-spin shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Analyse IA en cours…</p>
-              <p className="text-xs text-muted-foreground">L'IA identifie vos thématiques communes et rédige les super-enjeux.</p>
+      {/* Enjeux par niveau de priorité */}
+      {(["Critique", "Majeur", "Modéré"] as const).map((level) => {
+        const group = top12.filter((i) => getPriorite(computeAvg(i)) === level);
+        if (!group.length) return null;
+        const cfg = PRIORITY_CONFIG[level];
+        return (
+          <div key={level} className="space-y-2">
+            <div className={cn("flex items-center gap-2 px-3 py-2 rounded-lg border", cfg.bg)}>
+              {cfg.icon}
+              <h3 className={cn("text-sm font-semibold", cfg.color)}>{level} — {group.length} enjeu{group.length > 1 ? "x" : ""}</h3>
+            </div>
+            <div className="space-y-1 pl-2">
+              {group.map((item) => (
+                <div key={item.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/20 transition-colors">
+                  <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[item.category] ?? "#94a3b8" }} />
+                  <span className="text-sm text-foreground flex-1">{item.label}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">{item.category}</span>
+                  <span className="text-xs font-semibold text-foreground shrink-0 w-8 text-right">{computeAvg(item).toFixed(1)}</span>
+                </div>
+              ))}
             </div>
           </div>
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
-        </div>
-      )}
+        );
+      })}
 
-      {/* Results */}
-      {analysis && !isAnalyzing && (
-        <>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <TrendingUp className="h-3.5 w-3.5" />
-            Générée le{" "}
-            {new Date((analysis as IssueAnalysisResult).generatedAt).toLocaleDateString("fr-FR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
+      {/* Répartition thématique */}
+      {topByCategory.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Thématiques représentées dans le top {top12.length}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {topByCategory.map(([cat, best]) => {
+              const color = CATEGORY_COLORS[cat] ?? "#94a3b8";
+              const count = top12.filter((i) => i.category === cat).length;
+              return (
+                <div key={cat} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-white dark:bg-muted/10">
+                  <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">{cat}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{best.label}</p>
+                  </div>
+                  <span className="text-xs font-bold text-foreground shrink-0">×{count}</span>
+                </div>
+              );
             })}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {(analysis as IssueAnalysisResult).superIssues.map((si, i) => (
-              <SuperIssueCard key={i} superIssue={si} idx={i} />
-            ))}
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
