@@ -7,8 +7,7 @@
  */
 
 export interface StakeholderInput {
-  /** @minLength 1 */
-  name: string;
+  name?: string;
   category: string;
   subcategory?: string;
   description?: string;

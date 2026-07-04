@@ -1060,11 +1060,10 @@ components:
 
     StakeholderInput:
       type: object
-      required: [name, category, influence, interest]
+      required: [category, influence, interest]
       properties:
         name:
           type: string
-          minLength: 1
         category:
           type: string
         subcategory:

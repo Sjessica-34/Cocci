@@ -47,8 +47,8 @@ const navGroups: NavItem[][] = [
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   ],
   [
-    { href: "/enjeux", label: "Mes enjeux", icon: Target },
     { href: "/parties-prenantes", label: "Mes parties prenantes", icon: Users2 },
+    { href: "/enjeux", label: "Mes enjeux", icon: Target },
     { href: "/biodiversite", label: "Mes dépendances à la biodiversité", icon: Sprout },
   ],
   [
@@ -91,7 +91,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Brand */}
       <div className="h-16 flex items-center px-6 border-b border-sidebar-border bg-sidebar shrink-0">
         <Leaf className="h-6 w-6 text-sidebar-primary mr-2 shrink-0" />
-        <span className="text-sidebar-foreground font-bold tracking-tight">cocci</span>
+        <span className="text-sidebar-foreground font-bold tracking-tight">Cocci</span>
       </div>
 
       <div className="flex-1 py-3 px-3 flex flex-col overflow-y-auto">
@@ -249,7 +249,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <header className="md:hidden h-14 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-50 shrink-0">
         <div className="flex items-center gap-2">
           <Leaf className="h-5 w-5 text-primary" />
-          <span className="font-bold text-foreground">cocci</span>
+          <span className="font-bold text-foreground">Cocci</span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

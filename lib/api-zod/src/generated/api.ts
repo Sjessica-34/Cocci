@@ -531,7 +531,6 @@ export const CreateStakeholderParams = zod.object({
   "orgId": zod.coerce.number()
 })
 
-
 export const createStakeholderBodyInfluenceMax = 5;
 
 export const createStakeholderBodyInterestMax = 5;
@@ -539,7 +538,7 @@ export const createStakeholderBodyInterestMax = 5;
 
 
 export const CreateStakeholderBody = zod.object({
-  "name": zod.string().min(1),
+  "name": zod.string().optional(),
   "category": zod.string(),
   "subcategory": zod.string().optional(),
   "description": zod.string().optional(),
