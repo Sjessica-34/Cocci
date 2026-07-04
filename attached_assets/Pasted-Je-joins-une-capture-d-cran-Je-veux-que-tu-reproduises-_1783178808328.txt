@@ -1,0 +1,87 @@
+Je joins une capture d'écran.
+
+Je veux que tu reproduises cette interface presque à l'identique.
+
+Je ne veux PAS une adaptation.
+Je ne veux PAS que tu t'en inspires.
+Je veux retrouver la même philosophie d'interface, la même organisation, la même hiérarchie visuelle et le même niveau de finition.
+
+En revanche :
+
+- conserve les couleurs de Cocci
+- conserve mon logo
+- conserve ma typographie
+- conserve mon identité graphique
+
+Je veux uniquement remplacer entièrement l'UX/UI actuelle du back-office.
+
+----------------------------------------
+
+Je souhaite retrouver :
+
+- une sidebar moderne et élégante
+- une barre de recherche dans le header
+- des cartes KPI identiques dans leur disposition
+- des cartes avec icônes colorées
+- des badges
+- des tableaux professionnels
+- une colonne "activité récente"
+- une meilleure utilisation de l'espace
+- une hiérarchie visuelle identique
+- les mêmes marges
+- les mêmes espacements
+- les mêmes alignements
+- le même niveau de finition
+
+----------------------------------------
+
+La sidebar doit être réorganisée comme sur la capture.
+
+Le bloc "Espace client" doit être une véritable carte, placée juste au-dessus du profil utilisateur.
+
+Cette carte doit contenir :
+
+- une barre de recherche
+- un sélecteur d'entreprise
+- un bouton de retour vers l'administration lorsque je consulte un espace client
+
+Je veux exactement cette ergonomie.
+
+----------------------------------------
+
+Le tableau de bord Administration doit également être réorganisé.
+
+Je souhaite retrouver :
+
+- une première ligne composée de KPI
+- un grand tableau principal des entreprises
+- une colonne latérale avec l'activité récente
+- une interface beaucoup plus dense
+- une sensation de véritable logiciel SaaS
+
+----------------------------------------
+
+Tu peux déplacer tous les composants existants.
+
+Tu peux refaire entièrement la mise en page.
+
+Tu peux créer de nouveaux composants.
+
+Tu peux supprimer les pages de démonstration actuelles.
+
+Je préfère repartir sur une nouvelle interface plutôt que conserver la mise en page actuelle.
+
+----------------------------------------
+
+IMPORTANT
+
+Ne modifie pas la logique métier.
+
+Ne modifie pas la base de données.
+
+Ne modifie pas les fonctionnalités existantes.
+
+Je veux uniquement refaire complètement l'interface du back-office en reproduisant presque à l'identique l'ergonomie de la capture d'écran.
+
+Je souhaite un résultat extrêmement proche de cette référence.
+N'essaie pas de conserver l'interface actuelle. Si nécessaire, supprime entièrement la mise en page existante et reconstruis-la selon cette référence. La priorité est d'obtenir une interface premium, même si cela implique une refonte complète de l'UI
