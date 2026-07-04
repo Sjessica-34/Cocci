@@ -153,6 +153,10 @@ export function StakeholderForm({ orgId, stakeholder, open, onClose }: Props) {
       toast({ variant: "destructive", title: "La catégorie est obligatoire." });
       return;
     }
+    if (!form.subcategory.trim()) {
+      toast({ variant: "destructive", title: "La sous-catégorie est obligatoire." });
+      return;
+    }
     handleSave(form);
     if (!isEdit) return;
     onClose();
@@ -209,7 +213,8 @@ export function StakeholderForm({ orgId, stakeholder, open, onClose }: Props) {
           {form.category && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">
-                {isOtherCategory ? "Précisez la catégorie" : "Sous-catégorie"}
+                {isOtherCategory ? "Précisez la catégorie" : "Sous-catégorie"}{" "}
+                <span className="text-destructive">*</span>
               </label>
               {isOtherCategory ? (
                 <Input
@@ -221,10 +226,9 @@ export function StakeholderForm({ orgId, stakeholder, open, onClose }: Props) {
                 <Select
                   value={form.subcategory}
                   onValueChange={(v) => set("subcategory", v)}
-                  disabled={subcategories.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Optionnel" />
+                    <SelectValue placeholder="Choisir une sous-catégorie…" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>

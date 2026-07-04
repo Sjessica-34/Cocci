@@ -227,19 +227,21 @@ export function TabCartographie({ stakeholders }: Props) {
                   fill="white"
                   fontWeight={700}
                 >
-                  {((node.name ?? "?")[0] ?? "?").toUpperCase()}
+                  {((node.subcategory ?? node.catLabel)[0] ?? "?").toUpperCase()}
                 </text>
               )}
-              <text
-                x={node.x}
-                y={node.y + node.bubbleR + 10}
-                textAnchor="middle"
-                fontSize={9}
-                fill="currentColor"
-                className="text-foreground/70"
-              >
-                {(node.name ?? "Sans nom").length > 14 ? (node.name ?? "Sans nom").slice(0, 12) + "…" : (node.name ?? "Sans nom")}
-              </text>
+              {node.subcategory && (
+                <text
+                  x={node.x}
+                  y={node.y + node.bubbleR + 10}
+                  textAnchor="middle"
+                  fontSize={9}
+                  fill="currentColor"
+                  className="text-foreground/70"
+                >
+                  {node.subcategory.length > 14 ? node.subcategory.slice(0, 12) + "…" : node.subcategory}
+                </text>
+              )}
             </g>
           ))}
         </svg>
@@ -257,12 +259,14 @@ export function TabCartographie({ stakeholders }: Props) {
               className="h-1.5 rounded-full mb-2"
               style={{ backgroundColor: tooltip.node.color }}
             />
-            <p className="font-semibold text-foreground text-sm mb-0.5">{tooltip.node.name ?? "Sans nom"}</p>
-            <p className="text-muted-foreground">
+            <p className="font-semibold text-foreground text-sm mb-0.5">
+              {tooltip.node.subcategory ?? tooltip.node.catLabel}
+            </p>
+            <p className="text-muted-foreground text-[11px]">
               {tooltip.node.catIcon} {tooltip.node.catLabel}
             </p>
-            {tooltip.node.subcategory && (
-              <p className="text-muted-foreground">{tooltip.node.subcategory}</p>
+            {tooltip.node.name && (
+              <p className="text-muted-foreground text-[11px]">{tooltip.node.name}</p>
             )}
             <div className="mt-2 space-y-0.5 text-xs">
               <div className="flex justify-between">

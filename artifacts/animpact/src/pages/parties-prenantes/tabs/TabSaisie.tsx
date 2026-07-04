@@ -97,6 +97,14 @@ export function TabSaisie({ orgId, stakeholders }: Props) {
     stakeholders.some((s) => s.category === c.key),
   );
 
+  const grouped = STAKEHOLDER_CATEGORIES
+    .filter((cat) => filtered.some((s) => s.category === cat.key))
+    .map((cat) => ({
+      cat,
+      color: CATEGORY_COLORS[cat.key] ?? "#94a3b8",
+      items: filtered.filter((s) => s.category === cat.key),
+    }));
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -153,102 +161,115 @@ export function TabSaisie({ orgId, stakeholders }: Props) {
             </div>
           </div>
 
-          {/* Table */}
+          {/* Grouped list */}
           {filtered.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground text-sm">
               Aucun résultat pour cette recherche.
             </div>
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/40 border-b border-border">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                      Nom
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">
-                      Catégorie
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                      Influence
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                      Intérêt
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
-                      Positionnement
-                    </th>
-                    <th className="px-4 py-3 w-20" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filtered.map((s) => {
-                    const cat = getCategoryByKey(s.category);
-                    const color = CATEGORY_COLORS[s.category] ?? "#94a3b8";
-                    const quadrant = getQuadrant(s.influence, s.interest);
-                    const quadrantColor = getQuadrantColor(s.influence, s.interest);
-                    return (
-                      <tr key={s.id} className="hover:bg-muted/20 transition-colors group">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className="h-8 w-8 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0"
-                              style={{ backgroundColor: color }}
-                            >
-                              {(s.name ?? "?")[0]?.toUpperCase() ?? "?"}
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground leading-tight">{s.name ?? <span className="italic text-muted-foreground">Sans nom</span>}</p>
-                              {s.subcategory && (
-                                <p className="text-xs text-muted-foreground">{s.subcategory}</p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 hidden sm:table-cell">
-                          <CategoryBadge categoryKey={s.category} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <RatingBar value={s.influence} size="sm" />
-                        </td>
-                        <td className="px-4 py-3">
-                          <RatingBar value={s.interest} size="sm" />
-                        </td>
-                        <td className="px-4 py-3 hidden lg:table-cell">
-                          <span
-                            className={cn(
-                              "inline-flex items-center text-[10px] px-2 py-0.5 rounded-full border font-medium",
-                              quadrantColor,
-                            )}
-                          >
-                            {quadrant}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => openEdit(s)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={() => setDeleteTarget(s)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </td>
+            <div className="space-y-4">
+              {grouped.map(({ cat, color, items }) => (
+                <div key={cat.key} className="rounded-lg border border-border overflow-hidden">
+                  {/* Category header */}
+                  <div
+                    className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border"
+                    style={{ backgroundColor: color + "18" }}
+                  >
+                    <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <span className="text-sm font-semibold text-foreground">
+                      {cat.icon} {cat.label}
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground font-medium">
+                      {items.length}
+                    </span>
+                  </div>
+
+                  {/* Rows */}
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/20 border-b border-border">
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                          Partie prenante
+                        </th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                          Influence
+                        </th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                          Intérêt
+                        </th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
+                          Positionnement
+                        </th>
+                        <th className="px-4 py-2 w-20" />
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {items.map((s) => {
+                        const quadrant = getQuadrant(s.influence, s.interest);
+                        const quadrantColor = getQuadrantColor(s.influence, s.interest);
+                        return (
+                          <tr key={s.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2.5">
+                                <div
+                                  className="h-7 w-7 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                                  style={{ backgroundColor: color }}
+                                >
+                                  {((s.subcategory ?? s.category)[0] ?? "?").toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-foreground leading-tight">
+                                    {s.subcategory ?? <span className="italic text-muted-foreground text-xs">—</span>}
+                                  </p>
+                                  {s.name && (
+                                    <p className="text-xs text-muted-foreground">{s.name}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <RatingBar value={s.influence} size="sm" />
+                            </td>
+                            <td className="px-4 py-3">
+                              <RatingBar value={s.interest} size="sm" />
+                            </td>
+                            <td className="px-4 py-3 hidden lg:table-cell">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center text-[10px] px-2 py-0.5 rounded-full border font-medium",
+                                  quadrantColor,
+                                )}
+                              >
+                                {quadrant}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => openEdit(s)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteTarget(s)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
             </div>
           )}
         </>
@@ -285,8 +306,7 @@ export function TabSaisie({ orgId, stakeholders }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer cette partie prenante ?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{deleteTarget?.name}</strong> sera définitivement supprimée. Cette action est
-              irréversible.
+              <strong>{deleteTarget?.subcategory ?? deleteTarget?.name ?? "Cette partie prenante"}</strong> sera définitivement supprimée. Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

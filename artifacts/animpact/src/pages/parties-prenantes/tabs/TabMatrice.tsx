@@ -369,7 +369,9 @@ export function TabMatrice({ stakeholders }: Props) {
               const cy = plotY(s.influence);
               const color = CATEGORY_COLORS[s.category] ?? "#94a3b8";
               const isHighlighted =
-                searchLower === "" || (s.name ?? "").toLowerCase().includes(searchLower);
+                searchLower === "" ||
+                (s.subcategory ?? "").toLowerCase().includes(searchLower) ||
+                (s.name ?? "").toLowerCase().includes(searchLower);
               return (
                 <g
                   key={s.id}
@@ -407,7 +409,7 @@ export function TabMatrice({ stakeholders }: Props) {
                       fill="#334155"
                       fontWeight={500}
                     >
-                      {(s.name ?? "Sans nom").length > 12 ? (s.name ?? "Sans nom").slice(0, 10) + "…" : (s.name ?? "Sans nom")}
+                      {(s.subcategory ?? "").length > 12 ? (s.subcategory ?? "").slice(0, 10) + "…" : (s.subcategory ?? "")}
                     </text>
                   )}
                   {isHighlighted && (
@@ -420,7 +422,7 @@ export function TabMatrice({ stakeholders }: Props) {
                       fill="white"
                       fontWeight={700}
                     >
-                      {((s.name ?? "?")[0] ?? "?").toUpperCase()}
+                      {((s.subcategory ?? s.category)[0] ?? "?").toUpperCase()}
                     </text>
                   )}
                 </g>
@@ -438,10 +440,16 @@ export function TabMatrice({ stakeholders }: Props) {
               top: Math.max(tooltip.y - 70, 4),
             }}
           >
-            <p className="font-semibold text-foreground text-sm">{tooltip.stakeholder.name ?? "Sans nom"}</p>
-            <p className="text-muted-foreground text-[11px] mb-2">
+            <p className="font-semibold text-foreground text-sm">
+              {tooltip.stakeholder.subcategory ?? getCategoryByKey(tooltip.stakeholder.category)?.label}
+            </p>
+            <p className="text-muted-foreground text-[11px]">
+              {getCategoryByKey(tooltip.stakeholder.category)?.icon}{" "}
               {getCategoryByKey(tooltip.stakeholder.category)?.label}
             </p>
+            {tooltip.stakeholder.name && (
+              <p className="text-muted-foreground text-[11px] mb-2">{tooltip.stakeholder.name}</p>
+            )}
             <div className="space-y-0.5">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Influence</span>
