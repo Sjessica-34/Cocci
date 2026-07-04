@@ -48,7 +48,7 @@ const navGroups: NavItem[][] = [
   ],
   [
     { href: "/parties-prenantes", label: "Mes parties prenantes", icon: Users2 },
-    { href: "/enjeux", label: "Mes enjeux", icon: Target },
+    { href: "/enjeux", label: "Matrice de matérialité", icon: Target },
     { href: "/biodiversite", label: "Mes dépendances à la biodiversité", icon: Sprout },
   ],
   [
