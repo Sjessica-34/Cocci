@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useGetCarbonBilan, useUpsertCarbonBilan } from "@workspace/api-client-react";
 import type { CarbonBilan, CarbonBilanInput } from "@workspace/api-client-react";
-import { UtilisationCalculator } from "./UtilisationCalculator";
+import { UtilisationCalculator, computeUtilisation } from "./UtilisationCalculator";
 import { AppLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -303,7 +303,13 @@ export function BilanCarbone() {
     scope: `Scope ${c.scope}`,
   }));
 
-  const { breakdown: estBreakdown, total: estTotal } = computeEstimation(form);
+  const { breakdown: estBreakdownBase, total: estTotalBase } = computeEstimation(form);
+  const utilResult = computeUtilisation(form);
+  const utilEntry = utilResult && utilResult.tCO2e > 0
+    ? [{ label: "Utilisation des produits/services", value: utilResult.tCO2e, scope: "Scope 3" }]
+    : [];
+  const estBreakdown = [...estBreakdownBase, ...utilEntry];
+  const estTotal = estTotalBase + (utilResult?.tCO2e ?? 0);
 
   const YEARS = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
@@ -461,9 +467,6 @@ export function BilanCarbone() {
                   </table>
                 </div>
 
-                {/* Calculateur Utilisation */}
-                <UtilisationCalculator form={form} set={set} />
-
                 {/* Résultats */}
                 {saisieTotal > 0 && (
                   <div className="rounded-xl border border-border bg-white dark:bg-muted/10 p-5">
@@ -586,6 +589,9 @@ export function BilanCarbone() {
                         <NumInput value={form.estWasteTons} onChange={(v) => set("estWasteTons", v ?? undefined)} placeholder="estimation auto" />
                       </Field>
                     </Section>
+
+                    {/* Utilisation calculator */}
+                    <UtilisationCalculator form={form} set={set} />
 
                     {/* Live result */}
                     <div className="rounded-xl border border-border bg-white dark:bg-muted/10 p-5">
