@@ -1,7 +1,13 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
-import { useListOrganizations, useGetNrData, useUpsertNrData } from "@workspace/api-client-react";
-import type { NrDataInput } from "@workspace/api-client-react";
+import {
+  useListOrganizations,
+  useGetNrData,
+  useUpsertNrData,
+  getGetNrDataQueryKey,
+} from "@workspace/api-client-react";
+import type { NrDataInput, NrMeta } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,18 +19,21 @@ import { TabCalculateur } from "./tabs/TabCalculateur";
 import { computeScores } from "./data";
 
 const TABS = [
-  { value: "decouvrir",   label: "Découvrir",    icon: <BookOpen    className="h-3.5 w-3.5" /> },
+  { value: "decouvrir",   label: "Découvrir",    icon: <BookOpen      className="h-3.5 w-3.5" /> },
   { value: "evaluation",  label: "Évaluation",   icon: <ClipboardList className="h-3.5 w-3.5" /> },
-  { value: "resultats",   label: "Résultats",    icon: <BarChart2   className="h-3.5 w-3.5" /> },
-  { value: "calculateur", label: "Calculateur",  icon: <Calculator  className="h-3.5 w-3.5" /> },
+  { value: "resultats",   label: "Résultats",    icon: <BarChart2     className="h-3.5 w-3.5" /> },
+  { value: "calculateur", label: "Calculateur",  icon: <Calculator    className="h-3.5 w-3.5" /> },
 ];
 
 export function NumeriqueResponsable() {
   const { currentOrgId } = useCurrentOrganization();
-  const { data: orgs } = useListOrganizations();
-  const currentOrg = orgs?.find((o) => o.id === currentOrgId);
+  const { data: orgs }   = useListOrganizations();
+  const currentOrg       = orgs?.find((o) => o.id === currentOrgId);
+  const queryClient      = useQueryClient();
+
   const [activeTab, setActiveTab] = useState("decouvrir");
 
+  // ── Server state ────────────────────────────────────────────────────────────
   const { data: nrData, isLoading } = useGetNrData(currentOrgId ?? 0, {
     query: {
       enabled: !!currentOrgId,
@@ -32,16 +41,34 @@ export function NumeriqueResponsable() {
     },
   });
 
-  const { mutate: upsertNr } = useUpsertNrData();
+  // ── Local state (source of truth for the form) ──────────────────────────────
+  const [responses, setResponses] = useState<Record<string, boolean>>({});
+  const [comments,  setComments]  = useState<Record<string, string>>({});
 
-  const responsesMap: Record<string, boolean> = {};
-  const commentsMap: Record<string, string> = {};
-  (nrData?.responses ?? []).forEach((r) => {
-    responsesMap[r.criterionId] = r.checked;
-    if (r.comment) commentsMap[r.criterionId] = r.comment;
+  // Sync local state whenever server data arrives (initial load or after navigation)
+  useEffect(() => {
+    if (!nrData) return;
+    const r: Record<string, boolean> = {};
+    const c: Record<string, string>  = {};
+    for (const item of nrData.responses) {
+      r[item.criterionId] = item.checked;
+      if (item.comment) c[item.criterionId] = item.comment;
+    }
+    setResponses(r);
+    setComments(c);
+  }, [nrData]);
+
+  // ── Mutation ────────────────────────────────────────────────────────────────
+  const { mutate: upsertNr } = useUpsertNrData({
+    mutation: {
+      onSuccess: () => {
+        // Invalider le cache → prochain accès recharge depuis le serveur
+        queryClient.invalidateQueries({
+          queryKey: getGetNrDataQueryKey(currentOrgId ?? 0),
+        });
+      },
+    },
   });
-
-  const scores = computeScores(responsesMap);
 
   const handleSave = useCallback(
     (input: NrDataInput) => {
@@ -51,29 +78,56 @@ export function NumeriqueResponsable() {
     [currentOrgId, upsertNr],
   );
 
+  // Handlers exposés aux enfants
+  const handleResponseChange = useCallback((criterionId: string, checked: boolean) => {
+    setResponses((prev) => ({ ...prev, [criterionId]: checked }));
+  }, []);
+
+  const handleCommentChange = useCallback((criterionId: string, comment: string) => {
+    setComments((prev) => ({ ...prev, [criterionId]: comment }));
+  }, []);
+
+  const handleSaveEvaluation = useCallback(() => {
+    const items = Object.entries(responses).map(([criterionId, checked]) => ({
+      criterionId,
+      checked,
+      comment: comments[criterionId] ?? null,
+    }));
+    handleSave({ responses: items });
+  }, [responses, comments, handleSave]);
+
+  // ── Scores (dérivés des réponses locales) ────────────────────────────────────
+  const scores = computeScores(responses);
+
+  const meta: NrMeta = nrData?.meta ?? {
+    certificationLabel: "none",
+    certificationOther: null,
+    updatedAt: null,
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6 pb-12">
-        {/* Page header */}
-        <div>
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Numérique Responsable</h1>
-              {currentOrg && (
-                <p className="text-sm text-muted-foreground mt-1">{currentOrg.name}</p>
-              )}
-            </div>
-            {!isLoading && !!currentOrgId && scores.totalPossible > 0 && (
-              <div className="text-right">
-                <span className="text-2xl font-bold text-foreground">{scores.globalScore}</span>
-                <span className="text-sm text-muted-foreground font-medium">/500</span>
-                <p className="text-xs text-muted-foreground">{scores.totalChecked}/{scores.totalPossible} critères</p>
-              </div>
+        {/* En-tête */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Numérique Responsable</h1>
+            {currentOrg && (
+              <p className="text-sm text-muted-foreground mt-1">{currentOrg.name}</p>
             )}
           </div>
+          {!isLoading && !!currentOrgId && scores.totalPossible > 0 && (
+            <div className="text-right">
+              <span className="text-2xl font-bold text-foreground">{scores.globalScore}</span>
+              <span className="text-sm text-muted-foreground font-medium">/500</span>
+              <p className="text-xs text-muted-foreground">
+                {scores.totalChecked}/{scores.totalPossible} critères
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* No org */}
+        {/* Aucune organisation */}
         {!currentOrgId && (
           <div className="flex items-center gap-3 p-5 rounded-xl border border-amber-200 bg-amber-50">
             <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
@@ -86,14 +140,16 @@ export function NumeriqueResponsable() {
           </div>
         )}
 
-        {/* Loading */}
+        {/* Chargement */}
         {isLoading && currentOrgId && (
           <div className="space-y-3">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-lg" />
+            ))}
           </div>
         )}
 
-        {/* Main tabs */}
+        {/* Onglets */}
         {!isLoading && !!currentOrgId && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="flex flex-wrap gap-1 h-auto p-1 w-full sm:w-auto">
@@ -112,8 +168,8 @@ export function NumeriqueResponsable() {
             <TabsContent value="decouvrir" className="mt-0">
               <TabDecouvrir
                 orgId={currentOrgId}
-                meta={nrData?.meta ?? { certificationLabel: "none", certificationOther: null, updatedAt: null }}
-                onSave={(meta) => handleSave({ meta })}
+                meta={meta}
+                onSave={(m) => handleSave({ meta: m })}
                 onStart={() => setActiveTab("evaluation")}
               />
             </TabsContent>
@@ -121,17 +177,16 @@ export function NumeriqueResponsable() {
             <TabsContent value="evaluation" className="mt-0">
               <TabEvaluation
                 orgId={currentOrgId}
-                initialResponses={responsesMap}
-                initialComments={commentsMap}
-                onSave={(responses) => handleSave({ responses })}
+                responses={responses}
+                comments={comments}
+                onResponseChange={handleResponseChange}
+                onCommentChange={handleCommentChange}
+                onSave={handleSaveEvaluation}
               />
             </TabsContent>
 
             <TabsContent value="resultats" className="mt-0">
-              <TabResultats
-                scores={scores}
-                responsesMap={responsesMap}
-              />
+              <TabResultats scores={scores} responsesMap={responses} />
             </TabsContent>
 
             <TabsContent value="calculateur" className="mt-0">

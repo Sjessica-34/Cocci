@@ -8,81 +8,58 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight, Paperclip, Check, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { NrResponseItem } from "@workspace/api-client-react";
 
 interface Props {
-  orgId: number;
-  initialResponses: Record<string, boolean>;
-  initialComments:  Record<string, string>;
-  onSave: (responses: NrResponseItem[]) => void;
+  orgId:            number;
+  responses:        Record<string, boolean>;
+  comments:         Record<string, string>;
+  onResponseChange: (criterionId: string, checked: boolean) => void;
+  onCommentChange:  (criterionId: string, comment: string)  => void;
+  onSave:           () => void;
 }
 
-export function TabEvaluation({ orgId, initialResponses, initialComments, onSave }: Props) {
-  const [responses, setResponses]   = useState<Record<string, boolean>>(initialResponses);
-  const [comments,  setComments]    = useState<Record<string, string>>(initialComments);
-  const [saving,    setSaving]      = useState(false);
-  const [saved,     setSaved]       = useState(false);
-  const [openDocs,  setOpenDocs]    = useState<string | null>(null);
+export function TabEvaluation({
+  orgId, responses, comments, onResponseChange, onCommentChange, onSave,
+}: Props) {
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  const [openDocs, setOpenDocs] = useState<string | null>(null);
 
   const [collapsedPillars,  setCollapsedPillars]  = useState<Record<string, boolean>>({});
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
-  // Sync initial data (only once when data arrives)
-  const initializedRef = useRef(false);
-  useEffect(() => {
-    if (!initializedRef.current && Object.keys(initialResponses).length > 0) {
-      setResponses(initialResponses);
-      setComments(initialComments);
-      initializedRef.current = true;
-    }
-  }, [initialResponses, initialComments]);
-
-  // Debounced auto-save timer
+  // Debounce timer for auto-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Core save function (immediate)
-  const doSave = useCallback(
-    (resp: Record<string, boolean>, cmts: Record<string, string>) => {
-      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
-      setSaving(true);
-      setSaved(false);
-      const items: NrResponseItem[] = Object.entries(resp).map(([criterionId, checked]) => ({
-        criterionId,
-        checked,
-        comment: cmts[criterionId] ?? null,
-      }));
-      onSave(items);
-      setTimeout(() => {
-        setSaving(false);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
-      }, 600);
-    },
-    [onSave],
-  );
+  const executeSave = useCallback(() => {
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+    setSaving(true);
+    setSaved(false);
+    onSave();
+    setTimeout(() => {
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    }, 600);
+  }, [onSave]);
 
-  // Debounced auto-save (triggered by checkbox / comment changes)
-  const triggerAutoSave = useCallback(
-    (resp: Record<string, boolean>, cmts: Record<string, string>) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => doSave(resp, cmts), 800);
-    },
-    [doSave],
-  );
+  const scheduleAutoSave = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => executeSave(), 800);
+  }, [executeSave]);
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
   const handleCheck = (criterionId: string, checked: boolean) => {
-    const next = { ...responses, [criterionId]: checked };
-    setResponses(next);
-    triggerAutoSave(next, comments);
+    onResponseChange(criterionId, checked);
+    scheduleAutoSave();
   };
 
   const handleComment = (criterionId: string, comment: string) => {
-    const next = { ...comments, [criterionId]: comment };
-    setComments(next);
-    triggerAutoSave(responses, next);
+    onCommentChange(criterionId, comment);
+    scheduleAutoSave();
   };
-
-  const handleManualSave = () => doSave(responses, comments);
 
   const togglePillar  = (pid: string) => setCollapsedPillars((s)  => ({ ...s, [pid]: !s[pid] }));
   const toggleSection = (sid: string) => setCollapsedSections((s) => ({ ...s, [sid]: !s[sid] }));
@@ -154,7 +131,7 @@ export function TabEvaluation({ orgId, initialResponses, initialComments, onSave
               </div>
             </button>
 
-            {/* Sections */}
+            {/* Sections (only when expanded) */}
             {!isCollapsed && (
               <>
                 <div className="border-t border-border divide-y divide-border">
@@ -198,7 +175,9 @@ export function TabEvaluation({ orgId, initialResponses, initialComments, onSave
                                 onCheck={(v) => handleCheck(criterion.id, v)}
                                 onComment={(v) => handleComment(criterion.id, v)}
                                 onToggleDocs={() =>
-                                  setOpenDocs((prev) => (prev === criterion.id ? null : criterion.id))
+                                  setOpenDocs((prev) =>
+                                    prev === criterion.id ? null : criterion.id,
+                                  )
                                 }
                               />
                             ))}
@@ -209,22 +188,23 @@ export function TabEvaluation({ orgId, initialResponses, initialComments, onSave
                   })}
                 </div>
 
-                {/* Save button after each pillar */}
+                {/* Save button at the bottom of each pillar */}
                 <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/5">
                   <span className="text-xs text-muted-foreground">
-                    Pilier complété à <strong>{prog.pct}%</strong> — {prog.checked}/{prog.total} critères validés
+                    Pilier complété à{" "}
+                    <strong>{prog.pct}%</strong> — {prog.checked}/{prog.total} critères validés
                   </span>
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={handleManualSave}
+                    onClick={executeSave}
                     disabled={saving}
                     className="gap-1.5 text-xs h-8"
                   >
                     {saving
                       ? <><Loader2 className="h-3 w-3 animate-spin" /> Sauvegarde…</>
-                      : <><Save className="h-3 w-3" /> Enregistrer</>
+                      : <><Save    className="h-3 w-3" /> Enregistrer</>
                     }
                   </Button>
                 </div>
@@ -244,14 +224,13 @@ export function TabEvaluation({ orgId, initialResponses, initialComments, onSave
         </div>
         <Button
           type="button"
-          size="default"
-          onClick={handleManualSave}
+          onClick={executeSave}
           disabled={saving}
           className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 ml-4"
         >
           {saving
             ? <><Loader2 className="h-4 w-4 animate-spin" /> Sauvegarde…</>
-            : <><Save className="h-4 w-4" /> Enregistrer</>
+            : <><Save    className="h-4 w-4" /> Enregistrer</>
           }
         </Button>
       </div>
@@ -259,7 +238,7 @@ export function TabEvaluation({ orgId, initialResponses, initialComments, onSave
   );
 }
 
-// ── Save indicator ────────────────────────────────────────────────────────────
+// ── Save indicator ─────────────────────────────────────────────────────────────
 
 function SaveIndicator({ saving, saved }: { saving: boolean; saved: boolean }) {
   if (!saving && !saved) return <span className="min-w-24" />;
@@ -281,7 +260,7 @@ function SaveIndicator({ saving, saved }: { saving: boolean; saved: boolean }) {
   );
 }
 
-// ── Criterion row ────────────────────────────────────────────────────────────
+// ── Criterion row ──────────────────────────────────────────────────────────────
 
 interface CriterionProps {
   orgId:        number;
@@ -290,19 +269,20 @@ interface CriterionProps {
   comment:      string;
   docOpen:      boolean;
   onCheck:      (v: boolean) => void;
-  onComment:    (v: string) => void;
+  onComment:    (v: string)  => void;
   onToggleDocs: () => void;
 }
 
 function CriterionRow({
   orgId, criterion, checked, comment, docOpen, onCheck, onComment, onToggleDocs,
 }: CriterionProps) {
-  const [showComment, setShowComment] = useState(checked || !!comment);
+  const [showComment, setShowComment] = useState(!!comment);
   const isSpecial = criterion.isSpecial;
 
+  // Auto-reveal comment area when checked or comment pre-exists
   useEffect(() => {
-    if (checked) setShowComment(true);
-  }, [checked]);
+    if (checked || comment) setShowComment(true);
+  }, [checked, comment]);
 
   return (
     <div
@@ -362,7 +342,9 @@ function CriterionRow({
                 onClick={onToggleDocs}
                 className={cn(
                   "flex items-center gap-1 text-[11px] transition-colors",
-                  docOpen ? "text-blue-600" : "text-muted-foreground hover:text-blue-600",
+                  docOpen
+                    ? "text-blue-600"
+                    : "text-muted-foreground hover:text-blue-600",
                 )}
               >
                 <Paperclip className="h-3 w-3" />
