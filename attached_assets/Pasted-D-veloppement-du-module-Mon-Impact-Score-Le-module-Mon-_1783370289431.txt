@@ -1,0 +1,89 @@
+Développement du module Mon Impact Score
+
+Le module Mon Impact Score a pour objectif de permettre à l'utilisateur de comprendre ce qu'est l'Impact Score puis de centraliser son résultat dans Cocci.
+
+Je ne souhaite pas reproduire le questionnaire officiel de l'Impact Score.
+
+Le module est composé de 2 onglets.
+
+Onglet 1 — Découvrir l'Impact Score
+
+Créer une page pédagogique présentant l'Impact Score.
+
+Cette page doit expliquer de manière simple et visuelle :
+
+Qu'est-ce que l'Impact Score ?
+À quoi sert-il ?
+Pourquoi le réaliser ?
+Comment est calculé le score ?
+À qui s'adresse-t-il ?
+Quels sont les bénéfices pour une entreprise ?
+Combien de temps faut-il prévoir pour le compléter ?
+Pourquoi intégrer son résultat dans Cocci ?
+
+Ajouter quelques illustrations, icônes et encadrés afin de rendre la lecture agréable.
+
+À la fin de cette page, ajouter un bouton :
+
+Accéder à la plateforme Impact Score
+
+Ce bouton ouvre le site officiel de l'Impact Score dans un nouvel onglet.
+
+Onglet 2 — Mon résultat
+
+Commencer par poser la question :
+
+Avez-vous déjà réalisé votre Impact Score ?
+
+Choix :
+
+Oui
+Non
+Si la réponse est Non
+
+Afficher un message indiquant que le questionnaire doit être réalisé sur la plateforme officielle.
+
+Afficher un bouton :
+
+Réaliser mon Impact Score
+
+Ce bouton ouvre le site officiel dans un nouvel onglet.
+
+Aucune autre information n'est demandée.
+
+Si la réponse est Oui
+
+Afficher un formulaire permettant de renseigner :
+
+Score obtenu (/100)
+Date de réalisation
+Commentaire (facultatif)
+
+Puis permettre de déposer le rapport obtenu.
+
+Formats autorisés :
+
+PDF
+PNG
+JPG
+
+Le document est automatiquement enregistré dans la GED de Cocci afin d'être réutilisé dans :
+
+le Rapport RSE ;
+les tableaux de bord ;
+les exports PDF.
+
+Une fois enregistré, afficher :
+
+le score obtenu ;
+une jauge ou barre de progression sur 100 ;
+la date de réalisation ;
+le rapport importé ;
+un bouton permettant de remplacer le document si une nouvelle version est obtenue.
+Contraintes
+Ne pas reproduire le questionnaire officiel de l'Impact Score.
+Ne pas calculer le score.
+Ne pas modifier les autres modules.
+Réutiliser les composants graphiques existants dans Cocci.
+Conserver une interface moderne, claire et cohérente avec le reste de l'application.
+Prévoir l'intégration future du score dans le tableau de bord global et dans le Rapport RSE.

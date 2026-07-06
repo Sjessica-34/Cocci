@@ -984,6 +984,59 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── IMPACT SCORE ───────────────────────────────────────────────────────────
+  /organizations/{orgId}/impact-score-result:
+    get:
+      operationId: getImpactScoreResult
+      tags: [impact-score]
+      summary: Get the Impact Score result for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Impact Score result (null if not yet entered)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImpactScoreResultResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    put:
+      operationId: upsertImpactScoreResult
+      tags: [impact-score]
+      summary: Create or update the Impact Score result
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImpactScoreResultInput"
+      responses:
+        "200":
+          description: Saved Impact Score result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImpactScoreResult"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
   # ─── BILAN CARBONE ──────────────────────────────────────────────────────────
   /organizations/{orgId}/carbon:
     get:
@@ -1746,6 +1799,50 @@ components:
             $ref: "#/components/schemas/NrResponseItem"
 
     # ─── DASHBOARD SUMMARY ─────────────────────────────────────────────────────
+    ImpactScoreResult:
+      type: object
+      required: [id, organizationId, score, dateRealisation, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        dateRealisation:
+          type: string
+          format: date
+        commentaire:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+          format: date-time
+
+    ImpactScoreResultResponse:
+      type: object
+      required: [result]
+      properties:
+        result:
+          oneOf:
+            - $ref: "#/components/schemas/ImpactScoreResult"
+            - type: "null"
+
+    ImpactScoreResultInput:
+      type: object
+      required: [score, dateRealisation]
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        dateRealisation:
+          type: string
+          format: date
+        commentaire:
+          type: ["string", "null"]
+
     DashboardSummary:
       type: object
       required: [organizationId, memberCount, activeModules, completionRate]

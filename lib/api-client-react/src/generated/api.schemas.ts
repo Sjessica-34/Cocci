@@ -564,6 +564,35 @@ export interface NrDataInput {
   responses?: NrResponseItem[];
 }
 
+export interface ImpactScoreResult {
+  id: number;
+  organizationId: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  score: number;
+  dateRealisation: string;
+  /** @nullable */
+  commentaire?: string | null;
+  updatedAt: string;
+}
+
+export interface ImpactScoreResultResponse {
+  result: ImpactScoreResult | null;
+}
+
+export interface ImpactScoreResultInput {
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  score: number;
+  dateRealisation: string;
+  /** @nullable */
+  commentaire?: string | null;
+}
+
 export interface DashboardSummary {
   organizationId: number;
   memberCount: number;

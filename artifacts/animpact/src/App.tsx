@@ -24,9 +24,9 @@ import { Resources } from "@/pages/resources";
 import {
   Biodiversite,
   DemarcheRse,
-  ImpactScore,
   RapportRse,
 } from "@/pages/stubs";
+import { ImpactScore } from "@/pages/impact-score";
 import { NumeriqueResponsable } from "@/pages/numerique-responsable";
 import { BilanCarbone } from "@/pages/bilan-carbone";
 import { PartiesPrenantes } from "@/pages/parties-prenantes";

@@ -31,6 +31,9 @@ import type {
   DashboardSummary,
   DocumentMeta,
   HealthStatus,
+  ImpactScoreResult,
+  ImpactScoreResultInput,
+  ImpactScoreResultResponse,
   IssueAnalysisResult,
   IssueRating,
   IssueRatingInput,
@@ -2898,6 +2901,154 @@ export const useUpsertNrData = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpsertNrDataMutationOptions(options));
+    }
+
+export const getGetImpactScoreResultUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/impact-score-result`
+}
+
+/**
+ * @summary Get the Impact Score result for an organization
+ */
+export const getImpactScoreResult = async (orgId: number, options?: RequestInit): Promise<ImpactScoreResultResponse> => {
+
+  return customFetch<ImpactScoreResultResponse>(getGetImpactScoreResultUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetImpactScoreResultQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/impact-score-result`
+    ] as const;
+    }
+
+
+export const getGetImpactScoreResultQueryOptions = <TData = Awaited<ReturnType<typeof getImpactScoreResult>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getImpactScoreResult>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetImpactScoreResultQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getImpactScoreResult>>> = ({ signal }) => getImpactScoreResult(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getImpactScoreResult>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetImpactScoreResultQueryResult = NonNullable<Awaited<ReturnType<typeof getImpactScoreResult>>>
+export type GetImpactScoreResultQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the Impact Score result for an organization
+ */
+
+export function useGetImpactScoreResult<TData = Awaited<ReturnType<typeof getImpactScoreResult>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getImpactScoreResult>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetImpactScoreResultQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertImpactScoreResultUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/impact-score-result`
+}
+
+/**
+ * @summary Create or update the Impact Score result
+ */
+export const upsertImpactScoreResult = async (orgId: number,
+    impactScoreResultInput: ImpactScoreResultInput, options?: RequestInit): Promise<ImpactScoreResult> => {
+
+  return customFetch<ImpactScoreResult>(getUpsertImpactScoreResultUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(impactScoreResultInput)
+  }
+);}
+
+
+
+
+export const getUpsertImpactScoreResultMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertImpactScoreResult>>, TError,{orgId: number;data: BodyType<ImpactScoreResultInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertImpactScoreResult>>, TError,{orgId: number;data: BodyType<ImpactScoreResultInput>}, TContext> => {
+
+const mutationKey = ['upsertImpactScoreResult'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertImpactScoreResult>>, {orgId: number;data: BodyType<ImpactScoreResultInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertImpactScoreResult(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertImpactScoreResultMutationResult = NonNullable<Awaited<ReturnType<typeof upsertImpactScoreResult>>>
+    export type UpsertImpactScoreResultMutationBody = BodyType<ImpactScoreResultInput>
+    export type UpsertImpactScoreResultMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or update the Impact Score result
+ */
+export const useUpsertImpactScoreResult = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertImpactScoreResult>>, TError,{orgId: number;data: BodyType<ImpactScoreResultInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertImpactScoreResult>>,
+        TError,
+        {orgId: number;data: BodyType<ImpactScoreResultInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertImpactScoreResultMutationOptions(options));
     }
 
 export const getGetCarbonBilanUrl = (orgId: number,) => {

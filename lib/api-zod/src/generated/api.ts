@@ -893,6 +893,63 @@ export const UpsertNrDataResponse = zod.object({
 
 
 /**
+ * @summary Get the Impact Score result for an organization
+ */
+export const GetImpactScoreResultParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const getImpactScoreResultResponseResultOneScoreMin = 0;
+export const getImpactScoreResultResponseResultOneScoreMax = 100;
+
+
+
+export const GetImpactScoreResultResponse = zod.object({
+  "result": zod.union([zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "score": zod.number().min(getImpactScoreResultResponseResultOneScoreMin).max(getImpactScoreResultResponseResultOneScoreMax),
+  "dateRealisation": zod.coerce.date(),
+  "commentaire": zod.string().nullish(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Create or update the Impact Score result
+ */
+export const UpsertImpactScoreResultParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const upsertImpactScoreResultBodyScoreMin = 0;
+export const upsertImpactScoreResultBodyScoreMax = 100;
+
+
+
+export const UpsertImpactScoreResultBody = zod.object({
+  "score": zod.number().min(upsertImpactScoreResultBodyScoreMin).max(upsertImpactScoreResultBodyScoreMax),
+  "dateRealisation": zod.coerce.date(),
+  "commentaire": zod.string().nullish()
+})
+
+export const upsertImpactScoreResultResponseScoreMin = 0;
+export const upsertImpactScoreResultResponseScoreMax = 100;
+
+
+
+export const UpsertImpactScoreResultResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "score": zod.number().min(upsertImpactScoreResultResponseScoreMin).max(upsertImpactScoreResultResponseScoreMax),
+  "dateRealisation": zod.coerce.date(),
+  "commentaire": zod.string().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Get the carbon bilan for an organization
  */
 export const GetCarbonBilanParams = zod.object({
