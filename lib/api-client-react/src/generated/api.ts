@@ -38,6 +38,8 @@ import type {
   Member,
   MemberInvite,
   MemberUpdate,
+  NrData,
+  NrDataInput,
   Organization,
   OrganizationInput,
   OrganizationUpdate,
@@ -2748,6 +2750,154 @@ export const useDeleteDocument = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteDocumentMutationOptions(options));
+    }
+
+export const getGetNrDataUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/numerique-responsable`
+}
+
+/**
+ * @summary Get NR meta and responses for an organization
+ */
+export const getNrData = async (orgId: number, options?: RequestInit): Promise<NrData> => {
+
+  return customFetch<NrData>(getGetNrDataUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNrDataQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/numerique-responsable`
+    ] as const;
+    }
+
+
+export const getGetNrDataQueryOptions = <TData = Awaited<ReturnType<typeof getNrData>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNrData>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNrDataQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNrData>>> = ({ signal }) => getNrData(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNrData>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNrDataQueryResult = NonNullable<Awaited<ReturnType<typeof getNrData>>>
+export type GetNrDataQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get NR meta and responses for an organization
+ */
+
+export function useGetNrData<TData = Awaited<ReturnType<typeof getNrData>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNrData>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNrDataQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertNrDataUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/numerique-responsable`
+}
+
+/**
+ * @summary Upsert NR meta and/or responses
+ */
+export const upsertNrData = async (orgId: number,
+    nrDataInput: NrDataInput, options?: RequestInit): Promise<NrData> => {
+
+  return customFetch<NrData>(getUpsertNrDataUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nrDataInput)
+  }
+);}
+
+
+
+
+export const getUpsertNrDataMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertNrData>>, TError,{orgId: number;data: BodyType<NrDataInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertNrData>>, TError,{orgId: number;data: BodyType<NrDataInput>}, TContext> => {
+
+const mutationKey = ['upsertNrData'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertNrData>>, {orgId: number;data: BodyType<NrDataInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertNrData(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertNrDataMutationResult = NonNullable<Awaited<ReturnType<typeof upsertNrData>>>
+    export type UpsertNrDataMutationBody = BodyType<NrDataInput>
+    export type UpsertNrDataMutationError = ErrorType<void>
+
+    /**
+ * @summary Upsert NR meta and/or responses
+ */
+export const useUpsertNrData = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertNrData>>, TError,{orgId: number;data: BodyType<NrDataInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertNrData>>,
+        TError,
+        {orgId: number;data: BodyType<NrDataInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertNrDataMutationOptions(options));
     }
 
 export const getGetCarbonBilanUrl = (orgId: number,) => {

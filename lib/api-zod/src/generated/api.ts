@@ -835,6 +835,64 @@ export const DeleteDocumentResponse = zod.void()
 
 
 /**
+ * @summary Get NR meta and responses for an organization
+ */
+export const GetNrDataParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetNrDataResponse = zod.object({
+  "meta": zod.object({
+  "certificationLabel": zod.string(),
+  "certificationOther": zod.string().nullish(),
+  "updatedAt": zod.coerce.date().nullish()
+}),
+  "responses": zod.array(zod.object({
+  "criterionId": zod.string(),
+  "checked": zod.boolean(),
+  "comment": zod.string().nullish(),
+  "updatedAt": zod.coerce.date().nullish()
+}))
+})
+
+
+/**
+ * @summary Upsert NR meta and/or responses
+ */
+export const UpsertNrDataParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const UpsertNrDataBody = zod.object({
+  "meta": zod.object({
+  "certificationLabel": zod.string(),
+  "certificationOther": zod.string().nullish(),
+  "updatedAt": zod.coerce.date().nullish()
+}).optional(),
+  "responses": zod.array(zod.object({
+  "criterionId": zod.string(),
+  "checked": zod.boolean(),
+  "comment": zod.string().nullish(),
+  "updatedAt": zod.coerce.date().nullish()
+})).optional()
+})
+
+export const UpsertNrDataResponse = zod.object({
+  "meta": zod.object({
+  "certificationLabel": zod.string(),
+  "certificationOther": zod.string().nullish(),
+  "updatedAt": zod.coerce.date().nullish()
+}),
+  "responses": zod.array(zod.object({
+  "criterionId": zod.string(),
+  "checked": zod.boolean(),
+  "comment": zod.string().nullish(),
+  "updatedAt": zod.coerce.date().nullish()
+}))
+})
+
+
+/**
  * @summary Get the carbon bilan for an organization
  */
 export const GetCarbonBilanParams = zod.object({

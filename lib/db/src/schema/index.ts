@@ -8,3 +8,4 @@ export * from "./customIssues";
 export * from "./issueAnalyses";
 export * from "./carbonBilans";
 export * from "./documents";
+export * from "./numeriqueResponsable";

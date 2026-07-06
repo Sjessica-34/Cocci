@@ -537,6 +537,33 @@ export type CarbonBilan = CarbonBilanInput & {
   updatedAt: string;
 };
 
+export interface NrResponseItem {
+  criterionId: string;
+  checked: boolean;
+  /** @nullable */
+  comment?: string | null;
+  /** @nullable */
+  updatedAt?: string | null;
+}
+
+export interface NrMeta {
+  certificationLabel: string;
+  /** @nullable */
+  certificationOther?: string | null;
+  /** @nullable */
+  updatedAt?: string | null;
+}
+
+export interface NrData {
+  meta: NrMeta;
+  responses: NrResponseItem[];
+}
+
+export interface NrDataInput {
+  meta?: NrMeta;
+  responses?: NrResponseItem[];
+}
+
 export interface DashboardSummary {
   organizationId: number;
   memberCount: number;

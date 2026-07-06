@@ -10,6 +10,7 @@ import stakeholdersRouter from "./stakeholders";
 import issuesRouter from "./issues";
 import carbonRouter from "./carbon";
 import documentsRouter from "./documents";
+import numeriqueResponsableRouter from "./numeriqueResponsable";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(stakeholdersRouter);
 router.use(issuesRouter);
 router.use(carbonRouter);
 router.use(documentsRouter);
+router.use(numeriqueResponsableRouter);
 
 export default router;

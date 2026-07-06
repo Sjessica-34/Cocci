@@ -24,10 +24,10 @@ import { Resources } from "@/pages/resources";
 import {
   Biodiversite,
   DemarcheRse,
-  NumeriqueResponsable,
   ImpactScore,
   RapportRse,
 } from "@/pages/stubs";
+import { NumeriqueResponsable } from "@/pages/numerique-responsable";
 import { BilanCarbone } from "@/pages/bilan-carbone";
 import { PartiesPrenantes } from "@/pages/parties-prenantes";
 import { Materialite } from "@/pages/materialite";

@@ -1,0 +1,200 @@
+esponsable
+
+Le document joint constitue le référentiel officiel du module Numérique Responsable de Cocci. Il doit être utilisé comme base de développement.
+
+IMPORTANT
+Ne modifie pas l'architecture actuelle.
+Ne modifie pas la navigation.
+Ne recrée pas le design général de Cocci.
+Réutilise les composants existants.
+Réutilise le fonctionnement et l'ergonomie du module Cartographie des Parties Prenantes, notamment :
+les cartes,
+les formulaires,
+les boutons,
+la progression,
+les uploads,
+les sauvegardes automatiques.
+
+Le module doit conserver la même logique de navigation afin que l'utilisateur retrouve une expérience homogène.
+
+Structure du module
+
+Le module est composé de 4 onglets.
+
+Onglet 1 — Découvrir
+
+Créer une page d'introduction comprenant :
+
+Qu'est-ce que le Numérique Responsable ?
+Pourquoi réaliser cette évaluation ?
+Fonctionnement du questionnaire.
+Explication du score sur 500.
+Fonctionnement des justificatifs.
+Temps estimé.
+Bouton Commencer l'évaluation.
+
+Ajouter en haut de cette page :
+
+Votre organisation est-elle déjà engagée dans une démarche Numérique Responsable ?
+
+Question :
+
+Disposez-vous d'un label ou d'une certification Numérique Responsable ?
+
+Choix possibles :
+
+Aucun
+Label Numérique Responsable (INR)
+NR Niveau 1
+NR Niveau 2
+Autre
+
+Si "Autre" est sélectionné :
+
+Afficher un champ texte.
+
+Puis :
+
+Déposer le certificat ou le justificatif
+
+Formats autorisés :
+
+PDF
+Word
+Image
+
+Le justificatif sera conservé dans la GED de Cocci et réutilisable dans le Rapport RSE.
+
+Onglet 2 — Évaluation
+
+Créer l'intégralité du questionnaire à partir du référentiel fourni.
+
+Le fonctionnement doit être identique à celui utilisé dans Cartographie des Parties Prenantes.
+
+Je souhaite retrouver :
+
+les mêmes cartes,
+les mêmes transitions,
+les mêmes formulaires,
+les mêmes composants,
+la même ergonomie.
+
+Le questionnaire est organisé en :
+
+grands piliers,
+sous-parties,
+critères.
+
+Chaque sous-partie est repliable.
+
+Chaque critère comprend :
+
+case à cocher,
+commentaire libre,
+dépôt de plusieurs justificatifs,
+sauvegarde automatique.
+
+Formats acceptés :
+
+PDF
+Word
+Excel
+PNG
+JPG
+
+Les justificatifs doivent être liés au critère concerné afin d'être réutilisés dans le Rapport RSE.
+
+Calcul des scores
+
+Chaque sous-partie possède un score maximal de 500 points.
+
+Le score est calculé automatiquement selon les critères validés.
+
+Les scores remontent automatiquement :
+
+Critères
+
+↓
+
+Sous-partie
+
+↓
+
+Pilier
+
+↓
+
+Score global Numérique Responsable
+
+Le calcul est entièrement automatique.
+
+Sauvegarde
+
+À tout moment :
+
+les réponses,
+les commentaires,
+les justificatifs
+
+sont sauvegardés automatiquement.
+
+L'utilisateur peut quitter puis reprendre l'évaluation sans perte de données.
+
+Onglet 3 — Résultats
+
+Créer un tableau de bord moderne.
+
+Afficher :
+
+Score global (/500)
+Pourcentage
+Niveau de maturité
+Radar
+Score par pilier
+Progression
+Forces
+Axes d'amélioration
+
+Conserver le design actuel de Cocci.
+
+Ajouter un bouton :
+
+Exporter les résultats
+
+(le développement du PDF sera réalisé ultérieurement).
+
+Onglet 4 — Mini calculateur
+
+Créer un mini calculateur Numérique Responsable.
+
+Le calculateur doit permettre de saisir rapidement les principales données du parc numérique :
+
+ordinateurs,
+écrans,
+smartphones,
+tablettes,
+serveurs,
+imprimantes,
+équipements reconditionnés,
+durée moyenne de vie,
+stockage,
+cloud,
+impressions,
+consommation électrique.
+
+Le calculateur doit afficher automatiquement :
+
+les principaux indicateurs,
+les graphiques,
+le score simplifié,
+les recommandations.
+
+Il constitue un outil complémentaire au questionnaire complet.
+
+Contraintes
+Utiliser exclusivement le référentiel fourni.
+Réutiliser les composants existants de Cocci.
+Réutiliser le modèle ergonomique de la Cartographie des Parties Prenantes.
+Ne pas modifier les autres modules.
+Développer le front-end, le back-end, les modèles de données, les calculs de score et les API nécessaires.
+Le module doit être entièrement fonctionnel et prêt à être connecté au Rapport RSE, à la GED documentaire et au score global de Cocci.
