@@ -1,0 +1,125 @@
+Nous allons faire évoluer le module Numérique Responsable.
+
+IMPORTANT
+
+Ne modifie pas le questionnaire existant.
+Ne modifie pas les questions.
+Ne modifie pas les calculs déjà développés.
+Ne modifie pas le radar global existant.
+
+Je souhaite uniquement réorganiser l'affichage du questionnaire et des résultats.
+
+-----------------------------------------------------
+
+Le questionnaire doit désormais être organisé autour de 5 grands piliers.
+
+Les questions existantes doivent être regroupées dans les catégories suivantes :
+
+🏛️ Stratégie & Gouvernance
+- PA01 Intégrer le Numérique Responsable dans la stratégie
+- PA02 Formaliser la politique Numérique Responsable
+- PA03 Déployer la politique Numérique Responsable
+
+👥 Culture & Compétences
+- PA04 Animer la démarche
+- PA05 Accessibilité numérique
+- PA06 Développement des compétences
+- PA07 Communication Numérique Responsable
+
+💻 Parc numérique & Services numériques
+- PA08 Achats responsables
+- PA09 Gestion des équipements
+- PA10 Logiciels et services numériques
+- PA11 Infrastructures
+- PA12 Gestion responsable des données
+
+🌍 Innovation & Écosystème
+- PA13 Mutualisation des outils et de la connaissance
+- PA14 Valoriser le numérique comme levier d'impact positif
+
+🤝 Produits & Relations clients
+- PA15 Promouvoir le Numérique Responsable dans les offres commerciales
+- PA16 Réaliser une prestation conforme à la démarche Numérique Responsable
+- PA17 Amélioration continue des prestations
+
+-----------------------------------------------------
+
+L'utilisateur ne doit plus voir les codes PA.
+
+Il doit uniquement voir les intitulés des cinq grands piliers.
+
+À l'intérieur de chaque pilier, conserver les sous-parties et toutes les questions existantes.
+
+-----------------------------------------------------
+
+Résultats
+
+Conserver le radar global actuel.
+
+Ajouter ensuite un radar spécifique pour chacun des cinq piliers.
+
+Chaque radar doit représenter les sous-parties du pilier concerné.
+
+Exemple :
+
+🏛️ Stratégie & Gouvernance
+
+Radar avec :
+- Intégrer le NR dans la stratégie
+- Formaliser la politique NR
+- Déployer la politique NR
+
+👥 Culture & Compétences
+
+Radar avec :
+- Animation de la démarche
+- Accessibilité numérique
+- Développement des compétences
+- Communication
+
+💻 Parc numérique & Services numériques
+
+Radar avec :
+- Achats responsables
+- Gestion des équipements
+- Logiciels & services numériques
+- Infrastructures
+- Données
+
+🌍 Innovation & Écosystème
+
+Radar avec :
+- Mutualisation
+- Numérique à impact positif
+
+🤝 Produits & Relations clients
+
+Radar avec :
+- Offres commerciales
+- Prestations
+- Amélioration continue
+
+-----------------------------------------------------
+
+Calcul des scores
+
+Ne modifier aucun calcul existant.
+
+Les scores des radars par pilier doivent être calculés automatiquement à partir des scores déjà obtenus sur les PA correspondants.
+
+Le radar global continue d'utiliser le score global actuel.
+
+Les radars des piliers utilisent uniquement les sous-parties du pilier concerné.
+
+-----------------------------------------------------
+
+Je souhaite une présentation moderne :
+
+- une carte par pilier ;
+- le score du pilier (/500) ;
+- une barre de progression ;
+- le radar correspondant ;
+- les points forts ;
+- les axes d'amélioration.
+
+Le design doit rester cohérent avec le reste de Cocci et réutiliser les composants exi

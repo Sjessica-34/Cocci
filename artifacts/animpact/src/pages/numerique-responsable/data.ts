@@ -924,3 +924,131 @@ export function maturityLabel(pct: number): { label: string; color: string } {
   if (pct < 80) return { label: "Avancé",           color: "text-blue-600" };
   return             { label: "Leader",             color: "text-emerald-600" };
 }
+
+// ── Macro-pillar groupings (5 grands piliers) ─────────────────────────────────
+
+export interface PaSubGroup {
+  id: string;
+  label: string;       // Short name for radar axis
+  sectionIds: string[];
+}
+
+export interface MacroPillar {
+  id: string;
+  title: string;
+  emoji: string;
+  color: string;
+  pillarIds: string[];       // contained PILLARS[].id
+  paSubGroups?: PaSubGroup[]; // defined when pillarIds.length === 1
+}
+
+export const MACRO_PILLARS: MacroPillar[] = [
+  {
+    id: "mp1",
+    title: "Stratégie & Gouvernance",
+    emoji: "🏛️",
+    color: "#10b981",
+    pillarIds: ["p1", "p2", "p3"],
+  },
+  {
+    id: "mp2",
+    title: "Culture & Compétences",
+    emoji: "👥",
+    color: "#3b82f6",
+    pillarIds: ["p4"],
+    paSubGroups: [
+      { id: "pa04", label: "Animer la démarche",            sectionIds: ["p4-s1","p4-s2","p4-s3","p4-s4","p4-s5"] },
+      { id: "pa05", label: "Accessibilité numérique",       sectionIds: ["p4-s6","p4-s7"] },
+      { id: "pa06", label: "Développement des compétences", sectionIds: ["p4-s8","p4-s9","p4-s10","p4-s11"] },
+      { id: "pa07", label: "Communication NR",              sectionIds: ["p4-s12","p4-s13"] },
+    ],
+  },
+  {
+    id: "mp3",
+    title: "Parc numérique & Services numériques",
+    emoji: "💻",
+    color: "#8b5cf6",
+    pillarIds: ["p5"],
+    paSubGroups: [
+      { id: "pa08", label: "Achats responsables",     sectionIds: ["p5-s1","p5-s2","p5-s3"] },
+      { id: "pa09", label: "Gestion des équipements", sectionIds: ["p5-s4","p5-s5","p5-s6","p5-s7","p5-s8"] },
+      { id: "pa10", label: "Logiciels & services",    sectionIds: ["p5-s9","p5-s10","p5-s11","p5-s12","p5-s13"] },
+      { id: "pa11", label: "Infrastructures",         sectionIds: ["p5-s14","p5-s15","p5-s16"] },
+      { id: "pa12", label: "Gestion des données",     sectionIds: ["p5-s17","p5-s18","p5-s19"] },
+    ],
+  },
+  {
+    id: "mp4",
+    title: "Innovation & Écosystème",
+    emoji: "🌍",
+    color: "#06b6d4",
+    pillarIds: ["p6"],
+    paSubGroups: [
+      { id: "pa13", label: "Mutualisation",              sectionIds: ["p6-s1","p6-s2"] },
+      { id: "pa14", label: "Numérique à impact positif", sectionIds: ["p6-s3"] },
+    ],
+  },
+  {
+    id: "mp5",
+    title: "Produits & Relations clients",
+    emoji: "🤝",
+    color: "#ec4899",
+    pillarIds: ["p7"],
+    paSubGroups: [
+      { id: "pa15", label: "Offres commerciales",   sectionIds: ["p7-s2","p7-s3"] },
+      { id: "pa16", label: "Prestations NR",        sectionIds: ["p7-s1","p7-s4","p7-s5","p7-s6","p7-s7"] },
+      { id: "pa17", label: "Amélioration continue", sectionIds: ["p7-s8","p7-s9","p7-s10"] },
+    ],
+  },
+];
+
+// ── Macro-pillar scoring helper ───────────────────────────────────────────────
+
+function buildSectionMap(): Record<string, Section> {
+  const map: Record<string, Section> = {};
+  for (const pillar of PILLARS) {
+    for (const section of pillar.sections) {
+      map[section.id] = section;
+    }
+  }
+  return map;
+}
+
+const _sectionMap = buildSectionMap();
+
+export function computeMacroPillarData(
+  mp: MacroPillar,
+  pillarPcts: Record<string, number>,
+  responses: Record<string, boolean>,
+): { pct: number; radarData: { name: string; value: number }[] } {
+  if (mp.pillarIds.length > 1) {
+    // Radar = contained pillars
+    const pillars = PILLARS.filter((p) => mp.pillarIds.includes(p.id));
+    const pcts    = pillars.map((p) => pillarPcts[p.id] ?? 0);
+    const pct     = pcts.length > 0 ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+    return {
+      pct,
+      radarData: pillars.map((p) => ({ name: p.shortTitle, value: pillarPcts[p.id] ?? 0 })),
+    };
+  }
+
+  // Radar = PA sub-groups
+  const radarData = (mp.paSubGroups ?? []).map((sg) => {
+    let checked = 0, possible = 0;
+    for (const sid of sg.sectionIds) {
+      const section = _sectionMap[sid];
+      if (!section) continue;
+      for (const cr of section.criteria) {
+        if (cr.isSpecial) continue;
+        possible++;
+        if (responses[cr.id]) checked++;
+      }
+    }
+    return { name: sg.label, value: possible > 0 ? Math.round((checked / possible) * 100) : 0 };
+  });
+
+  const pct = radarData.length > 0
+    ? Math.round(radarData.reduce((a, b) => a + b.value, 0) / radarData.length)
+    : 0;
+  return { pct, radarData };
+}
