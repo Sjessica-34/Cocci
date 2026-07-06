@@ -142,8 +142,9 @@ export function UtilisationCalculator({ form, set }: Props) {
   };
 
   const setUtilYes = () => {
-    if (form.utilProductType === "non") {
-      set("utilProductType", undefined);
+    if (!form.utilProductType || form.utilProductType === "non") {
+      set("utilProductType", "appareil-electrique");
+      set("utilUnit", "kwh");
       set("utilisation", undefined);
     }
   };
@@ -192,15 +193,6 @@ export function UtilisationCalculator({ form, set }: Props) {
               );
             })}
           </div>
-          {/* "Oui" — click on it activates product type selector */}
-          {isUnanswered && (
-            <button
-              className="text-xs text-emerald-700 underline"
-              onClick={() => set("utilProductType", "appareil-electrique")}
-            >
-              Cliquez sur &laquo;&nbsp;Oui&nbsp;&raquo; pour configurer le calculateur
-            </button>
-          )}
         </div>
 
         {/* Non → zero */}
