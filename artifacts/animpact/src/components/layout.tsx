@@ -19,6 +19,7 @@ import {
   BarChart3,
   Globe,
   Monitor,
+  FolderOpen,
   Sparkles,
   FileText,
 } from "lucide-react";
@@ -62,6 +63,7 @@ const navGroups: NavItem[][] = [
   ],
   [
     { href: "/resources", label: "Mes ressources", icon: BookOpen },
+    { href: "/mes-documents", label: "Mes documents", icon: FolderOpen },
   ],
   [
     { href: "/settings", label: "Mes paramètres", icon: Settings },

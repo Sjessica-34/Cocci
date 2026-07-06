@@ -10,6 +10,7 @@ import {
   Globe, AlertCircle, AlertTriangle, Save, Mail,
   CheckCircle2, Loader2, Building2, Car, Plane, ShoppingBag, Trash2, Zap,
 } from "lucide-react";
+import { DocumentUploader } from "@/components/DocumentUploader";
 import { cn } from "@/lib/utils";
 
 // ── Emission factors (ADEME 2024) ──────────────────────────────────────────
@@ -611,6 +612,15 @@ export function BilanCarbone() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Document import */}
+            {!!currentOrgId && (
+              <DocumentUploader
+                orgId={currentOrgId}
+                category="bilan-carbone"
+                question="Avez-vous déjà un Bilan Carbone® existant à importer ?"
+              />
             )}
 
             {/* Save */}

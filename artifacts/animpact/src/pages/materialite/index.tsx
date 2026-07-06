@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, BookOpen, Library, BarChart2, FileText } from "lucide-react";
+import { DocumentUploader } from "@/components/DocumentUploader";
 import { TabGuide } from "./tabs/TabGuide";
 import { TabBibliotheque } from "./tabs/TabBibliotheque";
 import { TabMatriceViz } from "./tabs/TabMatrice";
@@ -86,6 +87,15 @@ export function Materialite() {
               <Skeleton key={i} className="h-12 w-full rounded-lg" />
             ))}
           </div>
+        )}
+
+        {/* Document import */}
+        {!isLoading && !!currentOrgId && (
+          <DocumentUploader
+            orgId={currentOrgId}
+            category="materialite"
+            question="Avez-vous déjà une matrice de matérialité existante à importer ?"
+          />
         )}
 
         {/* Main content */}

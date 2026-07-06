@@ -20,6 +20,7 @@ export * from './carbonBilanInputStatus';
 export * from './customIssue';
 export * from './customIssueInput';
 export * from './dashboardSummary';
+export * from './documentMeta';
 export * from './healthStatus';
 export * from './issueAnalysisResult';
 export * from './issueRatedItem';

@@ -881,6 +881,58 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── DOCUMENTS ──────────────────────────────────────────────────────────────
+  /organizations/{orgId}/documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List documents for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentMeta"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/documents/{docId}:
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: Delete a document
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
   # ─── BILAN CARBONE ──────────────────────────────────────────────────────────
   /organizations/{orgId}/carbon:
     get:
@@ -1464,6 +1516,29 @@ components:
           items:
             $ref: "#/components/schemas/SuperIssue"
         generatedAt:
+          type: string
+          format: date-time
+
+    # ─── DOCUMENT ───────────────────────────────────────────────────────────────
+    DocumentMeta:
+      type: object
+      required: [id, organizationId, uploadedByUserId, category, originalName, mimeType, size, createdAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        uploadedByUserId:
+          type: integer
+        category:
+          type: string
+        originalName:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+        createdAt:
           type: string
           format: date-time
 

@@ -804,6 +804,37 @@ export const GetIssueAnalysisResponse = zod.object({
 
 
 /**
+ * @summary List documents for an organization
+ */
+export const ListDocumentsParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListDocumentsResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "uploadedByUserId": zod.number(),
+  "category": zod.string(),
+  "originalName": zod.string(),
+  "mimeType": zod.string(),
+  "size": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
+
+
+/**
+ * @summary Delete a document
+ */
+export const DeleteDocumentParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "docId": zod.coerce.number()
+})
+
+export const DeleteDocumentResponse = zod.void()
+
+
+/**
  * @summary Get the carbon bilan for an organization
  */
 export const GetCarbonBilanParams = zod.object({

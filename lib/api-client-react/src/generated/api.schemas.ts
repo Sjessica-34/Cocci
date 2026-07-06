@@ -427,6 +427,17 @@ export interface IssueAnalysisResult {
   generatedAt: string;
 }
 
+export interface DocumentMeta {
+  id: number;
+  organizationId: number;
+  uploadedByUserId: number;
+  category: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+}
+
 export type CarbonBilanInputMode = typeof CarbonBilanInputMode[keyof typeof CarbonBilanInputMode];
 
 

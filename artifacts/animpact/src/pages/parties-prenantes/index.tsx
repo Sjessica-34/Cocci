@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, PenLine, Map, BarChart2, FileText, AlertCircle } from "lucide-react";
+import { DocumentUploader } from "@/components/DocumentUploader";
 import { TabTutorial } from "./tabs/TabTutorial";
 import { TabSaisie } from "./tabs/TabSaisie";
 import { TabCartographie } from "./tabs/TabCartographie";
@@ -68,6 +69,15 @@ export function PartiesPrenantes() {
               <Skeleton key={i} className="h-12 w-full rounded-lg" />
             ))}
           </div>
+        )}
+
+        {/* Document import */}
+        {!isLoading && !!currentOrgId && (
+          <DocumentUploader
+            orgId={currentOrgId}
+            category="parties-prenantes"
+            question="Avez-vous déjà une cartographie de vos parties prenantes à importer ?"
+          />
         )}
 
         {/* Main content */}

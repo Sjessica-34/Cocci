@@ -31,6 +31,7 @@ import {
 import { BilanCarbone } from "@/pages/bilan-carbone";
 import { PartiesPrenantes } from "@/pages/parties-prenantes";
 import { Materialite } from "@/pages/materialite";
+import { MesDocuments } from "@/pages/mes-documents";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
@@ -260,6 +261,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/numerique-responsable"><ProtectedRoute component={NumeriqueResponsable} /></Route>
             <Route path="/impact-score"><ProtectedRoute component={ImpactScore} /></Route>
             <Route path="/rapport-rse"><ProtectedRoute component={RapportRse} /></Route>
+            <Route path="/mes-documents"><ProtectedRoute component={MesDocuments} /></Route>
 
             <Route component={NotFound} />
           </Switch>
