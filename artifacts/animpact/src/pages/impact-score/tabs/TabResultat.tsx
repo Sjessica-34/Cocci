@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-const IMPACT_SCORE_URL = "https://www.impact-score.fr";
+const IMPACT_SCORE_URL = "https://www.impactscore.fr/";
 
 interface Props {
   orgId: number;

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Target, BarChart3, Clock, Building2, Award, TrendingUp, CheckCircle, HelpCircle, Sparkles } from "lucide-react";
 
-const IMPACT_SCORE_URL = "https://www.impact-score.fr";
+const IMPACT_SCORE_URL = "https://www.impactscore.fr/";
 
 export function TabDecouvrir() {
   return (
