@@ -228,7 +228,7 @@ export function UtilisationCalculator({ form, set }: Props) {
             </FieldRow>
 
             {/* 2. Nombre d'unités vendues */}
-            <FieldRow label="2. Nombre d'unités vendues">
+            <FieldRow label="2. Nombre d'unités vendues / an">
               <NumInput
                 value={form.utilUnitsSold}
                 onChange={(v) => set("utilUnitsSold", v ?? undefined)}
