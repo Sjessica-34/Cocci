@@ -8,6 +8,7 @@ import adminRouter from "./admin";
 import resourcesRouter from "./resources";
 import stakeholdersRouter from "./stakeholders";
 import issuesRouter from "./issues";
+import carbonRouter from "./carbon";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(adminRouter);
 router.use(resourcesRouter);
 router.use(stakeholdersRouter);
 router.use(issuesRouter);
+router.use(carbonRouter);
 
 export default router;

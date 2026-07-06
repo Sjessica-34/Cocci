@@ -427,6 +427,91 @@ export interface IssueAnalysisResult {
   generatedAt: string;
 }
 
+export type CarbonBilanInputMode = typeof CarbonBilanInputMode[keyof typeof CarbonBilanInputMode];
+
+
+export const CarbonBilanInputMode = {
+  saisie: 'saisie',
+  estimation: 'estimation',
+} as const;
+
+export type CarbonBilanInputStatus = typeof CarbonBilanInputStatus[keyof typeof CarbonBilanInputStatus];
+
+
+export const CarbonBilanInputStatus = {
+  draft: 'draft',
+  validated: 'validated',
+} as const;
+
+export interface CarbonBilanInput {
+  year: number;
+  mode: CarbonBilanInputMode;
+  status?: CarbonBilanInputStatus;
+  /** @nullable */
+  methodology?: string | null;
+  /** @nullable */
+  scope?: string | null;
+  /** @nullable */
+  energie1?: number | null;
+  /** @nullable */
+  energie2?: number | null;
+  /** @nullable */
+  horsEnergie1?: number | null;
+  /** @nullable */
+  horsEnergie2?: number | null;
+  /** @nullable */
+  intrantsBiens?: number | null;
+  /** @nullable */
+  intrantsServices?: number | null;
+  /** @nullable */
+  futursEmballages?: number | null;
+  /** @nullable */
+  fret?: number | null;
+  /** @nullable */
+  deplacements?: number | null;
+  /** @nullable */
+  dechetsDirects?: number | null;
+  /** @nullable */
+  immobilisations?: number | null;
+  /** @nullable */
+  utilisation?: number | null;
+  /** @nullable */
+  finDeVie?: number | null;
+  /** @nullable */
+  estEmployeeCount?: number | null;
+  /** @nullable */
+  estOfficeSqm?: number | null;
+  /** @nullable */
+  estSubsidiaryCount?: number | null;
+  /** @nullable */
+  estHeatingType?: string | null;
+  /** @nullable */
+  estElecKwhYear?: number | null;
+  /** @nullable */
+  estVehicleCount?: number | null;
+  /** @nullable */
+  estVehicleFuelType?: string | null;
+  /** @nullable */
+  estTrainKmYear?: number | null;
+  /** @nullable */
+  estPlaneKmYear?: number | null;
+  /** @nullable */
+  estBuysGoodsKeur?: number | null;
+  /** @nullable */
+  estBuysServicesKeur?: number | null;
+  /** @nullable */
+  estWasteTons?: number | null;
+  /** @nullable */
+  estFreightTkm?: number | null;
+}
+
+export type CarbonBilan = CarbonBilanInput & {
+  id: number;
+  organizationId: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export interface DashboardSummary {
   organizationId: number;
   memberCount: number;

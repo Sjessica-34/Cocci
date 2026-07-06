@@ -24,6 +24,8 @@ tags:
     description: Document library management
   - name: stakeholders
     description: Stakeholder (parties prenantes) management
+  - name: carbon
+    description: Bilan Carbone® management
 
 paths:
   /healthz:
@@ -879,6 +881,78 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── BILAN CARBONE ──────────────────────────────────────────────────────────
+  /organizations/{orgId}/carbon:
+    get:
+      operationId: getCarbonBilan
+      tags: [carbon]
+      summary: Get the carbon bilan for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Carbon bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CarbonBilan"
+        "404":
+          description: No bilan yet
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    put:
+      operationId: upsertCarbonBilan
+      tags: [carbon]
+      summary: Create or update the carbon bilan for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CarbonBilanInput"
+      responses:
+        "200":
+          description: Saved carbon bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CarbonBilan"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    delete:
+      operationId: deleteCarbonBilan
+      tags: [carbon]
+      summary: Delete the carbon bilan for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
 components:
   schemas:
     HealthStatus:
@@ -1392,6 +1466,95 @@ components:
         generatedAt:
           type: string
           format: date-time
+
+    # ─── CARBON BILAN ───────────────────────────────────────────────────────────
+    CarbonBilanInput:
+      type: object
+      required: [year, mode]
+      properties:
+        year:
+          type: integer
+        mode:
+          type: string
+          enum: [saisie, estimation]
+        status:
+          type: string
+          enum: [draft, validated]
+        # Saisie — poste par poste
+        methodology:
+          type: ["string", "null"]
+        scope:
+          type: ["string", "null"]
+        energie1:
+          type: ["number", "null"]
+        energie2:
+          type: ["number", "null"]
+        horsEnergie1:
+          type: ["number", "null"]
+        horsEnergie2:
+          type: ["number", "null"]
+        intrantsBiens:
+          type: ["number", "null"]
+        intrantsServices:
+          type: ["number", "null"]
+        futursEmballages:
+          type: ["number", "null"]
+        fret:
+          type: ["number", "null"]
+        deplacements:
+          type: ["number", "null"]
+        dechetsDirects:
+          type: ["number", "null"]
+        immobilisations:
+          type: ["number", "null"]
+        utilisation:
+          type: ["number", "null"]
+        finDeVie:
+          type: ["number", "null"]
+        # Estimation — données physiques
+        estEmployeeCount:
+          type: ["integer", "null"]
+        estOfficeSqm:
+          type: ["integer", "null"]
+        estSubsidiaryCount:
+          type: ["integer", "null"]
+        estHeatingType:
+          type: ["string", "null"]
+        estElecKwhYear:
+          type: ["number", "null"]
+        estVehicleCount:
+          type: ["integer", "null"]
+        estVehicleFuelType:
+          type: ["string", "null"]
+        estTrainKmYear:
+          type: ["number", "null"]
+        estPlaneKmYear:
+          type: ["number", "null"]
+        estBuysGoodsKeur:
+          type: ["number", "null"]
+        estBuysServicesKeur:
+          type: ["number", "null"]
+        estWasteTons:
+          type: ["number", "null"]
+        estFreightTkm:
+          type: ["number", "null"]
+
+    CarbonBilan:
+      allOf:
+        - $ref: "#/components/schemas/CarbonBilanInput"
+        - type: object
+          required: [id, organizationId, createdAt, updatedAt]
+          properties:
+            id:
+              type: integer
+            organizationId:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
 
     # ─── DASHBOARD SUMMARY ─────────────────────────────────────────────────────
     DashboardSummary:

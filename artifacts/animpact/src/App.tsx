@@ -24,11 +24,11 @@ import { Resources } from "@/pages/resources";
 import {
   Biodiversite,
   DemarcheRse,
-  BilanCarbone,
   NumeriqueResponsable,
   ImpactScore,
   RapportRse,
 } from "@/pages/stubs";
+import { BilanCarbone } from "@/pages/bilan-carbone";
 import { PartiesPrenantes } from "@/pages/parties-prenantes";
 import { Materialite } from "@/pages/materialite";
 import { Toaster } from "@/components/ui/toaster";

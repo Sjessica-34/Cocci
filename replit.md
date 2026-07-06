@@ -53,7 +53,7 @@ Plateforme SaaS de pilotage RSE (Responsabilité Sociétale des Entreprises) des
 | 6 | Cartographie parties prenantes | À faire |
 | 7 | Plan d'actions + KPI | À faire |
 | 8 | Gestion documentaire | À faire |
-| 9 | Bilan carbone (import + estimation) | À faire |
+| 9 | Bilan carbone (import + estimation) | ✅ Livré |
 | 10 | Rapport RSE + Comparaison annuelle | À faire |
 | 11 | Tableau de bord avancé | À faire |
 | 12 | IA | À faire |

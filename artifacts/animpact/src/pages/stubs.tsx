@@ -13,7 +13,6 @@ function ModuleStub({ title }: { title: string }) {
 
 export function Biodiversite() { return <ModuleStub title="Mes dépendances à la biodiversité" />; }
 export function DemarcheRse() { return <ModuleStub title="Ma démarche RSE" />; }
-export function BilanCarbone() { return <ModuleStub title="Mon bilan carbone" />; }
 export function NumeriqueResponsable() { return <ModuleStub title="Ma démarche Numérique Responsable" />; }
 export function ImpactScore() { return <ModuleStub title="Mon Impact Score" />; }
 export function RapportRse() { return <ModuleStub title="Mon rapport RSE" />; }

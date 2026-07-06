@@ -803,3 +803,141 @@ export const GetIssueAnalysisResponse = zod.object({
 })
 
 
+/**
+ * @summary Get the carbon bilan for an organization
+ */
+export const GetCarbonBilanParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetCarbonBilanResponse = zod.object({
+  "year": zod.number(),
+  "mode": zod.enum(['saisie', 'estimation']),
+  "status": zod.enum(['draft', 'validated']).optional(),
+  "methodology": zod.string().nullish(),
+  "scope": zod.string().nullish(),
+  "energie1": zod.number().nullish(),
+  "energie2": zod.number().nullish(),
+  "horsEnergie1": zod.number().nullish(),
+  "horsEnergie2": zod.number().nullish(),
+  "intrantsBiens": zod.number().nullish(),
+  "intrantsServices": zod.number().nullish(),
+  "futursEmballages": zod.number().nullish(),
+  "fret": zod.number().nullish(),
+  "deplacements": zod.number().nullish(),
+  "dechetsDirects": zod.number().nullish(),
+  "immobilisations": zod.number().nullish(),
+  "utilisation": zod.number().nullish(),
+  "finDeVie": zod.number().nullish(),
+  "estEmployeeCount": zod.number().nullish(),
+  "estOfficeSqm": zod.number().nullish(),
+  "estSubsidiaryCount": zod.number().nullish(),
+  "estHeatingType": zod.string().nullish(),
+  "estElecKwhYear": zod.number().nullish(),
+  "estVehicleCount": zod.number().nullish(),
+  "estVehicleFuelType": zod.string().nullish(),
+  "estTrainKmYear": zod.number().nullish(),
+  "estPlaneKmYear": zod.number().nullish(),
+  "estBuysGoodsKeur": zod.number().nullish(),
+  "estBuysServicesKeur": zod.number().nullish(),
+  "estWasteTons": zod.number().nullish(),
+  "estFreightTkm": zod.number().nullish()
+}).and(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Create or update the carbon bilan for an organization
+ */
+export const UpsertCarbonBilanParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const UpsertCarbonBilanBody = zod.object({
+  "year": zod.number(),
+  "mode": zod.enum(['saisie', 'estimation']),
+  "status": zod.enum(['draft', 'validated']).optional(),
+  "methodology": zod.string().nullish(),
+  "scope": zod.string().nullish(),
+  "energie1": zod.number().nullish(),
+  "energie2": zod.number().nullish(),
+  "horsEnergie1": zod.number().nullish(),
+  "horsEnergie2": zod.number().nullish(),
+  "intrantsBiens": zod.number().nullish(),
+  "intrantsServices": zod.number().nullish(),
+  "futursEmballages": zod.number().nullish(),
+  "fret": zod.number().nullish(),
+  "deplacements": zod.number().nullish(),
+  "dechetsDirects": zod.number().nullish(),
+  "immobilisations": zod.number().nullish(),
+  "utilisation": zod.number().nullish(),
+  "finDeVie": zod.number().nullish(),
+  "estEmployeeCount": zod.number().nullish(),
+  "estOfficeSqm": zod.number().nullish(),
+  "estSubsidiaryCount": zod.number().nullish(),
+  "estHeatingType": zod.string().nullish(),
+  "estElecKwhYear": zod.number().nullish(),
+  "estVehicleCount": zod.number().nullish(),
+  "estVehicleFuelType": zod.string().nullish(),
+  "estTrainKmYear": zod.number().nullish(),
+  "estPlaneKmYear": zod.number().nullish(),
+  "estBuysGoodsKeur": zod.number().nullish(),
+  "estBuysServicesKeur": zod.number().nullish(),
+  "estWasteTons": zod.number().nullish(),
+  "estFreightTkm": zod.number().nullish()
+})
+
+export const UpsertCarbonBilanResponse = zod.object({
+  "year": zod.number(),
+  "mode": zod.enum(['saisie', 'estimation']),
+  "status": zod.enum(['draft', 'validated']).optional(),
+  "methodology": zod.string().nullish(),
+  "scope": zod.string().nullish(),
+  "energie1": zod.number().nullish(),
+  "energie2": zod.number().nullish(),
+  "horsEnergie1": zod.number().nullish(),
+  "horsEnergie2": zod.number().nullish(),
+  "intrantsBiens": zod.number().nullish(),
+  "intrantsServices": zod.number().nullish(),
+  "futursEmballages": zod.number().nullish(),
+  "fret": zod.number().nullish(),
+  "deplacements": zod.number().nullish(),
+  "dechetsDirects": zod.number().nullish(),
+  "immobilisations": zod.number().nullish(),
+  "utilisation": zod.number().nullish(),
+  "finDeVie": zod.number().nullish(),
+  "estEmployeeCount": zod.number().nullish(),
+  "estOfficeSqm": zod.number().nullish(),
+  "estSubsidiaryCount": zod.number().nullish(),
+  "estHeatingType": zod.string().nullish(),
+  "estElecKwhYear": zod.number().nullish(),
+  "estVehicleCount": zod.number().nullish(),
+  "estVehicleFuelType": zod.string().nullish(),
+  "estTrainKmYear": zod.number().nullish(),
+  "estPlaneKmYear": zod.number().nullish(),
+  "estBuysGoodsKeur": zod.number().nullish(),
+  "estBuysServicesKeur": zod.number().nullish(),
+  "estWasteTons": zod.number().nullish(),
+  "estFreightTkm": zod.number().nullish()
+}).and(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Delete the carbon bilan for an organization
+ */
+export const DeleteCarbonBilanParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const DeleteCarbonBilanResponse = zod.void()
+
+

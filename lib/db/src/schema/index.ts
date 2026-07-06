@@ -6,3 +6,4 @@ export * from "./stakeholders";
 export * from "./issueRatings";
 export * from "./customIssues";
 export * from "./issueAnalyses";
+export * from "./carbonBilans";

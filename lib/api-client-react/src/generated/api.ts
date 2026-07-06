@@ -24,6 +24,8 @@ import type {
   AdminOrganization,
   AdminStats,
   AdminUser,
+  CarbonBilan,
+  CarbonBilanInput,
   CustomIssue,
   CustomIssueInput,
   DashboardSummary,
@@ -2597,4 +2599,222 @@ export function useGetIssueAnalysis<TData = Awaited<ReturnType<typeof getIssueAn
 
 
 
+
+export const getGetCarbonBilanUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/carbon`
+}
+
+/**
+ * @summary Get the carbon bilan for an organization
+ */
+export const getCarbonBilan = async (orgId: number, options?: RequestInit): Promise<CarbonBilan> => {
+
+  return customFetch<CarbonBilan>(getGetCarbonBilanUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCarbonBilanQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/carbon`
+    ] as const;
+    }
+
+
+export const getGetCarbonBilanQueryOptions = <TData = Awaited<ReturnType<typeof getCarbonBilan>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCarbonBilan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCarbonBilanQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCarbonBilan>>> = ({ signal }) => getCarbonBilan(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCarbonBilan>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCarbonBilanQueryResult = NonNullable<Awaited<ReturnType<typeof getCarbonBilan>>>
+export type GetCarbonBilanQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the carbon bilan for an organization
+ */
+
+export function useGetCarbonBilan<TData = Awaited<ReturnType<typeof getCarbonBilan>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCarbonBilan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCarbonBilanQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertCarbonBilanUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/carbon`
+}
+
+/**
+ * @summary Create or update the carbon bilan for an organization
+ */
+export const upsertCarbonBilan = async (orgId: number,
+    carbonBilanInput: CarbonBilanInput, options?: RequestInit): Promise<CarbonBilan> => {
+
+  return customFetch<CarbonBilan>(getUpsertCarbonBilanUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(carbonBilanInput)
+  }
+);}
+
+
+
+
+export const getUpsertCarbonBilanMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertCarbonBilan>>, TError,{orgId: number;data: BodyType<CarbonBilanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertCarbonBilan>>, TError,{orgId: number;data: BodyType<CarbonBilanInput>}, TContext> => {
+
+const mutationKey = ['upsertCarbonBilan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertCarbonBilan>>, {orgId: number;data: BodyType<CarbonBilanInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertCarbonBilan(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertCarbonBilanMutationResult = NonNullable<Awaited<ReturnType<typeof upsertCarbonBilan>>>
+    export type UpsertCarbonBilanMutationBody = BodyType<CarbonBilanInput>
+    export type UpsertCarbonBilanMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or update the carbon bilan for an organization
+ */
+export const useUpsertCarbonBilan = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertCarbonBilan>>, TError,{orgId: number;data: BodyType<CarbonBilanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertCarbonBilan>>,
+        TError,
+        {orgId: number;data: BodyType<CarbonBilanInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertCarbonBilanMutationOptions(options));
+    }
+
+export const getDeleteCarbonBilanUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/carbon`
+}
+
+/**
+ * @summary Delete the carbon bilan for an organization
+ */
+export const deleteCarbonBilan = async (orgId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteCarbonBilanUrl(orgId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteCarbonBilanMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCarbonBilan>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCarbonBilan>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['deleteCarbonBilan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCarbonBilan>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  deleteCarbonBilan(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCarbonBilanMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCarbonBilan>>>
+
+    export type DeleteCarbonBilanMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete the carbon bilan for an organization
+ */
+export const useDeleteCarbonBilan = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCarbonBilan>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCarbonBilan>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCarbonBilanMutationOptions(options));
+    }
 
