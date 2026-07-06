@@ -841,7 +841,14 @@ export const GetCarbonBilanResponse = zod.object({
   "estBuysGoodsKeur": zod.number().nullish(),
   "estBuysServicesKeur": zod.number().nullish(),
   "estWasteTons": zod.number().nullish(),
-  "estFreightTkm": zod.number().nullish()
+  "estFreightTkm": zod.number().nullish(),
+  "utilProductType": zod.string().nullish(),
+  "utilUnitsSold": zod.number().nullish(),
+  "utilLifespanYears": zod.number().nullish(),
+  "utilConsumptionPerYear": zod.number().nullish(),
+  "utilUnit": zod.string().nullish(),
+  "utilCountry": zod.string().nullish(),
+  "utilCustomFactor": zod.number().nullish()
 }).and(zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
@@ -888,7 +895,14 @@ export const UpsertCarbonBilanBody = zod.object({
   "estBuysGoodsKeur": zod.number().nullish(),
   "estBuysServicesKeur": zod.number().nullish(),
   "estWasteTons": zod.number().nullish(),
-  "estFreightTkm": zod.number().nullish()
+  "estFreightTkm": zod.number().nullish(),
+  "utilProductType": zod.string().nullish(),
+  "utilUnitsSold": zod.number().nullish(),
+  "utilLifespanYears": zod.number().nullish(),
+  "utilConsumptionPerYear": zod.number().nullish(),
+  "utilUnit": zod.string().nullish(),
+  "utilCountry": zod.string().nullish(),
+  "utilCustomFactor": zod.number().nullish()
 })
 
 export const UpsertCarbonBilanResponse = zod.object({
@@ -922,7 +936,14 @@ export const UpsertCarbonBilanResponse = zod.object({
   "estBuysGoodsKeur": zod.number().nullish(),
   "estBuysServicesKeur": zod.number().nullish(),
   "estWasteTons": zod.number().nullish(),
-  "estFreightTkm": zod.number().nullish()
+  "estFreightTkm": zod.number().nullish(),
+  "utilProductType": zod.string().nullish(),
+  "utilUnitsSold": zod.number().nullish(),
+  "utilLifespanYears": zod.number().nullish(),
+  "utilConsumptionPerYear": zod.number().nullish(),
+  "utilUnit": zod.string().nullish(),
+  "utilCountry": zod.string().nullish(),
+  "utilCustomFactor": zod.number().nullish()
 }).and(zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),

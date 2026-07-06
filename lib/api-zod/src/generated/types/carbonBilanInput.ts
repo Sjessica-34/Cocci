@@ -68,4 +68,18 @@ export interface CarbonBilanInput {
   estWasteTons?: number | null;
   /** @nullable */
   estFreightTkm?: number | null;
+  /** @nullable */
+  utilProductType?: string | null;
+  /** @nullable */
+  utilUnitsSold?: number | null;
+  /** @nullable */
+  utilLifespanYears?: number | null;
+  /** @nullable */
+  utilConsumptionPerYear?: number | null;
+  /** @nullable */
+  utilUnit?: string | null;
+  /** @nullable */
+  utilCountry?: string | null;
+  /** @nullable */
+  utilCustomFactor?: number | null;
 }

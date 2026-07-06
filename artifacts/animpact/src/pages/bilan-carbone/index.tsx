@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useGetCarbonBilan, useUpsertCarbonBilan } from "@workspace/api-client-react";
 import type { CarbonBilan, CarbonBilanInput } from "@workspace/api-client-react";
+import { UtilisationCalculator } from "./UtilisationCalculator";
 import { AppLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -250,6 +251,13 @@ function fromBilan(b: CarbonBilan): FormState {
     estBuysServicesKeur: b.estBuysServicesKeur ?? undefined,
     estWasteTons: b.estWasteTons ?? undefined,
     estFreightTkm: b.estFreightTkm ?? undefined,
+    utilProductType: b.utilProductType ?? undefined,
+    utilUnitsSold: b.utilUnitsSold ?? undefined,
+    utilLifespanYears: b.utilLifespanYears ?? undefined,
+    utilConsumptionPerYear: b.utilConsumptionPerYear ?? undefined,
+    utilUnit: b.utilUnit ?? undefined,
+    utilCountry: b.utilCountry ?? undefined,
+    utilCustomFactor: b.utilCustomFactor ?? undefined,
   };
 }
 
@@ -452,6 +460,9 @@ export function BilanCarbone() {
                     </tfoot>
                   </table>
                 </div>
+
+                {/* Calculateur Utilisation */}
+                <UtilisationCalculator form={form} set={set} />
 
                 {/* Résultats */}
                 {saisieTotal > 0 && (

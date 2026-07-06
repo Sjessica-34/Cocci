@@ -87,6 +87,13 @@ router.put("/organizations/:orgId/carbon", requireAuth, async (req, res): Promis
     estBuysServicesKeur: numOrNull(body.estBuysServicesKeur),
     estWasteTons: numOrNull(body.estWasteTons),
     estFreightTkm: numOrNull(body.estFreightTkm),
+    utilProductType: (body.utilProductType as string) ?? null,
+    utilUnitsSold: body.utilUnitsSold != null ? Number(body.utilUnitsSold) : null,
+    utilLifespanYears: numOrNull(body.utilLifespanYears),
+    utilConsumptionPerYear: numOrNull(body.utilConsumptionPerYear),
+    utilUnit: (body.utilUnit as string) ?? null,
+    utilCountry: (body.utilCountry as string) ?? null,
+    utilCustomFactor: numOrNull(body.utilCustomFactor),
     updatedAt: new Date(),
   };
 
@@ -162,6 +169,13 @@ function serialize(b: typeof carbonBilansTable.$inferSelect) {
     estBuysServicesKeur: toNum(b.estBuysServicesKeur),
     estWasteTons: toNum(b.estWasteTons),
     estFreightTkm: toNum(b.estFreightTkm),
+    utilProductType: b.utilProductType,
+    utilUnitsSold: b.utilUnitsSold,
+    utilLifespanYears: toNum(b.utilLifespanYears),
+    utilConsumptionPerYear: toNum(b.utilConsumptionPerYear),
+    utilUnit: b.utilUnit,
+    utilCountry: b.utilCountry,
+    utilCustomFactor: toNum(b.utilCustomFactor),
     createdAt: b.createdAt.toISOString(),
     updatedAt: b.updatedAt.toISOString(),
   };

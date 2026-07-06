@@ -39,6 +39,14 @@ export const carbonBilansTable = pgTable("carbon_bilans", {
   estBuysServicesKeur: numeric("est_buys_services_keur", { precision: 10, scale: 1 }),
   estWasteTons: numeric("est_waste_tons", { precision: 10, scale: 2 }),
   estFreightTkm: numeric("est_freight_tkm", { precision: 12, scale: 0 }),
+  // ── Utilisation calculator fields ──────────────────────────────────────────
+  utilProductType: text("util_product_type"),
+  utilUnitsSold: integer("util_units_sold"),
+  utilLifespanYears: numeric("util_lifespan_years", { precision: 6, scale: 1 }),
+  utilConsumptionPerYear: numeric("util_consumption_per_year", { precision: 12, scale: 3 }),
+  utilUnit: text("util_unit"),        // 'kwh' | 'litres' | 'm3' | 'go' | 'autre'
+  utilCountry: text("util_country"),  // 'france' | 'europe' | 'monde'
+  utilCustomFactor: numeric("util_custom_factor", { precision: 10, scale: 6 }),
   // ──────────────────────────────────────────────────────────────────────────
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

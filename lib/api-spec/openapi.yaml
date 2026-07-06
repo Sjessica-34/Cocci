@@ -1538,6 +1538,21 @@ components:
           type: ["number", "null"]
         estFreightTkm:
           type: ["number", "null"]
+        # Utilisation calculator
+        utilProductType:
+          type: ["string", "null"]
+        utilUnitsSold:
+          type: ["integer", "null"]
+        utilLifespanYears:
+          type: ["number", "null"]
+        utilConsumptionPerYear:
+          type: ["number", "null"]
+        utilUnit:
+          type: ["string", "null"]
+        utilCountry:
+          type: ["string", "null"]
+        utilCustomFactor:
+          type: ["number", "null"]
 
     CarbonBilan:
       allOf:
