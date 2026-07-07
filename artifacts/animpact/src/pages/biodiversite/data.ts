@@ -92,6 +92,23 @@ export function chainLabel(pos: string | null | undefined): string {
   return pos ?? "—";
 }
 
+// ─── Types d'enjeux ───────────────────────────────────────────────────────────
+
+export const ISSUE_TYPES = [
+  { value: "Risque physique",      label: "Risque physique",      icon: "⚠️", color: "#EF4444", bg: "#FEF2F2" },
+  { value: "Risque de transition", label: "Risque de transition", icon: "🔄", color: "#F97316", bg: "#FFF7ED" },
+  { value: "Opportunité",          label: "Opportunité",          icon: "✨", color: "#10B981", bg: "#ECFDF5" },
+  { value: "Enjeu réglementaire",  label: "Enjeu réglementaire",  icon: "⚖️", color: "#6366F1", bg: "#EEF2FF" },
+  { value: "Dépendance critique",  label: "Dépendance critique",  icon: "🔗", color: "#F59E0B", bg: "#FFFBEB" },
+  { value: "Autre",                label: "Autre",                icon: "•",  color: "#94A3B8", bg: "#F8FAFC" },
+] as const;
+
+export type IssueTypeValue = (typeof ISSUE_TYPES)[number]["value"];
+
+export function issueTypeData(type: string | null | undefined) {
+  return ISSUE_TYPES.find(t => t.value === type) ?? null;
+}
+
 // ─── Enjeux ──────────────────────────────────────────────────────────────────
 
 export function importanceBg(importance: number | null | undefined): {

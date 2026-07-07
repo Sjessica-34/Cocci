@@ -13,12 +13,32 @@ export interface BioIssue {
   name?: string | null;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  issueType?: string | null;
   /**
      * @minimum 1
      * @maximum 5
      * @nullable
      */
   importance?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  probability?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  urgency?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  reversibility?: number | null;
   /** @nullable */
   comments?: string | null;
   /** @nullable */

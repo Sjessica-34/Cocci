@@ -2338,7 +2338,11 @@ components:
         organizationId: { type: integer }
         name: { type: ["string", "null"] }
         description: { type: ["string", "null"] }
+        issueType: { type: ["string", "null"] }
         importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        probability: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        urgency: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        reversibility: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
         chainPosition: { type: ["string", "null"] }
         elementIds:
@@ -2354,7 +2358,11 @@ components:
       properties:
         name: { type: ["string", "null"] }
         description: { type: ["string", "null"] }
+        issueType: { type: ["string", "null"] }
         importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        probability: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        urgency: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        reversibility: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
         chainPosition: { type: ["string", "null"] }
         elementIds:

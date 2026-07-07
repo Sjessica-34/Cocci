@@ -108,7 +108,7 @@ export function TabSaisie({ orgId }: Props) {
     const finalSub = form.subCategory === "Autre" ? (subFreeText || "Autre") : form.subCategory;
     // Lieux → toujours in-situ
     const finalPos = form.category === "Lieu" ? "in-situ" : form.chainPosition;
-    const payload  = { ...form, subCategory: finalSub, chainPosition: finalPos };
+    const payload  = { ...form, subCategory: finalSub, chainPosition: finalPos, x: null, y: null };
     if (editingEl) {
       await updateEl.mutateAsync({ orgId, id: editingEl.id, data: payload });
     } else {

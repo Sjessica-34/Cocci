@@ -14,7 +14,6 @@ import {
   useDeleteBioIssue,
   useGenerateBioIssues,
   getListBioIssuesQueryKey,
-  type BioDependency,
   type BioIssue,
   type BioIssueInput,
 } from "@workspace/api-client-react";
@@ -39,7 +38,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check, Layers, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import {
-  CHAIN_POSITIONS, importanceBg, importanceLabel, defaultIssuePosition,
+  CHAIN_POSITIONS, ISSUE_TYPES,
+  importanceBg, importanceLabel, issueTypeData, defaultIssuePosition, elementLabel,
 } from "../data";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,7 +48,9 @@ type BioIssueData = {
   id: number;
   name: string | null;
   description: string | null;
+  issueType: string | null;
   importance: number | null;
+  probability: number | null;
   elementCount: number;
 };
 type BioIssueNode = Node<BioIssueData, "bioIssue">;
@@ -56,22 +58,46 @@ type BioIssueNode = Node<BioIssueData, "bioIssue">;
 // ─── Custom node (MUST be outside component) ──────────────────────────────────
 
 const BioIssueNodeComp = memo(function BioIssueNodeComp({ data }: NodeProps<BioIssueNode>) {
-  const colors = importanceBg(data.importance);
+  const colors  = importanceBg(data.importance);
+  const itData  = issueTypeData(data.issueType);
+  const criticite = data.importance && data.probability ? data.importance * data.probability : null;
+
   return (
     <div
       className="rounded-xl shadow-md border-2 p-3 cursor-pointer hover:shadow-lg transition-shadow select-none"
       style={{
-        minWidth: 160,
-        maxWidth: 220,
+        minWidth: 165,
+        maxWidth: 230,
         backgroundColor: colors.bg,
         borderColor:     colors.border,
       }}
     >
-      <div className="flex items-start gap-1.5 mb-1">
+      {/* Header: type badge + criticité */}
+      <div className="flex items-center justify-between gap-1 mb-1.5">
+        {itData ? (
+          <span
+            className="text-[9px] font-bold rounded-full px-1.5 py-0.5 truncate"
+            style={{ backgroundColor: itData.color + "20", color: itData.color }}
+          >
+            {itData.icon} {itData.label}
+          </span>
+        ) : <span />}
+        {criticite !== null && (
+          <span
+            className="text-[9px] font-bold rounded-full px-1.5 py-0.5 shrink-0"
+            style={{ backgroundColor: colors.border, color: "white" }}
+            title="Criticité = Impact × Probabilité"
+          >
+            ★{criticite}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-start gap-1.5">
         <p className="text-sm font-bold leading-tight flex-1" style={{ color: colors.text }}>
           {data.name || "Enjeu sans nom"}
         </p>
-        {data.importance && (
+        {data.importance && !criticite && (
           <span
             className="text-[10px] font-bold rounded-full px-1.5 py-0.5 shrink-0"
             style={{ backgroundColor: colors.border, color: "white" }}
@@ -80,16 +106,17 @@ const BioIssueNodeComp = memo(function BioIssueNodeComp({ data }: NodeProps<BioI
           </span>
         )}
       </div>
+
       {data.description && (
         <p
-          className="text-[10px] line-clamp-2 mb-1.5 opacity-75"
+          className="text-[10px] line-clamp-2 mt-1 opacity-75"
           style={{ color: colors.text }}
         >
           {data.description}
         </p>
       )}
       {data.elementCount > 0 && (
-        <p className="text-[9px] opacity-55" style={{ color: colors.text }}>
+        <p className="text-[9px] opacity-55 mt-1" style={{ color: colors.text }}>
           {data.elementCount} élément{data.elementCount !== 1 ? "s" : ""} lié{data.elementCount !== 1 ? "s" : ""}
         </p>
       )}
@@ -102,7 +129,8 @@ const nodeTypes: NodeTypes = { bioIssue: BioIssueNodeComp };
 // ─── EMPTY form ───────────────────────────────────────────────────────────────
 
 const EMPTY_ISSUE: BioIssueInput = {
-  name: null, description: null, importance: null,
+  name: null, description: null, issueType: null,
+  importance: null, probability: null, urgency: null, reversibility: null,
   comments: null, chainPosition: null, elementIds: [],
 };
 
@@ -116,6 +144,61 @@ type Suggestion = {
   importance?: number | null;
 };
 
+// ─── Score buttons (réutilisable) ─────────────────────────────────────────────
+
+function ScoreButtons({
+  value,
+  onChange,
+  labels,
+}: {
+  value: number | null | undefined;
+  onChange: (v: number | null) => void;
+  labels?: Record<number, string>;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-1.5">
+        {[1, 2, 3, 4, 5].map(n => {
+          const colors = importanceBg(n);
+          const isSelected = value === n;
+          return (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onChange(value === n ? null : n)}
+              className="flex-1 py-2 rounded-lg border-2 text-xs font-bold transition-all"
+              style={{
+                borderColor:     isSelected ? colors.border : "#e2e8f0",
+                backgroundColor: isSelected ? colors.bg    : "#f8fafc",
+                color:           isSelected ? colors.text  : "#94a3b8",
+              }}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      {labels && value && labels[value] && (
+        <p className="text-[11px] text-muted-foreground text-center">{labels[value]}</p>
+      )}
+    </div>
+  );
+}
+
+const IMPORTANCE_LABELS: Record<number, string> = {
+  1: "Faible", 2: "Moyenne", 3: "Forte", 4: "Très forte", 5: "Critique",
+};
+const PROBABILITY_LABELS: Record<number, string> = {
+  1: "Très improbable", 2: "Improbable", 3: "Possible", 4: "Probable", 5: "Très probable",
+};
+const URGENCY_LABELS: Record<number, string> = {
+  1: "Très faible", 2: "Faible", 3: "Modérée", 4: "Forte", 5: "Immédiate",
+};
+const REVERSIBILITY_LABELS: Record<number, string> = {
+  1: "Totalement réversible", 2: "Réversible", 3: "Partiellement réversible",
+  4: "Difficilement réversible", 5: "Irréversible",
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props { orgId: number; }
@@ -123,7 +206,7 @@ interface Props { orgId: number; }
 export function TabCartoEnjeux({ orgId }: Props) {
   const queryClient = useQueryClient();
   const [nodes, setNodes, onNodesChange] = useNodesState<BioIssueNode>([]);
-  const [, setEdges, onEdgesChange] = useEdgesState([]);
+  const [, , onEdgesChange] = useEdgesState([]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingIssue, setEditingIssue] = useState<BioIssue | null>(null);
@@ -136,7 +219,6 @@ export function TabCartoEnjeux({ orgId }: Props) {
 
   const nodePositions = useRef(new Map<number, { x: number; y: number }>());
 
-  // API
   const { data: depsData } = useListBioDependencies(orgId);
   const { data: issuesData, isLoading } = useListBioIssues(orgId);
   const elements = depsData?.items ?? [];
@@ -160,7 +242,9 @@ export function TabCartoEnjeux({ orgId }: Props) {
           id:           issue.id,
           name:         issue.name         ?? null,
           description:  issue.description  ?? null,
+          issueType:    issue.issueType     ?? null,
           importance:   issue.importance   ?? null,
+          probability:  issue.probability  ?? null,
           elementCount: issue.elementIds.length,
         },
       };
@@ -169,7 +253,6 @@ export function TabCartoEnjeux({ orgId }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [issuesData]);
 
-  // Position saving (fire-and-forget)
   const onNodeDragStop = useCallback(
     (_: MouseEvent | TouchEvent, node: Node) => {
       nodePositions.current.set(Number(node.id), { x: node.position.x, y: node.position.y });
@@ -178,12 +261,12 @@ export function TabCartoEnjeux({ orgId }: Props) {
     [orgId, updateMut],
   );
 
-  // Click on node → open edit sheet
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       const issue = issues.find(i => String(i.id) === node.id);
       if (issue) openEdit(issue);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [issues],
   );
 
@@ -197,8 +280,11 @@ export function TabCartoEnjeux({ orgId }: Props) {
     setEditingIssue(issue);
     setForm({
       name: issue.name, description: issue.description,
-      importance: issue.importance, comments: issue.comments,
-      chainPosition: issue.chainPosition, elementIds: issue.elementIds,
+      issueType: issue.issueType ?? null,
+      importance: issue.importance, probability: issue.probability ?? null,
+      urgency: issue.urgency ?? null, reversibility: issue.reversibility ?? null,
+      comments: issue.comments, chainPosition: issue.chainPosition,
+      elementIds: issue.elementIds,
     });
     setSheetOpen(true);
   }
@@ -237,11 +323,9 @@ export function TabCartoEnjeux({ orgId }: Props) {
     await createMut.mutateAsync({
       orgId,
       data: {
-        name:          s.name,
-        description:   s.description ?? null,
-        importance:    s.importance   ?? null,
-        chainPosition: s.chainPosition ?? null,
-        elementIds:    s.elementIds,
+        name: s.name, description: s.description ?? null,
+        importance: s.importance ?? null, chainPosition: s.chainPosition ?? null,
+        elementIds: s.elementIds,
       },
     });
     setAccepted(prev => new Set(prev).add(idx));
@@ -262,47 +346,232 @@ export function TabCartoEnjeux({ orgId }: Props) {
     setSuggestionsDialog(false);
   }
 
-  const isSaving = createMut.isPending || updateMut.isPending;
-  const issueCount = issues.length;
-
-  // Toggle element in elementIds
   function toggleElement(id: number) {
     const cur = form.elementIds ?? [];
-    if (cur.includes(id)) {
-      setF("elementIds", cur.filter(x => x !== id));
-    } else {
-      setF("elementIds", [...cur, id]);
-    }
+    setF("elementIds", cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]);
   }
+
+  const isSaving   = createMut.isPending || updateMut.isPending;
+  const issueCount = issues.length;
+
+  // Criticité calculée
+  const criticite = form.importance && form.probability
+    ? form.importance * form.probability
+    : null;
 
   if (!isLoading && issueCount === 0) {
     return (
       <div className="space-y-3">
         <ToolBar
-          issueCount={0}
-          elementCount={elements.length}
+          issueCount={0} elementCount={elements.length}
           isGenerating={generateMut.isPending}
-          onGenerate={handleGenerate}
-          onCreateIssue={openCreate}
+          onGenerate={handleGenerate} onCreateIssue={openCreate}
         />
         <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
           <Layers className="h-10 w-10 opacity-30" />
           <p className="text-sm max-w-xs">
-            Aucun enjeu encore. Utilisez l'IA pour les générer depuis vos éléments, ou créez-en un manuellement.
+            Aucun enjeu. Utilisez l'IA pour les générer, ou créez-en un manuellement.
           </p>
         </div>
+        {renderSheet()}
       </div>
+    );
+  }
+
+  function renderSheet() {
+    return (
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>{editingIssue ? "Modifier l'enjeu" : "Nouvel enjeu"}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-5 mt-6">
+
+            {/* Nom */}
+            <div className="space-y-1.5">
+              <Label>Nom de l'enjeu</Label>
+              <Input
+                placeholder="Ex : Dépendance à la ressource en eau"
+                value={form.name ?? ""}
+                onChange={e => setF("name", e.target.value || null)}
+              />
+            </div>
+
+            {/* Type d'enjeu */}
+            <div className="space-y-2">
+              <Label>Type d'enjeu</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {ISSUE_TYPES.map(t => {
+                  const active = form.issueType === t.value;
+                  return (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setF("issueType", active ? null : t.value)}
+                      className="flex items-center gap-2 p-2.5 rounded-xl border-2 text-left transition-all text-xs font-semibold"
+                      style={{
+                        borderColor:     active ? t.color : "#E2E8F0",
+                        backgroundColor: active ? t.bg   : "white",
+                        color:           active ? t.color : "#64748B",
+                      }}
+                    >
+                      <span className="text-base leading-none">{t.icon}</span>
+                      <span className="leading-tight">{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Textarea
+                placeholder="Décrivez l'enjeu RSE…"
+                rows={2}
+                value={form.description ?? ""}
+                onChange={e => setF("description", e.target.value || null)}
+              />
+            </div>
+
+            {/* Impact */}
+            <div className="space-y-1.5">
+              <Label>Impact <span className="text-muted-foreground font-normal text-xs">— gravité de l'enjeu</span></Label>
+              <ScoreButtons
+                value={form.importance}
+                onChange={v => setF("importance", v)}
+                labels={IMPORTANCE_LABELS}
+              />
+            </div>
+
+            {/* Probabilité */}
+            <div className="space-y-1.5">
+              <Label>Probabilité <span className="text-muted-foreground font-normal text-xs">— d'occurrence</span></Label>
+              <ScoreButtons
+                value={form.probability}
+                onChange={v => setF("probability", v)}
+                labels={PROBABILITY_LABELS}
+              />
+            </div>
+
+            {/* Criticité calculée */}
+            {criticite !== null && (
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-slate-50">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700">Criticité calculée</p>
+                  <p className="text-[11px] text-muted-foreground">Impact × Probabilité</p>
+                </div>
+                <div
+                  className="ml-auto text-2xl font-bold rounded-xl px-4 py-2"
+                  style={{
+                    backgroundColor: importanceBg(Math.min(5, Math.ceil(criticite / 5))).bg,
+                    color:           importanceBg(Math.min(5, Math.ceil(criticite / 5))).text,
+                  }}
+                >
+                  {criticite}<span className="text-sm font-normal opacity-60">/25</span>
+                </div>
+              </div>
+            )}
+
+            {/* Urgence */}
+            <div className="space-y-1.5">
+              <Label>Urgence <span className="text-muted-foreground font-normal text-xs">— de traitement</span></Label>
+              <ScoreButtons
+                value={form.urgency}
+                onChange={v => setF("urgency", v)}
+                labels={URGENCY_LABELS}
+              />
+            </div>
+
+            {/* Réversibilité */}
+            <div className="space-y-1.5">
+              <Label>Réversibilité <span className="text-muted-foreground font-normal text-xs">— de l'impact</span></Label>
+              <ScoreButtons
+                value={form.reversibility}
+                onChange={v => setF("reversibility", v)}
+                labels={REVERSIBILITY_LABELS}
+              />
+            </div>
+
+            {/* Position chaîne */}
+            <div className="space-y-1.5">
+              <Label>Position sur la chaîne de valeur</Label>
+              <Select value={form.chainPosition ?? ""} onValueChange={v => setF("chainPosition", v || null)}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                <SelectContent>
+                  {CHAIN_POSITIONS.map(p => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Éléments liés */}
+            {elements.length > 0 && (
+              <div className="space-y-2">
+                <Label>Éléments liés</Label>
+                <div className="flex flex-wrap gap-2">
+                  {elements.map(el => {
+                    const linked = (form.elementIds ?? []).includes(el.id);
+                    const lbl    = elementLabel(el.name, el.category, el.subCategory) || `Élément ${el.id}`;
+                    return (
+                      <button
+                        key={el.id}
+                        type="button"
+                        onClick={() => toggleElement(el.id)}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                          linked
+                            ? "bg-emerald-100 border-emerald-300 text-emerald-800"
+                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                        }`}
+                      >
+                        {linked && <span className="mr-0.5">✓</span>}
+                        {lbl}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Commentaires */}
+            <div className="space-y-1.5">
+              <Label>Commentaires</Label>
+              <Textarea
+                placeholder="Notes, contexte, sources…"
+                rows={2}
+                value={form.comments ?? ""}
+                onChange={e => setF("comments", e.target.value || null)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <Button onClick={handleSave} disabled={isSaving} className="flex-1">
+                {isSaving ? "Enregistrement…" : "Enregistrer"}
+              </Button>
+              {editingIssue && (
+                <Button
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => { setSheetOpen(false); setDeleteId(editingIssue.id); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setSheetOpen(false)}>Annuler</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     );
   }
 
   return (
     <div className="space-y-3">
       <ToolBar
-        issueCount={issueCount}
-        elementCount={elements.length}
+        issueCount={issueCount} elementCount={elements.length}
         isGenerating={generateMut.isPending}
-        onGenerate={handleGenerate}
-        onCreateIssue={openCreate}
+        onGenerate={handleGenerate} onCreateIssue={openCreate}
       />
 
       {isLoading ? (
@@ -311,23 +580,14 @@ export function TabCartoEnjeux({ orgId }: Props) {
         <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 612 }}>
           {/* Zone headers */}
           <div className="grid grid-cols-3 border-b shrink-0">
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">
-              Amont
-            </div>
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">
-              In situ
-            </div>
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">
-              Aval
-            </div>
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">Amont</div>
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">In situ</div>
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">Aval</div>
           </div>
-          {/* Importance axis labels + ReactFlow */}
+          {/* Importance axis + ReactFlow */}
           <div className="flex flex-1 overflow-hidden">
-            {/* Y-axis labels */}
-            <div
-              className="flex flex-col justify-around text-right pr-2 pl-1 bg-slate-50/80 border-r shrink-0"
-              style={{ width: 72 }}
-            >
+            {/* Y-axis */}
+            <div className="flex flex-col justify-around text-right pr-2 pl-1 bg-slate-50/80 border-r shrink-0" style={{ width: 72 }}>
               {[5, 4, 3, 2, 1].map(n => (
                 <div key={n} className="flex flex-col items-end">
                   <span className="text-[10px] font-semibold text-slate-500">{n}</span>
@@ -345,10 +605,8 @@ export function TabCartoEnjeux({ orgId }: Props) {
                 onNodeDragStop={onNodeDragStop}
                 onNodeClick={onNodeClick}
                 nodeTypes={nodeTypes}
-                fitView
-                fitViewOptions={{ padding: 0.15 }}
-                minZoom={0.25}
-                maxZoom={2.5}
+                fitView fitViewOptions={{ padding: 0.15 }}
+                minZoom={0.25} maxZoom={2.5}
                 style={{
                   background: "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
                 }}
@@ -367,9 +625,7 @@ export function TabCartoEnjeux({ orgId }: Props) {
         <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Suggestions d'enjeux IA ({suggestions.length})</DialogTitle>
-            <DialogDescription>
-              Acceptez les enjeux pertinents pour les ajouter à votre cartographie.
-            </DialogDescription>
+            <DialogDescription>Acceptez les enjeux pertinents pour les ajouter à votre cartographie.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-3 py-2">
             {suggestions.length === 0 ? (
@@ -380,7 +636,10 @@ export function TabCartoEnjeux({ orgId }: Props) {
               const colors = importanceBg(s.importance);
               const isAcc = accepted.has(idx);
               const linkedNames = s.elementIds
-                .map(id => elements.find(e => e.id === id)?.name ?? `ID ${id}`)
+                .map(id => {
+                  const el = elements.find(e => e.id === id);
+                  return el ? elementLabel(el.name, el.category, el.subCategory) || `ID ${id}` : `ID ${id}`;
+                })
                 .filter(Boolean);
               return (
                 <div
@@ -404,9 +663,7 @@ export function TabCartoEnjeux({ orgId }: Props) {
                         </span>
                       )}
                       {s.chainPosition && (
-                        <Badge variant="outline" className="text-[10px] py-0">
-                          {s.chainPosition}
-                        </Badge>
+                        <Badge variant="outline" className="text-[10px] py-0">{s.chainPosition}</Badge>
                       )}
                     </div>
                     {s.description && (
@@ -415,9 +672,7 @@ export function TabCartoEnjeux({ orgId }: Props) {
                     {linkedNames.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {linkedNames.map(name => (
-                          <span key={name} className="text-[10px] bg-slate-100 rounded px-1.5 py-0.5">
-                            {name}
-                          </span>
+                          <span key={name} className="text-[10px] bg-slate-100 rounded px-1.5 py-0.5">{name}</span>
                         ))}
                       </div>
                     )}
@@ -444,9 +699,7 @@ export function TabCartoEnjeux({ orgId }: Props) {
             })}
           </div>
           <DialogFooter className="gap-2 pt-2 border-t">
-            <Button variant="outline" onClick={closeSuggestions}>
-              Fermer
-            </Button>
+            <Button variant="outline" onClick={closeSuggestions}>Fermer</Button>
             {suggestions.length > 0 && accepted.size < suggestions.length && (
               <Button onClick={acceptAllSuggestions} disabled={createMut.isPending}>
                 {createMut.isPending ? "Acceptation…" : "Tout accepter"}
@@ -456,128 +709,10 @@ export function TabCartoEnjeux({ orgId }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Create / Edit issue sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
-          <SheetHeader>
-            <SheetTitle>{editingIssue ? "Modifier l'enjeu" : "Nouvel enjeu"}</SheetTitle>
-          </SheetHeader>
-          <div className="space-y-4 mt-6">
-            <div className="space-y-1.5">
-              <Label>Nom de l'enjeu</Label>
-              <Input
-                placeholder="Ex : Dépendance à la ressource en eau"
-                value={form.name ?? ""}
-                onChange={e => setF("name", e.target.value || null)}
-              />
-            </div>
+      {/* Edit sheet */}
+      {renderSheet()}
 
-            <div className="space-y-1.5">
-              <Label>Description</Label>
-              <Textarea
-                placeholder="Décrivez l'enjeu RSE…"
-                rows={3}
-                value={form.description ?? ""}
-                onChange={e => setF("description", e.target.value || null)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Niveau d'importance</Label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map(n => {
-                  const colors = importanceBg(n);
-                  const isSelected = form.importance === n;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setF("importance", form.importance === n ? null : n)}
-                      className="flex-1 py-2 rounded-lg border-2 text-xs font-semibold transition-all"
-                      style={{
-                        borderColor: isSelected ? colors.border : "#e2e8f0",
-                        backgroundColor: isSelected ? colors.bg : "#f8fafc",
-                        color: isSelected ? colors.text : "#94a3b8",
-                      }}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[11px] text-muted-foreground">1 = Faible &nbsp;·&nbsp; 5 = Critique</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Position sur la chaîne de valeur</Label>
-              <Select value={form.chainPosition ?? ""} onValueChange={v => setF("chainPosition", v || null)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-                <SelectContent>
-                  {CHAIN_POSITIONS.map(p => (
-                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {elements.length > 0 && (
-              <div className="space-y-2">
-                <Label>Éléments liés</Label>
-                <div className="flex flex-wrap gap-2">
-                  {elements.map(el => {
-                    const linked = (form.elementIds ?? []).includes(el.id);
-                    return (
-                      <button
-                        key={el.id}
-                        type="button"
-                        onClick={() => toggleElement(el.id)}
-                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                          linked
-                            ? "bg-emerald-100 border-emerald-300 text-emerald-800"
-                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                        }`}
-                      >
-                        {linked && <span className="mr-0.5">✓</span>}
-                        {el.name ?? `Élément ${el.id}`}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label>Commentaires</Label>
-              <Textarea
-                placeholder="Notes, contexte, sources…"
-                rows={2}
-                value={form.comments ?? ""}
-                onChange={e => setF("comments", e.target.value || null)}
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              <Button onClick={handleSave} disabled={isSaving} className="flex-1">
-                {isSaving ? "Enregistrement…" : "Enregistrer"}
-              </Button>
-              {editingIssue && (
-                <Button
-                  variant="outline"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => { setSheetOpen(false); setDeleteId(editingIssue.id); }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button variant="outline" onClick={() => setSheetOpen(false)}>
-                Annuler
-              </Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Delete issue dialog */}
+      {/* Delete dialog */}
       <AlertDialog open={deleteId !== null} onOpenChange={open => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -600,42 +735,33 @@ export function TabCartoEnjeux({ orgId }: Props) {
   );
 }
 
-// ─── Toolbar sub-component ────────────────────────────────────────────────────
+// ─── ToolBar ──────────────────────────────────────────────────────────────────
 
 function ToolBar({
-  issueCount,
-  elementCount,
-  isGenerating,
-  onGenerate,
-  onCreateIssue,
+  issueCount, elementCount, isGenerating, onGenerate, onCreateIssue,
 }: {
-  issueCount: number;
-  elementCount: number;
+  issueCount: number; elementCount: number;
   isGenerating: boolean;
-  onGenerate: () => void;
-  onCreateIssue: () => void;
+  onGenerate: () => void; onCreateIssue: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-2">
       <p className="text-sm text-muted-foreground">
         {issueCount} enjeu{issueCount !== 1 ? "x" : ""}
         {issueCount > 0 && " — cliquez sur un enjeu pour le modifier"}
       </p>
       <div className="flex gap-2">
         <Button
-          size="sm"
-          variant="outline"
+          variant="outline" size="sm"
           onClick={onGenerate}
           disabled={isGenerating || elementCount === 0}
+          title={elementCount === 0 ? "Ajoutez des éléments dans Saisie d'abord" : undefined}
         >
-          {isGenerating
-            ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            : <Sparkles className="h-4 w-4 mr-1" />}
-          {isGenerating ? "Génération…" : "Générer avec l'IA"}
+          {isGenerating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+          Générer avec l'IA
         </Button>
         <Button size="sm" onClick={onCreateIssue}>
-          <Plus className="h-4 w-4 mr-1" />
-          Ajouter un enjeu
+          <Plus className="h-4 w-4 mr-1" />Créer un enjeu
         </Button>
       </div>
     </div>
