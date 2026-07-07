@@ -1,0 +1,299 @@
+Nous allons faire évoluer le module "Dépendances à la Biodiversité".
+
+IMPORTANT
+
+Ne pas modifier l'onglet "Découvrir".
+
+Ne pas modifier le design général de Cocci.
+
+Ne pas modifier l'architecture actuelle.
+
+Ne pas refaire les fonctionnalités déjà développées.
+
+Je souhaite uniquement revoir complètement le fonctionnement des onglets :
+
+• Saisie
+• Cartographie des dépendances
+• Cartographie des enjeux
+• Synthèse
+
+L'objectif est de remplacer le fonctionnement actuel par une véritable cartographie interactive.
+
+-----------------------------------------------------
+ONGLET 2 — SAISIE
+
+Le fonctionnement change complètement.
+
+L'utilisateur ne crée plus une simple dépendance.
+
+Il construit progressivement la chaîne de valeur de son entreprise.
+
+Le module distingue quatre familles d'éléments :
+
+1. Ressources / Services écosystémiques
+
+Exemples :
+
+• Eau
+• Sols
+• Air
+• Climat
+• Pollinisation
+• Biodiversité
+• Ressources naturelles
+• Bois
+• Biomasse
+• Terres rares
+• Fibres naturelles
+• Minéraux
+• Autre (avec saisie libre)
+
+2. Activités / Processus
+
+Exemples :
+
+• Approvisionnement
+• Production
+• Fabrication
+• Transformation
+• Transport
+• Stockage
+• Distribution
+• Vente
+• Utilisation
+• Maintenance
+• Communication
+• Gestion des déchets
+• Recyclage
+• Prestations
+• Autre (avec saisie libre)
+
+3. Lieux
+
+IMPORTANT
+
+Les lieux sont toujours positionnés automatiquement dans la zone IN SITU.
+
+Ils ne peuvent jamais être placés en AMONT ou en AVAL.
+
+Exemples :
+
+• Siège social
+• Agence
+• Bureaux
+• Atelier
+• Entrepôt
+• Usine
+• Chantier
+• Magasin
+• Data center
+• Site client
+• Autre (avec saisie libre)
+
+4. Acteurs
+
+Exemples :
+
+• Fournisseurs
+• Sous-traitants
+• Prestataires
+• Clients
+• Transporteurs
+• Distributeurs
+• Collectivités
+• Autre (avec saisie libre)
+
+Aucun champ n'est obligatoire.
+
+Le nom est facultatif.
+
+IMPORTANT
+
+Si aucun nom n'est renseigné :
+
+- ne jamais afficher "Sans nom"
+- ne jamais afficher "Élément sans nom"
+
+Afficher uniquement l'icône et le type d'élément.
+
+Conserver les commentaires et l'upload de documents.
+
+-----------------------------------------------------
+CONNEXIONS
+
+Créer un bouton :
+
+➕ Créer une connexion
+
+L'utilisateur choisit :
+
+Origine
+
+↓
+
+Destination
+
+↓
+
+Type de relation
+
+Liste :
+
+• Approvisionne
+• Utilise
+• Produit
+• Transporte
+• Dépend de
+• Recycle
+• Communique avec
+• Valorise
+• Protège
+• Impacte
+• Alimente
+• Autre (saisie libre)
+
+Le logiciel dessine automatiquement la flèche.
+
+Les flèches suivent automatiquement les déplacements.
+
+-----------------------------------------------------
+ONGLET 3 — CARTOGRAPHIE DES DÉPENDANCES
+
+Supprimer l'affichage actuel.
+
+Créer une véritable cartographie interactive.
+
+Créer trois colonnes :
+
+AMONT
+
+IN SITU
+
+AVAL
+
+Les lieux sont toujours placés dans IN SITU.
+
+Les autres éléments sont placés automatiquement selon leur position.
+
+Chaque élément devient un nœud graphique.
+
+Le nœud affiche :
+
+• Icône
+• Type
+• Nom uniquement s'il est renseigné
+
+Je ne veux jamais voir "Sans nom".
+
+Les connexions sont représentées par des flèches dynamiques.
+
+Je souhaite :
+
+• glisser-déposer
+• zoom
+• déplacement de la vue
+• grille
+• réorganisation automatique
+• flèches courbes si nécessaire
+
+Le rendu doit ressembler à un logiciel de cartographie (React Flow ou équivalent), pas à une liste de cartes.
+
+-----------------------------------------------------
+ONGLET 4 — CARTOGRAPHIE DES ENJEUX
+
+Ajouter un bouton :
+
+✨ Générer les enjeux
+
+L'IA intervient uniquement ici.
+
+Elle analyse :
+
+• les ressources
+• les activités
+• les lieux
+• les acteurs
+• les connexions
+
+Elle regroupe automatiquement les dépendances similaires.
+
+Elle propose un intitulé logique pour chaque enjeu.
+
+L'utilisateur peut :
+
+• accepter
+• modifier
+• fusionner
+• supprimer
+• créer un enjeu manuellement
+
+Créer ensuite automatiquement la cartographie des enjeux.
+
+Abscisse :
+
+Situation sur la chaîne de valeur
+
+AMONT
+
+IN SITU
+
+AVAL
+
+Ordonnée :
+
+Importance des risques et opportunités associés aux enjeux
+
+Faible
+
+Moyenne
+
+Forte
+
+Très forte
+
+Chaque enjeu est représenté par un bloc.
+
+Le logiciel propose un positionnement automatique.
+
+L'utilisateur peut déplacer les blocs.
+
+En cliquant sur un enjeu, afficher :
+
+• ressources concernées
+• activités concernées
+• lieux concernés
+• acteurs concernés
+• connexions
+• justificatifs
+
+-----------------------------------------------------
+ONGLET 5 — SYNTHÈSE
+
+Créer un tableau de bord.
+
+Afficher :
+
+• nombre de ressources
+• nombre d'activités
+• nombre de lieux
+• nombre d'acteurs
+• nombre de connexions
+• nombre d'enjeux
+
+Afficher également :
+
+• les ressources les plus critiques
+• les activités les plus dépendantes
+• les lieux les plus exposés
+• les principaux flux
+• les enjeux prioritaires
+
+Ajouter une vue simplifiée de la chaîne de valeur.
+
+Prévoir un bouton Exporter (sans développer le PDF).
+
+-----------------------------------------------------
+
+Je souhaite une interface beaucoup plus graphique que l'actuelle.
+
+L'utilisateur doit avoir l'impression de construire une véritable cartographie interactive, et non de remplir un formulaire administratif.
