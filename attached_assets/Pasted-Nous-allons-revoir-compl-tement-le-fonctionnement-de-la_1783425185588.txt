@@ -1,0 +1,304 @@
+Nous allons revoir complètement le fonctionnement de la cartographie des dépendances à la biodiversité.
+
+IMPORTANT
+
+Ne pas modifier l'architecture actuelle de Cocci.
+Ne pas modifier le design global.
+Réutiliser les composants existants.
+Développer le Front-End, le Back-End et les modèles de données.
+
+Le fonctionnement actuel sous forme de liste ne correspond pas au besoin.
+
+Je souhaite un véritable outil de cartographie visuelle.
+
+Le rendu doit s'inspirer des cartographies réalisées par les cabinets de conseil (type OFB / BL Evolution), mais rester entièrement interactif.
+
+L'objectif est que chaque entreprise puisse construire librement sa propre cartographie.
+
+-----------------------------------------------------
+
+Le module comporte toujours :
+
+• Découvrir
+
+• Saisie
+
+• Cartographie des dépendances
+
+• Cartographie des enjeux
+
+-----------------------------------------------------
+
+ONGLET SAISIE
+
+L'utilisateur ne crée plus directement une dépendance.
+
+Il crée un élément de son activité.
+
+Créer un bouton :
+
+➕ Ajouter un élément
+
+Chaque élément comporte :
+
+Nom
+
+(exemple : Fournisseurs, Production, Locaux, Transport, Prestataires, Déchets, Produits, Emballages...)
+
+Catégorie
+
+(menu déroulant)
+
+• Eau
+• Sols
+• Climat
+• Pollinisation
+• Biodiversité
+• Air
+• Ressources naturelles
+• Régulation biologique
+• Services culturels
+• Fonctions écologiques
+• Autre
+
+Si "Autre" est sélectionné,
+
+permettre une saisie libre.
+
+Sous-catégorie
+
+La liste dépend de la catégorie choisie.
+
+Si "Autre",
+
+autoriser également une saisie libre.
+
+Position sur la chaîne de valeur
+
+• Amont
+
+• In situ
+
+• Aval
+
+Niveau de dépendance
+
+★★★★★
+
+Niveau de maîtrise
+
+★★★★★
+
+Commentaires
+
+Documents
+
+Upload
+
+Toutes les données sont sauvegardées automatiquement.
+
+-----------------------------------------------------
+
+ONGLET CARTOGRAPHIE DES DEPENDANCES
+
+Je ne veux plus une liste.
+
+Je souhaite un véritable espace de cartographie.
+
+Chaque élément créé devient automatiquement un nœud graphique.
+
+Le nœud contient :
+
+• son nom
+
+• son icône
+
+• sa catégorie
+
+• sa position
+
+• son niveau de dépendance
+
+L'utilisateur peut déplacer librement les nœuds.
+
+La position est sauvegardée.
+
+-----------------------------------------------------
+
+CONNEXIONS
+
+Ajouter un bouton :
+
+➕
+
+Créer une connexion
+
+L'utilisateur sélectionne :
+
+Origine
+
+↓
+
+Destination
+
+↓
+
+Type de relation
+
+Le type de relation est une liste :
+
+• Approvisionne
+
+• Utilise
+
+• Produit
+
+• Dépend de
+
+• Transporte
+
+• Transforme
+
+• Recycle
+
+• Communique avec
+
+• Valorise
+
+• Protège
+
+• Impacte
+
+• Alimente
+
+• Autre
+
+Si "Autre"
+
+autoriser la saisie libre.
+
+Le logiciel dessine automatiquement une flèche entre les deux éléments.
+
+Les flèches suivent automatiquement les déplacements des nœuds.
+
+Le rendu doit être fluide.
+
+-----------------------------------------------------
+
+MISE EN PAGE
+
+Créer automatiquement trois zones :
+
+AMONT
+
+IN SITU
+
+AVAL
+
+Les nouveaux éléments apparaissent automatiquement dans leur zone.
+
+L'utilisateur peut ensuite les déplacer librement dans cette zone.
+
+Je souhaite retrouver une présentation proche des cartographies de cabinets de conseil.
+
+Les flèches doivent être courbes lorsque cela améliore la lisibilité.
+
+Éviter au maximum les croisements.
+
+Les icônes doivent être utilisées largement.
+
+Le rendu doit être moderne.
+
+-----------------------------------------------------
+
+ONGLET CARTOGRAPHIE DES ENJEUX
+
+Ajouter un bouton :
+
+✨ Générer les enjeux
+
+L'IA intervient uniquement à cette étape.
+
+Elle analyse :
+
+• les éléments créés
+
+• leurs catégories
+
+• les connexions
+
+• les niveaux de dépendance
+
+• les niveaux de maîtrise
+
+À partir de ces informations,
+
+elle propose automatiquement des regroupements logiques.
+
+Exemple :
+
+Disponibilité en eau
+
+Qualité de l'eau
+
+Refroidissement des serveurs
+
+↓
+
+Gestion durable de la ressource en eau
+
+Ou
+
+Fournisseurs
+
+Transport
+
+Transformation
+
+↓
+
+Sécurisation des approvisionnements
+
+L'utilisateur peut :
+
+• accepter
+
+• modifier
+
+• fusionner
+
+• supprimer
+
+• créer un enjeu manuellement
+
+Une fois validés,
+
+les enjeux sont automatiquement positionnés sur une cartographie.
+
+Axe horizontal :
+
+Amont
+
+↓
+
+In situ
+
+↓
+
+Aval
+
+Axe vertical :
+
+Importance des risques et opportunités.
+
+Le positionnement est calculé automatiquement mais reste modifiable par glisser-déposer.
+
+-----------------------------------------------------
+
+OBJECTIF
+
+Je ne souhaite pas un simple formulaire.
+
+Je souhaite un véritable outil de cartographie interactif permettant de construire visuellement les dépendances d'une entreprise, leurs interactions et les enjeux associés.
+
+L'expérience utilisateur doit être moderne, intuitive et proche d'un logiciel de cartographie ou de mind mapping, tout en restant cohérente avec le design actuel de Cocci.
