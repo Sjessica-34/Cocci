@@ -20,6 +20,7 @@ const ORDERED_CATEGORIES = [
   "materialite",
   "bilan-carbone",
   "biodiversite",
+  "achats-responsables",
   "demarche-rse",
   "numerique-responsable",
   "autre",

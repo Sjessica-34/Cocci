@@ -19,6 +19,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "materialite":          "Matrice de matérialité",
   "bilan-carbone":        "Bilan Carbone®",
   "biodiversite":         "Mes dépendances à la biodiversité",
+  "achats-responsables":  "Achats & Fournisseurs Responsables",
   "demarche-rse":         "Ma démarche RSE",
   "numerique-responsable":"Ma démarche Numérique Responsable",
   "autre":                "Autres documents",
