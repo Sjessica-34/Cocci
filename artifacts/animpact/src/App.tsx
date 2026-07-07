@@ -23,6 +23,7 @@ import { AdminUsers } from "@/pages/admin/users";
 import { Resources } from "@/pages/resources";
 import {
   Biodiversite,
+  AchatsResponsables,
   DemarcheRse,
   RapportRse,
 } from "@/pages/stubs";
@@ -256,6 +257,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/enjeux"><ProtectedRoute component={Materialite} /></Route>
             <Route path="/parties-prenantes"><ProtectedRoute component={PartiesPrenantes} /></Route>
             <Route path="/biodiversite"><ProtectedRoute component={Biodiversite} /></Route>
+            <Route path="/achats-responsables"><ProtectedRoute component={AchatsResponsables} /></Route>
             <Route path="/demarche-rse"><ProtectedRoute component={DemarcheRse} /></Route>
             <Route path="/bilan-carbone"><ProtectedRoute component={BilanCarbone} /></Route>
             <Route path="/numerique-responsable"><ProtectedRoute component={NumeriqueResponsable} /></Route>

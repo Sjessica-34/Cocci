@@ -12,6 +12,7 @@ function ModuleStub({ title }: { title: string }) {
 }
 
 export function Biodiversite() { return <ModuleStub title="Mes dépendances à la biodiversité" />; }
+export function AchatsResponsables() { return <ModuleStub title="Mes achats responsables" />; }
 export function DemarcheRse() { return <ModuleStub title="Ma démarche RSE" />; }
 export function NumeriqueResponsable() { return <ModuleStub title="Ma démarche Numérique Responsable" />; }
 export function ImpactScore() { return <ModuleStub title="Mon Impact Score" />; }

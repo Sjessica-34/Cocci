@@ -16,6 +16,7 @@ import {
   Target,
   Users2,
   Sprout,
+  ShoppingBag,
   BarChart3,
   Globe,
   Monitor,
@@ -51,6 +52,7 @@ const navGroups: NavItem[][] = [
     { href: "/parties-prenantes", label: "Mes parties prenantes", icon: Users2 },
     { href: "/enjeux", label: "Matrice de matérialité", icon: Target },
     { href: "/biodiversite", label: "Mes dépendances à la biodiversité", icon: Sprout },
+    { href: "/achats-responsables", label: "Mes achats responsables", icon: ShoppingBag },
   ],
   [
     { href: "/demarche-rse", label: "Ma démarche RSE", icon: BarChart3 },
