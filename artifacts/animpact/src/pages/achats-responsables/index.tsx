@@ -12,8 +12,12 @@ export function AchatsResponsables() {
   return (
     <AppLayout>
       <h1 className="text-xl font-bold mb-6">📦 Achats &amp; Fournisseurs Responsables</h1>
-      <Tabs defaultValue="fournisseurs" className="space-y-6">
+      <Tabs defaultValue="decouvrir" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsTrigger value="decouvrir" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Découvrir
+          </TabsTrigger>
           <TabsTrigger value="fournisseurs" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Mes fournisseurs
@@ -21,10 +25,6 @@ export function AchatsResponsables() {
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Tableau de bord
-          </TabsTrigger>
-          <TabsTrigger value="decouvrir" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Découvrir
           </TabsTrigger>
         </TabsList>
 
