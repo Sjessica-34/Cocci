@@ -122,20 +122,17 @@ router.put("/organizations/:orgId/bio-dependencies/:id", requireAuth, async (req
   if (isNaN(orgId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
   const b = req.body as Record<string, unknown>;
-  const docIds = Array.isArray(b.documentIds) ? (b.documentIds as number[]) : undefined;
-  const updates: Partial<typeof bioDependenciesTable.$inferInsert> = {
-    name:            (b.name as string | null | undefined) ?? null,
-    category:        (b.category as string | null | undefined) ?? null,
-    subCategory:     (b.subCategory as string | null | undefined) ?? null,
-    chainPosition:   (b.chainPosition as string | null | undefined) ?? null,
-    dependencyLevel: (b.dependencyLevel as number | null | undefined) ?? null,
-    masteryLevel:    (b.masteryLevel as number | null | undefined) ?? null,
-    comments:        (b.comments as string | null | undefined) ?? null,
-    updatedAt:       new Date(),
-  };
-  if (docIds !== undefined) updates.documentIds = JSON.stringify(docIds);
-  if (b.x !== undefined) updates.posX = (b.x as number | null) ?? null;
-  if (b.y !== undefined) updates.posY = (b.y as number | null) ?? null;
+  const updates: Partial<typeof bioDependenciesTable.$inferInsert> = { updatedAt: new Date() };
+  if (b.name !== undefined)            updates.name            = (b.name            as string | null) ?? null;
+  if (b.category !== undefined)        updates.category        = (b.category        as string | null) ?? null;
+  if (b.subCategory !== undefined)     updates.subCategory     = (b.subCategory     as string | null) ?? null;
+  if (b.chainPosition !== undefined)   updates.chainPosition   = (b.chainPosition   as string | null) ?? null;
+  if (b.dependencyLevel !== undefined) updates.dependencyLevel = (b.dependencyLevel as number | null) ?? null;
+  if (b.masteryLevel !== undefined)    updates.masteryLevel    = (b.masteryLevel    as number | null) ?? null;
+  if (b.comments !== undefined)        updates.comments        = (b.comments        as string | null) ?? null;
+  if (b.documentIds !== undefined)     updates.documentIds     = JSON.stringify(Array.isArray(b.documentIds) ? b.documentIds : []);
+  if (b.x !== undefined)               updates.posX            = (b.x as number | null) ?? null;
+  if (b.y !== undefined)               updates.posY            = (b.y as number | null) ?? null;
   const [row] = await db.update(bioDependenciesTable).set(updates)
     .where(and(eq(bioDependenciesTable.id, id), eq(bioDependenciesTable.organizationId, orgId))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -302,21 +299,19 @@ router.put("/organizations/:orgId/bio-issues/:id", requireAuth, async (req, res)
   if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
   const b = req.body as Record<string, unknown>;
   const elIds = Array.isArray(b.elementIds) ? (b.elementIds as number[]) : undefined;
-  const updates: Partial<typeof bioIssuesTable.$inferInsert> = {
-    name:          (b.name          as string | null | undefined) ?? null,
-    description:   (b.description   as string | null | undefined) ?? null,
-    issueType:     (b.issueType     as string | null | undefined) ?? null,
-    importance:    (b.importance    as number | null | undefined) ?? null,
-    probability:   (b.probability   as number | null | undefined) ?? null,
-    urgency:       (b.urgency       as number | null | undefined) ?? null,
-    reversibility: (b.reversibility as number | null | undefined) ?? null,
-    comments:      (b.comments      as string | null | undefined) ?? null,
-    chainPosition: (b.chainPosition as string | null | undefined) ?? null,
-    updatedAt:     new Date(),
-  };
-  if (elIds !== undefined) updates.dependencyIds = JSON.stringify(elIds);
-  if (b.x !== undefined) updates.posX = (b.x as number | null) ?? null;
-  if (b.y !== undefined) updates.posY = (b.y as number | null) ?? null;
+  const updates: Partial<typeof bioIssuesTable.$inferInsert> = { updatedAt: new Date() };
+  if (b.name          !== undefined) updates.name          = (b.name          as string | null) ?? null;
+  if (b.description   !== undefined) updates.description   = (b.description   as string | null) ?? null;
+  if (b.issueType     !== undefined) updates.issueType     = (b.issueType     as string | null) ?? null;
+  if (b.importance    !== undefined) updates.importance    = (b.importance    as number | null) ?? null;
+  if (b.probability   !== undefined) updates.probability   = (b.probability   as number | null) ?? null;
+  if (b.urgency       !== undefined) updates.urgency       = (b.urgency       as number | null) ?? null;
+  if (b.reversibility !== undefined) updates.reversibility = (b.reversibility as number | null) ?? null;
+  if (b.comments      !== undefined) updates.comments      = (b.comments      as string | null) ?? null;
+  if (b.chainPosition !== undefined) updates.chainPosition = (b.chainPosition as string | null) ?? null;
+  if (elIds           !== undefined) updates.dependencyIds = JSON.stringify(elIds);
+  if (b.x             !== undefined) updates.posX          = (b.x as number | null) ?? null;
+  if (b.y             !== undefined) updates.posY          = (b.y as number | null) ?? null;
   const [row] = await db.update(bioIssuesTable).set(updates)
     .where(and(eq(bioIssuesTable.id, id), eq(bioIssuesTable.organizationId, orgId))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
