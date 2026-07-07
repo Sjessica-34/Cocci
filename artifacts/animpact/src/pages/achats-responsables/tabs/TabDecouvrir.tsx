@@ -55,6 +55,18 @@ export function TabDecouvrir() {
         </p>
       </div>
 
+      <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
+        <span className="text-amber-500 text-lg leading-none mt-0.5">⚠️</span>
+        <div className="text-amber-900">
+          <p className="font-semibold mb-0.5">Cocci est un outil d'aide à la décision</p>
+          <p className="text-amber-800">
+            Il vous aide à structurer et centraliser votre démarche, mais ne remplace pas l'analyse
+            et le jugement humain. Les évaluations (criticité, risque, dépendance) reposent sur votre
+            connaissance terrain de votre activité et de vos fournisseurs.
+          </p>
+        </div>
+      </div>
+
       <Section number="1" title="Qu'est-ce qu'un achat responsable ?">
         <p>
           Un achat responsable prend en compte, au-delà du prix, des critères environnementaux, sociaux et éthiques

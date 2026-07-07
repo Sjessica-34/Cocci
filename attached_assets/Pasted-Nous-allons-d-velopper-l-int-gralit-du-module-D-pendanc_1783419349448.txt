@@ -1,0 +1,422 @@
+Nous allons développer l'intégralité du module "Dépendances à la Biodiversité".
+
+IMPORTANT
+
+Ne modifie pas l'architecture actuelle de Cocci.
+Ne modifie pas les composants existants.
+Ne modifie pas le design.
+Réutiliser les composants déjà présents dans l'application.
+
+Développer le Front-End, le Back-End, la base de données, les API et les calculs.
+
+Cette fonctionnalité s'inspire des recommandations de l'Office Français de la Biodiversité (OFB) tout en restant simple d'utilisation pour les PME.
+
+Je souhaite limiter au maximum l'utilisation de l'IA.
+
+L'IA ne devra intervenir qu'à la fin afin de proposer un regroupement logique des enjeux.
+
+Le module sera composé de 4 onglets.
+
+-----------------------------------------------------
+
+ONGLET 1 — Découvrir
+
+Créer une page pédagogique expliquant :
+
+• Qu'est-ce qu'une dépendance à la biodiversité ?
+
+• Quelle différence entre dépendance et impact ?
+
+• Pourquoi réaliser cette cartographie ?
+
+• Que sont les services écosystémiques ?
+
+• Comment utiliser ce module ?
+
+• Comment interpréter les résultats ?
+
+Ajouter ensuite une section :
+
+"Pour aller plus loin"
+
+Créer deux cartes.
+
+Carte 1
+
+📚 Guide de l'Office Français de la Biodiversité
+
+Texte :
+
+"Cette fonctionnalité s'appuie sur les recommandations de l'Office Français de la Biodiversité.
+
+Vous pouvez consulter gratuitement le guide officiel afin d'approfondir votre démarche."
+
+Bouton
+
+Consulter le guide
+
+Le bouton ouvre le guide officiel de l'OFB dans un nouvel onglet.
+
+Carte 2
+
+💬 Besoin d'accompagnement ?
+
+Texte
+
+"Vous souhaitez être accompagné dans l'identification de vos dépendances ou de vos enjeux biodiversité ?
+
+A-NIM-PACT peut vous accompagner dans votre démarche."
+
+Bouton
+
+Contacter A-NIM-PACT
+
+ouvre automatiquement le logiciel de messagerie.
+
+Adresse
+
+bonjour@a-nim-pact.fr
+
+Objet
+
+Demande d'accompagnement - Biodiversité
+
+-----------------------------------------------------
+
+ONGLET 2 — Cartographie des dépendances
+
+L'utilisateur construit sa cartographie.
+
+Créer un bouton :
+
+Ajouter une dépendance
+
+Chaque dépendance comporte :
+
+Nom
+
+Catégorie (liste déroulante)
+
+• Eau
+• Sols
+• Climat
+• Pollinisation
+• Régulation biologique
+• Biodiversité
+• Air
+• Ressources naturelles
+• Production biologique
+• Services culturels
+• Fonctions écologiques
+• Autre
+
+Sous-catégorie
+
+La liste des sous-catégories dépend automatiquement de la catégorie sélectionnée.
+
+Exemple
+
+EAU
+
+• Disponibilité en eau douce
+• Qualité de l'eau
+• Recharge des nappes
+• Régulation des débits
+• Prévention des inondations
+• Épuration naturelle
+• Zones humides
+
+SOLS
+
+• Fertilité
+• Érosion
+• Stockage du carbone
+• Matière organique
+• Structure
+• Infiltration
+• Activité biologique
+
+CLIMAT
+
+• Régulation climatique
+• Stockage du carbone
+• Rafraîchissement naturel
+• Sécheresse
+• Tempêtes
+• Humidité
+
+POLLINISATION
+
+• Pollinisation des cultures
+• Pollinisation naturelle
+• Reproduction des espèces
+
+RÉGULATION BIOLOGIQUE
+
+• Lutte contre les ravageurs
+• Contrôle des maladies
+• Espèces invasives
+
+BIODIVERSITÉ
+
+• Habitats
+• Espèces
+• Corridors écologiques
+• Diversité génétique
+
+AIR
+
+• Qualité de l'air
+• Filtration des particules
+• Captation des polluants
+
+RESSOURCES NATURELLES
+
+• Bois
+• Biomasse
+• Fibres
+• Ressources halieutiques
+• Ressources génétiques
+• Minéraux
+
+PRODUCTION BIOLOGIQUE
+
+• Agriculture
+• Sylviculture
+• Pêche
+• Production alimentaire
+
+SERVICES CULTURELS
+
+• Paysages
+• Tourisme
+• Loisirs
+• Patrimoine
+• Bien-être
+
+FONCTIONS ÉCOLOGIQUES
+
+• Cycle de l'eau
+• Cycle des nutriments
+• Décomposition
+• Fonctionnement des habitats
+
+Position dans la chaîne de valeur
+
+• Amont
+• In situ
+• Aval
+
+Élément concerné
+
+Texte libre.
+
+Exemple :
+
+Prestataires
+
+Fournisseurs
+
+Locaux
+
+Transport
+
+Production
+
+Cartons
+
+Description
+
+Texte libre.
+
+Niveau de dépendance
+
+1 à 5
+
+Niveau de maîtrise
+
+1 à 5
+
+Commentaires
+
+Documents
+
+Upload
+
+Formats
+
+PDF
+
+Word
+
+Excel
+
+PNG
+
+JPG
+
+Toutes les données sont sauvegardées automatiquement.
+
+-----------------------------------------------------
+
+Résultat
+
+Créer automatiquement une cartographie graphique inspirée des recommandations de l'OFB.
+
+Trois colonnes :
+
+AMONT
+
+IN SITU
+
+AVAL
+
+Chaque dépendance est représentée graphiquement.
+
+-----------------------------------------------------
+
+ONGLET 3 — Cartographie des enjeux
+
+L'utilisateur clique sur :
+
+"Générer les enjeux"
+
+À partir des dépendances enregistrées, utiliser l'IA uniquement pour :
+
+• regrouper les dépendances similaires ;
+
+• proposer un intitulé logique et professionnel pour chaque enjeu.
+
+Exemple :
+
+Disponibilité en eau
+
+Qualité de l'eau
+
+Recharge des nappes
+
+↓
+
+IA
+
+"Gestion durable de la ressource en eau"
+
+Autre exemple
+
+Pollinisation
+
+Habitats
+
+Diversité génétique
+
+↓
+
+IA
+
+"Préservation de la biodiversité fonctionnelle"
+
+L'IA ne crée aucune donnée.
+
+Elle ne fait que proposer un regroupement et un intitulé.
+
+L'utilisateur peut :
+
+• accepter le nom proposé ;
+
+• le modifier ;
+
+• supprimer un regroupement ;
+
+• créer un enjeu supplémentaire.
+
+Chaque enjeu comporte :
+
+Nom
+
+Description
+
+Importance
+
+1 à 5
+
+Commentaires
+
+Documents
+
+-----------------------------------------------------
+
+Résultat
+
+Créer automatiquement une cartographie des enjeux.
+
+Axe horizontal
+
+Amont
+
+In situ
+
+Aval
+
+Axe vertical
+
+Importance des enjeux.
+
+Positionner automatiquement les enjeux.
+
+-----------------------------------------------------
+
+ONGLET 4 — Résultats
+
+Créer un tableau de bord comprenant :
+
+• Nombre de dépendances
+
+• Nombre d'enjeux
+
+• Répartition par catégorie
+
+• Répartition Amont / In situ / Aval
+
+• Niveau moyen de dépendance
+
+• Niveau moyen de maîtrise
+
+• Nombre d'enjeux prioritaires
+
+• Cartographie des dépendances
+
+• Cartographie des enjeux
+
+• Graphiques
+
+Prévoir un bouton :
+
+Exporter
+
+(le PDF sera développé ultérieurement)
+
+-----------------------------------------------------
+
+Contraintes
+
+Ne pas utiliser l'IA pour remplir le questionnaire.
+
+Ne pas utiliser l'IA pour créer des dépendances.
+
+L'IA intervient uniquement pour regrouper les dépendances en enjeux et proposer un intitulé cohérent.
+
+Aucune donnée ne doit être obligatoire.
+
+Toutes les informations doivent pouvoir être complétées ultérieurement.
+
+Conserver le design actuel de Cocci.
+
+Réutiliser les composants existants.
+
+Le module devra être connecté ultérieurement à :
+
+• la Matrice de matérialité ;
+
+• le Rapport RSE ;
+
+• le Tableau de bord global.
