@@ -24,6 +24,13 @@ import type {
   AdminOrganization,
   AdminStats,
   AdminUser,
+  BioDependency,
+  BioDependencyInput,
+  BioDependencyListResponse,
+  BioGenerateResponse,
+  BioIssue,
+  BioIssueInput,
+  BioIssueListResponse,
   CarbonBilan,
   CarbonBilanInput,
   CustomIssue,
@@ -2904,6 +2911,662 @@ export const useUpsertNrData = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpsertNrDataMutationOptions(options));
+    }
+
+export const getListBioDependenciesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-dependencies`
+}
+
+/**
+ * @summary List dependencies for an organization
+ */
+export const listBioDependencies = async (orgId: number, options?: RequestInit): Promise<BioDependencyListResponse> => {
+
+  return customFetch<BioDependencyListResponse>(getListBioDependenciesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBioDependenciesQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/bio-dependencies`
+    ] as const;
+    }
+
+
+export const getListBioDependenciesQueryOptions = <TData = Awaited<ReturnType<typeof listBioDependencies>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBioDependencies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBioDependenciesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBioDependencies>>> = ({ signal }) => listBioDependencies(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBioDependencies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBioDependenciesQueryResult = NonNullable<Awaited<ReturnType<typeof listBioDependencies>>>
+export type ListBioDependenciesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List dependencies for an organization
+ */
+
+export function useListBioDependencies<TData = Awaited<ReturnType<typeof listBioDependencies>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBioDependencies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBioDependenciesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBioDependencyUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-dependencies`
+}
+
+/**
+ * @summary Create a new dependency
+ */
+export const createBioDependency = async (orgId: number,
+    bioDependencyInput: BioDependencyInput, options?: RequestInit): Promise<BioDependency> => {
+
+  return customFetch<BioDependency>(getCreateBioDependencyUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bioDependencyInput)
+  }
+);}
+
+
+
+
+export const getCreateBioDependencyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBioDependency>>, TError,{orgId: number;data: BodyType<BioDependencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBioDependency>>, TError,{orgId: number;data: BodyType<BioDependencyInput>}, TContext> => {
+
+const mutationKey = ['createBioDependency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBioDependency>>, {orgId: number;data: BodyType<BioDependencyInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createBioDependency(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBioDependencyMutationResult = NonNullable<Awaited<ReturnType<typeof createBioDependency>>>
+    export type CreateBioDependencyMutationBody = BodyType<BioDependencyInput>
+    export type CreateBioDependencyMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new dependency
+ */
+export const useCreateBioDependency = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBioDependency>>, TError,{orgId: number;data: BodyType<BioDependencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBioDependency>>,
+        TError,
+        {orgId: number;data: BodyType<BioDependencyInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBioDependencyMutationOptions(options));
+    }
+
+export const getUpdateBioDependencyUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-dependencies/${id}`
+}
+
+/**
+ * @summary Update a dependency
+ */
+export const updateBioDependency = async (orgId: number,
+    id: number,
+    bioDependencyInput: BioDependencyInput, options?: RequestInit): Promise<BioDependency> => {
+
+  return customFetch<BioDependency>(getUpdateBioDependencyUrl(orgId,id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bioDependencyInput)
+  }
+);}
+
+
+
+
+export const getUpdateBioDependencyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBioDependency>>, TError,{orgId: number;id: number;data: BodyType<BioDependencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBioDependency>>, TError,{orgId: number;id: number;data: BodyType<BioDependencyInput>}, TContext> => {
+
+const mutationKey = ['updateBioDependency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBioDependency>>, {orgId: number;id: number;data: BodyType<BioDependencyInput>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateBioDependency(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBioDependencyMutationResult = NonNullable<Awaited<ReturnType<typeof updateBioDependency>>>
+    export type UpdateBioDependencyMutationBody = BodyType<BioDependencyInput>
+    export type UpdateBioDependencyMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a dependency
+ */
+export const useUpdateBioDependency = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBioDependency>>, TError,{orgId: number;id: number;data: BodyType<BioDependencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBioDependency>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<BioDependencyInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateBioDependencyMutationOptions(options));
+    }
+
+export const getDeleteBioDependencyUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-dependencies/${id}`
+}
+
+/**
+ * @summary Delete a dependency
+ */
+export const deleteBioDependency = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteBioDependencyUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteBioDependencyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBioDependency>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBioDependency>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteBioDependency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBioDependency>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteBioDependency(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBioDependencyMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBioDependency>>>
+
+    export type DeleteBioDependencyMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a dependency
+ */
+export const useDeleteBioDependency = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBioDependency>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBioDependency>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteBioDependencyMutationOptions(options));
+    }
+
+export const getListBioIssuesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-issues`
+}
+
+/**
+ * @summary List issues for an organization
+ */
+export const listBioIssues = async (orgId: number, options?: RequestInit): Promise<BioIssueListResponse> => {
+
+  return customFetch<BioIssueListResponse>(getListBioIssuesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBioIssuesQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/bio-issues`
+    ] as const;
+    }
+
+
+export const getListBioIssuesQueryOptions = <TData = Awaited<ReturnType<typeof listBioIssues>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBioIssues>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBioIssuesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBioIssues>>> = ({ signal }) => listBioIssues(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBioIssues>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBioIssuesQueryResult = NonNullable<Awaited<ReturnType<typeof listBioIssues>>>
+export type ListBioIssuesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List issues for an organization
+ */
+
+export function useListBioIssues<TData = Awaited<ReturnType<typeof listBioIssues>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBioIssues>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBioIssuesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBioIssueUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-issues`
+}
+
+/**
+ * @summary Create a new issue
+ */
+export const createBioIssue = async (orgId: number,
+    bioIssueInput: BioIssueInput, options?: RequestInit): Promise<BioIssue> => {
+
+  return customFetch<BioIssue>(getCreateBioIssueUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bioIssueInput)
+  }
+);}
+
+
+
+
+export const getCreateBioIssueMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBioIssue>>, TError,{orgId: number;data: BodyType<BioIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBioIssue>>, TError,{orgId: number;data: BodyType<BioIssueInput>}, TContext> => {
+
+const mutationKey = ['createBioIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBioIssue>>, {orgId: number;data: BodyType<BioIssueInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createBioIssue(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBioIssueMutationResult = NonNullable<Awaited<ReturnType<typeof createBioIssue>>>
+    export type CreateBioIssueMutationBody = BodyType<BioIssueInput>
+    export type CreateBioIssueMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new issue
+ */
+export const useCreateBioIssue = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBioIssue>>, TError,{orgId: number;data: BodyType<BioIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBioIssue>>,
+        TError,
+        {orgId: number;data: BodyType<BioIssueInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBioIssueMutationOptions(options));
+    }
+
+export const getGenerateBioIssuesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-issues/generate`
+}
+
+/**
+ * @summary Generate issue suggestions using AI from existing dependencies
+ */
+export const generateBioIssues = async (orgId: number, options?: RequestInit): Promise<BioGenerateResponse> => {
+
+  return customFetch<BioGenerateResponse>(getGenerateBioIssuesUrl(orgId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGenerateBioIssuesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['generateBioIssues'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateBioIssues>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  generateBioIssues(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateBioIssuesMutationResult = NonNullable<Awaited<ReturnType<typeof generateBioIssues>>>
+
+    export type GenerateBioIssuesMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate issue suggestions using AI from existing dependencies
+ */
+export const useGenerateBioIssues = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateBioIssues>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getGenerateBioIssuesMutationOptions(options));
+    }
+
+export const getUpdateBioIssueUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-issues/${id}`
+}
+
+/**
+ * @summary Update an issue
+ */
+export const updateBioIssue = async (orgId: number,
+    id: number,
+    bioIssueInput: BioIssueInput, options?: RequestInit): Promise<BioIssue> => {
+
+  return customFetch<BioIssue>(getUpdateBioIssueUrl(orgId,id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bioIssueInput)
+  }
+);}
+
+
+
+
+export const getUpdateBioIssueMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBioIssue>>, TError,{orgId: number;id: number;data: BodyType<BioIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBioIssue>>, TError,{orgId: number;id: number;data: BodyType<BioIssueInput>}, TContext> => {
+
+const mutationKey = ['updateBioIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBioIssue>>, {orgId: number;id: number;data: BodyType<BioIssueInput>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateBioIssue(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBioIssueMutationResult = NonNullable<Awaited<ReturnType<typeof updateBioIssue>>>
+    export type UpdateBioIssueMutationBody = BodyType<BioIssueInput>
+    export type UpdateBioIssueMutationError = ErrorType<void>
+
+    /**
+ * @summary Update an issue
+ */
+export const useUpdateBioIssue = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBioIssue>>, TError,{orgId: number;id: number;data: BodyType<BioIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBioIssue>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<BioIssueInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateBioIssueMutationOptions(options));
+    }
+
+export const getDeleteBioIssueUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-issues/${id}`
+}
+
+/**
+ * @summary Delete an issue
+ */
+export const deleteBioIssue = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteBioIssueUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteBioIssueMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBioIssue>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBioIssue>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteBioIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBioIssue>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteBioIssue(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBioIssueMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBioIssue>>>
+
+    export type DeleteBioIssueMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an issue
+ */
+export const useDeleteBioIssue = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBioIssue>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBioIssue>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteBioIssueMutationOptions(options));
     }
 
 export const getListSuppliersUrl = (orgId: number,) => {

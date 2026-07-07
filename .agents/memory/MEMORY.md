@@ -3,3 +3,4 @@
 - [Module order](module-order.md) — Ordre de développement convenu avec le client pour A-NIM-PACT.
 - [Frontend type imports](frontend-type-imports.md) — Importer les types Zod (Stakeholder…) depuis `@workspace/api-client-react`, jamais `@workspace/api-zod` (non installé dans animpact). AppLayout → `@/components/layout`.
 - [Drizzle numeric → string](drizzle-numeric-string.md) — Drizzle `numeric()` columns map to `string` in TypeScript; always call `String(value)` before insert/update, never pass a `number` directly.
+- [Biodiversité module](biodiversite.md) — CRUD deps + issues + IA Anthropic haiku generate, JSON.stringify pour dependencyIds (text column), `?? null` obligatoire sur champs optional du schema Zod généré.

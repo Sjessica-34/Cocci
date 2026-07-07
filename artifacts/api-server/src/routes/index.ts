@@ -13,6 +13,7 @@ import documentsRouter from "./documents";
 import numeriqueResponsableRouter from "./numeriqueResponsable";
 import impactScoreResultRouter from "./impactScoreResult";
 import suppliersRouter from "./suppliers";
+import biodiversiteRouter from "./biodiversite";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(documentsRouter);
 router.use(numeriqueResponsableRouter);
 router.use(impactScoreResultRouter);
 router.use(suppliersRouter);
+router.use(biodiversiteRouter);
 
 export default router;

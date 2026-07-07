@@ -11,3 +11,4 @@ export * from "./documents";
 export * from "./numeriqueResponsable";
 export * from "./impactScoreResult";
 export * from "./suppliers";
+export * from "./biodiversite";

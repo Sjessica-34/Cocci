@@ -984,6 +984,176 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── BIODIVERSITÉ ────────────────────────────────────────────────────────────
+  /organizations/{orgId}/bio-dependencies:
+    get:
+      operationId: listBioDependencies
+      tags: [biodiversite]
+      summary: List dependencies for an organization
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: List of dependencies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioDependencyListResponse"
+        "403":
+          description: Forbidden
+    post:
+      operationId: createBioDependency
+      tags: [biodiversite]
+      summary: Create a new dependency
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BioDependencyInput"
+      responses:
+        "200":
+          description: Created dependency
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioDependency"
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/bio-dependencies/{id}:
+    put:
+      operationId: updateBioDependency
+      tags: [biodiversite]
+      summary: Update a dependency
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BioDependencyInput"
+      responses:
+        "200":
+          description: Updated dependency
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioDependency"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBioDependency
+      tags: [biodiversite]
+      summary: Delete a dependency
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/bio-issues:
+    get:
+      operationId: listBioIssues
+      tags: [biodiversite]
+      summary: List issues for an organization
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: List of issues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioIssueListResponse"
+        "403":
+          description: Forbidden
+    post:
+      operationId: createBioIssue
+      tags: [biodiversite]
+      summary: Create a new issue
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BioIssueInput"
+      responses:
+        "200":
+          description: Created issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioIssue"
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/bio-issues/generate:
+    post:
+      operationId: generateBioIssues
+      tags: [biodiversite]
+      summary: Generate issue suggestions using AI from existing dependencies
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: AI-generated issue suggestions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioGenerateResponse"
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/bio-issues/{id}:
+    put:
+      operationId: updateBioIssue
+      tags: [biodiversite]
+      summary: Update an issue
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BioIssueInput"
+      responses:
+        "200":
+          description: Updated issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioIssue"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBioIssue
+      tags: [biodiversite]
+      summary: Delete an issue
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+
   # ─── ACHATS & FOURNISSEURS ───────────────────────────────────────────────────
   /organizations/{orgId}/suppliers:
     get:
@@ -1932,6 +2102,107 @@ components:
             $ref: "#/components/schemas/NrResponseItem"
 
     # ─── DASHBOARD SUMMARY ─────────────────────────────────────────────────────
+    BioDependency:
+      type: object
+      required: [id, organizationId, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        name: { type: ["string", "null"] }
+        category: { type: ["string", "null"] }
+        subCategory: { type: ["string", "null"] }
+        chainPosition: { type: ["string", "null"] }
+        element: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        dependencyLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        masteryLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        comments: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    BioDependencyInput:
+      type: object
+      properties:
+        name: { type: ["string", "null"] }
+        category: { type: ["string", "null"] }
+        subCategory: { type: ["string", "null"] }
+        chainPosition: { type: ["string", "null"] }
+        element: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        dependencyLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        masteryLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        comments: { type: ["string", "null"] }
+
+    BioDependencyListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BioDependency"
+
+    BioIssue:
+      type: object
+      required: [id, organizationId, dependencyIds, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        name: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        comments: { type: ["string", "null"] }
+        chainPosition: { type: ["string", "null"] }
+        dependencyIds:
+          type: array
+          items:
+            type: integer
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    BioIssueInput:
+      type: object
+      properties:
+        name: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        comments: { type: ["string", "null"] }
+        chainPosition: { type: ["string", "null"] }
+        dependencyIds:
+          type: array
+          items:
+            type: integer
+
+    BioIssueListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BioIssue"
+
+    BioGenerateSuggestion:
+      type: object
+      required: [name, dependencyIds]
+      properties:
+        name: { type: string }
+        description: { type: ["string", "null"] }
+        dependencyIds:
+          type: array
+          items:
+            type: integer
+        chainPosition: { type: ["string", "null"] }
+
+    BioGenerateResponse:
+      type: object
+      required: [suggestions]
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/BioGenerateSuggestion"
+
     Supplier:
       type: object
       required: [id, organizationId, createdAt, updatedAt]

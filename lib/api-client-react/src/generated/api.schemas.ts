@@ -564,6 +564,129 @@ export interface NrDataInput {
   responses?: NrResponseItem[];
 }
 
+export interface BioDependency {
+  id: number;
+  organizationId: number;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  subCategory?: string | null;
+  /** @nullable */
+  chainPosition?: string | null;
+  /** @nullable */
+  element?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  dependencyLevel?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  masteryLevel?: number | null;
+  /** @nullable */
+  comments?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BioDependencyInput {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  subCategory?: string | null;
+  /** @nullable */
+  chainPosition?: string | null;
+  /** @nullable */
+  element?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  dependencyLevel?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  masteryLevel?: number | null;
+  /** @nullable */
+  comments?: string | null;
+}
+
+export interface BioDependencyListResponse {
+  items: BioDependency[];
+}
+
+export interface BioIssue {
+  id: number;
+  organizationId: number;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importance?: number | null;
+  /** @nullable */
+  comments?: string | null;
+  /** @nullable */
+  chainPosition?: string | null;
+  dependencyIds: number[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BioIssueInput {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importance?: number | null;
+  /** @nullable */
+  comments?: string | null;
+  /** @nullable */
+  chainPosition?: string | null;
+  dependencyIds?: number[];
+}
+
+export interface BioIssueListResponse {
+  items: BioIssue[];
+}
+
+export interface BioGenerateSuggestion {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  dependencyIds: number[];
+  /** @nullable */
+  chainPosition?: string | null;
+}
+
+export interface BioGenerateResponse {
+  suggestions: BioGenerateSuggestion[];
+}
+
 export interface Supplier {
   id: number;
   organizationId: number;

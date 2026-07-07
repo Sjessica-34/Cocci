@@ -22,10 +22,10 @@ import { AdminOrganizationDetail } from "@/pages/admin/organization-detail";
 import { AdminUsers } from "@/pages/admin/users";
 import { Resources } from "@/pages/resources";
 import {
-  Biodiversite,
   DemarcheRse,
   RapportRse,
 } from "@/pages/stubs";
+import { Biodiversite } from "@/pages/biodiversite";
 import { AchatsResponsables } from "@/pages/achats-responsables";
 import { ImpactScore } from "@/pages/impact-score";
 import { NumeriqueResponsable } from "@/pages/numerique-responsable";
