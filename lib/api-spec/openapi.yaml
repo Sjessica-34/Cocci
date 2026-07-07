@@ -1154,6 +1154,83 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── LABELS ──────────────────────────────────────────────────────────────────
+  /organizations/{orgId}/labels:
+    get:
+      operationId: listLabels
+      tags: [labels]
+      summary: List labels for an organization
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: List of labels
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LabelListResponse"
+        "403":
+          description: Forbidden
+    post:
+      operationId: createLabel
+      tags: [labels]
+      summary: Create a new label
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LabelInput"
+      responses:
+        "200":
+          description: Created label
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Label"
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/labels/{id}:
+    put:
+      operationId: updateLabel
+      tags: [labels]
+      summary: Update a label
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LabelInput"
+      responses:
+        "200":
+          description: Updated label
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Label"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteLabel
+      tags: [labels]
+      summary: Delete a label
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+
   # ─── ACHATS & FOURNISSEURS ───────────────────────────────────────────────────
   /organizations/{orgId}/suppliers:
     get:
@@ -2202,6 +2279,44 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BioGenerateSuggestion"
+
+    Label:
+      type: object
+      required: [id, organizationId, documentIds, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        name: { type: ["string", "null"] }
+        logoUrl: { type: ["string", "null"] }
+        holder: { type: ["string", "null"] }
+        year: { type: ["integer", "null"] }
+        score: { type: ["string", "null"] }
+        documentIds:
+          type: array
+          items: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    LabelInput:
+      type: object
+      properties:
+        name: { type: ["string", "null"] }
+        logoUrl: { type: ["string", "null"] }
+        holder: { type: ["string", "null"] }
+        year: { type: ["integer", "null"] }
+        score: { type: ["string", "null"] }
+        documentIds:
+          type: array
+          items: { type: integer }
+
+    LabelListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Label"
 
     Supplier:
       type: object

@@ -23,6 +23,7 @@ import {
   FolderOpen,
   Sparkles,
   FileText,
+  Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +67,7 @@ const navGroups: NavItem[][] = [
   [
     { href: "/resources", label: "Mes ressources", icon: BookOpen },
     { href: "/mes-documents", label: "Mes documents", icon: FolderOpen },
+    { href: "/mes-labels", label: "Mes labels", icon: Award },
   ],
   [
     { href: "/settings", label: "Mes paramètres", icon: Settings },

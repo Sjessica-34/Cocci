@@ -14,6 +14,7 @@ import numeriqueResponsableRouter from "./numeriqueResponsable";
 import impactScoreResultRouter from "./impactScoreResult";
 import suppliersRouter from "./suppliers";
 import biodiversiteRouter from "./biodiversite";
+import labelsRouter from "./labels";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(numeriqueResponsableRouter);
 router.use(impactScoreResultRouter);
 router.use(suppliersRouter);
 router.use(biodiversiteRouter);
+router.use(labelsRouter);
 
 export default router;

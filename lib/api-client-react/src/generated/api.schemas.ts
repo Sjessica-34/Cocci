@@ -687,6 +687,42 @@ export interface BioGenerateResponse {
   suggestions: BioGenerateSuggestion[];
 }
 
+export interface Label {
+  id: number;
+  organizationId: number;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  logoUrl?: string | null;
+  /** @nullable */
+  holder?: string | null;
+  /** @nullable */
+  year?: number | null;
+  /** @nullable */
+  score?: string | null;
+  documentIds: number[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LabelInput {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  logoUrl?: string | null;
+  /** @nullable */
+  holder?: string | null;
+  /** @nullable */
+  year?: number | null;
+  /** @nullable */
+  score?: string | null;
+  documentIds?: number[];
+}
+
+export interface LabelListResponse {
+  items: Label[];
+}
+
 export interface Supplier {
   id: number;
   organizationId: number;

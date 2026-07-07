@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
-import { useListDocuments, useDeleteDocument, getListDocumentsQueryKey } from "@workspace/api-client-react";
-import type { DocumentMeta } from "@workspace/api-client-react";
+import { useListDocuments, useDeleteDocument, useListLabels, getListDocumentsQueryKey, getListLabelsQueryKey } from "@workspace/api-client-react";
+import type { DocumentMeta, Label } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { useAuth } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   FolderOpen, Upload, FileText, Trash2, Download, Loader2, AlertCircle,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/components/DocumentUploader";
@@ -30,6 +31,86 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
   return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+}
+
+function LabelsEncart({ labels, orgId }: { labels: Label[]; orgId: number }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/60 overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-amber-50 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="flex items-center gap-2.5">
+          <Award className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-sm font-semibold text-foreground">Mes labels</span>
+          <span className="text-xs text-muted-foreground">
+            ({labels.length} label{labels.length !== 1 ? "s" : ""})
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/mes-labels">
+            <span
+              className="text-xs text-amber-700 underline underline-offset-2 hover:text-amber-900 mr-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Gérer mes labels
+            </span>
+          </Link>
+          {open
+            ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-4 border-t border-amber-200">
+          {labels.length === 0 ? (
+            <div className="py-4 text-center">
+              <p className="text-sm text-muted-foreground">Aucun label enregistré.</p>
+              <Link href="/mes-labels">
+                <span className="text-sm text-amber-700 underline underline-offset-2 hover:text-amber-900 cursor-pointer">
+                  Ajouter un label
+                </span>
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-3 pt-4">
+              {labels.map((label) => (
+                <div
+                  key={label.id}
+                  className="flex items-center gap-2 bg-white border border-amber-200 rounded-lg px-3 py-2 shadow-sm"
+                >
+                  {label.logoUrl ? (
+                    <img src={label.logoUrl} alt={label.name ?? "Logo"} className="h-7 w-7 rounded object-contain border bg-white p-0.5" />
+                  ) : (
+                    <div className="h-7 w-7 rounded bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0">
+                      {label.name ? label.name.charAt(0) : <Award className="h-4 w-4" />}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold leading-tight truncate max-w-[140px]">{label.name ?? "Sans nom"}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {label.holder && <span className="text-xs text-muted-foreground truncate max-w-[120px]">{label.holder}</span>}
+                      {label.year && <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded">{label.year}</span>}
+                      {label.score && <span className="text-[10px] bg-slate-100 text-slate-700 px-1 rounded">{label.score}</span>}
+                      {label.documentIds.length > 0 && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <FileText className="h-2.5 w-2.5" />
+                          {label.documentIds.length}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function CategorySection({
@@ -168,6 +249,9 @@ export function MesDocuments() {
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const { data: labelsData } = useListLabels(currentOrgId ?? 0, { query: { enabled: !!currentOrgId, queryKey: getListLabelsQueryKey(currentOrgId ?? 0) } });
+  const labels = labelsData?.items ?? [];
+
   const { data: docs = [], isLoading } = useListDocuments(currentOrgId ?? 0, {
     query: {
       enabled: !!currentOrgId,
@@ -274,6 +358,10 @@ export function MesDocuments() {
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
           </div>
+        )}
+
+        {!!currentOrgId && (
+          <LabelsEncart labels={labels} orgId={currentOrgId} />
         )}
 
         {!isLoading && !!currentOrgId && (

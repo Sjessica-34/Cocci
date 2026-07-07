@@ -45,6 +45,9 @@ import type {
   IssueRating,
   IssueRatingInput,
   IssuesResponse,
+  Label,
+  LabelInput,
+  LabelListResponse,
   Member,
   MemberInvite,
   MemberUpdate,
@@ -3567,6 +3570,299 @@ export const useDeleteBioIssue = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteBioIssueMutationOptions(options));
+    }
+
+export const getListLabelsUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/labels`
+}
+
+/**
+ * @summary List labels for an organization
+ */
+export const listLabels = async (orgId: number, options?: RequestInit): Promise<LabelListResponse> => {
+
+  return customFetch<LabelListResponse>(getListLabelsUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLabelsQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/labels`
+    ] as const;
+    }
+
+
+export const getListLabelsQueryOptions = <TData = Awaited<ReturnType<typeof listLabels>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLabels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLabelsQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLabels>>> = ({ signal }) => listLabels(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLabels>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLabelsQueryResult = NonNullable<Awaited<ReturnType<typeof listLabels>>>
+export type ListLabelsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List labels for an organization
+ */
+
+export function useListLabels<TData = Awaited<ReturnType<typeof listLabels>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLabels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLabelsQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateLabelUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/labels`
+}
+
+/**
+ * @summary Create a new label
+ */
+export const createLabel = async (orgId: number,
+    labelInput: LabelInput, options?: RequestInit): Promise<Label> => {
+
+  return customFetch<Label>(getCreateLabelUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(labelInput)
+  }
+);}
+
+
+
+
+export const getCreateLabelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLabel>>, TError,{orgId: number;data: BodyType<LabelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLabel>>, TError,{orgId: number;data: BodyType<LabelInput>}, TContext> => {
+
+const mutationKey = ['createLabel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLabel>>, {orgId: number;data: BodyType<LabelInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createLabel(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLabelMutationResult = NonNullable<Awaited<ReturnType<typeof createLabel>>>
+    export type CreateLabelMutationBody = BodyType<LabelInput>
+    export type CreateLabelMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new label
+ */
+export const useCreateLabel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLabel>>, TError,{orgId: number;data: BodyType<LabelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLabel>>,
+        TError,
+        {orgId: number;data: BodyType<LabelInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLabelMutationOptions(options));
+    }
+
+export const getUpdateLabelUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/labels/${id}`
+}
+
+/**
+ * @summary Update a label
+ */
+export const updateLabel = async (orgId: number,
+    id: number,
+    labelInput: LabelInput, options?: RequestInit): Promise<Label> => {
+
+  return customFetch<Label>(getUpdateLabelUrl(orgId,id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(labelInput)
+  }
+);}
+
+
+
+
+export const getUpdateLabelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLabel>>, TError,{orgId: number;id: number;data: BodyType<LabelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLabel>>, TError,{orgId: number;id: number;data: BodyType<LabelInput>}, TContext> => {
+
+const mutationKey = ['updateLabel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLabel>>, {orgId: number;id: number;data: BodyType<LabelInput>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateLabel(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLabelMutationResult = NonNullable<Awaited<ReturnType<typeof updateLabel>>>
+    export type UpdateLabelMutationBody = BodyType<LabelInput>
+    export type UpdateLabelMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a label
+ */
+export const useUpdateLabel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLabel>>, TError,{orgId: number;id: number;data: BodyType<LabelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateLabel>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<LabelInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateLabelMutationOptions(options));
+    }
+
+export const getDeleteLabelUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/labels/${id}`
+}
+
+/**
+ * @summary Delete a label
+ */
+export const deleteLabel = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteLabelUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteLabelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLabel>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLabel>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteLabel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLabel>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteLabel(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLabelMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLabel>>>
+
+    export type DeleteLabelMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a label
+ */
+export const useDeleteLabel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLabel>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLabel>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteLabelMutationOptions(options));
     }
 
 export const getListSuppliersUrl = (orgId: number,) => {

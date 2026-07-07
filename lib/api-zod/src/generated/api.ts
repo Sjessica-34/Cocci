@@ -1165,6 +1165,101 @@ export const DeleteBioIssueResponse = zod.void()
 
 
 /**
+ * @summary List labels for an organization
+ */
+export const ListLabelsParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListLabelsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "holder": zod.string().nullish(),
+  "year": zod.number().nullish(),
+  "score": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Create a new label
+ */
+export const CreateLabelParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const CreateLabelBody = zod.object({
+  "name": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "holder": zod.string().nullish(),
+  "year": zod.number().nullish(),
+  "score": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()).optional()
+})
+
+export const CreateLabelResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "holder": zod.string().nullish(),
+  "year": zod.number().nullish(),
+  "score": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a label
+ */
+export const UpdateLabelParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const UpdateLabelBody = zod.object({
+  "name": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "holder": zod.string().nullish(),
+  "year": zod.number().nullish(),
+  "score": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()).optional()
+})
+
+export const UpdateLabelResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "holder": zod.string().nullish(),
+  "year": zod.number().nullish(),
+  "score": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a label
+ */
+export const DeleteLabelParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const DeleteLabelResponse = zod.void()
+
+
+/**
  * @summary List all suppliers for an organization
  */
 export const ListSuppliersParams = zod.object({
