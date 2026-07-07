@@ -913,11 +913,12 @@ export const ListBioDependenciesResponse = zod.object({
   "category": zod.string().nullish(),
   "subCategory": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "element": zod.string().nullish(),
-  "description": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(listBioDependenciesResponseItemsItemDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(listBioDependenciesResponseItemsItemMasteryLevelMax).nullish(),
   "comments": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }))
@@ -942,11 +943,12 @@ export const CreateBioDependencyBody = zod.object({
   "category": zod.string().nullish(),
   "subCategory": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "element": zod.string().nullish(),
-  "description": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(createBioDependencyBodyDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(createBioDependencyBodyMasteryLevelMax).nullish(),
-  "comments": zod.string().nullish()
+  "comments": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()).optional(),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish()
 })
 
 export const createBioDependencyResponseDependencyLevelMax = 5;
@@ -962,11 +964,12 @@ export const CreateBioDependencyResponse = zod.object({
   "category": zod.string().nullish(),
   "subCategory": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "element": zod.string().nullish(),
-  "description": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(createBioDependencyResponseDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(createBioDependencyResponseMasteryLevelMax).nullish(),
   "comments": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -991,11 +994,12 @@ export const UpdateBioDependencyBody = zod.object({
   "category": zod.string().nullish(),
   "subCategory": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "element": zod.string().nullish(),
-  "description": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(updateBioDependencyBodyDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(updateBioDependencyBodyMasteryLevelMax).nullish(),
-  "comments": zod.string().nullish()
+  "comments": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()).optional(),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish()
 })
 
 export const updateBioDependencyResponseDependencyLevelMax = 5;
@@ -1011,11 +1015,12 @@ export const UpdateBioDependencyResponse = zod.object({
   "category": zod.string().nullish(),
   "subCategory": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "element": zod.string().nullish(),
-  "description": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(updateBioDependencyResponseDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(updateBioDependencyResponseMasteryLevelMax).nullish(),
   "comments": zod.string().nullish(),
+  "documentIds": zod.array(zod.number()),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1052,7 +1057,9 @@ export const ListBioIssuesResponse = zod.object({
   "importance": zod.number().min(1).max(listBioIssuesResponseItemsItemImportanceMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "dependencyIds": zod.array(zod.number()),
+  "elementIds": zod.array(zod.number()),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }))
@@ -1076,7 +1083,9 @@ export const CreateBioIssueBody = zod.object({
   "importance": zod.number().min(1).max(createBioIssueBodyImportanceMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "dependencyIds": zod.array(zod.number()).optional()
+  "elementIds": zod.array(zod.number()).optional(),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish()
 })
 
 export const createBioIssueResponseImportanceMax = 5;
@@ -1091,7 +1100,9 @@ export const CreateBioIssueResponse = zod.object({
   "importance": zod.number().min(1).max(createBioIssueResponseImportanceMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "dependencyIds": zod.array(zod.number()),
+  "elementIds": zod.array(zod.number()),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1104,12 +1115,17 @@ export const GenerateBioIssuesParams = zod.object({
   "orgId": zod.coerce.number()
 })
 
+export const generateBioIssuesResponseSuggestionsItemImportanceMax = 5;
+
+
+
 export const GenerateBioIssuesResponse = zod.object({
   "suggestions": zod.array(zod.object({
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "dependencyIds": zod.array(zod.number()),
-  "chainPosition": zod.string().nullish()
+  "elementIds": zod.array(zod.number()),
+  "chainPosition": zod.string().nullish(),
+  "importance": zod.number().min(1).max(generateBioIssuesResponseSuggestionsItemImportanceMax).nullish()
 }))
 })
 
@@ -1132,7 +1148,9 @@ export const UpdateBioIssueBody = zod.object({
   "importance": zod.number().min(1).max(updateBioIssueBodyImportanceMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "dependencyIds": zod.array(zod.number()).optional()
+  "elementIds": zod.array(zod.number()).optional(),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish()
 })
 
 export const updateBioIssueResponseImportanceMax = 5;
@@ -1147,7 +1165,9 @@ export const UpdateBioIssueResponse = zod.object({
   "importance": zod.number().min(1).max(updateBioIssueResponseImportanceMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "dependencyIds": zod.array(zod.number()),
+  "elementIds": zod.array(zod.number()),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1162,6 +1182,86 @@ export const DeleteBioIssueParams = zod.object({
 })
 
 export const DeleteBioIssueResponse = zod.void()
+
+
+/**
+ * @summary List connections for an organization
+ */
+export const ListBioConnectionsParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListBioConnectionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "fromElementId": zod.number(),
+  "toElementId": zod.number(),
+  "relationType": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Create a new connection between two elements
+ */
+export const CreateBioConnectionParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const CreateBioConnectionBody = zod.object({
+  "fromElementId": zod.number(),
+  "toElementId": zod.number(),
+  "relationType": zod.string().nullish()
+})
+
+export const CreateBioConnectionResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "fromElementId": zod.number(),
+  "toElementId": zod.number(),
+  "relationType": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a connection
+ */
+export const UpdateBioConnectionParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const UpdateBioConnectionBody = zod.object({
+  "fromElementId": zod.number(),
+  "toElementId": zod.number(),
+  "relationType": zod.string().nullish()
+})
+
+export const UpdateBioConnectionResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "fromElementId": zod.number(),
+  "toElementId": zod.number(),
+  "relationType": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a connection
+ */
+export const DeleteBioConnectionParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const DeleteBioConnectionResponse = zod.void()
 
 
 /**

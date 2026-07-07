@@ -17,10 +17,6 @@ export interface BioDependency {
   subCategory?: string | null;
   /** @nullable */
   chainPosition?: string | null;
-  /** @nullable */
-  element?: string | null;
-  /** @nullable */
-  description?: string | null;
   /**
      * @minimum 1
      * @maximum 5
@@ -35,6 +31,11 @@ export interface BioDependency {
   masteryLevel?: number | null;
   /** @nullable */
   comments?: string | null;
+  documentIds: number[];
+  /** @nullable */
+  x?: number | null;
+  /** @nullable */
+  y?: number | null;
   createdAt: Date;
   updatedAt: Date;
 }

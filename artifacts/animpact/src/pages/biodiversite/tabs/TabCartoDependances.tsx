@@ -1,250 +1,439 @@
-import { useState } from "react";
+import "@xyflow/react/dist/style.css";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ReactFlow, Background, Controls, MiniMap,
+  useNodesState, useEdgesState,
+  Handle, Position, MarkerType,
+  type Node, type Edge, type Connection, type NodeProps, type NodeTypes,
+} from "@xyflow/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListBioDependencies,
-  useCreateBioDependency,
   useUpdateBioDependency,
-  useDeleteBioDependency,
+  useListBioConnections,
+  useCreateBioConnection,
+  useDeleteBioConnection,
   getListBioDependenciesQueryKey,
+  getListBioConnectionsQueryKey,
+  type BioDependency,
+  type BioConnection,
 } from "@workspace/api-client-react";
-import type { BioDependency, BioDependencyInput } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Leaf } from "lucide-react";
-import { CATEGORIES_SUBCATEGORIES, CHAIN_POSITIONS, dependencyColor, masteryColor, chainLabel } from "../data";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowRight, Network, Plus } from "lucide-react";
+import {
+  RELATION_TYPES, getCategoryEmoji, categoryBorderColor, depDotColor, defaultElementPosition,
+} from "../data";
 
-interface Props { orgId: number }
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const EMPTY: BioDependencyInput = {
-  name: null, category: null, subCategory: null, chainPosition: null,
-  element: null, description: null, dependencyLevel: null, masteryLevel: null, comments: null,
+type BioNodeData = {
+  name: string | null;
+  category: string | null;
+  subCategory: string | null;
+  dependencyLevel: number | null;
+  masteryLevel: number | null;
 };
+type BioNode = Node<BioNodeData, "bioElement">;
 
-function RatingRow({ label, desc, value, onChange }: { label: string; desc: string; value: number | null | undefined; onChange: (v: number | null) => void }) {
+// ─── Custom node (MUST be outside component) ──────────────────────────────────
+
+const BioElementNode = memo(function BioElementNode({ data }: NodeProps<BioNode>) {
   return (
-    <div className="space-y-1">
-      <Label className="text-sm font-medium">{label}</Label>
-      <p className="text-xs text-muted-foreground">{desc}</p>
-      <div className="flex gap-1 mt-1">
-        {[1, 2, 3, 4, 5].map((n) => {
-          const colors = ["bg-green-200", "bg-lime-200", "bg-yellow-200", "bg-orange-300", "bg-red-400"];
-          const active = value === n;
-          return (
-            <button key={n} type="button" onClick={() => onChange(active ? null : n)}
-              className={`w-9 h-9 rounded-md text-sm font-semibold border transition-all
-                ${active ? `${colors[n - 1]} border-transparent ring-2 ring-offset-1 ring-slate-400 text-slate-800` : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
-              {n}
-            </button>
-          );
-        })}
-        {value != null && <button type="button" onClick={() => onChange(null)} className="text-xs text-muted-foreground hover:text-destructive px-1">✕</button>}
+    <div className="relative">
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: "#94a3b8", width: 10, height: 10, border: "2px solid white" }}
+      />
+      <div
+        className="bg-white rounded-xl shadow-md border-2 p-3"
+        style={{ minWidth: 160, maxWidth: 200, borderColor: categoryBorderColor(data.category) }}
+      >
+        <div className="flex items-center gap-1.5 mb-1">
+          <span style={{ fontSize: 15, lineHeight: 1 }}>{getCategoryEmoji(data.category)}</span>
+          <p className="text-xs font-bold truncate flex-1 leading-tight">
+            {data.name || "Sans nom"}
+          </p>
+        </div>
+        {data.category && (
+          <p className="text-[10px] text-slate-500 truncate mb-2">
+            {data.category}{data.subCategory ? ` › ${data.subCategory}` : ""}
+          </p>
+        )}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] text-slate-400" style={{ width: 28 }}>Dép.</span>
+            <div className="flex gap-0.5">
+              {[1, 2, 3, 4, 5].map(n => (
+                <div
+                  key={n}
+                  className={`rounded-full ${depDotColor(data.dependencyLevel, n)}`}
+                  style={{ width: 8, height: 8 }}
+                />
+              ))}
+            </div>
+          </div>
+          {data.masteryLevel != null && (
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] text-slate-400" style={{ width: 28 }}>Maît.</span>
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <div
+                    key={n}
+                    className={`rounded-full ${n <= data.masteryLevel! ? "bg-blue-400" : "bg-slate-200"}`}
+                    style={{ width: 8, height: 8 }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ background: "#94a3b8", width: 10, height: 10, border: "2px solid white" }}
+      />
     </div>
   );
+});
+
+const nodeTypes: NodeTypes = { bioElement: BioElementNode };
+
+// ─── Edge helper ──────────────────────────────────────────────────────────────
+
+function connToEdge(conn: BioConnection): Edge {
+  return {
+    id: `e${conn.id}`,
+    source: String(conn.fromElementId),
+    target: String(conn.toElementId),
+    type: "smoothstep",
+    label: conn.relationType ?? undefined,
+    labelStyle: { fontSize: 10, fill: "#475569", fontWeight: 600 },
+    labelBgStyle: { fill: "#f8fafc", stroke: "#e2e8f0", strokeWidth: 1 },
+    labelBgPadding: [6, 3] as [number, number],
+    labelBgBorderRadius: 4,
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
+    style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+    data: { connectionId: conn.id },
+  };
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+interface Props { orgId: number; }
 
 export function TabCartoDependances({ orgId }: Props) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useListBioDependencies(orgId);
-  const createMut  = useCreateBioDependency();
-  const updateMut  = useUpdateBioDependency();
-  const deleteMut  = useDeleteBioDependency();
+  const [nodes, setNodes, onNodesChange] = useNodesState<BioNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  const [open, setOpen]         = useState(false);
-  const [editId, setEditId]     = useState<number | null>(null);
-  const [form, setForm]         = useState<BioDependencyInput>(EMPTY);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [saving, setSaving]     = useState(false);
+  const [connectDialog, setConnectDialog] = useState<{
+    source: string; target: string; manual: boolean;
+  } | null>(null);
+  const [manualFrom, setManualFrom] = useState("");
+  const [manualTo, setManualTo] = useState("");
+  const [relationType, setRelationType] = useState("");
+  const [customRelationType, setCustomRelationType] = useState("");
+  const [deleteConnId, setDeleteConnId] = useState<number | null>(null);
 
-  const deps = data?.items ?? [];
+  const nodePositions = useRef(new Map<number, { x: number; y: number }>());
 
-  const subCats = form.category ? (CATEGORIES_SUBCATEGORIES[form.category] ?? []) : [];
+  const { data: depsData, isLoading } = useListBioDependencies(orgId);
+  const { data: connData } = useListBioConnections(orgId);
+  const elements  = depsData?.items ?? [];
+  const connections = connData?.items ?? [];
 
-  function openCreate() { setEditId(null); setForm(EMPTY); setOpen(true); }
-  function openEdit(d: BioDependency) {
-    setEditId(d.id);
-    setForm({ name: d.name, category: d.category, subCategory: d.subCategory, chainPosition: d.chainPosition, element: d.element, description: d.description, dependencyLevel: d.dependencyLevel, masteryLevel: d.masteryLevel, comments: d.comments });
-    setOpen(true);
-  }
-  function set<K extends keyof BioDependencyInput>(k: K, v: BioDependencyInput[K]) {
-    setForm((prev) => {
-      const next = { ...prev, [k]: v };
-      if (k === "category") next.subCategory = null;
-      return next;
+  const updatePos  = useUpdateBioDependency();
+  const createConn = useCreateBioConnection();
+  const deleteConn = useDeleteBioConnection();
+
+  // Sync elements → RF nodes (preserving dragged positions)
+  useEffect(() => {
+    if (!depsData) return;
+    const zoneCounts: Record<string, number> = {};
+    const newNodes: BioNode[] = elements.map(el => {
+      const zone = el.chainPosition ?? "amont";
+      const idx  = zoneCounts[zone] ?? 0;
+      zoneCounts[zone] = idx + 1;
+      const def  = defaultElementPosition(zone, idx);
+      return {
+        id:       String(el.id),
+        type:     "bioElement" as const,
+        position: nodePositions.current.get(el.id) ?? { x: el.x ?? def.x, y: el.y ?? def.y },
+        data: {
+          name:            el.name            ?? null,
+          category:        el.category        ?? null,
+          subCategory:     el.subCategory     ?? null,
+          dependencyLevel: el.dependencyLevel ?? null,
+          masteryLevel:    el.masteryLevel    ?? null,
+        },
+      };
     });
+    setNodes(newNodes);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depsData]);
+
+  // Sync connections → RF edges
+  useEffect(() => {
+    if (!connData) return;
+    setEdges(connections.map(connToEdge));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connData]);
+
+  // Fire-and-forget position save (no invalidation → preserves positions on refetch)
+  const onNodeDragStop = useCallback(
+    (_: MouseEvent | TouchEvent, node: Node) => {
+      nodePositions.current.set(Number(node.id), { x: node.position.x, y: node.position.y });
+      updatePos.mutate({ orgId, id: Number(node.id), data: { x: node.position.x, y: node.position.y } });
+    },
+    [orgId, updatePos],
+  );
+
+  // Native drag-to-connect → open relation type dialog
+  const onConnect = useCallback((params: Connection) => {
+    if (!params.source || !params.target) return;
+    setRelationType("");
+    setCustomRelationType("");
+    setConnectDialog({ source: params.source, target: params.target, manual: false });
+  }, []);
+
+  // Edge click → delete confirmation
+  const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    if (typeof edge.data?.connectionId === "number") {
+      setDeleteConnId(edge.data.connectionId as number);
+    }
+  }, []);
+
+  async function handleConnect() {
+    const source = connectDialog?.manual ? manualFrom : (connectDialog?.source ?? "");
+    const target = connectDialog?.manual ? manualTo   : (connectDialog?.target ?? "");
+    if (!source || !target) return;
+    const type = relationType === "Autre" ? customRelationType : relationType;
+    const conn = await createConn.mutateAsync({
+      orgId,
+      data: { fromElementId: Number(source), toElementId: Number(target), relationType: type || null },
+    });
+    setEdges(prev => [...prev, connToEdge(conn)]);
+    setConnectDialog(null);
+    setRelationType("");
+    setCustomRelationType("");
+    setManualFrom("");
+    setManualTo("");
   }
 
-  async function submit() {
-    setSaving(true);
-    try {
-      if (editId !== null) await updateMut.mutateAsync({ orgId, id: editId, data: form });
-      else await createMut.mutateAsync({ orgId, data: form });
-      await queryClient.invalidateQueries({ queryKey: getListBioDependenciesQueryKey(orgId) });
-      setOpen(false);
-    } finally { setSaving(false); }
+  async function handleDeleteConnection() {
+    if (deleteConnId === null) return;
+    await deleteConn.mutateAsync({ orgId, id: deleteConnId });
+    const cid = deleteConnId;
+    setEdges(prev => prev.filter(e => e.data?.connectionId !== cid));
+    queryClient.invalidateQueries({ queryKey: getListBioConnectionsQueryKey(orgId) });
+    setDeleteConnId(null);
   }
 
-  async function handleDelete() {
-    if (deleteId === null) return;
-    await deleteMut.mutateAsync({ orgId, id: deleteId });
-    await queryClient.invalidateQueries({ queryKey: getListBioDependenciesQueryKey(orgId) });
-    setDeleteId(null);
+  function openManualConnect() {
+    setManualFrom("");
+    setManualTo("");
+    setRelationType("");
+    setCustomRelationType("");
+    setConnectDialog({ source: "", target: "", manual: true });
   }
 
-  const byPosition: Record<string, BioDependency[]> = { amont: [], "in-situ": [], aval: [] };
-  for (const d of deps) { byPosition[d.chainPosition ?? "amont"] = [...(byPosition[d.chainPosition ?? "amont"] ?? []), d]; }
+  const getElName = (id: string) =>
+    elements.find(e => String(e.id) === id)?.name ?? `Élément ${id}`;
+
+  const elementCount   = elements.length;
+  const connectionCount = connections.length;
+
+  if (!isLoading && elementCount === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
+        <Network className="h-10 w-10 opacity-30" />
+        <p className="text-sm max-w-xs">
+          Aucun élément à cartographier. Commencez par en ajouter dans l'onglet "Saisie".
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
+      {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{deps.length} dépendance{deps.length !== 1 ? "s" : ""} enregistrée{deps.length !== 1 ? "s" : ""}</p>
-        <Button onClick={openCreate} size="sm"><Plus className="h-4 w-4 mr-2" />Ajouter une dépendance</Button>
+        <p className="text-sm text-muted-foreground">
+          {elementCount} élément{elementCount !== 1 ? "s" : ""}&ensp;·&ensp;
+          {connectionCount} connexion{connectionCount !== 1 ? "s" : ""}
+          {connectionCount > 0 && <span className="text-xs"> — cliquez sur une flèche pour la supprimer</span>}
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={openManualConnect}
+          disabled={elementCount < 2}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Créer une connexion
+        </Button>
       </div>
 
+      {/* Canvas */}
       {isLoading ? (
-        <div className="text-sm text-muted-foreground py-8 text-center">Chargement…</div>
-      ) : deps.length === 0 ? (
-        <div className="border-2 border-dashed rounded-lg py-16 flex flex-col items-center gap-3 text-muted-foreground">
-          <Leaf className="h-10 w-10 opacity-30" />
-          <p className="font-medium">Aucune dépendance enregistrée</p>
-          <p className="text-sm">Commencez par identifier vos premières dépendances à la nature.</p>
-          <Button onClick={openCreate} variant="outline" size="sm"><Plus className="h-4 w-4 mr-2" />Ajouter une dépendance</Button>
-        </div>
+        <Skeleton className="h-[612px] w-full rounded-xl" />
       ) : (
-        <>
-          {/* SVG-style 3-column cartography */}
-          <div>
-            <h3 className="text-sm font-semibold mb-3 text-slate-700">Cartographie de la chaîne de valeur</h3>
-            <div className="grid grid-cols-3 gap-3 min-h-[200px]">
-              {(["amont", "in-situ", "aval"] as const).map((pos) => (
-                <div key={pos} className="flex flex-col">
-                  <div className={`text-center text-xs font-bold py-2 px-3 rounded-t-md uppercase tracking-wide
-                    ${pos === "amont" ? "bg-blue-100 text-blue-800" : pos === "in-situ" ? "bg-emerald-100 text-emerald-800" : "bg-purple-100 text-purple-800"}`}>
-                    {chainLabel(pos)}
-                  </div>
-                  <div className={`flex-1 border-x border-b rounded-b-md p-2 space-y-2 min-h-[120px]
-                    ${pos === "amont" ? "border-blue-200 bg-blue-50/40" : pos === "in-situ" ? "border-emerald-200 bg-emerald-50/40" : "border-purple-200 bg-purple-50/40"}`}>
-                    {(byPosition[pos] ?? []).map((d) => (
-                      <div key={d.id}
-                        className={`border rounded-md px-2 py-1.5 text-xs cursor-pointer hover:shadow-sm transition-shadow ${dependencyColor(d.dependencyLevel)}`}
-                        onClick={() => openEdit(d)}>
-                        <p className="font-semibold truncate">{d.name ?? <span className="italic opacity-60">Sans nom</span>}</p>
-                        <p className="opacity-70 truncate">{d.category}{d.subCategory ? ` › ${d.subCategory}` : ""}</p>
-                        {d.dependencyLevel && <p className="mt-0.5">Dép. {d.dependencyLevel}/5{d.masteryLevel ? <span className={`ml-1 ${masteryColor(d.masteryLevel)}`}>· Maît. {d.masteryLevel}/5</span> : ""}</p>}
-                      </div>
-                    ))}
-                    {(byPosition[pos] ?? []).length === 0 && (
-                      <div className="flex items-center justify-center h-full py-4">
-                        <p className="text-xs opacity-40 italic">Aucune dépendance</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+        <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 612 }}>
+          {/* Zone headers */}
+          <div className="grid grid-cols-3 border-b shrink-0">
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">
+              Amont
+            </div>
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">
+              In situ
+            </div>
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">
+              Aval
             </div>
           </div>
-
-          {/* Full list */}
-          <div>
-            <h3 className="text-sm font-semibold mb-2 text-slate-700">Liste complète</h3>
-            <div className="space-y-2">
-              {deps.map((d) => (
-                <div key={d.id} className="border rounded-lg px-4 py-3 flex items-center gap-4 hover:bg-slate-50 cursor-pointer" onClick={() => openEdit(d)}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{d.name ?? <span className="text-muted-foreground italic">Sans nom</span>}</p>
-                    <p className="text-xs text-muted-foreground">{d.category}{d.subCategory ? ` › ${d.subCategory}` : ""} · {chainLabel(d.chainPosition)}</p>
-                  </div>
-                  {d.dependencyLevel && <span className={`text-xs px-2 py-0.5 rounded-full border ${dependencyColor(d.dependencyLevel)}`}>Dép. {d.dependencyLevel}/5</span>}
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteId(d.id); }} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="h-4 w-4" /></button>
-                </div>
-              ))}
-            </div>
+          {/* ReactFlow */}
+          <div style={{ flex: 1 }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeDragStop={onNodeDragStop}
+              onConnect={onConnect}
+              onEdgeClick={onEdgeClick}
+              nodeTypes={nodeTypes}
+              fitView
+              fitViewOptions={{ padding: 0.15 }}
+              minZoom={0.25}
+              maxZoom={2.5}
+              style={{
+                background: "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
+              }}
+            >
+              <Background gap={20} size={1} color="#cbd5e1" />
+              <Controls position="bottom-left" />
+              <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
+            </ReactFlow>
           </div>
-        </>
+        </div>
       )}
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader className="mb-6">
-            <SheetTitle className="flex items-center gap-2">
-              <Pencil className="h-4 w-4" />
-              {editId !== null ? "Modifier la dépendance" : "Nouvelle dépendance"}
-            </SheetTitle>
-            <p className="text-sm text-muted-foreground">Tous les champs sont facultatifs.</p>
-          </SheetHeader>
-
-          <div className="space-y-5 pb-6">
-            <div className="space-y-1">
-              <Label className="text-sm">Nom</Label>
-              <Input placeholder="Ex : Disponibilité en eau douce" value={form.name ?? ""} onChange={(e) => set("name", e.target.value || null)} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-sm">Catégorie</Label>
-                <Select value={form.category ?? ""} onValueChange={(v) => set("category", v || null)}>
-                  <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
-                  <SelectContent>{Object.keys(CATEGORIES_SUBCATEGORIES).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                </Select>
+      {/* Connect dialog */}
+      <Dialog open={connectDialog !== null} onOpenChange={open => !open && setConnectDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Créer une connexion</DialogTitle>
+            <DialogDescription>
+              Définissez la relation entre deux éléments de la cartographie.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {connectDialog?.manual ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Origine</Label>
+                  <Select value={manualFrom} onValueChange={setManualFrom}>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner un élément…" /></SelectTrigger>
+                    <SelectContent>
+                      {elements
+                        .filter(e => String(e.id) !== manualTo)
+                        .map(e => (
+                          <SelectItem key={e.id} value={String(e.id)}>
+                            {e.name ?? `Élément ${e.id}`}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Destination</Label>
+                  <Select value={manualTo} onValueChange={setManualTo}>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner un élément…" /></SelectTrigger>
+                    <SelectContent>
+                      {elements
+                        .filter(e => String(e.id) !== manualFrom)
+                        .map(e => (
+                          <SelectItem key={e.id} value={String(e.id)}>
+                            {e.name ?? `Élément ${e.id}`}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-sm p-3 bg-slate-50 rounded-lg border">
+                <span className="font-semibold">{getElName(connectDialog?.source ?? "")}</span>
+                <ArrowRight className="h-4 w-4 text-slate-400 shrink-0" />
+                <span className="font-semibold">{getElName(connectDialog?.target ?? "")}</span>
               </div>
-              <div className="space-y-1">
-                <Label className="text-sm">Sous-catégorie</Label>
-                <Select value={form.subCategory ?? ""} onValueChange={(v) => set("subCategory", v || null)} disabled={!form.category}>
-                  <SelectTrigger><SelectValue placeholder={form.category ? "Choisir…" : "Choisir une catégorie d'abord"} /></SelectTrigger>
-                  <SelectContent>{subCats.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-sm">Position dans la chaîne de valeur</Label>
-              <Select value={form.chainPosition ?? ""} onValueChange={(v) => set("chainPosition", v || null)}>
-                <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
-                <SelectContent>{CHAIN_POSITIONS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+            )}
+            <div className="space-y-1.5">
+              <Label>Type de relation <span className="text-muted-foreground font-normal">(optionnel)</span></Label>
+              <Select value={relationType} onValueChange={setRelationType}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                <SelectContent>
+                  {RELATION_TYPES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-sm">Élément concerné</Label>
-              <p className="text-xs text-muted-foreground">Ex : fournisseurs, production, transport, locaux…</p>
-              <Input placeholder="Ex : Fournisseurs de matières premières" value={form.element ?? ""} onChange={(e) => set("element", e.target.value || null)} />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-sm">Description</Label>
-              <Textarea placeholder="Décrivez cette dépendance et son importance pour votre activité…" value={form.description ?? ""} onChange={(e) => set("description", e.target.value || null)} rows={3} />
-            </div>
-
-            <RatingRow label="Niveau de dépendance" desc="Dans quelle mesure votre activité dépend-elle de ce service naturel ? (1 = faible, 5 = critique)" value={form.dependencyLevel} onChange={(v) => set("dependencyLevel", v)} />
-            <RatingRow label="Niveau de maîtrise" desc="Dans quelle mesure maîtrisez-vous ou pouvez-vous agir sur cette dépendance ? (1 = aucune maîtrise, 5 = forte maîtrise)" value={form.masteryLevel} onChange={(v) => set("masteryLevel", v)} />
-
-            <div className="space-y-1">
-              <Label className="text-sm">Commentaires</Label>
-              <Textarea placeholder="Notes internes…" value={form.comments ?? ""} onChange={(e) => set("comments", e.target.value || null)} rows={2} />
+              {relationType === "Autre" && (
+                <Input
+                  className="mt-1.5"
+                  placeholder="Préciser le type de relation…"
+                  value={customRelationType}
+                  onChange={e => setCustomRelationType(e.target.value)}
+                />
+              )}
             </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConnectDialog(null)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleConnect}
+              disabled={
+                createConn.isPending ||
+                (connectDialog?.manual === true && (!manualFrom || !manualTo))
+              }
+            >
+              {createConn.isPending ? "Création…" : "Créer la connexion"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <SheetFooter className="sticky bottom-0 bg-white border-t pt-4 pb-2 gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-            <Button onClick={submit} disabled={saving}>{saving ? "Enregistrement…" : editId !== null ? "Enregistrer" : "Créer"}</Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-
-      <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
+      {/* Delete connection dialog */}
+      <AlertDialog open={deleteConnId !== null} onOpenChange={open => !open && setDeleteConnId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette dépendance ?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer cette connexion ?</AlertDialogTitle>
             <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+            <AlertDialogAction
+              onClick={handleDeleteConnection}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteConn.isPending}
+            >
+              {deleteConn.isPending ? "Suppression…" : "Supprimer"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

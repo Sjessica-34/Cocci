@@ -10,7 +10,13 @@ export interface BioGenerateSuggestion {
   name: string;
   /** @nullable */
   description?: string | null;
-  dependencyIds: number[];
+  elementIds: number[];
   /** @nullable */
   chainPosition?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importance?: number | null;
 }

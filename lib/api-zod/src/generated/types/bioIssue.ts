@@ -23,7 +23,11 @@ export interface BioIssue {
   comments?: string | null;
   /** @nullable */
   chainPosition?: string | null;
-  dependencyIds: number[];
+  elementIds: number[];
+  /** @nullable */
+  x?: number | null;
+  /** @nullable */
+  y?: number | null;
   createdAt: Date;
   updatedAt: Date;
 }

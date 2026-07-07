@@ -24,6 +24,9 @@ import type {
   AdminOrganization,
   AdminStats,
   AdminUser,
+  BioConnection,
+  BioConnectionInput,
+  BioConnectionListResponse,
   BioDependency,
   BioDependencyInput,
   BioDependencyListResponse,
@@ -3570,6 +3573,299 @@ export const useDeleteBioIssue = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteBioIssueMutationOptions(options));
+    }
+
+export const getListBioConnectionsUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-connections`
+}
+
+/**
+ * @summary List connections for an organization
+ */
+export const listBioConnections = async (orgId: number, options?: RequestInit): Promise<BioConnectionListResponse> => {
+
+  return customFetch<BioConnectionListResponse>(getListBioConnectionsUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBioConnectionsQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/bio-connections`
+    ] as const;
+    }
+
+
+export const getListBioConnectionsQueryOptions = <TData = Awaited<ReturnType<typeof listBioConnections>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBioConnections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBioConnectionsQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBioConnections>>> = ({ signal }) => listBioConnections(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBioConnections>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBioConnectionsQueryResult = NonNullable<Awaited<ReturnType<typeof listBioConnections>>>
+export type ListBioConnectionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List connections for an organization
+ */
+
+export function useListBioConnections<TData = Awaited<ReturnType<typeof listBioConnections>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBioConnections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBioConnectionsQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBioConnectionUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-connections`
+}
+
+/**
+ * @summary Create a new connection between two elements
+ */
+export const createBioConnection = async (orgId: number,
+    bioConnectionInput: BioConnectionInput, options?: RequestInit): Promise<BioConnection> => {
+
+  return customFetch<BioConnection>(getCreateBioConnectionUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bioConnectionInput)
+  }
+);}
+
+
+
+
+export const getCreateBioConnectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBioConnection>>, TError,{orgId: number;data: BodyType<BioConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBioConnection>>, TError,{orgId: number;data: BodyType<BioConnectionInput>}, TContext> => {
+
+const mutationKey = ['createBioConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBioConnection>>, {orgId: number;data: BodyType<BioConnectionInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createBioConnection(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBioConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof createBioConnection>>>
+    export type CreateBioConnectionMutationBody = BodyType<BioConnectionInput>
+    export type CreateBioConnectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new connection between two elements
+ */
+export const useCreateBioConnection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBioConnection>>, TError,{orgId: number;data: BodyType<BioConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBioConnection>>,
+        TError,
+        {orgId: number;data: BodyType<BioConnectionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBioConnectionMutationOptions(options));
+    }
+
+export const getUpdateBioConnectionUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-connections/${id}`
+}
+
+/**
+ * @summary Update a connection
+ */
+export const updateBioConnection = async (orgId: number,
+    id: number,
+    bioConnectionInput: BioConnectionInput, options?: RequestInit): Promise<BioConnection> => {
+
+  return customFetch<BioConnection>(getUpdateBioConnectionUrl(orgId,id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bioConnectionInput)
+  }
+);}
+
+
+
+
+export const getUpdateBioConnectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBioConnection>>, TError,{orgId: number;id: number;data: BodyType<BioConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBioConnection>>, TError,{orgId: number;id: number;data: BodyType<BioConnectionInput>}, TContext> => {
+
+const mutationKey = ['updateBioConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBioConnection>>, {orgId: number;id: number;data: BodyType<BioConnectionInput>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateBioConnection(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBioConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof updateBioConnection>>>
+    export type UpdateBioConnectionMutationBody = BodyType<BioConnectionInput>
+    export type UpdateBioConnectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a connection
+ */
+export const useUpdateBioConnection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBioConnection>>, TError,{orgId: number;id: number;data: BodyType<BioConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBioConnection>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<BioConnectionInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateBioConnectionMutationOptions(options));
+    }
+
+export const getDeleteBioConnectionUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-connections/${id}`
+}
+
+/**
+ * @summary Delete a connection
+ */
+export const deleteBioConnection = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteBioConnectionUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteBioConnectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBioConnection>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBioConnection>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteBioConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBioConnection>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteBioConnection(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBioConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBioConnection>>>
+
+    export type DeleteBioConnectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a connection
+ */
+export const useDeleteBioConnection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBioConnection>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBioConnection>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteBioConnectionMutationOptions(options));
     }
 
 export const getListLabelsUrl = (orgId: number,) => {

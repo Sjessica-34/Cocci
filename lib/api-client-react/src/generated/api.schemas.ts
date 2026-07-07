@@ -575,10 +575,6 @@ export interface BioDependency {
   subCategory?: string | null;
   /** @nullable */
   chainPosition?: string | null;
-  /** @nullable */
-  element?: string | null;
-  /** @nullable */
-  description?: string | null;
   /**
      * @minimum 1
      * @maximum 5
@@ -593,6 +589,11 @@ export interface BioDependency {
   masteryLevel?: number | null;
   /** @nullable */
   comments?: string | null;
+  documentIds: number[];
+  /** @nullable */
+  x?: number | null;
+  /** @nullable */
+  y?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -606,10 +607,6 @@ export interface BioDependencyInput {
   subCategory?: string | null;
   /** @nullable */
   chainPosition?: string | null;
-  /** @nullable */
-  element?: string | null;
-  /** @nullable */
-  description?: string | null;
   /**
      * @minimum 1
      * @maximum 5
@@ -624,10 +621,37 @@ export interface BioDependencyInput {
   masteryLevel?: number | null;
   /** @nullable */
   comments?: string | null;
+  documentIds?: number[];
+  /** @nullable */
+  x?: number | null;
+  /** @nullable */
+  y?: number | null;
 }
 
 export interface BioDependencyListResponse {
   items: BioDependency[];
+}
+
+export interface BioConnection {
+  id: number;
+  organizationId: number;
+  fromElementId: number;
+  toElementId: number;
+  /** @nullable */
+  relationType?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BioConnectionInput {
+  fromElementId: number;
+  toElementId: number;
+  /** @nullable */
+  relationType?: string | null;
+}
+
+export interface BioConnectionListResponse {
+  items: BioConnection[];
 }
 
 export interface BioIssue {
@@ -647,7 +671,11 @@ export interface BioIssue {
   comments?: string | null;
   /** @nullable */
   chainPosition?: string | null;
-  dependencyIds: number[];
+  elementIds: number[];
+  /** @nullable */
+  x?: number | null;
+  /** @nullable */
+  y?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -667,7 +695,11 @@ export interface BioIssueInput {
   comments?: string | null;
   /** @nullable */
   chainPosition?: string | null;
-  dependencyIds?: number[];
+  elementIds?: number[];
+  /** @nullable */
+  x?: number | null;
+  /** @nullable */
+  y?: number | null;
 }
 
 export interface BioIssueListResponse {
@@ -678,9 +710,15 @@ export interface BioGenerateSuggestion {
   name: string;
   /** @nullable */
   description?: string | null;
-  dependencyIds: number[];
+  elementIds: number[];
   /** @nullable */
   chainPosition?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importance?: number | null;
 }
 
 export interface BioGenerateResponse {

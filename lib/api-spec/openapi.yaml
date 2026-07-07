@@ -1154,6 +1154,82 @@ paths:
         "403":
           description: Forbidden
 
+  /organizations/{orgId}/bio-connections:
+    get:
+      operationId: listBioConnections
+      tags: [biodiversite]
+      summary: List connections for an organization
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: List of connections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioConnectionListResponse"
+        "403":
+          description: Forbidden
+    post:
+      operationId: createBioConnection
+      tags: [biodiversite]
+      summary: Create a new connection between two elements
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BioConnectionInput"
+      responses:
+        "200":
+          description: Created connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioConnection"
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/bio-connections/{id}:
+    put:
+      operationId: updateBioConnection
+      tags: [biodiversite]
+      summary: Update a connection
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BioConnectionInput"
+      responses:
+        "200":
+          description: Updated connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioConnection"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBioConnection
+      tags: [biodiversite]
+      summary: Delete a connection
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+
   # ─── LABELS ──────────────────────────────────────────────────────────────────
   /organizations/{orgId}/labels:
     get:
@@ -2181,7 +2257,7 @@ components:
     # ─── DASHBOARD SUMMARY ─────────────────────────────────────────────────────
     BioDependency:
       type: object
-      required: [id, organizationId, createdAt, updatedAt]
+      required: [id, organizationId, documentIds, createdAt, updatedAt]
       properties:
         id: { type: integer }
         organizationId: { type: integer }
@@ -2189,11 +2265,14 @@ components:
         category: { type: ["string", "null"] }
         subCategory: { type: ["string", "null"] }
         chainPosition: { type: ["string", "null"] }
-        element: { type: ["string", "null"] }
-        description: { type: ["string", "null"] }
         dependencyLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         masteryLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
+        documentIds:
+          type: array
+          items: { type: integer }
+        x: { type: ["number", "null"] }
+        y: { type: ["number", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -2204,11 +2283,14 @@ components:
         category: { type: ["string", "null"] }
         subCategory: { type: ["string", "null"] }
         chainPosition: { type: ["string", "null"] }
-        element: { type: ["string", "null"] }
-        description: { type: ["string", "null"] }
         dependencyLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         masteryLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
+        documentIds:
+          type: array
+          items: { type: integer }
+        x: { type: ["number", "null"] }
+        y: { type: ["number", "null"] }
 
     BioDependencyListResponse:
       type: object
@@ -2219,9 +2301,38 @@ components:
           items:
             $ref: "#/components/schemas/BioDependency"
 
+    BioConnection:
+      type: object
+      required: [id, organizationId, fromElementId, toElementId, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        fromElementId: { type: integer }
+        toElementId: { type: integer }
+        relationType: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    BioConnectionInput:
+      type: object
+      required: [fromElementId, toElementId]
+      properties:
+        fromElementId: { type: integer }
+        toElementId: { type: integer }
+        relationType: { type: ["string", "null"] }
+
+    BioConnectionListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BioConnection"
+
     BioIssue:
       type: object
-      required: [id, organizationId, dependencyIds, createdAt, updatedAt]
+      required: [id, organizationId, elementIds, createdAt, updatedAt]
       properties:
         id: { type: integer }
         organizationId: { type: integer }
@@ -2230,10 +2341,11 @@ components:
         importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
         chainPosition: { type: ["string", "null"] }
-        dependencyIds:
+        elementIds:
           type: array
-          items:
-            type: integer
+          items: { type: integer }
+        x: { type: ["number", "null"] }
+        y: { type: ["number", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -2245,10 +2357,11 @@ components:
         importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
         chainPosition: { type: ["string", "null"] }
-        dependencyIds:
+        elementIds:
           type: array
-          items:
-            type: integer
+          items: { type: integer }
+        x: { type: ["number", "null"] }
+        y: { type: ["number", "null"] }
 
     BioIssueListResponse:
       type: object
@@ -2261,15 +2374,15 @@ components:
 
     BioGenerateSuggestion:
       type: object
-      required: [name, dependencyIds]
+      required: [name, elementIds]
       properties:
         name: { type: string }
         description: { type: ["string", "null"] }
-        dependencyIds:
+        elementIds:
           type: array
-          items:
-            type: integer
+          items: { type: integer }
         chainPosition: { type: ["string", "null"] }
+        importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
 
     BioGenerateResponse:
       type: object
