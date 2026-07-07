@@ -23,10 +23,10 @@ import { AdminUsers } from "@/pages/admin/users";
 import { Resources } from "@/pages/resources";
 import {
   Biodiversite,
-  AchatsResponsables,
   DemarcheRse,
   RapportRse,
 } from "@/pages/stubs";
+import { AchatsResponsables } from "@/pages/achats-responsables";
 import { ImpactScore } from "@/pages/impact-score";
 import { NumeriqueResponsable } from "@/pages/numerique-responsable";
 import { BilanCarbone } from "@/pages/bilan-carbone";

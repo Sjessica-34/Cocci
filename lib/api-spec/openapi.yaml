@@ -984,6 +984,139 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── ACHATS & FOURNISSEURS ───────────────────────────────────────────────────
+  /organizations/{orgId}/suppliers:
+    get:
+      operationId: listSuppliers
+      tags: [suppliers]
+      summary: List all suppliers for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of suppliers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupplierListResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    post:
+      operationId: createSupplier
+      tags: [suppliers]
+      summary: Create a new supplier
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierInput"
+      responses:
+        "200":
+          description: Created supplier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/suppliers/{id}:
+    get:
+      operationId: getSupplier
+      tags: [suppliers]
+      summary: Get a single supplier
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Supplier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    put:
+      operationId: updateSupplier
+      tags: [suppliers]
+      summary: Update a supplier
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierInput"
+      responses:
+        "200":
+          description: Updated supplier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteSupplier
+      tags: [suppliers]
+      summary: Delete a supplier
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
   # ─── IMPACT SCORE ───────────────────────────────────────────────────────────
   /organizations/{orgId}/impact-score-result:
     get:
@@ -1799,6 +1932,140 @@ components:
             $ref: "#/components/schemas/NrResponseItem"
 
     # ─── DASHBOARD SUMMARY ─────────────────────────────────────────────────────
+    Supplier:
+      type: object
+      required: [id, organizationId, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        name:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        contactName:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        postalCode:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        region:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        siret:
+          type: ["string", "null"]
+        relationshipStartDate:
+          type: ["string", "null"]
+          format: date
+        annualAmount:
+          type: ["number", "null"]
+        comments:
+          type: ["string", "null"]
+        criticality:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        riskLevel:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        dependency:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        alternatives:
+          type: ["string", "null"]
+        certifications:
+          type: ["string", "null"]
+        rsePolicy:
+          type: ["string", "null"]
+        evalComments:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SupplierInput:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        contactName:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        postalCode:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        region:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        siret:
+          type: ["string", "null"]
+        relationshipStartDate:
+          type: ["string", "null"]
+          format: date
+        annualAmount:
+          type: ["number", "null"]
+        comments:
+          type: ["string", "null"]
+        criticality:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        riskLevel:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        dependency:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        alternatives:
+          type: ["string", "null"]
+        certifications:
+          type: ["string", "null"]
+        rsePolicy:
+          type: ["string", "null"]
+        evalComments:
+          type: ["string", "null"]
+
+    SupplierListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Supplier"
+
     ImpactScoreResult:
       type: object
       required: [id, organizationId, score, dateRealisation, updatedAt]

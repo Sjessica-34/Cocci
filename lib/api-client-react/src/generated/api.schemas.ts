@@ -564,6 +564,136 @@ export interface NrDataInput {
   responses?: NrResponseItem[];
 }
 
+export interface Supplier {
+  id: number;
+  organizationId: number;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  postalCode?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  region?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  siret?: string | null;
+  /** @nullable */
+  relationshipStartDate?: string | null;
+  /** @nullable */
+  annualAmount?: number | null;
+  /** @nullable */
+  comments?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  criticality?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  riskLevel?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  dependency?: number | null;
+  /** @nullable */
+  alternatives?: string | null;
+  /** @nullable */
+  certifications?: string | null;
+  /** @nullable */
+  rsePolicy?: string | null;
+  /** @nullable */
+  evalComments?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupplierInput {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  postalCode?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  region?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  siret?: string | null;
+  /** @nullable */
+  relationshipStartDate?: string | null;
+  /** @nullable */
+  annualAmount?: number | null;
+  /** @nullable */
+  comments?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  criticality?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  riskLevel?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  dependency?: number | null;
+  /** @nullable */
+  alternatives?: string | null;
+  /** @nullable */
+  certifications?: string | null;
+  /** @nullable */
+  rsePolicy?: string | null;
+  /** @nullable */
+  evalComments?: string | null;
+}
+
+export interface SupplierListResponse {
+  items: Supplier[];
+}
+
 export interface ImpactScoreResult {
   id: number;
   organizationId: number;

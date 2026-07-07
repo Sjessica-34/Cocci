@@ -56,5 +56,8 @@ export * from './stakeholderInput';
 export * from './stakeholderUpdate';
 export * from './superAdminUpdate';
 export * from './superIssue';
+export * from './supplier';
+export * from './supplierInput';
+export * from './supplierListResponse';
 export * from './user';
 export * from './userUpdate';

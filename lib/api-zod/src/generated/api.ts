@@ -893,6 +893,273 @@ export const UpsertNrDataResponse = zod.object({
 
 
 /**
+ * @summary List all suppliers for an organization
+ */
+export const ListSuppliersParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const listSuppliersResponseItemsItemCriticalityMax = 5;
+
+export const listSuppliersResponseItemsItemRiskLevelMax = 5;
+
+export const listSuppliersResponseItemsItemDependencyMax = 5;
+
+
+
+export const ListSuppliersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "region": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "relationshipStartDate": zod.coerce.date().nullish(),
+  "annualAmount": zod.number().nullish(),
+  "comments": zod.string().nullish(),
+  "criticality": zod.number().min(1).max(listSuppliersResponseItemsItemCriticalityMax).nullish(),
+  "riskLevel": zod.number().min(1).max(listSuppliersResponseItemsItemRiskLevelMax).nullish(),
+  "dependency": zod.number().min(1).max(listSuppliersResponseItemsItemDependencyMax).nullish(),
+  "alternatives": zod.string().nullish(),
+  "certifications": zod.string().nullish(),
+  "rsePolicy": zod.string().nullish(),
+  "evalComments": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Create a new supplier
+ */
+export const CreateSupplierParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const createSupplierBodyCriticalityMax = 5;
+
+export const createSupplierBodyRiskLevelMax = 5;
+
+export const createSupplierBodyDependencyMax = 5;
+
+
+
+export const CreateSupplierBody = zod.object({
+  "name": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "region": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "relationshipStartDate": zod.coerce.date().nullish(),
+  "annualAmount": zod.number().nullish(),
+  "comments": zod.string().nullish(),
+  "criticality": zod.number().min(1).max(createSupplierBodyCriticalityMax).nullish(),
+  "riskLevel": zod.number().min(1).max(createSupplierBodyRiskLevelMax).nullish(),
+  "dependency": zod.number().min(1).max(createSupplierBodyDependencyMax).nullish(),
+  "alternatives": zod.string().nullish(),
+  "certifications": zod.string().nullish(),
+  "rsePolicy": zod.string().nullish(),
+  "evalComments": zod.string().nullish()
+})
+
+export const createSupplierResponseCriticalityMax = 5;
+
+export const createSupplierResponseRiskLevelMax = 5;
+
+export const createSupplierResponseDependencyMax = 5;
+
+
+
+export const CreateSupplierResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "region": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "relationshipStartDate": zod.coerce.date().nullish(),
+  "annualAmount": zod.number().nullish(),
+  "comments": zod.string().nullish(),
+  "criticality": zod.number().min(1).max(createSupplierResponseCriticalityMax).nullish(),
+  "riskLevel": zod.number().min(1).max(createSupplierResponseRiskLevelMax).nullish(),
+  "dependency": zod.number().min(1).max(createSupplierResponseDependencyMax).nullish(),
+  "alternatives": zod.string().nullish(),
+  "certifications": zod.string().nullish(),
+  "rsePolicy": zod.string().nullish(),
+  "evalComments": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get a single supplier
+ */
+export const GetSupplierParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const getSupplierResponseCriticalityMax = 5;
+
+export const getSupplierResponseRiskLevelMax = 5;
+
+export const getSupplierResponseDependencyMax = 5;
+
+
+
+export const GetSupplierResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "region": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "relationshipStartDate": zod.coerce.date().nullish(),
+  "annualAmount": zod.number().nullish(),
+  "comments": zod.string().nullish(),
+  "criticality": zod.number().min(1).max(getSupplierResponseCriticalityMax).nullish(),
+  "riskLevel": zod.number().min(1).max(getSupplierResponseRiskLevelMax).nullish(),
+  "dependency": zod.number().min(1).max(getSupplierResponseDependencyMax).nullish(),
+  "alternatives": zod.string().nullish(),
+  "certifications": zod.string().nullish(),
+  "rsePolicy": zod.string().nullish(),
+  "evalComments": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a supplier
+ */
+export const UpdateSupplierParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const updateSupplierBodyCriticalityMax = 5;
+
+export const updateSupplierBodyRiskLevelMax = 5;
+
+export const updateSupplierBodyDependencyMax = 5;
+
+
+
+export const UpdateSupplierBody = zod.object({
+  "name": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "region": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "relationshipStartDate": zod.coerce.date().nullish(),
+  "annualAmount": zod.number().nullish(),
+  "comments": zod.string().nullish(),
+  "criticality": zod.number().min(1).max(updateSupplierBodyCriticalityMax).nullish(),
+  "riskLevel": zod.number().min(1).max(updateSupplierBodyRiskLevelMax).nullish(),
+  "dependency": zod.number().min(1).max(updateSupplierBodyDependencyMax).nullish(),
+  "alternatives": zod.string().nullish(),
+  "certifications": zod.string().nullish(),
+  "rsePolicy": zod.string().nullish(),
+  "evalComments": zod.string().nullish()
+})
+
+export const updateSupplierResponseCriticalityMax = 5;
+
+export const updateSupplierResponseRiskLevelMax = 5;
+
+export const updateSupplierResponseDependencyMax = 5;
+
+
+
+export const UpdateSupplierResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "region": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "relationshipStartDate": zod.coerce.date().nullish(),
+  "annualAmount": zod.number().nullish(),
+  "comments": zod.string().nullish(),
+  "criticality": zod.number().min(1).max(updateSupplierResponseCriticalityMax).nullish(),
+  "riskLevel": zod.number().min(1).max(updateSupplierResponseRiskLevelMax).nullish(),
+  "dependency": zod.number().min(1).max(updateSupplierResponseDependencyMax).nullish(),
+  "alternatives": zod.string().nullish(),
+  "certifications": zod.string().nullish(),
+  "rsePolicy": zod.string().nullish(),
+  "evalComments": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a supplier
+ */
+export const DeleteSupplierParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const DeleteSupplierResponse = zod.void()
+
+
+/**
  * @summary Get the Impact Score result for an organization
  */
 export const GetImpactScoreResultParams = zod.object({

@@ -12,6 +12,7 @@ import carbonRouter from "./carbon";
 import documentsRouter from "./documents";
 import numeriqueResponsableRouter from "./numeriqueResponsable";
 import impactScoreResultRouter from "./impactScoreResult";
+import suppliersRouter from "./suppliers";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(carbonRouter);
 router.use(documentsRouter);
 router.use(numeriqueResponsableRouter);
 router.use(impactScoreResultRouter);
+router.use(suppliersRouter);
 
 export default router;

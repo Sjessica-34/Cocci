@@ -47,6 +47,7 @@ Plateforme SaaS de pilotage RSE (Responsabilité Sociétale des Entreprises) des
 |---|---|---|
 | 1 | Auth + Multi-tenancy (Clerk + Organizations + Users + Members) | ✅ Livré |
 | 2 | Gestion entreprises & utilisateurs (UI avancée) | À faire |
+| 2b | Achats & Fournisseurs Responsables (CRUD fournisseurs, évaluation RSE, tableau de bord géo) | ✅ Livré |
 | 3 | Abonnements | À faire |
 | 4 | Diagnostic RSE + Bibliothèque de questions | À faire |
 | 5 | Matrice de matérialité | À faire |

@@ -1,0 +1,137 @@
+Nous allons faire évoluer le module actuel.
+
+IMPORTANT
+
+Ne modifie pas l'architecture existante.
+Ne modifie pas les composants déjà développés.
+Ne change pas le fonctionnement général.
+Je souhaite uniquement faire évoluer ce module.
+
+-----------------------------------------------------
+
+1. Changer le titre du module
+
+Remplacer le titre actuel par :
+
+📦 Achats & Fournisseurs Responsables
+
+Ce module doit permettre de piloter les fournisseurs de l'entreprise dans une logique RSE.
+
+-----------------------------------------------------
+
+2. Aucune donnée obligatoire
+
+Aucun champ ne doit être obligatoire.
+
+L'utilisateur doit pouvoir créer une fiche fournisseur avec uniquement les informations qu'il possède.
+
+Toutes les informations pourront être complétées ultérieurement.
+
+Ajouter simplement un indicateur de complétude de la fiche (facultatif).
+
+-----------------------------------------------------
+
+3. Onglet "Découvrir"
+
+Créer un véritable tutoriel expliquant :
+
+- Qu'est-ce qu'un achat responsable ?
+- Pourquoi évaluer ses fournisseurs ?
+- Qu'est-ce que la criticité ?
+- Qu'est-ce que le niveau de risque ?
+- Quelle est la différence entre criticité, risque et dépendance ?
+- Comment interpréter la matrice de criticité ?
+- Comment Cocci calcule les indicateurs ?
+- Comment utiliser ce module dans une démarche RSE ?
+
+Illustrer avec des exemples simples et concrets.
+
+-----------------------------------------------------
+
+4. Onglet "Mes fournisseurs"
+
+Créer une base fournisseurs.
+
+Chaque fiche fournisseur peut contenir notamment :
+
+- Nom
+- Catégorie
+- Contact
+- Téléphone
+- Email
+- Site internet
+- Adresse
+- Code postal
+- Ville
+- Département
+- Région
+- Pays
+- SIRET
+- Date de début de la relation
+- Montant annuel des achats (facultatif)
+- Commentaires
+- Documents
+
+Aucun de ces champs ne doit être obligatoire.
+
+-----------------------------------------------------
+
+5. Localisation des fournisseurs
+
+À partir de l'adresse renseignée, déterminer automatiquement la localisation du fournisseur.
+
+Afficher ensuite dans le tableau de bord :
+
+Répartition géographique des fournisseurs :
+
+- % de fournisseurs situés dans la commune
+- % de fournisseurs situés dans les communes voisines
+- % de fournisseurs situés dans le département
+- % de fournisseurs situés dans la région
+- % de fournisseurs situés en France
+- % de fournisseurs situés en Europe
+- % de fournisseurs situés hors Europe
+
+IMPORTANT
+
+Il s'agit bien du pourcentage de fournisseurs et NON du pourcentage du montant des achats.
+
+Le calcul est basé sur le nombre de fournisseurs enregistrés.
+
+-----------------------------------------------------
+
+6. Tableau de bord
+
+Afficher notamment :
+
+- Nombre total de fournisseurs
+- Répartition géographique des fournisseurs
+- Nombre de fournisseurs évalués
+- Nombre de fournisseurs critiques
+- Nombre de fournisseurs à risque élevé
+- Répartition par catégorie
+- Graphiques modernes
+- Carte géographique (si possible)
+
+-----------------------------------------------------
+
+7. Évaluation des fournisseurs
+
+Conserver le système d'évaluation prévu.
+
+Chaque fournisseur pourra être évalué selon :
+
+- Criticité
+- Niveau de risque
+- Dépendance
+- Alternatives disponibles
+- Certifications
+- Politique RSE
+- Commentaires
+- Documents
+
+-----------------------------------------------------
+
+Conserver le design actuel de Cocci et réutiliser les composants existants.
+
+Je souhaite un module moderne, intuitif et cohérent avec le reste de l'application.
