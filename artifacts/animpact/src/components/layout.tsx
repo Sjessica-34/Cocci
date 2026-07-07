@@ -62,12 +62,12 @@ const navGroups: NavItem[][] = [
   ],
   [
     { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },
+    { href: "/mes-labels", label: "Mes labels", icon: Award },
     { href: "/rapport-rse", label: "Mon rapport RSE", icon: FileText },
   ],
   [
     { href: "/resources", label: "Mes ressources", icon: BookOpen },
     { href: "/mes-documents", label: "Mes documents", icon: FolderOpen },
-    { href: "/mes-labels", label: "Mes labels", icon: Award },
   ],
   [
     { href: "/settings", label: "Mes paramètres", icon: Settings },
