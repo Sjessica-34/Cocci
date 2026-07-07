@@ -13,9 +13,7 @@ import {
   useListBioConnections,
   useCreateBioConnection,
   useDeleteBioConnection,
-  getListBioDependenciesQueryKey,
   getListBioConnectionsQueryKey,
-  type BioDependency,
   type BioConnection,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -34,78 +32,58 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Network, Plus } from "lucide-react";
 import {
-  RELATION_TYPES, getCategoryEmoji, categoryBorderColor, depDotColor, defaultElementPosition,
+  RELATION_TYPES, elementLabel, familyIcon, familyColor, familyBg, defaultElementPosition,
 } from "../data";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BioNodeData = {
   name: string | null;
-  category: string | null;
-  subCategory: string | null;
-  dependencyLevel: number | null;
-  masteryLevel: number | null;
+  category: string | null;    // famille
+  subCategory: string | null; // type spécifique
 };
 type BioNode = Node<BioNodeData, "bioElement">;
 
-// ─── Custom node (MUST be outside component) ──────────────────────────────────
+// ─── Custom node — DOIT être hors du composant ────────────────────────────────
 
 const BioElementNode = memo(function BioElementNode({ data }: NodeProps<BioNode>) {
+  const label = elementLabel(data.name, data.category, data.subCategory);
+  const icon  = familyIcon(data.category);
+  const color = familyColor(data.category);
+  const bg    = familyBg(data.category);
+
   return (
     <div className="relative">
       <Handle
         type="target"
         position={Position.Left}
-        style={{ background: "#94a3b8", width: 10, height: 10, border: "2px solid white" }}
+        style={{ background: color, width: 10, height: 10, border: "2px solid white" }}
       />
       <div
-        className="bg-white rounded-xl shadow-md border-2 p-3"
-        style={{ minWidth: 160, maxWidth: 200, borderColor: categoryBorderColor(data.category) }}
+        className="rounded-xl shadow-md border-2 p-3 select-none"
+        style={{ minWidth: 140, maxWidth: 190, backgroundColor: bg, borderColor: color }}
       >
-        <div className="flex items-center gap-1.5 mb-1">
-          <span style={{ fontSize: 15, lineHeight: 1 }}>{getCategoryEmoji(data.category)}</span>
-          <p className="text-xs font-bold truncate flex-1 leading-tight">
-            {data.name || "Sans nom"}
-          </p>
-        </div>
-        {data.category && (
-          <p className="text-[10px] text-slate-500 truncate mb-2">
-            {data.category}{data.subCategory ? ` › ${data.subCategory}` : ""}
-          </p>
-        )}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1">
-            <span className="text-[9px] text-slate-400" style={{ width: 28 }}>Dép.</span>
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map(n => (
-                <div
-                  key={n}
-                  className={`rounded-full ${depDotColor(data.dependencyLevel, n)}`}
-                  style={{ width: 8, height: 8 }}
-                />
-              ))}
-            </div>
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
+          <div className="flex-1 min-w-0">
+            {label ? (
+              <p className="text-xs font-bold leading-tight truncate" style={{ color }}>
+                {label}
+              </p>
+            ) : null}
+            <p
+              className="text-[10px] leading-tight opacity-70 truncate"
+              style={{ color }}
+            >
+              {data.category ?? ""}
+            </p>
           </div>
-          {data.masteryLevel != null && (
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] text-slate-400" style={{ width: 28 }}>Maît.</span>
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map(n => (
-                  <div
-                    key={n}
-                    className={`rounded-full ${n <= data.masteryLevel! ? "bg-blue-400" : "bg-slate-200"}`}
-                    style={{ width: 8, height: 8 }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
       <Handle
         type="source"
         position={Position.Right}
-        style={{ background: "#94a3b8", width: 10, height: 10, border: "2px solid white" }}
+        style={{ background: color, width: 10, height: 10, border: "2px solid white" }}
       />
     </div>
   );
@@ -117,22 +95,22 @@ const nodeTypes: NodeTypes = { bioElement: BioElementNode };
 
 function connToEdge(conn: BioConnection): Edge {
   return {
-    id: `e${conn.id}`,
+    id:     `e${conn.id}`,
     source: String(conn.fromElementId),
     target: String(conn.toElementId),
-    type: "smoothstep",
-    label: conn.relationType ?? undefined,
-    labelStyle: { fontSize: 10, fill: "#475569", fontWeight: 600 },
-    labelBgStyle: { fill: "#f8fafc", stroke: "#e2e8f0", strokeWidth: 1 },
-    labelBgPadding: [6, 3] as [number, number],
+    type:   "smoothstep",
+    label:  conn.relationType ?? undefined,
+    labelStyle:      { fontSize: 10, fill: "#475569", fontWeight: 600 },
+    labelBgStyle:    { fill: "#f8fafc", stroke: "#e2e8f0", strokeWidth: 1 },
+    labelBgPadding:  [6, 3] as [number, number],
     labelBgBorderRadius: 4,
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
-    style: { stroke: "#94a3b8", strokeWidth: 1.5 },
-    data: { connectionId: conn.id },
+    markerEnd:  { type: MarkerType.ArrowClosed, color: "#94a3b8" },
+    style:      { stroke: "#94a3b8", strokeWidth: 1.5 },
+    data:       { connectionId: conn.id },
   };
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Composant ────────────────────────────────────────────────────────────────
 
 interface Props { orgId: number; }
 
@@ -144,24 +122,24 @@ export function TabCartoDependances({ orgId }: Props) {
   const [connectDialog, setConnectDialog] = useState<{
     source: string; target: string; manual: boolean;
   } | null>(null);
-  const [manualFrom, setManualFrom] = useState("");
-  const [manualTo, setManualTo] = useState("");
-  const [relationType, setRelationType] = useState("");
-  const [customRelationType, setCustomRelationType] = useState("");
-  const [deleteConnId, setDeleteConnId] = useState<number | null>(null);
+  const [manualFrom,        setManualFrom]        = useState("");
+  const [manualTo,          setManualTo]          = useState("");
+  const [relationType,      setRelationType]      = useState("");
+  const [customRelationType,setCustomRelationType]= useState("");
+  const [deleteConnId,      setDeleteConnId]      = useState<number | null>(null);
 
   const nodePositions = useRef(new Map<number, { x: number; y: number }>());
 
   const { data: depsData, isLoading } = useListBioDependencies(orgId);
-  const { data: connData } = useListBioConnections(orgId);
-  const elements  = depsData?.items ?? [];
+  const { data: connData }            = useListBioConnections(orgId);
+  const elements    = depsData?.items ?? [];
   const connections = connData?.items ?? [];
 
   const updatePos  = useUpdateBioDependency();
   const createConn = useCreateBioConnection();
   const deleteConn = useDeleteBioConnection();
 
-  // Sync elements → RF nodes (preserving dragged positions)
+  // Sync elements → nœuds RF
   useEffect(() => {
     if (!depsData) return;
     const zoneCounts: Record<string, number> = {};
@@ -175,11 +153,9 @@ export function TabCartoDependances({ orgId }: Props) {
         type:     "bioElement" as const,
         position: nodePositions.current.get(el.id) ?? { x: el.x ?? def.x, y: el.y ?? def.y },
         data: {
-          name:            el.name            ?? null,
-          category:        el.category        ?? null,
-          subCategory:     el.subCategory     ?? null,
-          dependencyLevel: el.dependencyLevel ?? null,
-          masteryLevel:    el.masteryLevel    ?? null,
+          name:        el.name        ?? null,
+          category:    el.category    ?? null,
+          subCategory: el.subCategory ?? null,
         },
       };
     });
@@ -187,14 +163,14 @@ export function TabCartoDependances({ orgId }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsData]);
 
-  // Sync connections → RF edges
+  // Sync connections → arêtes RF
   useEffect(() => {
     if (!connData) return;
     setEdges(connections.map(connToEdge));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connData]);
 
-  // Fire-and-forget position save (no invalidation → preserves positions on refetch)
+  // Sauvegarde position (fire-and-forget)
   const onNodeDragStop = useCallback(
     (_: MouseEvent | TouchEvent, node: Node) => {
       nodePositions.current.set(Number(node.id), { x: node.position.x, y: node.position.y });
@@ -203,15 +179,14 @@ export function TabCartoDependances({ orgId }: Props) {
     [orgId, updatePos],
   );
 
-  // Native drag-to-connect → open relation type dialog
+  // Drag natif → dialog type relation
   const onConnect = useCallback((params: Connection) => {
     if (!params.source || !params.target) return;
-    setRelationType("");
-    setCustomRelationType("");
+    setRelationType(""); setCustomRelationType("");
     setConnectDialog({ source: params.source, target: params.target, manual: false });
   }, []);
 
-  // Edge click → delete confirmation
+  // Clic arête → supprimer
   const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     if (typeof edge.data?.connectionId === "number") {
       setDeleteConnId(edge.data.connectionId as number);
@@ -229,10 +204,7 @@ export function TabCartoDependances({ orgId }: Props) {
     });
     setEdges(prev => [...prev, connToEdge(conn)]);
     setConnectDialog(null);
-    setRelationType("");
-    setCustomRelationType("");
-    setManualFrom("");
-    setManualTo("");
+    setRelationType(""); setCustomRelationType(""); setManualFrom(""); setManualTo("");
   }
 
   async function handleDeleteConnection() {
@@ -245,25 +217,22 @@ export function TabCartoDependances({ orgId }: Props) {
   }
 
   function openManualConnect() {
-    setManualFrom("");
-    setManualTo("");
-    setRelationType("");
-    setCustomRelationType("");
+    setManualFrom(""); setManualTo(""); setRelationType(""); setCustomRelationType("");
     setConnectDialog({ source: "", target: "", manual: true });
   }
 
-  const getElName = (id: string) =>
-    elements.find(e => String(e.id) === id)?.name ?? `Élément ${id}`;
+  const getElLabel = (id: string) => {
+    const el = elements.find(e => String(e.id) === id);
+    if (!el) return id;
+    return elementLabel(el.name, el.category, el.subCategory) || `ID ${id}`;
+  };
 
-  const elementCount   = elements.length;
-  const connectionCount = connections.length;
-
-  if (!isLoading && elementCount === 0) {
+  if (!isLoading && elements.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
         <Network className="h-10 w-10 opacity-30" />
         <p className="text-sm max-w-xs">
-          Aucun élément à cartographier. Commencez par en ajouter dans l'onglet "Saisie".
+          Aucun élément à cartographier. Ajoutez-en dans l'onglet "Saisie".
         </p>
       </div>
     );
@@ -274,27 +243,23 @@ export function TabCartoDependances({ orgId }: Props) {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {elementCount} élément{elementCount !== 1 ? "s" : ""}&ensp;·&ensp;
-          {connectionCount} connexion{connectionCount !== 1 ? "s" : ""}
-          {connectionCount > 0 && <span className="text-xs"> — cliquez sur une flèche pour la supprimer</span>}
+          {elements.length} élément{elements.length !== 1 ? "s" : ""}&ensp;·&ensp;
+          {connections.length} connexion{connections.length !== 1 ? "s" : ""}
+          {connections.length > 0 && (
+            <span className="text-xs"> — cliquez sur une flèche pour la supprimer</span>
+          )}
         </p>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={openManualConnect}
-          disabled={elementCount < 2}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Créer une connexion
+        <Button size="sm" variant="outline" onClick={openManualConnect} disabled={elements.length < 2}>
+          <Plus className="h-4 w-4 mr-1" />Créer une connexion
         </Button>
       </div>
 
       {/* Canvas */}
       {isLoading ? (
-        <Skeleton className="h-[612px] w-full rounded-xl" />
+        <Skeleton className="h-[620px] w-full rounded-xl" />
       ) : (
-        <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 612 }}>
-          {/* Zone headers */}
+        <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 620 }}>
+          {/* En-têtes de zone */}
           <div className="grid grid-cols-3 border-b shrink-0">
             <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">
               Amont
@@ -322,7 +287,8 @@ export function TabCartoDependances({ orgId }: Props) {
               minZoom={0.25}
               maxZoom={2.5}
               style={{
-                background: "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
+                background:
+                  "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
               }}
             >
               <Background gap={20} size={1} color="#cbd5e1" />
@@ -333,13 +299,13 @@ export function TabCartoDependances({ orgId }: Props) {
         </div>
       )}
 
-      {/* Connect dialog */}
+      {/* Dialog connexion */}
       <Dialog open={connectDialog !== null} onOpenChange={open => !open && setConnectDialog(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Créer une connexion</DialogTitle>
             <DialogDescription>
-              Définissez la relation entre deux éléments de la cartographie.
+              Définissez la relation entre deux éléments.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -348,43 +314,39 @@ export function TabCartoDependances({ orgId }: Props) {
                 <div className="space-y-1.5">
                   <Label>Origine</Label>
                   <Select value={manualFrom} onValueChange={setManualFrom}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner un élément…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                     <SelectContent>
-                      {elements
-                        .filter(e => String(e.id) !== manualTo)
-                        .map(e => (
-                          <SelectItem key={e.id} value={String(e.id)}>
-                            {e.name ?? `Élément ${e.id}`}
-                          </SelectItem>
-                        ))}
+                      {elements.filter(e => String(e.id) !== manualTo).map(e => (
+                        <SelectItem key={e.id} value={String(e.id)}>
+                          {familyIcon(e.category)} {elementLabel(e.name, e.category, e.subCategory) || `ID ${e.id}`}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Destination</Label>
                   <Select value={manualTo} onValueChange={setManualTo}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner un élément…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                     <SelectContent>
-                      {elements
-                        .filter(e => String(e.id) !== manualFrom)
-                        .map(e => (
-                          <SelectItem key={e.id} value={String(e.id)}>
-                            {e.name ?? `Élément ${e.id}`}
-                          </SelectItem>
-                        ))}
+                      {elements.filter(e => String(e.id) !== manualFrom).map(e => (
+                        <SelectItem key={e.id} value={String(e.id)}>
+                          {familyIcon(e.category)} {elementLabel(e.name, e.category, e.subCategory) || `ID ${e.id}`}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </>
             ) : (
               <div className="flex items-center gap-2 text-sm p-3 bg-slate-50 rounded-lg border">
-                <span className="font-semibold">{getElName(connectDialog?.source ?? "")}</span>
+                <span className="font-semibold">{getElLabel(connectDialog?.source ?? "")}</span>
                 <ArrowRight className="h-4 w-4 text-slate-400 shrink-0" />
-                <span className="font-semibold">{getElName(connectDialog?.target ?? "")}</span>
+                <span className="font-semibold">{getElLabel(connectDialog?.target ?? "")}</span>
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>Type de relation <span className="text-muted-foreground font-normal">(optionnel)</span></Label>
+              <Label>Type de relation <span className="text-muted-foreground font-normal text-xs">— optionnel</span></Label>
               <Select value={relationType} onValueChange={setRelationType}>
                 <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                 <SelectContent>
@@ -394,7 +356,7 @@ export function TabCartoDependances({ orgId }: Props) {
               {relationType === "Autre" && (
                 <Input
                   className="mt-1.5"
-                  placeholder="Préciser le type de relation…"
+                  placeholder="Préciser…"
                   value={customRelationType}
                   onChange={e => setCustomRelationType(e.target.value)}
                 />
@@ -402,15 +364,10 @@ export function TabCartoDependances({ orgId }: Props) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConnectDialog(null)}>
-              Annuler
-            </Button>
+            <Button variant="outline" onClick={() => setConnectDialog(null)}>Annuler</Button>
             <Button
               onClick={handleConnect}
-              disabled={
-                createConn.isPending ||
-                (connectDialog?.manual === true && (!manualFrom || !manualTo))
-              }
+              disabled={createConn.isPending || (connectDialog?.manual === true && (!manualFrom || !manualTo))}
             >
               {createConn.isPending ? "Création…" : "Créer la connexion"}
             </Button>
@@ -418,7 +375,7 @@ export function TabCartoDependances({ orgId }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Delete connection dialog */}
+      {/* Dialog suppression connexion */}
       <AlertDialog open={deleteConnId !== null} onOpenChange={open => !open && setDeleteConnId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

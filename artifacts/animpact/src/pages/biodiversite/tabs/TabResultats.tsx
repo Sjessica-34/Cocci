@@ -2,7 +2,14 @@ import { useListBioDependencies, useListBioIssues } from "@workspace/api-client-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { Leaf, AlertTriangle, Layers, Activity } from "lucide-react";
-import { dependencyColor, chainLabel } from "../data";
+import { chainLabel } from "../data";
+
+function dependencyColor(level: number | null | undefined): string {
+  if (!level) return "bg-slate-100 text-slate-600 border-slate-200";
+  if (level <= 2) return "bg-green-100 text-green-800 border-green-200";
+  if (level === 3) return "bg-yellow-100 text-yellow-800 border-yellow-200";
+  return "bg-red-100 text-red-800 border-red-200";
+}
 
 interface Props { orgId: number }
 

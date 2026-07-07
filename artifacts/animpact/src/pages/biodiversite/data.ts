@@ -1,42 +1,46 @@
-export const CATEGORIES_SUBCATEGORIES: Record<string, string[]> = {
-  "Eau": [
-    "Disponibilité en eau douce", "Qualité de l'eau", "Recharge des nappes",
-    "Régulation des débits", "Prévention des inondations", "Épuration naturelle", "Zones humides",
+// ─── Familles d'éléments ─────────────────────────────────────────────────────
+
+export type ElementFamily = "Ressource" | "Activité" | "Lieu" | "Acteur";
+
+export const FAMILIES: {
+  value: ElementFamily;
+  label: string;
+  icon: string;
+  color: string;
+  bg: string;
+}[] = [
+  { value: "Ressource", label: "Ressource / Service écosystémique", icon: "🌿", color: "#10B981", bg: "#ECFDF5" },
+  { value: "Activité",  label: "Activité / Processus",              icon: "⚙️", color: "#6366F1", bg: "#EEF2FF" },
+  { value: "Lieu",      label: "Lieu",                              icon: "📍", color: "#F59E0B", bg: "#FFFBEB" },
+  { value: "Acteur",    label: "Acteur",                            icon: "👥", color: "#3B82F6", bg: "#EFF6FF" },
+];
+
+export const SUBTYPES: Record<ElementFamily, string[]> = {
+  Ressource: [
+    "Eau", "Sols", "Air", "Climat", "Pollinisation", "Biodiversité",
+    "Ressources naturelles", "Bois", "Biomasse", "Terres rares",
+    "Fibres naturelles", "Minéraux", "Autre",
   ],
-  "Sols": [
-    "Fertilité", "Érosion", "Stockage du carbone", "Matière organique",
-    "Structure", "Infiltration", "Activité biologique",
+  Activité: [
+    "Approvisionnement", "Production", "Fabrication", "Transformation",
+    "Transport", "Stockage", "Distribution", "Vente", "Utilisation",
+    "Maintenance", "Communication", "Gestion des déchets", "Recyclage",
+    "Prestations", "Autre",
   ],
-  "Climat": [
-    "Régulation climatique", "Stockage du carbone", "Rafraîchissement naturel",
-    "Sécheresse", "Tempêtes", "Humidité",
+  Lieu: [
+    "Siège social", "Agence", "Bureaux", "Atelier", "Entrepôt",
+    "Usine", "Chantier", "Magasin", "Data center", "Site client", "Autre",
   ],
-  "Pollinisation": [
-    "Pollinisation des cultures", "Pollinisation naturelle", "Reproduction des espèces",
+  Acteur: [
+    "Fournisseurs", "Sous-traitants", "Prestataires", "Clients",
+    "Transporteurs", "Distributeurs", "Collectivités", "Autre",
   ],
-  "Régulation biologique": [
-    "Lutte contre les ravageurs", "Contrôle des maladies", "Espèces invasives",
-  ],
-  "Biodiversité": [
-    "Habitats", "Espèces", "Corridors écologiques", "Diversité génétique",
-  ],
-  "Air": [
-    "Qualité de l'air", "Filtration des particules", "Captation des polluants",
-  ],
-  "Ressources naturelles": [
-    "Bois", "Biomasse", "Fibres", "Ressources halieutiques", "Ressources génétiques", "Minéraux",
-  ],
-  "Production biologique": [
-    "Agriculture", "Sylviculture", "Pêche", "Production alimentaire",
-  ],
-  "Services culturels": [
-    "Paysages", "Tourisme", "Loisirs", "Patrimoine", "Bien-être",
-  ],
-  "Fonctions écologiques": [
-    "Cycle de l'eau", "Cycle des nutriments", "Décomposition", "Fonctionnement des habitats",
-  ],
-  "Autre": ["Autre"],
 };
+
+export const RELATION_TYPES = [
+  "Approvisionne", "Utilise", "Produit", "Transporte", "Dépend de",
+  "Recycle", "Communique avec", "Valorise", "Protège", "Impacte", "Alimente", "Autre",
+];
 
 export const CHAIN_POSITIONS = [
   { value: "amont",   label: "Amont" },
@@ -44,11 +48,42 @@ export const CHAIN_POSITIONS = [
   { value: "aval",    label: "Aval" },
 ];
 
-export const RELATION_TYPES = [
-  "Approvisionne", "Utilise", "Produit", "Dépend de", "Transporte",
-  "Transforme", "Recycle", "Communique avec", "Valorise", "Protège",
-  "Impacte", "Alimente", "Autre",
-];
+// ─── Helpers visuels ─────────────────────────────────────────────────────────
+
+export function familyData(family: string | null | undefined) {
+  return FAMILIES.find(f => f.value === family) ?? null;
+}
+
+export function familyIcon(family: string | null | undefined): string {
+  return familyData(family)?.icon ?? "◆";
+}
+
+export function familyColor(family: string | null | undefined): string {
+  return familyData(family)?.color ?? "#94A3B8";
+}
+
+export function familyBg(family: string | null | undefined): string {
+  return familyData(family)?.bg ?? "#F8FAFC";
+}
+
+export function familyLabel(family: string | null | undefined): string {
+  return familyData(family)?.label ?? (family ?? "");
+}
+
+/**
+ * Retourne le libellé à afficher — jamais "Sans nom".
+ * Ordre : nom > sous-type > famille
+ */
+export function elementLabel(
+  name: string | null | undefined,
+  category: string | null | undefined,
+  subCategory: string | null | undefined,
+): string {
+  if (name?.trim())        return name.trim();
+  if (subCategory?.trim()) return subCategory.trim();
+  if (category?.trim())    return category.trim();
+  return "";
+}
 
 export function chainLabel(pos: string | null | undefined): string {
   if (pos === "amont")   return "Amont";
@@ -57,63 +92,44 @@ export function chainLabel(pos: string | null | undefined): string {
   return pos ?? "—";
 }
 
-export function getCategoryEmoji(category: string | null | undefined): string {
-  const map: Record<string, string> = {
-    "Eau": "💧", "Sols": "🌱", "Climat": "☁️", "Pollinisation": "🌸",
-    "Régulation biologique": "🦋", "Biodiversité": "🌿", "Air": "🌬️",
-    "Ressources naturelles": "🪨", "Production biologique": "🌾",
-    "Services culturels": "🏞️", "Fonctions écologiques": "♻️", "Autre": "⭐",
-  };
-  return category ? (map[category] ?? "🌿") : "🌿";
-}
+// ─── Enjeux ──────────────────────────────────────────────────────────────────
 
-export function categoryBorderColor(category: string | null | undefined): string {
-  const map: Record<string, string> = {
-    "Eau": "#3B82F6", "Sols": "#84CC16", "Climat": "#6B7280",
-    "Pollinisation": "#F59E0B", "Régulation biologique": "#8B5CF6",
-    "Biodiversité": "#10B981", "Air": "#60A5FA", "Ressources naturelles": "#92400E",
-    "Production biologique": "#22C55E", "Services culturels": "#EC4899",
-    "Fonctions écologiques": "#14B8A6", "Autre": "#6B7280",
-  };
-  return category ? (map[category] ?? "#6B7280") : "#6B7280";
-}
-
-export function depDotColor(level: number | null | undefined, n: number): string {
-  if (!level || n > level) return "bg-slate-200";
-  if (level <= 2) return "bg-green-500";
-  if (level === 3) return "bg-yellow-400";
-  return "bg-red-500";
-}
-
-export function importanceBg(importance: number | null | undefined): { bg: string; border: string; text: string } {
+export function importanceBg(importance: number | null | undefined): {
+  bg: string; border: string; text: string;
+} {
   if (!importance) return { bg: "#F8FAFC", border: "#E2E8F0", text: "#64748B" };
-  if (importance >= 5) return { bg: "#FEF2F2", border: "#FCA5A5", text: "#991B1B" };
-  if (importance >= 4) return { bg: "#FFF7ED", border: "#FDBA74", text: "#9A3412" };
-  if (importance >= 3) return { bg: "#FEFCE8", border: "#FCD34D", text: "#92400E" };
-  if (importance >= 2) return { bg: "#EFF6FF", border: "#93C5FD", text: "#1E40AF" };
-  return { bg: "#F0FDF4", border: "#86EFAC", text: "#166534" };
+  const map: Record<number, { bg: string; border: string; text: string }> = {
+    1: { bg: "#F0FDF4", border: "#86EFAC", text: "#166534" },
+    2: { bg: "#EFF6FF", border: "#93C5FD", text: "#1E40AF" },
+    3: { bg: "#FEFCE8", border: "#FCD34D", text: "#92400E" },
+    4: { bg: "#FFF7ED", border: "#FDBA74", text: "#9A3412" },
+    5: { bg: "#FEF2F2", border: "#FCA5A5", text: "#991B1B" },
+  };
+  return map[importance] ?? map[5];
 }
 
 export function importanceLabel(importance: number | null | undefined): string {
   if (!importance) return "Non défini";
   const labels: Record<number, string> = {
-    1: "Faible", 2: "Modéré", 3: "Significatif", 4: "Fort", 5: "Critique",
+    1: "Faible", 2: "Moyenne", 3: "Forte", 4: "Très forte", 5: "Critique",
   };
   return labels[importance] ?? "—";
 }
+
+// ─── Positionnement par défaut ────────────────────────────────────────────────
 
 export function defaultElementPosition(
   chainPosition: string | null | undefined,
   indexInZone: number,
 ): { x: number; y: number } {
-  const ZONE_W = 360;
+  const ZONE_W = 380;
   const baseX =
     chainPosition === "in-situ" ? ZONE_W + 20
     : chainPosition === "aval"  ? ZONE_W * 2 + 20
     : 20;
   const col = indexInZone % 2;
   const row = Math.floor(indexInZone / 2);
-  return { x: baseX + col * 160, y: 60 + row * 130 };
+  return { x: baseX + col * 170, y: 40 + row * 130 };
 }
 
 export function defaultIssuePosition(
@@ -128,18 +144,4 @@ export function defaultIssuePosition(
     x: xBase + (issueIndex % 2) * 80,
     y: yBase + Math.floor(issueIndex / 2) * 20,
   };
-}
-
-export function dependencyColor(level: number | null | undefined): string {
-  if (!level) return "bg-slate-100 text-slate-600 border-slate-200";
-  if (level <= 2) return "bg-green-100 text-green-800 border-green-200";
-  if (level === 3) return "bg-yellow-100 text-yellow-800 border-yellow-200";
-  return "bg-red-100 text-red-800 border-red-200";
-}
-
-export function masteryColor(level: number | null | undefined): string {
-  if (!level) return "text-slate-400";
-  if (level >= 4) return "text-green-600";
-  if (level === 3) return "text-yellow-600";
-  return "text-red-600";
 }
