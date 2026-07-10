@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import {
   db,
-  membersTable,
+  organizationsTable,
   exercisesTable,
   documentExerciseLinksTable,
   bioDependenciesTable,
@@ -12,19 +12,16 @@ import {
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
-import {
-  ListExercisesResponse,
-  CreateExerciseBody,
-  CreateExerciseResponse,
-  UpdateExerciseStatusBody,
-  UpdateExerciseStatusResponse,
-} from "@workspace/api-zod";
+import { ListExercisesResponse, AdvanceExerciseResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 function parseId(raw: string | string[]): number {
   return Number(Array.isArray(raw) ? raw[0] : raw);
 }
+
+/** Structural type matching both `db` and a `db.transaction` callback's `tx`. */
+type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 router.get(
   "/organizations/:orgId/exercises",
@@ -51,8 +48,17 @@ router.get(
  * `EXERCISE_SCOPED_TABLES` registry (`lib/db/src/exerciseTables.ts`) — a
  * future business table only needs to be added there, once, to be
  * included in duplication, backfill, and verification alike.
+ *
+ * Runs against whatever `dbClient` is passed in (the module `db`, or a
+ * `db.transaction` callback's `tx`), so callers can make the whole
+ * close+create+duplicate sequence atomic.
  */
-async function duplicateExerciseData(orgId: number, fromExerciseId: number, toExerciseId: number): Promise<void> {
+async function duplicateExerciseData(
+  dbClient: DbClient,
+  orgId: number,
+  fromExerciseId: number,
+  toExerciseId: number,
+): Promise<void> {
   // Registered once in lib/db/src/exerciseTables.ts and shared with the
   // backfill/verify scripts — a future module only needs to add itself
   // there to be included in duplication automatically.
@@ -64,7 +70,7 @@ async function duplicateExerciseData(orgId: number, fromExerciseId: number, toEx
   const bioDependencyIdMap = new Map<number, number>();
 
   for (const table of tables) {
-    const rows = await db
+    const rows = await dbClient
       .select()
       .from(table)
       .where(and(eq(table.organizationId, orgId), eq(table.exerciseId, fromExerciseId)));
@@ -77,7 +83,7 @@ async function duplicateExerciseData(orgId: number, fromExerciseId: number, toEx
         const newFrom = bioDependencyIdMap.get(fromElementId);
         const newTo = bioDependencyIdMap.get(toElementId);
         if (!newFrom || !newTo) continue; // dependency wasn't duplicated (shouldn't happen)
-        await db.insert(bioConnectionsTable).values({
+        await dbClient.insert(bioConnectionsTable).values({
           ...rest,
           organizationId: orgId,
           exerciseId: toExerciseId,
@@ -102,7 +108,7 @@ async function duplicateExerciseData(orgId: number, fromExerciseId: number, toEx
             remappedDependencyIds = dependencyIds;
           }
         }
-        await db.insert(bioIssuesTable).values({
+        await dbClient.insert(bioIssuesTable).values({
           ...rest,
           organizationId: orgId,
           exerciseId: toExerciseId,
@@ -114,7 +120,7 @@ async function duplicateExerciseData(orgId: number, fromExerciseId: number, toEx
 
     for (const row of rows as Record<string, unknown>[]) {
       const { id, ...rest } = row;
-      const [inserted] = await db
+      const [inserted] = await dbClient
         .insert(table)
         .values({ ...rest, organizationId: orgId, exerciseId: toExerciseId } as never)
         .returning();
@@ -126,126 +132,100 @@ async function duplicateExerciseData(orgId: number, fromExerciseId: number, toEx
 
   // Re-link existing documents (no file duplication) that were attached to
   // the previous exercise.
-  const previousLinks = await db
+  const previousLinks = await dbClient
     .select()
     .from(documentExerciseLinksTable)
     .where(eq(documentExerciseLinksTable.exerciseId, fromExerciseId));
 
   for (const link of previousLinks) {
-    await db.insert(documentExerciseLinksTable).values({
+    await dbClient.insert(documentExerciseLinksTable).values({
       documentId: link.documentId,
       exerciseId: toExerciseId,
     });
   }
 }
 
+/**
+ * The ONLY way an exercise is ever closed or created. Replaces the former
+ * free-form create/close/reopen/delete endpoints entirely: the user never
+ * chooses a year or triggers those steps individually. This single atomic
+ * operation:
+ *   1. Resolves the organization's current "active" exercise.
+ *   2. Refuses if the current month is before the organization's
+ *      configured `exerciseOpeningMonth` (default December).
+ *   3. Closes the current exercise and creates `year + 1` as the new
+ *      active one, inside a DB transaction — plus the DB-level partial
+ *      unique index on `exercises` guarantees at most one active exercise
+ *      per organization even under concurrent requests.
+ *   4. Duplicates all business data and re-links (never duplicates)
+ *      documents into the new exercise.
+ *
+ * Deleting an exercise is intentionally not exposed here or anywhere in
+ * the user-facing API surface — reserved for a future system admin tool.
+ */
 router.post(
-  "/organizations/:orgId/exercises",
+  "/organizations/:orgId/exercises/advance",
   requireAuth,
   requireOrgRole(["owner", "admin"]),
   async (req, res): Promise<void> => {
     const orgId = parseId(req.params.orgId as string);
 
-    const parsed = CreateExerciseBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
-      return;
-    }
-
-    const [existing] = await db
-      .select({ id: exercisesTable.id })
-      .from(exercisesTable)
-      .where(and(eq(exercisesTable.organizationId, orgId), eq(exercisesTable.year, parsed.data.year)))
+    const [org] = await db
+      .select()
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId))
       .limit(1);
-    if (existing) {
-      res.status(409).json({ error: "Un exercice existe déjà pour cette année" });
+    if (!org) {
+      res.status(404).json({ error: "Organization not found" });
       return;
     }
 
-    const [previous] = await db
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    if (currentMonth < org.exerciseOpeningMonth) {
+      res.status(409).json({
+        error: `La création du nouvel exercice n'est possible qu'à partir du mois ${org.exerciseOpeningMonth}`,
+      });
+      return;
+    }
+
+    const [current] = await db
       .select()
       .from(exercisesTable)
-      .where(eq(exercisesTable.organizationId, orgId))
-      .orderBy(desc(exercisesTable.year))
+      .where(and(eq(exercisesTable.organizationId, orgId), eq(exercisesTable.status, "active")))
       .limit(1);
-
-    const [created] = await db
-      .insert(exercisesTable)
-      .values({ organizationId: orgId, year: parsed.data.year, status: "active" })
-      .returning();
-
-    if (parsed.data.duplicatePreviousData && previous) {
-      await duplicateExerciseData(orgId, previous.id, created.id);
-    }
-
-    res.status(201).json(CreateExerciseResponse.parse(created));
-  },
-);
-
-router.patch(
-  "/organizations/:orgId/exercises/:id",
-  requireAuth,
-  requireOrgRole(["owner", "admin"]),
-  async (req, res): Promise<void> => {
-    const orgId = parseId(req.params.orgId as string);
-    const id = parseId(req.params.id as string);
-
-    const parsed = UpdateExerciseStatusBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
+    if (!current) {
+      res.status(409).json({ error: "Aucun exercice en cours pour cette organisation" });
       return;
     }
 
-    const [updated] = await db
-      .update(exercisesTable)
-      .set({ status: parsed.data.status, updatedAt: new Date() })
-      .where(and(eq(exercisesTable.id, id), eq(exercisesTable.organizationId, orgId)))
-      .returning();
-
-    if (!updated) {
-      res.status(404).json({ error: "Exercise not found" });
-      return;
-    }
-
-    res.json(UpdateExerciseStatusResponse.parse(updated));
-  },
-);
-
-router.delete(
-  "/organizations/:orgId/exercises/:id",
-  requireAuth,
-  requireOrgRole(["owner", "admin"]),
-  async (req, res): Promise<void> => {
-    const orgId = parseId(req.params.orgId as string);
-    const id = parseId(req.params.id as string);
-
-    const [exercise] = await db
-      .select()
-      .from(exercisesTable)
-      .where(and(eq(exercisesTable.id, id), eq(exercisesTable.organizationId, orgId)))
-      .limit(1);
-
-    if (!exercise) {
-      res.status(404).json({ error: "Exercise not found" });
-      return;
-    }
-
-    if (exercise.status !== "active") {
-      res.status(409).json({ error: "Un exercice clôturé ne peut pas être supprimé" });
-      return;
-    }
-
-    const others = await db
+    const nextYear = current.year + 1;
+    const [existingNext] = await db
       .select({ id: exercisesTable.id })
       .from(exercisesTable)
-      .where(eq(exercisesTable.organizationId, orgId));
-    if (others.length <= 1) {
-      res.status(409).json({ error: "Impossible de supprimer le dernier exercice de l'organisation" });
+      .where(and(eq(exercisesTable.organizationId, orgId), eq(exercisesTable.year, nextYear)))
+      .limit(1);
+    if (existingNext) {
+      res.status(409).json({ error: `Un exercice existe déjà pour l'année ${nextYear}` });
       return;
     }
 
-    await db.delete(exercisesTable).where(eq(exercisesTable.id, id));
-    res.status(204).end();
+    const created = await db.transaction(async (tx) => {
+      await tx
+        .update(exercisesTable)
+        .set({ status: "closed", updatedAt: new Date() })
+        .where(eq(exercisesTable.id, current.id));
+
+      const [createdExercise] = await tx
+        .insert(exercisesTable)
+        .values({ organizationId: orgId, year: nextYear, status: "active" })
+        .returning();
+
+      await duplicateExerciseData(tx, orgId, current.id, createdExercise.id);
+
+      return createdExercise;
+    });
+
+    res.status(201).json(AdvanceExerciseResponse.parse(created));
   },
 );
 

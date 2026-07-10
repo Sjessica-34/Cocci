@@ -14,4 +14,9 @@ export interface OrganizationInput {
   siret?: string;
   sector?: string;
   size?: OrganizationInputSize;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  exerciseOpeningMonth?: number;
 }

@@ -22,6 +22,12 @@ export interface Organization {
   size?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  /**
+     * Month (1-12) from which "Clôturer et créer l'exercice suivant" becomes available. Defaults to 12 (Décembre).
+     * @minimum 1
+     * @maximum 12
+     */
+  exerciseOpeningMonth?: number;
   createdAt: Date;
   updatedAt?: Date;
 }

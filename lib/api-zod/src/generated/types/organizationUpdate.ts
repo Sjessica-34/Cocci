@@ -14,4 +14,9 @@ export interface OrganizationUpdate {
   siret?: string;
   sector?: string;
   size?: OrganizationUpdateSize;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  exerciseOpeningMonth?: number;
 }

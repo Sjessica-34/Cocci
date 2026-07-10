@@ -335,61 +335,27 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+
+  /organizations/{orgId}/exercises/advance:
     post:
-      operationId: createExercise
+      operationId: advanceExercise
       tags: [exercises]
-      summary: Create a new exercise, optionally duplicating data from the previous one
+      summary: Close the current active exercise and automatically create + populate the next one
+      description: >
+        The only way an exercise is ever closed or created. Computes the next year automatically
+        (current active exercise's year + 1), refuses if the current month is before the
+        organization's configured exerciseOpeningMonth, then atomically closes the current
+        exercise, creates the next one, duplicates all business data into it, and re-links
+        (never duplicates) documents.
       parameters:
         - name: orgId
           in: path
           required: true
           schema:
             type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ExerciseInput"
       responses:
         "201":
-          description: Created exercise
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Exercise"
-        "401":
-          description: Unauthorized
-        "403":
-          description: Forbidden
-        "409":
-          description: An exercise already exists for that year
-
-  /organizations/{orgId}/exercises/{id}:
-    patch:
-      operationId: updateExerciseStatus
-      tags: [exercises]
-      summary: Update an exercise's status (reopen/close)
-      parameters:
-        - name: orgId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ExerciseStatusUpdate"
-      responses:
-        "200":
-          description: Updated exercise
+          description: The newly created (and now active) exercise
           content:
             application/json:
               schema:
@@ -399,33 +365,9 @@ paths:
         "403":
           description: Forbidden
         "404":
-          description: Not found
-    delete:
-      operationId: deleteExercise
-      tags: [exercises]
-      summary: Delete an exercise (only if active and another exercise exists)
-      parameters:
-        - name: orgId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: Exercise deleted
-        "401":
-          description: Unauthorized
-        "403":
-          description: Forbidden
-        "404":
-          description: Not found
+          description: Organization not found
         "409":
-          description: Exercise cannot be deleted (closed, or only exercise left)
+          description: Not yet allowed this month, no active exercise found, or next year already exists
 
   # ─── ADMIN ───────────────────────────────────────────────────────────────────
   /admin/stats:
@@ -1749,6 +1691,13 @@ components:
           description: "TPE / PME / ETI / GE"
         logoUrl:
           type: ["string", "null"]
+        exerciseOpeningMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: >
+            Month (1-12) from which "Clôturer et créer l'exercice suivant" becomes available.
+            Defaults to 12 (Décembre).
         createdAt:
           type: string
           format: date-time
@@ -1772,6 +1721,10 @@ components:
         size:
           type: string
           enum: [TPE, PME, ETI, GE]
+        exerciseOpeningMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
 
     OrganizationUpdate:
       type: object
@@ -1788,6 +1741,10 @@ components:
         size:
           type: string
           enum: [TPE, PME, ETI, GE]
+        exerciseOpeningMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
 
     # ─── MEMBER ────────────────────────────────────────────────────────────────
     Member:
@@ -2043,24 +2000,6 @@ components:
         updatedAt:
           type: string
           format: date-time
-
-    ExerciseInput:
-      type: object
-      required: [year]
-      properties:
-        year:
-          type: integer
-        duplicatePreviousData:
-          type: boolean
-          description: When true, duplicates all business data from the most recent existing exercise into the new one.
-
-    ExerciseStatusUpdate:
-      type: object
-      required: [status]
-      properties:
-        status:
-          type: string
-          enum: [active, closed]
 
     StakeholderInput:
       type: object

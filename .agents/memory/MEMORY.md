@@ -5,3 +5,4 @@
 - [Drizzle numeric → string](drizzle-numeric-string.md) — Drizzle `numeric()` columns map to `string` in TypeScript; always call `String(value)` before insert/update, never pass a `number` directly.
 - [Biodiversité module](biodiversite.md) — CRUD deps + issues + IA Anthropic haiku generate, JSON.stringify pour dependencyIds (text column), `?? null` obligatoire sur champs optional du schema Zod généré.
 - [Exercise (fiscal year) scoping](exercise-scoping.md) — X-Exercise-Id header injected app-wide via api-client-react getter; pages need zero per-page changes; must invalidateQueries() on switch since exercise isn't in query keys.
+- [Drizzle push interactive prompt false positive](drizzle-push-quirk.md) — `drizzle-kit push` can hang on a phantom truncate-confirmation for an unrelated table even in a plain non-TTY shell; apply the real diff manually via psql instead of forcing through it.

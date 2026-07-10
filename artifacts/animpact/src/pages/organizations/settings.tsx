@@ -68,7 +68,23 @@ const formSchema = z.object({
     }),
   sector: z.string().optional(),
   size: z.enum(["TPE", "PME", "ETI", "GE"]).optional(),
+  exerciseOpeningMonth: z.coerce.number().int().min(1).max(12),
 });
+
+const MONTHS = [
+  "Janvier",
+  "Février",
+  "Mars",
+  "Avril",
+  "Mai",
+  "Juin",
+  "Juillet",
+  "Août",
+  "Septembre",
+  "Octobre",
+  "Novembre",
+  "Décembre",
+];
 
 export function OrganizationSettings() {
   const { id } = useParams();
@@ -95,6 +111,7 @@ export function OrganizationSettings() {
       siret: "",
       sector: "",
       size: undefined,
+      exerciseOpeningMonth: 12,
     },
   });
 
@@ -108,6 +125,7 @@ export function OrganizationSettings() {
         siret: org.siret || "",
         sector: org.sector || "",
         size: (org.size as "TPE" | "PME" | "ETI" | "GE") || undefined,
+        exerciseOpeningMonth: org.exerciseOpeningMonth ?? 12,
       });
       initializedRef.current = true;
     }
@@ -273,6 +291,46 @@ export function OrganizationSettings() {
                                 <SelectItem value="GE">GE — 5 000+ salariés</SelectItem>
                               </SelectContent>
                             </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Exercice annuel */}
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-4">Exercice annuel</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <FormField
+                        control={form.control}
+                        name="exerciseOpeningMonth"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Mois d'ouverture du nouvel exercice</FormLabel>
+                            <Select
+                              onValueChange={(v) => field.onChange(Number(v))}
+                              value={String(field.value)}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Sélectionner" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {MONTHS.map((label, i) => (
+                                  <SelectItem key={label} value={String(i + 1)}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription className="text-xs">
+                              À partir de ce mois, le bouton « Clôturer et créer l'exercice suivant » devient
+                              disponible.
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}

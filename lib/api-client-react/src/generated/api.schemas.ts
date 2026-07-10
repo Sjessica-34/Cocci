@@ -45,6 +45,12 @@ export interface Organization {
   size?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  /**
+     * Month (1-12) from which "Clôturer et créer l'exercice suivant" becomes available. Defaults to 12 (Décembre).
+     * @minimum 1
+     * @maximum 12
+     */
+  exerciseOpeningMonth?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -66,6 +72,11 @@ export interface OrganizationInput {
   siret?: string;
   sector?: string;
   size?: OrganizationInputSize;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  exerciseOpeningMonth?: number;
 }
 
 export type OrganizationUpdateSize = typeof OrganizationUpdateSize[keyof typeof OrganizationUpdateSize];
@@ -85,6 +96,11 @@ export interface OrganizationUpdate {
   siret?: string;
   sector?: string;
   size?: OrganizationUpdateSize;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  exerciseOpeningMonth?: number;
 }
 
 export type MemberRole = typeof MemberRole[keyof typeof MemberRole];
@@ -308,24 +324,6 @@ export interface Exercise {
   status: ExerciseStatus;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface ExerciseInput {
-  year: number;
-  /** When true, duplicates all business data from the most recent existing exercise into the new one. */
-  duplicatePreviousData?: boolean;
-}
-
-export type ExerciseStatusUpdateStatus = typeof ExerciseStatusUpdateStatus[keyof typeof ExerciseStatusUpdateStatus];
-
-
-export const ExerciseStatusUpdateStatus = {
-  active: 'active',
-  closed: 'closed',
-} as const;
-
-export interface ExerciseStatusUpdate {
-  status: ExerciseStatusUpdateStatus;
 }
 
 export interface StakeholderInput {

@@ -59,6 +59,10 @@ export const UpdateMeResponse = zod.object({
  * Returns all organizations the authenticated user belongs to
  * @summary List organizations for current user
  */
+export const listOrganizationsResponseExerciseOpeningMonthMax = 12;
+
+
+
 export const ListOrganizationsResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -67,6 +71,7 @@ export const ListOrganizationsResponseItem = zod.object({
   "sector": zod.string().nullish(),
   "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
   "logoUrl": zod.string().nullish(),
+  "exerciseOpeningMonth": zod.number().min(1).max(listOrganizationsResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -77,6 +82,8 @@ export const ListOrganizationsResponse = zod.array(ListOrganizationsResponseItem
  * @summary Create a new organization
  */
 
+export const createOrganizationBodyExerciseOpeningMonthMax = 12;
+
 
 
 export const CreateOrganizationBody = zod.object({
@@ -84,8 +91,13 @@ export const CreateOrganizationBody = zod.object({
   "legalName": zod.string().optional(),
   "siret": zod.string().optional(),
   "sector": zod.string().optional(),
-  "size": zod.enum(['TPE', 'PME', 'ETI', 'GE']).optional()
+  "size": zod.enum(['TPE', 'PME', 'ETI', 'GE']).optional(),
+  "exerciseOpeningMonth": zod.number().min(1).max(createOrganizationBodyExerciseOpeningMonthMax).optional()
 })
+
+export const createOrganizationResponseExerciseOpeningMonthMax = 12;
+
+
 
 export const CreateOrganizationResponse = zod.object({
   "id": zod.number(),
@@ -95,6 +107,7 @@ export const CreateOrganizationResponse = zod.object({
   "sector": zod.string().nullish(),
   "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
   "logoUrl": zod.string().nullish(),
+  "exerciseOpeningMonth": zod.number().min(1).max(createOrganizationResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -107,6 +120,10 @@ export const GetOrganizationParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getOrganizationResponseExerciseOpeningMonthMax = 12;
+
+
+
 export const GetOrganizationResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -115,6 +132,7 @@ export const GetOrganizationResponse = zod.object({
   "sector": zod.string().nullish(),
   "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
   "logoUrl": zod.string().nullish(),
+  "exerciseOpeningMonth": zod.number().min(1).max(getOrganizationResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -128,6 +146,8 @@ export const UpdateOrganizationParams = zod.object({
 })
 
 
+export const updateOrganizationBodyExerciseOpeningMonthMax = 12;
+
 
 
 export const UpdateOrganizationBody = zod.object({
@@ -135,8 +155,13 @@ export const UpdateOrganizationBody = zod.object({
   "legalName": zod.string().optional(),
   "siret": zod.string().optional(),
   "sector": zod.string().optional(),
-  "size": zod.enum(['TPE', 'PME', 'ETI', 'GE']).optional()
+  "size": zod.enum(['TPE', 'PME', 'ETI', 'GE']).optional(),
+  "exerciseOpeningMonth": zod.number().min(1).max(updateOrganizationBodyExerciseOpeningMonthMax).optional()
 })
+
+export const updateOrganizationResponseExerciseOpeningMonthMax = 12;
+
+
 
 export const UpdateOrganizationResponse = zod.object({
   "id": zod.number(),
@@ -146,6 +171,7 @@ export const UpdateOrganizationResponse = zod.object({
   "sector": zod.string().nullish(),
   "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
   "logoUrl": zod.string().nullish(),
+  "exerciseOpeningMonth": zod.number().min(1).max(updateOrganizationResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -294,18 +320,14 @@ export const ListExercisesResponse = zod.array(ListExercisesResponseItem)
 
 
 /**
- * @summary Create a new exercise, optionally duplicating data from the previous one
+ * The only way an exercise is ever closed or created. Computes the next year automatically (current active exercise's year + 1), refuses if the current month is before the organization's configured exerciseOpeningMonth, then atomically closes the current exercise, creates the next one, duplicates all business data into it, and re-links (never duplicates) documents.
+ * @summary Close the current active exercise and automatically create + populate the next one
  */
-export const CreateExerciseParams = zod.object({
+export const AdvanceExerciseParams = zod.object({
   "orgId": zod.coerce.number()
 })
 
-export const CreateExerciseBody = zod.object({
-  "year": zod.number(),
-  "duplicatePreviousData": zod.boolean().optional().describe('When true, duplicates all business data from the most recent existing exercise into the new one.')
-})
-
-export const CreateExerciseResponse = zod.object({
+export const AdvanceExerciseResponse = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "year": zod.number(),
@@ -313,39 +335,6 @@ export const CreateExerciseResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
-
-
-/**
- * @summary Update an exercise's status (reopen/close)
- */
-export const UpdateExerciseStatusParams = zod.object({
-  "orgId": zod.coerce.number(),
-  "id": zod.coerce.number()
-})
-
-export const UpdateExerciseStatusBody = zod.object({
-  "status": zod.enum(['active', 'closed'])
-})
-
-export const UpdateExerciseStatusResponse = zod.object({
-  "id": zod.number(),
-  "organizationId": zod.number(),
-  "year": zod.number(),
-  "status": zod.enum(['active', 'closed']),
-  "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
-})
-
-
-/**
- * @summary Delete an exercise (only if active and another exercise exists)
- */
-export const DeleteExerciseParams = zod.object({
-  "orgId": zod.coerce.number(),
-  "id": zod.coerce.number()
-})
-
-export const DeleteExerciseResponse = zod.void()
 
 
 /**
