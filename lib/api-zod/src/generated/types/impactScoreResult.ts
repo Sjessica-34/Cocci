@@ -18,10 +18,10 @@ export interface ImpactScoreResult {
   /** @nullable */
   commentaire?: string | null;
   /** @nullable */
-  limitationImpactsNegatifs?: string | null;
+  limitationImpactsNegatifs?: number | null;
   /** @nullable */
-  partageValeurPouvoir?: string | null;
+  partageValeurPouvoir?: number | null;
   /** @nullable */
-  strategieImpactPositif?: string | null;
+  strategieImpactPositif?: number | null;
   updatedAt: Date;
 }

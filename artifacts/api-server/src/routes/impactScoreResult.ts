@@ -38,9 +38,9 @@ router.put("/organizations/:orgId/impact-score-result", requireAuth, requireOrgM
     score?: number;
     dateRealisation?: string;
     commentaire?: string | null;
-    limitationImpactsNegatifs?: string | null;
-    partageValeurPouvoir?: string | null;
-    strategieImpactPositif?: string | null;
+    limitationImpactsNegatifs?: number | null;
+    partageValeurPouvoir?: number | null;
+    strategieImpactPositif?: number | null;
   };
 
   if (body.score === undefined || body.dateRealisation === undefined) {
@@ -50,6 +50,16 @@ router.put("/organizations/:orgId/impact-score-result", requireAuth, requireOrgM
   if (typeof body.score !== "number" || body.score < 0 || body.score > 100) {
     res.status(400).json({ error: "score must be an integer between 0 and 100" });
     return;
+  }
+  for (const [key, value] of Object.entries({
+    limitationImpactsNegatifs: body.limitationImpactsNegatifs,
+    partageValeurPouvoir: body.partageValeurPouvoir,
+    strategieImpactPositif: body.strategieImpactPositif,
+  })) {
+    if (value != null && (typeof value !== "number" || value < 0 || value > 100)) {
+      res.status(400).json({ error: `${key} must be an integer between 0 and 100` });
+      return;
+    }
   }
 
   const [existing] = await db

@@ -64,12 +64,19 @@ export function TabResultat({ orgId }: Props) {
       setScore(String(saved.score));
       setDate(saved.dateRealisation);
       setComment(saved.commentaire ?? "");
-      setLimitationImpactsNegatifs(saved.limitationImpactsNegatifs ?? "");
-      setPartageValeurPouvoir(saved.partageValeurPouvoir ?? "");
-      setStrategieImpactPositif(saved.strategieImpactPositif ?? "");
+      setLimitationImpactsNegatifs(saved.limitationImpactsNegatifs != null ? String(saved.limitationImpactsNegatifs) : "");
+      setPartageValeurPouvoir(saved.partageValeurPouvoir != null ? String(saved.partageValeurPouvoir) : "");
+      setStrategieImpactPositif(saved.strategieImpactPositif != null ? String(saved.strategieImpactPositif) : "");
       setStep("form");
     }
   }, [editing, saved]);
+
+  function parsePillar(value: string): number | null | "invalid" {
+    if (!value.trim()) return null;
+    const n = parseInt(value, 10);
+    if (isNaN(n) || n < 0 || n > 100) return "invalid";
+    return n;
+  }
 
   function handleSave() {
     const parsed = parseInt(score, 10);
@@ -81,6 +88,13 @@ export function TabResultat({ orgId }: Props) {
       setError("Veuillez renseigner la date de réalisation.");
       return;
     }
+    const limitation = parsePillar(limitationImpactsNegatifs);
+    const partage = parsePillar(partageValeurPouvoir);
+    const strategie = parsePillar(strategieImpactPositif);
+    if (limitation === "invalid" || partage === "invalid" || strategie === "invalid") {
+      setError("Les notes des piliers doivent être des entiers entre 0 et 100.");
+      return;
+    }
     setError(null);
     mutation.mutate(
       {
@@ -89,9 +103,9 @@ export function TabResultat({ orgId }: Props) {
           score: parsed,
           dateRealisation: date,
           commentaire: comment || null,
-          limitationImpactsNegatifs: limitationImpactsNegatifs || null,
-          partageValeurPouvoir: partageValeurPouvoir || null,
-          strategieImpactPositif: strategieImpactPositif || null,
+          limitationImpactsNegatifs: limitation,
+          partageValeurPouvoir: partage,
+          strategieImpactPositif: strategie,
         },
       },
       {
@@ -219,46 +233,61 @@ export function TabResultat({ orgId }: Props) {
             {/* Pilier: Limitation des impacts négatifs */}
             <div className="space-y-1.5">
               <Label htmlFor="is-pilier-limitation" className="text-xs font-medium text-muted-foreground">
-                Limitation des impacts négatifs <span className="font-normal">(facultatif)</span>
+                Limitation des impacts négatifs <span className="font-normal">(sur 100, facultatif)</span>
               </Label>
-              <Textarea
-                id="is-pilier-limitation"
-                value={limitationImpactsNegatifs}
-                onChange={(e) => setLimitationImpactsNegatifs(e.target.value)}
-                placeholder="Actions ou constats liés à la limitation des impacts négatifs…"
-                rows={3}
-                className="resize-none text-sm"
-              />
+              <div className="relative">
+                <Input
+                  id="is-pilier-limitation"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={limitationImpactsNegatifs}
+                  onChange={(e) => setLimitationImpactsNegatifs(e.target.value)}
+                  placeholder="ex. 70"
+                  className="pr-12"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">/100</span>
+              </div>
             </div>
 
             {/* Pilier: Partage de la valeur et du pouvoir */}
             <div className="space-y-1.5">
               <Label htmlFor="is-pilier-partage" className="text-xs font-medium text-muted-foreground">
-                Partage de la valeur et du pouvoir <span className="font-normal">(facultatif)</span>
+                Partage de la valeur et du pouvoir <span className="font-normal">(sur 100, facultatif)</span>
               </Label>
-              <Textarea
-                id="is-pilier-partage"
-                value={partageValeurPouvoir}
-                onChange={(e) => setPartageValeurPouvoir(e.target.value)}
-                placeholder="Actions ou constats liés au partage de la valeur et du pouvoir…"
-                rows={3}
-                className="resize-none text-sm"
-              />
+              <div className="relative">
+                <Input
+                  id="is-pilier-partage"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={partageValeurPouvoir}
+                  onChange={(e) => setPartageValeurPouvoir(e.target.value)}
+                  placeholder="ex. 70"
+                  className="pr-12"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">/100</span>
+              </div>
             </div>
 
             {/* Pilier: Stratégie à impact positif */}
             <div className="space-y-1.5">
               <Label htmlFor="is-pilier-strategie" className="text-xs font-medium text-muted-foreground">
-                Stratégie à impact positif <span className="font-normal">(facultatif)</span>
+                Stratégie à impact positif <span className="font-normal">(sur 100, facultatif)</span>
               </Label>
-              <Textarea
-                id="is-pilier-strategie"
-                value={strategieImpactPositif}
-                onChange={(e) => setStrategieImpactPositif(e.target.value)}
-                placeholder="Actions ou constats liés à la stratégie à impact positif…"
-                rows={3}
-                className="resize-none text-sm"
-              />
+              <div className="relative">
+                <Input
+                  id="is-pilier-strategie"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={strategieImpactPositif}
+                  onChange={(e) => setStrategieImpactPositif(e.target.value)}
+                  placeholder="ex. 70"
+                  className="pr-12"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">/100</span>
+              </div>
             </div>
 
             {/* Doc upload */}
@@ -329,25 +358,16 @@ export function TabResultat({ orgId }: Props) {
               </p>
             )}
 
-            {(saved.limitationImpactsNegatifs || saved.partageValeurPouvoir || saved.strategieImpactPositif) && (
+            {(saved.limitationImpactsNegatifs != null || saved.partageValeurPouvoir != null || saved.strategieImpactPositif != null) && (
               <div className="mt-4 space-y-3">
-                {saved.limitationImpactsNegatifs && (
-                  <div>
-                    <p className="text-xs font-semibold text-foreground/80">Limitation des impacts négatifs</p>
-                    <p className="text-xs text-foreground/75 mt-0.5">{saved.limitationImpactsNegatifs}</p>
-                  </div>
+                {saved.limitationImpactsNegatifs != null && (
+                  <PillarNote label="Limitation des impacts négatifs" value={saved.limitationImpactsNegatifs} />
                 )}
-                {saved.partageValeurPouvoir && (
-                  <div>
-                    <p className="text-xs font-semibold text-foreground/80">Partage de la valeur et du pouvoir</p>
-                    <p className="text-xs text-foreground/75 mt-0.5">{saved.partageValeurPouvoir}</p>
-                  </div>
+                {saved.partageValeurPouvoir != null && (
+                  <PillarNote label="Partage de la valeur et du pouvoir" value={saved.partageValeurPouvoir} />
                 )}
-                {saved.strategieImpactPositif && (
-                  <div>
-                    <p className="text-xs font-semibold text-foreground/80">Stratégie à impact positif</p>
-                    <p className="text-xs text-foreground/75 mt-0.5">{saved.strategieImpactPositif}</p>
-                  </div>
+                {saved.strategieImpactPositif != null && (
+                  <PillarNote label="Stratégie à impact positif" value={saved.strategieImpactPositif} />
                 )}
               </div>
             )}
@@ -418,6 +438,24 @@ function ScoreGauge({ value, large = false }: { value: number; large?: boolean }
         className="h-full rounded-full transition-all duration-700"
         style={{ width: `${value}%`, backgroundColor: color }}
       />
+    </div>
+  );
+}
+
+function PillarNote({ label, value }: { label: string; value: number }) {
+  const color = value >= 70 ? "#10b981" : value >= 40 ? "#f59e0b" : "#ef4444";
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-foreground/80">{label}</p>
+        <p className="text-xs font-semibold text-foreground/80">{value}/100</p>
+      </div>
+      <div className="rounded-full bg-muted overflow-hidden h-1.5 mt-1">
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${value}%`, backgroundColor: color }}
+        />
+      </div>
     </div>
   );
 }

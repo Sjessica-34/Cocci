@@ -2994,11 +2994,11 @@ components:
         commentaire:
           type: ["string", "null"]
         limitationImpactsNegatifs:
-          type: ["string", "null"]
+          type: ["integer", "null"]
         partageValeurPouvoir:
-          type: ["string", "null"]
+          type: ["integer", "null"]
         strategieImpactPositif:
-          type: ["string", "null"]
+          type: ["integer", "null"]
         updatedAt:
           type: string
           format: date-time
@@ -3026,11 +3026,11 @@ components:
         commentaire:
           type: ["string", "null"]
         limitationImpactsNegatifs:
-          type: ["string", "null"]
+          type: ["integer", "null"]
         partageValeurPouvoir:
-          type: ["string", "null"]
+          type: ["integer", "null"]
         strategieImpactPositif:
-          type: ["string", "null"]
+          type: ["integer", "null"]
 
     DashboardSummary:
       type: object
