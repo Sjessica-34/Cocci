@@ -25,6 +25,7 @@ import {
   FileText,
   Award,
   Smile,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +67,7 @@ const navGroups: NavItem[][] = [
   ],
   [
     { href: "/barometre-social", label: "Baromètre Social", icon: Smile },
+    { href: "/employment", label: "Emploi & Compétences", icon: GraduationCap },
   ],
   [
     { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },

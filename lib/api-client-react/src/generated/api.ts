@@ -47,6 +47,20 @@ import type {
   CustomIssueInput,
   DashboardSummary,
   DocumentMeta,
+  EmploymentCustomKpi,
+  EmploymentCustomKpiInput,
+  EmploymentCustomKpiListResponse,
+  EmploymentDiversity,
+  EmploymentDiversityInput,
+  EmploymentDiversityResponse,
+  EmploymentFormulaVariableListResponse,
+  EmploymentResults,
+  EmploymentTraining,
+  EmploymentTrainingInput,
+  EmploymentTrainingResponse,
+  EmploymentWorkforce,
+  EmploymentWorkforceInput,
+  EmploymentWorkforceResponse,
   Exercise,
   HealthStatus,
   ImpactScoreResult,
@@ -5453,6 +5467,897 @@ export const useSubmitPublicBarometreResponse = <TError = ErrorType<void>,
       > => {
       return useMutation(getSubmitPublicBarometreResponseMutationOptions(options));
     }
+
+export const getGetEmploymentWorkforceUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/workforce`
+}
+
+/**
+ * @summary Get the workforce data for the active exercise (null if never entered)
+ */
+export const getEmploymentWorkforce = async (orgId: number, options?: RequestInit): Promise<EmploymentWorkforceResponse> => {
+
+  return customFetch<EmploymentWorkforceResponse>(getGetEmploymentWorkforceUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmploymentWorkforceQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/employment/workforce`
+    ] as const;
+    }
+
+
+export const getGetEmploymentWorkforceQueryOptions = <TData = Awaited<ReturnType<typeof getEmploymentWorkforce>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmploymentWorkforce>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmploymentWorkforceQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmploymentWorkforce>>> = ({ signal }) => getEmploymentWorkforce(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmploymentWorkforce>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmploymentWorkforceQueryResult = NonNullable<Awaited<ReturnType<typeof getEmploymentWorkforce>>>
+export type GetEmploymentWorkforceQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the workforce data for the active exercise (null if never entered)
+ */
+
+export function useGetEmploymentWorkforce<TData = Awaited<ReturnType<typeof getEmploymentWorkforce>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmploymentWorkforce>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmploymentWorkforceQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertEmploymentWorkforceUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/workforce`
+}
+
+/**
+ * @summary Create or update the workforce data for the active exercise
+ */
+export const upsertEmploymentWorkforce = async (orgId: number,
+    employmentWorkforceInput: EmploymentWorkforceInput, options?: RequestInit): Promise<EmploymentWorkforce> => {
+
+  return customFetch<EmploymentWorkforce>(getUpsertEmploymentWorkforceUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(employmentWorkforceInput)
+  }
+);}
+
+
+
+
+export const getUpsertEmploymentWorkforceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentWorkforce>>, TError,{orgId: number;data: BodyType<EmploymentWorkforceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentWorkforce>>, TError,{orgId: number;data: BodyType<EmploymentWorkforceInput>}, TContext> => {
+
+const mutationKey = ['upsertEmploymentWorkforce'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertEmploymentWorkforce>>, {orgId: number;data: BodyType<EmploymentWorkforceInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertEmploymentWorkforce(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertEmploymentWorkforceMutationResult = NonNullable<Awaited<ReturnType<typeof upsertEmploymentWorkforce>>>
+    export type UpsertEmploymentWorkforceMutationBody = BodyType<EmploymentWorkforceInput>
+    export type UpsertEmploymentWorkforceMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or update the workforce data for the active exercise
+ */
+export const useUpsertEmploymentWorkforce = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentWorkforce>>, TError,{orgId: number;data: BodyType<EmploymentWorkforceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertEmploymentWorkforce>>,
+        TError,
+        {orgId: number;data: BodyType<EmploymentWorkforceInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertEmploymentWorkforceMutationOptions(options));
+    }
+
+export const getGetEmploymentDiversityUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/diversity`
+}
+
+/**
+ * @summary Get the diversity & inclusion data for the active exercise (null if never entered)
+ */
+export const getEmploymentDiversity = async (orgId: number, options?: RequestInit): Promise<EmploymentDiversityResponse> => {
+
+  return customFetch<EmploymentDiversityResponse>(getGetEmploymentDiversityUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmploymentDiversityQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/employment/diversity`
+    ] as const;
+    }
+
+
+export const getGetEmploymentDiversityQueryOptions = <TData = Awaited<ReturnType<typeof getEmploymentDiversity>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmploymentDiversity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmploymentDiversityQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmploymentDiversity>>> = ({ signal }) => getEmploymentDiversity(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmploymentDiversity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmploymentDiversityQueryResult = NonNullable<Awaited<ReturnType<typeof getEmploymentDiversity>>>
+export type GetEmploymentDiversityQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the diversity & inclusion data for the active exercise (null if never entered)
+ */
+
+export function useGetEmploymentDiversity<TData = Awaited<ReturnType<typeof getEmploymentDiversity>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmploymentDiversity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmploymentDiversityQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertEmploymentDiversityUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/diversity`
+}
+
+/**
+ * @summary Create or update the diversity & inclusion data for the active exercise
+ */
+export const upsertEmploymentDiversity = async (orgId: number,
+    employmentDiversityInput: EmploymentDiversityInput, options?: RequestInit): Promise<EmploymentDiversity> => {
+
+  return customFetch<EmploymentDiversity>(getUpsertEmploymentDiversityUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(employmentDiversityInput)
+  }
+);}
+
+
+
+
+export const getUpsertEmploymentDiversityMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentDiversity>>, TError,{orgId: number;data: BodyType<EmploymentDiversityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentDiversity>>, TError,{orgId: number;data: BodyType<EmploymentDiversityInput>}, TContext> => {
+
+const mutationKey = ['upsertEmploymentDiversity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertEmploymentDiversity>>, {orgId: number;data: BodyType<EmploymentDiversityInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertEmploymentDiversity(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertEmploymentDiversityMutationResult = NonNullable<Awaited<ReturnType<typeof upsertEmploymentDiversity>>>
+    export type UpsertEmploymentDiversityMutationBody = BodyType<EmploymentDiversityInput>
+    export type UpsertEmploymentDiversityMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or update the diversity & inclusion data for the active exercise
+ */
+export const useUpsertEmploymentDiversity = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentDiversity>>, TError,{orgId: number;data: BodyType<EmploymentDiversityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertEmploymentDiversity>>,
+        TError,
+        {orgId: number;data: BodyType<EmploymentDiversityInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertEmploymentDiversityMutationOptions(options));
+    }
+
+export const getGetEmploymentTrainingUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/training`
+}
+
+/**
+ * @summary Get the training & development data for the active exercise (null if never entered)
+ */
+export const getEmploymentTraining = async (orgId: number, options?: RequestInit): Promise<EmploymentTrainingResponse> => {
+
+  return customFetch<EmploymentTrainingResponse>(getGetEmploymentTrainingUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmploymentTrainingQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/employment/training`
+    ] as const;
+    }
+
+
+export const getGetEmploymentTrainingQueryOptions = <TData = Awaited<ReturnType<typeof getEmploymentTraining>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmploymentTraining>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmploymentTrainingQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmploymentTraining>>> = ({ signal }) => getEmploymentTraining(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmploymentTraining>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmploymentTrainingQueryResult = NonNullable<Awaited<ReturnType<typeof getEmploymentTraining>>>
+export type GetEmploymentTrainingQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the training & development data for the active exercise (null if never entered)
+ */
+
+export function useGetEmploymentTraining<TData = Awaited<ReturnType<typeof getEmploymentTraining>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmploymentTraining>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmploymentTrainingQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertEmploymentTrainingUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/training`
+}
+
+/**
+ * @summary Create or update the training & development data for the active exercise
+ */
+export const upsertEmploymentTraining = async (orgId: number,
+    employmentTrainingInput: EmploymentTrainingInput, options?: RequestInit): Promise<EmploymentTraining> => {
+
+  return customFetch<EmploymentTraining>(getUpsertEmploymentTrainingUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(employmentTrainingInput)
+  }
+);}
+
+
+
+
+export const getUpsertEmploymentTrainingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentTraining>>, TError,{orgId: number;data: BodyType<EmploymentTrainingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentTraining>>, TError,{orgId: number;data: BodyType<EmploymentTrainingInput>}, TContext> => {
+
+const mutationKey = ['upsertEmploymentTraining'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertEmploymentTraining>>, {orgId: number;data: BodyType<EmploymentTrainingInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertEmploymentTraining(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertEmploymentTrainingMutationResult = NonNullable<Awaited<ReturnType<typeof upsertEmploymentTraining>>>
+    export type UpsertEmploymentTrainingMutationBody = BodyType<EmploymentTrainingInput>
+    export type UpsertEmploymentTrainingMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or update the training & development data for the active exercise
+ */
+export const useUpsertEmploymentTraining = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertEmploymentTraining>>, TError,{orgId: number;data: BodyType<EmploymentTrainingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertEmploymentTraining>>,
+        TError,
+        {orgId: number;data: BodyType<EmploymentTrainingInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertEmploymentTrainingMutationOptions(options));
+    }
+
+export const getListEmploymentCustomKpisUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/kpis`
+}
+
+/**
+ * @summary List custom KPIs for the active exercise
+ */
+export const listEmploymentCustomKpis = async (orgId: number, options?: RequestInit): Promise<EmploymentCustomKpiListResponse> => {
+
+  return customFetch<EmploymentCustomKpiListResponse>(getListEmploymentCustomKpisUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEmploymentCustomKpisQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/employment/kpis`
+    ] as const;
+    }
+
+
+export const getListEmploymentCustomKpisQueryOptions = <TData = Awaited<ReturnType<typeof listEmploymentCustomKpis>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmploymentCustomKpis>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEmploymentCustomKpisQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmploymentCustomKpis>>> = ({ signal }) => listEmploymentCustomKpis(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmploymentCustomKpis>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEmploymentCustomKpisQueryResult = NonNullable<Awaited<ReturnType<typeof listEmploymentCustomKpis>>>
+export type ListEmploymentCustomKpisQueryError = ErrorType<void>
+
+
+/**
+ * @summary List custom KPIs for the active exercise
+ */
+
+export function useListEmploymentCustomKpis<TData = Awaited<ReturnType<typeof listEmploymentCustomKpis>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmploymentCustomKpis>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEmploymentCustomKpisQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateEmploymentCustomKpiUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/kpis`
+}
+
+/**
+ * @summary Create a custom KPI (manual value or a computed formula) for the active exercise
+ */
+export const createEmploymentCustomKpi = async (orgId: number,
+    employmentCustomKpiInput: EmploymentCustomKpiInput, options?: RequestInit): Promise<EmploymentCustomKpi> => {
+
+  return customFetch<EmploymentCustomKpi>(getCreateEmploymentCustomKpiUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(employmentCustomKpiInput)
+  }
+);}
+
+
+
+
+export const getCreateEmploymentCustomKpiMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmploymentCustomKpi>>, TError,{orgId: number;data: BodyType<EmploymentCustomKpiInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEmploymentCustomKpi>>, TError,{orgId: number;data: BodyType<EmploymentCustomKpiInput>}, TContext> => {
+
+const mutationKey = ['createEmploymentCustomKpi'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEmploymentCustomKpi>>, {orgId: number;data: BodyType<EmploymentCustomKpiInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createEmploymentCustomKpi(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEmploymentCustomKpiMutationResult = NonNullable<Awaited<ReturnType<typeof createEmploymentCustomKpi>>>
+    export type CreateEmploymentCustomKpiMutationBody = BodyType<EmploymentCustomKpiInput>
+    export type CreateEmploymentCustomKpiMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a custom KPI (manual value or a computed formula) for the active exercise
+ */
+export const useCreateEmploymentCustomKpi = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmploymentCustomKpi>>, TError,{orgId: number;data: BodyType<EmploymentCustomKpiInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEmploymentCustomKpi>>,
+        TError,
+        {orgId: number;data: BodyType<EmploymentCustomKpiInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEmploymentCustomKpiMutationOptions(options));
+    }
+
+export const getUpdateEmploymentCustomKpiUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/kpis/${id}`
+}
+
+/**
+ * @summary Update a custom KPI for the active exercise
+ */
+export const updateEmploymentCustomKpi = async (orgId: number,
+    id: number,
+    employmentCustomKpiInput: EmploymentCustomKpiInput, options?: RequestInit): Promise<EmploymentCustomKpi> => {
+
+  return customFetch<EmploymentCustomKpi>(getUpdateEmploymentCustomKpiUrl(orgId,id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(employmentCustomKpiInput)
+  }
+);}
+
+
+
+
+export const getUpdateEmploymentCustomKpiMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmploymentCustomKpi>>, TError,{orgId: number;id: number;data: BodyType<EmploymentCustomKpiInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateEmploymentCustomKpi>>, TError,{orgId: number;id: number;data: BodyType<EmploymentCustomKpiInput>}, TContext> => {
+
+const mutationKey = ['updateEmploymentCustomKpi'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEmploymentCustomKpi>>, {orgId: number;id: number;data: BodyType<EmploymentCustomKpiInput>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateEmploymentCustomKpi(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateEmploymentCustomKpiMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmploymentCustomKpi>>>
+    export type UpdateEmploymentCustomKpiMutationBody = BodyType<EmploymentCustomKpiInput>
+    export type UpdateEmploymentCustomKpiMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a custom KPI for the active exercise
+ */
+export const useUpdateEmploymentCustomKpi = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmploymentCustomKpi>>, TError,{orgId: number;id: number;data: BodyType<EmploymentCustomKpiInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateEmploymentCustomKpi>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<EmploymentCustomKpiInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateEmploymentCustomKpiMutationOptions(options));
+    }
+
+export const getDeleteEmploymentCustomKpiUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/kpis/${id}`
+}
+
+/**
+ * @summary Delete a custom KPI
+ */
+export const deleteEmploymentCustomKpi = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteEmploymentCustomKpiUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteEmploymentCustomKpiMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmploymentCustomKpi>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEmploymentCustomKpi>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteEmploymentCustomKpi'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEmploymentCustomKpi>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteEmploymentCustomKpi(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteEmploymentCustomKpiMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEmploymentCustomKpi>>>
+
+    export type DeleteEmploymentCustomKpiMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a custom KPI
+ */
+export const useDeleteEmploymentCustomKpi = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmploymentCustomKpi>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteEmploymentCustomKpi>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteEmploymentCustomKpiMutationOptions(options));
+    }
+
+export const getListEmploymentFormulaVariablesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/formula-variables`
+}
+
+/**
+ * @summary List the predefined variable codes available for building a custom KPI formula, with their current value
+ */
+export const listEmploymentFormulaVariables = async (orgId: number, options?: RequestInit): Promise<EmploymentFormulaVariableListResponse> => {
+
+  return customFetch<EmploymentFormulaVariableListResponse>(getListEmploymentFormulaVariablesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEmploymentFormulaVariablesQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/employment/formula-variables`
+    ] as const;
+    }
+
+
+export const getListEmploymentFormulaVariablesQueryOptions = <TData = Awaited<ReturnType<typeof listEmploymentFormulaVariables>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmploymentFormulaVariables>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEmploymentFormulaVariablesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmploymentFormulaVariables>>> = ({ signal }) => listEmploymentFormulaVariables(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmploymentFormulaVariables>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEmploymentFormulaVariablesQueryResult = NonNullable<Awaited<ReturnType<typeof listEmploymentFormulaVariables>>>
+export type ListEmploymentFormulaVariablesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List the predefined variable codes available for building a custom KPI formula, with their current value
+ */
+
+export function useListEmploymentFormulaVariables<TData = Awaited<ReturnType<typeof listEmploymentFormulaVariables>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmploymentFormulaVariables>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEmploymentFormulaVariablesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetEmploymentResultsUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/employment/results`
+}
+
+/**
+ * @summary Get the raw data plus every automatically computed indicator for the active exercise, with year-over-year comparison
+ */
+export const getEmploymentResults = async (orgId: number, options?: RequestInit): Promise<EmploymentResults> => {
+
+  return customFetch<EmploymentResults>(getGetEmploymentResultsUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmploymentResultsQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/employment/results`
+    ] as const;
+    }
+
+
+export const getGetEmploymentResultsQueryOptions = <TData = Awaited<ReturnType<typeof getEmploymentResults>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmploymentResults>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmploymentResultsQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmploymentResults>>> = ({ signal }) => getEmploymentResults(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmploymentResults>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmploymentResultsQueryResult = NonNullable<Awaited<ReturnType<typeof getEmploymentResults>>>
+export type GetEmploymentResultsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the raw data plus every automatically computed indicator for the active exercise, with year-over-year comparison
+ */
+
+export function useGetEmploymentResults<TData = Awaited<ReturnType<typeof getEmploymentResults>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmploymentResults>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmploymentResultsQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetImpactScoreResultUrl = (orgId: number,) => {
 

@@ -30,6 +30,8 @@ tags:
     description: Annual exercise (fiscal year) management
   - name: barometre-social
     description: Baromètre Social — employee survey campaigns, public responses, results and synthesis
+  - name: employment
+    description: Emploi & Compétences — workforce, diversity, training data and computed HR indicators
 
 paths:
   /healthz:
@@ -1773,6 +1775,319 @@ paths:
         "410":
           description: Campaign is not currently open
 
+  # ─── EMPLOI & COMPÉTENCES ───────────────────────────────────────────────────
+  /organizations/{orgId}/employment/workforce:
+    get:
+      operationId: getEmploymentWorkforce
+      tags: [employment]
+      summary: Get the workforce data for the active exercise (null if never entered)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workforce data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentWorkforceResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    put:
+      operationId: upsertEmploymentWorkforce
+      tags: [employment]
+      summary: Create or update the workforce data for the active exercise
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmploymentWorkforceInput"
+      responses:
+        "200":
+          description: Saved workforce data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentWorkforce"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/employment/diversity:
+    get:
+      operationId: getEmploymentDiversity
+      tags: [employment]
+      summary: Get the diversity & inclusion data for the active exercise (null if never entered)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Diversity data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentDiversityResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    put:
+      operationId: upsertEmploymentDiversity
+      tags: [employment]
+      summary: Create or update the diversity & inclusion data for the active exercise
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmploymentDiversityInput"
+      responses:
+        "200":
+          description: Saved diversity data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentDiversity"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/employment/training:
+    get:
+      operationId: getEmploymentTraining
+      tags: [employment]
+      summary: Get the training & development data for the active exercise (null if never entered)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Training data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentTrainingResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    put:
+      operationId: upsertEmploymentTraining
+      tags: [employment]
+      summary: Create or update the training & development data for the active exercise
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmploymentTrainingInput"
+      responses:
+        "200":
+          description: Saved training data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentTraining"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/employment/kpis:
+    get:
+      operationId: listEmploymentCustomKpis
+      tags: [employment]
+      summary: List custom KPIs for the active exercise
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of custom KPIs (with computed value when mode is "formula")
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentCustomKpiListResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    post:
+      operationId: createEmploymentCustomKpi
+      tags: [employment]
+      summary: Create a custom KPI (manual value or a computed formula) for the active exercise
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmploymentCustomKpiInput"
+      responses:
+        "201":
+          description: Created KPI
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentCustomKpi"
+        "400":
+          description: Bad request (e.g. invalid formula)
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/employment/kpis/{id}:
+    patch:
+      operationId: updateEmploymentCustomKpi
+      tags: [employment]
+      summary: Update a custom KPI for the active exercise
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmploymentCustomKpiInput"
+      responses:
+        "200":
+          description: Updated KPI
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentCustomKpi"
+        "400":
+          description: Bad request (e.g. invalid formula)
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteEmploymentCustomKpi
+      tags: [employment]
+      summary: Delete a custom KPI
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /organizations/{orgId}/employment/formula-variables:
+    get:
+      operationId: listEmploymentFormulaVariables
+      tags: [employment]
+      summary: List the predefined variable codes available for building a custom KPI formula, with their current value
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Available formula variables
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentFormulaVariableListResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/employment/results:
+    get:
+      operationId: getEmploymentResults
+      tags: [employment]
+      summary: Get the raw data plus every automatically computed indicator for the active exercise, with year-over-year comparison
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Employment dashboard results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentResults"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
   # ─── IMPACT SCORE ───────────────────────────────────────────────────────────
   /organizations/{orgId}/impact-score-result:
     get:
@@ -3211,6 +3526,295 @@ components:
       required: [ok]
       properties:
         ok: { type: boolean }
+
+    # ─── EMPLOI & COMPÉTENCES ───────────────────────────────────────────────────
+    EmploymentWorkforce:
+      type: object
+      required: [id, organizationId, exerciseId, ageMode, seniorityMode, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        exerciseId: { type: integer }
+        totalHeadcount: { type: ["integer", "null"] }
+        nbCdi: { type: ["integer", "null"] }
+        nbCdd: { type: ["integer", "null"] }
+        nbAlternants: { type: ["integer", "null"] }
+        nbApprentis: { type: ["integer", "null"] }
+        nbStagiaires: { type: ["integer", "null"] }
+        nbInterimaires: { type: ["integer", "null"] }
+        nbTempsPlein: { type: ["integer", "null"] }
+        nbTempsPartiel: { type: ["integer", "null"] }
+        nbRecrutements: { type: ["integer", "null"] }
+        nbDeparts: { type: ["integer", "null"] }
+        ageMode: { type: string, enum: [precise, brackets] }
+        avgAge: { type: ["number", "null"] }
+        ageUnder25: { type: ["integer", "null"] }
+        age25to34: { type: ["integer", "null"] }
+        age35to44: { type: ["integer", "null"] }
+        age45to54: { type: ["integer", "null"] }
+        age55plus: { type: ["integer", "null"] }
+        seniorityMode: { type: string, enum: [precise, brackets] }
+        avgSeniority: { type: ["number", "null"] }
+        seniorityUnder2: { type: ["integer", "null"] }
+        seniority2to5: { type: ["integer", "null"] }
+        seniority5to10: { type: ["integer", "null"] }
+        seniorityOver10: { type: ["integer", "null"] }
+        updatedAt: { type: string, format: date-time }
+
+    EmploymentWorkforceInput:
+      type: object
+      properties:
+        totalHeadcount: { type: ["integer", "null"] }
+        nbCdi: { type: ["integer", "null"] }
+        nbCdd: { type: ["integer", "null"] }
+        nbAlternants: { type: ["integer", "null"] }
+        nbApprentis: { type: ["integer", "null"] }
+        nbStagiaires: { type: ["integer", "null"] }
+        nbInterimaires: { type: ["integer", "null"] }
+        nbTempsPlein: { type: ["integer", "null"] }
+        nbTempsPartiel: { type: ["integer", "null"] }
+        nbRecrutements: { type: ["integer", "null"] }
+        nbDeparts: { type: ["integer", "null"] }
+        ageMode: { type: string, enum: [precise, brackets] }
+        avgAge: { type: ["number", "null"] }
+        ageUnder25: { type: ["integer", "null"] }
+        age25to34: { type: ["integer", "null"] }
+        age35to44: { type: ["integer", "null"] }
+        age45to54: { type: ["integer", "null"] }
+        age55plus: { type: ["integer", "null"] }
+        seniorityMode: { type: string, enum: [precise, brackets] }
+        avgSeniority: { type: ["number", "null"] }
+        seniorityUnder2: { type: ["integer", "null"] }
+        seniority2to5: { type: ["integer", "null"] }
+        seniority5to10: { type: ["integer", "null"] }
+        seniorityOver10: { type: ["integer", "null"] }
+
+    EmploymentWorkforceResponse:
+      type: object
+      properties:
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentWorkforce"
+            - type: "null"
+
+    EmploymentDiversity:
+      type: object
+      required: [id, organizationId, exerciseId, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        exerciseId: { type: integer }
+        nbHommes: { type: ["integer", "null"] }
+        nbFemmes: { type: ["integer", "null"] }
+        nbNonBinaire: { type: ["integer", "null"] }
+        nbAutreGenre: { type: ["integer", "null"] }
+        nbPrefereNePasRepondreGenre: { type: ["integer", "null"] }
+        nbHandicap: { type: ["integer", "null"] }
+        nbNationaliteFrancaise: { type: ["integer", "null"] }
+        nbNationaliteUe: { type: ["integer", "null"] }
+        nbNationaliteHorsUe: { type: ["integer", "null"] }
+        nbDoubleNationalite: { type: ["integer", "null"] }
+        nbPrefereNePasRepondreNationalite: { type: ["integer", "null"] }
+        politiqueDiversite: { type: ["boolean", "null"] }
+        referentHandicap: { type: ["boolean", "null"] }
+        sensibilisationDiversite: { type: ["boolean", "null"] }
+        politiqueContreDiscriminations: { type: ["boolean", "null"] }
+        politiqueEgaliteProfessionnelle: { type: ["boolean", "null"] }
+        teletravailAutorise: { type: ["boolean", "null"] }
+        charteDiversite: { type: ["boolean", "null"] }
+        indexEgaliteHf: { type: ["number", "null"] }
+        updatedAt: { type: string, format: date-time }
+
+    EmploymentDiversityInput:
+      type: object
+      properties:
+        nbHommes: { type: ["integer", "null"] }
+        nbFemmes: { type: ["integer", "null"] }
+        nbNonBinaire: { type: ["integer", "null"] }
+        nbAutreGenre: { type: ["integer", "null"] }
+        nbPrefereNePasRepondreGenre: { type: ["integer", "null"] }
+        nbHandicap: { type: ["integer", "null"] }
+        nbNationaliteFrancaise: { type: ["integer", "null"] }
+        nbNationaliteUe: { type: ["integer", "null"] }
+        nbNationaliteHorsUe: { type: ["integer", "null"] }
+        nbDoubleNationalite: { type: ["integer", "null"] }
+        nbPrefereNePasRepondreNationalite: { type: ["integer", "null"] }
+        politiqueDiversite: { type: ["boolean", "null"] }
+        referentHandicap: { type: ["boolean", "null"] }
+        sensibilisationDiversite: { type: ["boolean", "null"] }
+        politiqueContreDiscriminations: { type: ["boolean", "null"] }
+        politiqueEgaliteProfessionnelle: { type: ["boolean", "null"] }
+        teletravailAutorise: { type: ["boolean", "null"] }
+        charteDiversite: { type: ["boolean", "null"] }
+        indexEgaliteHf: { type: ["number", "null"] }
+
+    EmploymentDiversityResponse:
+      type: object
+      properties:
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentDiversity"
+            - type: "null"
+
+    EmploymentTraining:
+      type: object
+      required: [id, organizationId, exerciseId, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        exerciseId: { type: integer }
+        nbHeuresFormation: { type: ["number", "null"] }
+        budgetFormation: { type: ["number", "null"] }
+        nbCollaborateursFormes: { type: ["integer", "null"] }
+        nbEntretiensAnnuels: { type: ["integer", "null"] }
+        nbEntretiensProfessionnels: { type: ["integer", "null"] }
+        nbCertifications: { type: ["integer", "null"] }
+        nbEvolutionsInternes: { type: ["integer", "null"] }
+        updatedAt: { type: string, format: date-time }
+
+    EmploymentTrainingInput:
+      type: object
+      properties:
+        nbHeuresFormation: { type: ["number", "null"] }
+        budgetFormation: { type: ["number", "null"] }
+        nbCollaborateursFormes: { type: ["integer", "null"] }
+        nbEntretiensAnnuels: { type: ["integer", "null"] }
+        nbEntretiensProfessionnels: { type: ["integer", "null"] }
+        nbCertifications: { type: ["integer", "null"] }
+        nbEvolutionsInternes: { type: ["integer", "null"] }
+
+    EmploymentTrainingResponse:
+      type: object
+      properties:
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentTraining"
+            - type: "null"
+
+    EmploymentCustomKpi:
+      type: object
+      required: [id, organizationId, exerciseId, category, name, mode, sortOrder, createdAt, updatedAt, computedValue]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        exerciseId: { type: integer }
+        category:
+          type: string
+          enum: [diversite, formation, autre]
+        name: { type: string }
+        unit: { type: ["string", "null"] }
+        mode:
+          type: string
+          enum: [value, formula]
+        value: { type: ["number", "null"] }
+        formula: { type: ["string", "null"] }
+        sortOrder: { type: integer }
+        computedValue:
+          description: The resolved numeric value — the raw "value" for manual KPIs, or the evaluated formula result for computed KPIs (null when a referenced variable is missing).
+          type: ["number", "null"]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    EmploymentCustomKpiInput:
+      type: object
+      required: [category, name, mode]
+      properties:
+        category:
+          type: string
+          enum: [diversite, formation, autre]
+        name: { type: string }
+        unit: { type: ["string", "null"] }
+        mode:
+          type: string
+          enum: [value, formula]
+        value: { type: ["number", "null"] }
+        formula: { type: ["string", "null"] }
+        sortOrder: { type: integer }
+
+    EmploymentCustomKpiListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentCustomKpi"
+
+    EmploymentFormulaVariable:
+      type: object
+      required: [code, label, value, unit]
+      properties:
+        code: { type: string }
+        label: { type: string }
+        value: { type: ["number", "null"] }
+        unit: { type: ["string", "null"] }
+
+    EmploymentFormulaVariableListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentFormulaVariable"
+
+    EmploymentIndicator:
+      type: object
+      required: [code, label, value, unit, previousValue, trend]
+      properties:
+        code: { type: string }
+        label: { type: string }
+        value: { type: ["number", "null"] }
+        unit: { type: ["string", "null"] }
+        previousValue: { type: ["number", "null"] }
+        trend:
+          type: string
+          enum: [up, down, stable, new, unknown]
+
+    EmploymentResults:
+      type: object
+      required: [workforce, diversity, training, customKpis, indicators, strengths, watchpoints, increasing, decreasing, isNew]
+      properties:
+        workforce:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentWorkforce"
+            - type: "null"
+        diversity:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentDiversity"
+            - type: "null"
+        training:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentTraining"
+            - type: "null"
+        customKpis:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentCustomKpi"
+        indicators:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentIndicator"
+        strengths:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentIndicator"
+        watchpoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentIndicator"
+        increasing:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentIndicator"
+        decreasing:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentIndicator"
+        isNew:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentIndicator"
 
     BarometreCampaignStatusInput:
       type: object

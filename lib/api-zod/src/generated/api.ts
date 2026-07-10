@@ -2047,6 +2047,526 @@ export const SubmitPublicBarometreResponseResponse = zod.object({
 
 
 /**
+ * @summary Get the workforce data for the active exercise (null if never entered)
+ */
+export const GetEmploymentWorkforceParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetEmploymentWorkforceResponse = zod.object({
+  "data": zod.union([zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "totalHeadcount": zod.number().nullish(),
+  "nbCdi": zod.number().nullish(),
+  "nbCdd": zod.number().nullish(),
+  "nbAlternants": zod.number().nullish(),
+  "nbApprentis": zod.number().nullish(),
+  "nbStagiaires": zod.number().nullish(),
+  "nbInterimaires": zod.number().nullish(),
+  "nbTempsPlein": zod.number().nullish(),
+  "nbTempsPartiel": zod.number().nullish(),
+  "nbRecrutements": zod.number().nullish(),
+  "nbDeparts": zod.number().nullish(),
+  "ageMode": zod.enum(['precise', 'brackets']),
+  "avgAge": zod.number().nullish(),
+  "ageUnder25": zod.number().nullish(),
+  "age25to34": zod.number().nullish(),
+  "age35to44": zod.number().nullish(),
+  "age45to54": zod.number().nullish(),
+  "age55plus": zod.number().nullish(),
+  "seniorityMode": zod.enum(['precise', 'brackets']),
+  "avgSeniority": zod.number().nullish(),
+  "seniorityUnder2": zod.number().nullish(),
+  "seniority2to5": zod.number().nullish(),
+  "seniority5to10": zod.number().nullish(),
+  "seniorityOver10": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Create or update the workforce data for the active exercise
+ */
+export const UpsertEmploymentWorkforceParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const UpsertEmploymentWorkforceBody = zod.object({
+  "totalHeadcount": zod.number().nullish(),
+  "nbCdi": zod.number().nullish(),
+  "nbCdd": zod.number().nullish(),
+  "nbAlternants": zod.number().nullish(),
+  "nbApprentis": zod.number().nullish(),
+  "nbStagiaires": zod.number().nullish(),
+  "nbInterimaires": zod.number().nullish(),
+  "nbTempsPlein": zod.number().nullish(),
+  "nbTempsPartiel": zod.number().nullish(),
+  "nbRecrutements": zod.number().nullish(),
+  "nbDeparts": zod.number().nullish(),
+  "ageMode": zod.enum(['precise', 'brackets']).optional(),
+  "avgAge": zod.number().nullish(),
+  "ageUnder25": zod.number().nullish(),
+  "age25to34": zod.number().nullish(),
+  "age35to44": zod.number().nullish(),
+  "age45to54": zod.number().nullish(),
+  "age55plus": zod.number().nullish(),
+  "seniorityMode": zod.enum(['precise', 'brackets']).optional(),
+  "avgSeniority": zod.number().nullish(),
+  "seniorityUnder2": zod.number().nullish(),
+  "seniority2to5": zod.number().nullish(),
+  "seniority5to10": zod.number().nullish(),
+  "seniorityOver10": zod.number().nullish()
+})
+
+export const UpsertEmploymentWorkforceResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "totalHeadcount": zod.number().nullish(),
+  "nbCdi": zod.number().nullish(),
+  "nbCdd": zod.number().nullish(),
+  "nbAlternants": zod.number().nullish(),
+  "nbApprentis": zod.number().nullish(),
+  "nbStagiaires": zod.number().nullish(),
+  "nbInterimaires": zod.number().nullish(),
+  "nbTempsPlein": zod.number().nullish(),
+  "nbTempsPartiel": zod.number().nullish(),
+  "nbRecrutements": zod.number().nullish(),
+  "nbDeparts": zod.number().nullish(),
+  "ageMode": zod.enum(['precise', 'brackets']),
+  "avgAge": zod.number().nullish(),
+  "ageUnder25": zod.number().nullish(),
+  "age25to34": zod.number().nullish(),
+  "age35to44": zod.number().nullish(),
+  "age45to54": zod.number().nullish(),
+  "age55plus": zod.number().nullish(),
+  "seniorityMode": zod.enum(['precise', 'brackets']),
+  "avgSeniority": zod.number().nullish(),
+  "seniorityUnder2": zod.number().nullish(),
+  "seniority2to5": zod.number().nullish(),
+  "seniority5to10": zod.number().nullish(),
+  "seniorityOver10": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the diversity & inclusion data for the active exercise (null if never entered)
+ */
+export const GetEmploymentDiversityParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetEmploymentDiversityResponse = zod.object({
+  "data": zod.union([zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "nbHommes": zod.number().nullish(),
+  "nbFemmes": zod.number().nullish(),
+  "nbNonBinaire": zod.number().nullish(),
+  "nbAutreGenre": zod.number().nullish(),
+  "nbPrefereNePasRepondreGenre": zod.number().nullish(),
+  "nbHandicap": zod.number().nullish(),
+  "nbNationaliteFrancaise": zod.number().nullish(),
+  "nbNationaliteUe": zod.number().nullish(),
+  "nbNationaliteHorsUe": zod.number().nullish(),
+  "nbDoubleNationalite": zod.number().nullish(),
+  "nbPrefereNePasRepondreNationalite": zod.number().nullish(),
+  "politiqueDiversite": zod.boolean().nullish(),
+  "referentHandicap": zod.boolean().nullish(),
+  "sensibilisationDiversite": zod.boolean().nullish(),
+  "politiqueContreDiscriminations": zod.boolean().nullish(),
+  "politiqueEgaliteProfessionnelle": zod.boolean().nullish(),
+  "teletravailAutorise": zod.boolean().nullish(),
+  "charteDiversite": zod.boolean().nullish(),
+  "indexEgaliteHf": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Create or update the diversity & inclusion data for the active exercise
+ */
+export const UpsertEmploymentDiversityParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const UpsertEmploymentDiversityBody = zod.object({
+  "nbHommes": zod.number().nullish(),
+  "nbFemmes": zod.number().nullish(),
+  "nbNonBinaire": zod.number().nullish(),
+  "nbAutreGenre": zod.number().nullish(),
+  "nbPrefereNePasRepondreGenre": zod.number().nullish(),
+  "nbHandicap": zod.number().nullish(),
+  "nbNationaliteFrancaise": zod.number().nullish(),
+  "nbNationaliteUe": zod.number().nullish(),
+  "nbNationaliteHorsUe": zod.number().nullish(),
+  "nbDoubleNationalite": zod.number().nullish(),
+  "nbPrefereNePasRepondreNationalite": zod.number().nullish(),
+  "politiqueDiversite": zod.boolean().nullish(),
+  "referentHandicap": zod.boolean().nullish(),
+  "sensibilisationDiversite": zod.boolean().nullish(),
+  "politiqueContreDiscriminations": zod.boolean().nullish(),
+  "politiqueEgaliteProfessionnelle": zod.boolean().nullish(),
+  "teletravailAutorise": zod.boolean().nullish(),
+  "charteDiversite": zod.boolean().nullish(),
+  "indexEgaliteHf": zod.number().nullish()
+})
+
+export const UpsertEmploymentDiversityResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "nbHommes": zod.number().nullish(),
+  "nbFemmes": zod.number().nullish(),
+  "nbNonBinaire": zod.number().nullish(),
+  "nbAutreGenre": zod.number().nullish(),
+  "nbPrefereNePasRepondreGenre": zod.number().nullish(),
+  "nbHandicap": zod.number().nullish(),
+  "nbNationaliteFrancaise": zod.number().nullish(),
+  "nbNationaliteUe": zod.number().nullish(),
+  "nbNationaliteHorsUe": zod.number().nullish(),
+  "nbDoubleNationalite": zod.number().nullish(),
+  "nbPrefereNePasRepondreNationalite": zod.number().nullish(),
+  "politiqueDiversite": zod.boolean().nullish(),
+  "referentHandicap": zod.boolean().nullish(),
+  "sensibilisationDiversite": zod.boolean().nullish(),
+  "politiqueContreDiscriminations": zod.boolean().nullish(),
+  "politiqueEgaliteProfessionnelle": zod.boolean().nullish(),
+  "teletravailAutorise": zod.boolean().nullish(),
+  "charteDiversite": zod.boolean().nullish(),
+  "indexEgaliteHf": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the training & development data for the active exercise (null if never entered)
+ */
+export const GetEmploymentTrainingParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetEmploymentTrainingResponse = zod.object({
+  "data": zod.union([zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "nbHeuresFormation": zod.number().nullish(),
+  "budgetFormation": zod.number().nullish(),
+  "nbCollaborateursFormes": zod.number().nullish(),
+  "nbEntretiensAnnuels": zod.number().nullish(),
+  "nbEntretiensProfessionnels": zod.number().nullish(),
+  "nbCertifications": zod.number().nullish(),
+  "nbEvolutionsInternes": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Create or update the training & development data for the active exercise
+ */
+export const UpsertEmploymentTrainingParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const UpsertEmploymentTrainingBody = zod.object({
+  "nbHeuresFormation": zod.number().nullish(),
+  "budgetFormation": zod.number().nullish(),
+  "nbCollaborateursFormes": zod.number().nullish(),
+  "nbEntretiensAnnuels": zod.number().nullish(),
+  "nbEntretiensProfessionnels": zod.number().nullish(),
+  "nbCertifications": zod.number().nullish(),
+  "nbEvolutionsInternes": zod.number().nullish()
+})
+
+export const UpsertEmploymentTrainingResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "nbHeuresFormation": zod.number().nullish(),
+  "budgetFormation": zod.number().nullish(),
+  "nbCollaborateursFormes": zod.number().nullish(),
+  "nbEntretiensAnnuels": zod.number().nullish(),
+  "nbEntretiensProfessionnels": zod.number().nullish(),
+  "nbCertifications": zod.number().nullish(),
+  "nbEvolutionsInternes": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List custom KPIs for the active exercise
+ */
+export const ListEmploymentCustomKpisParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListEmploymentCustomKpisResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "category": zod.enum(['diversite', 'formation', 'autre']),
+  "name": zod.string(),
+  "unit": zod.string().nullish(),
+  "mode": zod.enum(['value', 'formula']),
+  "value": zod.number().nullish(),
+  "formula": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "computedValue": zod.number().nullable().describe('The resolved numeric value — the raw \"value\" for manual KPIs, or the evaluated formula result for computed KPIs (null when a referenced variable is missing).'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Create a custom KPI (manual value or a computed formula) for the active exercise
+ */
+export const CreateEmploymentCustomKpiParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const CreateEmploymentCustomKpiBody = zod.object({
+  "category": zod.enum(['diversite', 'formation', 'autre']),
+  "name": zod.string(),
+  "unit": zod.string().nullish(),
+  "mode": zod.enum(['value', 'formula']),
+  "value": zod.number().nullish(),
+  "formula": zod.string().nullish(),
+  "sortOrder": zod.number().optional()
+})
+
+export const CreateEmploymentCustomKpiResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "category": zod.enum(['diversite', 'formation', 'autre']),
+  "name": zod.string(),
+  "unit": zod.string().nullish(),
+  "mode": zod.enum(['value', 'formula']),
+  "value": zod.number().nullish(),
+  "formula": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "computedValue": zod.number().nullable().describe('The resolved numeric value — the raw \"value\" for manual KPIs, or the evaluated formula result for computed KPIs (null when a referenced variable is missing).'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a custom KPI for the active exercise
+ */
+export const UpdateEmploymentCustomKpiParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const UpdateEmploymentCustomKpiBody = zod.object({
+  "category": zod.enum(['diversite', 'formation', 'autre']),
+  "name": zod.string(),
+  "unit": zod.string().nullish(),
+  "mode": zod.enum(['value', 'formula']),
+  "value": zod.number().nullish(),
+  "formula": zod.string().nullish(),
+  "sortOrder": zod.number().optional()
+})
+
+export const UpdateEmploymentCustomKpiResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "category": zod.enum(['diversite', 'formation', 'autre']),
+  "name": zod.string(),
+  "unit": zod.string().nullish(),
+  "mode": zod.enum(['value', 'formula']),
+  "value": zod.number().nullish(),
+  "formula": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "computedValue": zod.number().nullable().describe('The resolved numeric value — the raw \"value\" for manual KPIs, or the evaluated formula result for computed KPIs (null when a referenced variable is missing).'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a custom KPI
+ */
+export const DeleteEmploymentCustomKpiParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const DeleteEmploymentCustomKpiResponse = zod.void()
+
+
+/**
+ * @summary List the predefined variable codes available for building a custom KPI formula, with their current value
+ */
+export const ListEmploymentFormulaVariablesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListEmploymentFormulaVariablesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "code": zod.string(),
+  "label": zod.string(),
+  "value": zod.number().nullable(),
+  "unit": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary Get the raw data plus every automatically computed indicator for the active exercise, with year-over-year comparison
+ */
+export const GetEmploymentResultsParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetEmploymentResultsResponse = zod.object({
+  "workforce": zod.union([zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "totalHeadcount": zod.number().nullish(),
+  "nbCdi": zod.number().nullish(),
+  "nbCdd": zod.number().nullish(),
+  "nbAlternants": zod.number().nullish(),
+  "nbApprentis": zod.number().nullish(),
+  "nbStagiaires": zod.number().nullish(),
+  "nbInterimaires": zod.number().nullish(),
+  "nbTempsPlein": zod.number().nullish(),
+  "nbTempsPartiel": zod.number().nullish(),
+  "nbRecrutements": zod.number().nullish(),
+  "nbDeparts": zod.number().nullish(),
+  "ageMode": zod.enum(['precise', 'brackets']),
+  "avgAge": zod.number().nullish(),
+  "ageUnder25": zod.number().nullish(),
+  "age25to34": zod.number().nullish(),
+  "age35to44": zod.number().nullish(),
+  "age45to54": zod.number().nullish(),
+  "age55plus": zod.number().nullish(),
+  "seniorityMode": zod.enum(['precise', 'brackets']),
+  "avgSeniority": zod.number().nullish(),
+  "seniorityUnder2": zod.number().nullish(),
+  "seniority2to5": zod.number().nullish(),
+  "seniority5to10": zod.number().nullish(),
+  "seniorityOver10": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "diversity": zod.union([zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "nbHommes": zod.number().nullish(),
+  "nbFemmes": zod.number().nullish(),
+  "nbNonBinaire": zod.number().nullish(),
+  "nbAutreGenre": zod.number().nullish(),
+  "nbPrefereNePasRepondreGenre": zod.number().nullish(),
+  "nbHandicap": zod.number().nullish(),
+  "nbNationaliteFrancaise": zod.number().nullish(),
+  "nbNationaliteUe": zod.number().nullish(),
+  "nbNationaliteHorsUe": zod.number().nullish(),
+  "nbDoubleNationalite": zod.number().nullish(),
+  "nbPrefereNePasRepondreNationalite": zod.number().nullish(),
+  "politiqueDiversite": zod.boolean().nullish(),
+  "referentHandicap": zod.boolean().nullish(),
+  "sensibilisationDiversite": zod.boolean().nullish(),
+  "politiqueContreDiscriminations": zod.boolean().nullish(),
+  "politiqueEgaliteProfessionnelle": zod.boolean().nullish(),
+  "teletravailAutorise": zod.boolean().nullish(),
+  "charteDiversite": zod.boolean().nullish(),
+  "indexEgaliteHf": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "training": zod.union([zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "nbHeuresFormation": zod.number().nullish(),
+  "budgetFormation": zod.number().nullish(),
+  "nbCollaborateursFormes": zod.number().nullish(),
+  "nbEntretiensAnnuels": zod.number().nullish(),
+  "nbEntretiensProfessionnels": zod.number().nullish(),
+  "nbCertifications": zod.number().nullish(),
+  "nbEvolutionsInternes": zod.number().nullish(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "customKpis": zod.array(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "category": zod.enum(['diversite', 'formation', 'autre']),
+  "name": zod.string(),
+  "unit": zod.string().nullish(),
+  "mode": zod.enum(['value', 'formula']),
+  "value": zod.number().nullish(),
+  "formula": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "computedValue": zod.number().nullable().describe('The resolved numeric value — the raw \"value\" for manual KPIs, or the evaluated formula result for computed KPIs (null when a referenced variable is missing).'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "indicators": zod.array(zod.object({
+  "code": zod.string(),
+  "label": zod.string(),
+  "value": zod.number().nullable(),
+  "unit": zod.string().nullable(),
+  "previousValue": zod.number().nullable(),
+  "trend": zod.enum(['up', 'down', 'stable', 'new', 'unknown'])
+})),
+  "strengths": zod.array(zod.object({
+  "code": zod.string(),
+  "label": zod.string(),
+  "value": zod.number().nullable(),
+  "unit": zod.string().nullable(),
+  "previousValue": zod.number().nullable(),
+  "trend": zod.enum(['up', 'down', 'stable', 'new', 'unknown'])
+})),
+  "watchpoints": zod.array(zod.object({
+  "code": zod.string(),
+  "label": zod.string(),
+  "value": zod.number().nullable(),
+  "unit": zod.string().nullable(),
+  "previousValue": zod.number().nullable(),
+  "trend": zod.enum(['up', 'down', 'stable', 'new', 'unknown'])
+})),
+  "increasing": zod.array(zod.object({
+  "code": zod.string(),
+  "label": zod.string(),
+  "value": zod.number().nullable(),
+  "unit": zod.string().nullable(),
+  "previousValue": zod.number().nullable(),
+  "trend": zod.enum(['up', 'down', 'stable', 'new', 'unknown'])
+})),
+  "decreasing": zod.array(zod.object({
+  "code": zod.string(),
+  "label": zod.string(),
+  "value": zod.number().nullable(),
+  "unit": zod.string().nullable(),
+  "previousValue": zod.number().nullable(),
+  "trend": zod.enum(['up', 'down', 'stable', 'new', 'unknown'])
+})),
+  "isNew": zod.array(zod.object({
+  "code": zod.string(),
+  "label": zod.string(),
+  "value": zod.number().nullable(),
+  "unit": zod.string().nullable(),
+  "previousValue": zod.number().nullable(),
+  "trend": zod.enum(['up', 'down', 'stable', 'new', 'unknown'])
+}))
+})
+
+
+/**
  * @summary Get the Impact Score result for an organization
  */
 export const GetImpactScoreResultParams = zod.object({

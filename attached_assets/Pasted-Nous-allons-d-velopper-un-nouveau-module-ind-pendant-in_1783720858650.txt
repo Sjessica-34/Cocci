@@ -1,0 +1,361 @@
+Nous allons développer un nouveau module indépendant intitulé :
+
+👥 Emploi & Compétences
+
+Ce module sera ajouté dans le menu principal après le Baromètre Social.
+
+Il devra reprendre exactement la même ergonomie que tous les autres modules de Cocci.
+
+Toutes les données sont liées à l'exercice actif.
+
+Toutes les données sont FACULTATIVES.
+
+L'objectif est de construire progressivement un véritable tableau de bord social de l'entreprise.
+
+Je souhaite toujours privilégier la saisie de données brutes.
+
+Le logiciel calcule automatiquement tous les indicateurs possibles.
+
+L'utilisateur ne doit jamais avoir à calculer un taux lui-même.
+
+Chaque champ doit comporter une aide contextuelle.
+
+====================================================
+ONGLET 1
+EFFECTIFS
+====================================================
+
+Créer une page de saisie des effectifs.
+
+Pour certaines informations, laisser deux possibilités :
+
+○ Saisie précise
+
+ou
+
+○ Saisie par tranches
+
+Exemple :
+
+Âge
+
+Mode 1
+
+Âge moyen
+
+ou
+
+Mode 2
+
+Moins de 25 ans
+
+25-34 ans
+
+35-44 ans
+
+45-54 ans
+
+55 ans et plus
+
+Même logique pour :
+
+Ancienneté
+
+Mode 1
+
+Ancienneté moyenne
+
+Mode 2
+
+Moins de 2 ans
+
+2 à 5 ans
+
+5 à 10 ans
+
+Plus de 10 ans
+
+Créer les champs suivants :
+
+• Nombre total de collaborateurs
+
+• Nombre de CDI
+
+• Nombre de CDD
+
+• Nombre d'alternants
+
+• Nombre d'apprentis
+
+• Nombre de stagiaires
+
+• Nombre d'intérimaires
+
+• Nombre de temps pleins
+
+• Nombre de temps partiels
+
+• Nombre de recrutements durant l'exercice
+
+• Nombre de départs durant l'exercice
+
+Tous les champs restent facultatifs.
+
+====================================================
+ONGLET 2
+DIVERSITÉ & INCLUSION
+====================================================
+
+Toutes les données sont facultatives.
+
+Répartition des genres :
+
+• Homme
+
+• Femme
+
+• Non binaire
+
+• Autre
+
+• Préfère ne pas répondre
+
+Situation de handicap :
+
+Nombre de collaborateurs concernés
+
+Nationalités
+
+Permettre une saisie statistique uniquement.
+
+Par exemple :
+
+• Nationalité française
+
+• Nationalité Union Européenne
+
+• Nationalité hors Union Européenne
+
+• Double nationalité
+
+• Préfère ne pas répondre
+
+Créer également plusieurs indicateurs Oui / Non.
+
+Par exemple :
+
+• Politique Diversité & Inclusion
+
+• Référent Handicap
+
+• Sensibilisation à la diversité
+
+• Politique contre les discriminations
+
+• Politique égalité professionnelle
+
+• Télétravail autorisé
+
+• Charte diversité
+
+• Index égalité H/F (si applicable)
+
+Prévoir également une zone :
+
+Autres indicateurs
+
+afin que l'entreprise puisse créer ses propres indicateurs.
+
+====================================================
+ONGLET 3
+FORMATION & DÉVELOPPEMENT
+====================================================
+
+Créer notamment :
+
+• Nombre d'heures de formation
+
+• Budget formation
+
+• Nombre de collaborateurs formés
+
+• Nombre d'entretiens annuels
+
+• Nombre d'entretiens professionnels
+
+• Nombre de certifications
+
+• Nombre d'évolutions internes
+
+Tous les champs sont facultatifs.
+
+Prévoir également :
+
+➕
+
+Créer un KPI personnalisé
+
+L'entreprise pourra créer :
+
+Nom
+
+Valeur
+
+Unité
+
+Ces KPI seront automatiquement affichés dans la synthèse.
+
+====================================================
+ONGLET 4
+SYNTHÈSE
+====================================================
+
+Créer un véritable tableau de bord RH.
+
+Je souhaite une page très graphique.
+
+Ne pas hésiter à utiliser :
+
+• graphiques
+
+• histogrammes
+
+• pyramide des âges
+
+• pyramide de l'ancienneté
+
+• jauges
+
+• diagrammes circulaires
+
+• courbes d'évolution
+
+• indicateurs colorés
+
+Afficher notamment :
+
+EFFECTIFS
+
+• Effectif total
+
+• Répartition des contrats
+
+• Répartition temps plein / temps partiel
+
+• Recrutements
+
+• Départs
+
+• Évolution de l'effectif
+
+DIVERSITÉ
+
+• Répartition des genres
+
+• Répartition des nationalités
+
+• Situation de handicap
+
+• Politique Diversité
+
+FORMATION
+
+• Nombre de collaborateurs formés
+
+• Heures de formation
+
+• Budget formation
+
+• Heures moyennes par collaborateur
+
+Calculer automatiquement tous les indicateurs possibles :
+
+• Turn-over
+
+• Pourcentage de CDI
+
+• Pourcentage de CDD
+
+• Pourcentage d'alternants
+
+• Pourcentage de stagiaires
+
+• Pourcentage de femmes
+
+• Pourcentage d'hommes
+
+• Pourcentage de collaborateurs formés
+
+• Nombre moyen d'heures de formation
+
+• Taux de recrutement
+
+• Taux de départ
+
+• Évolution des effectifs
+
+• Évolution des recrutements
+
+• Évolution des départs
+
+• Évolution des formations
+
+Afficher également :
+
+POINTS FORTS
+
+Les meilleurs indicateurs.
+
+POINTS DE VIGILANCE
+
+Les indicateurs nécessitant une attention particulière.
+
+ÉVOLUTIONS
+
+Comparer automatiquement avec l'exercice précédent.
+
+Afficher :
+
+• indicateurs en hausse
+
+• indicateurs en baisse
+
+• nouveaux indicateurs
+
+KPI PERSONNALISÉS
+
+Afficher automatiquement les KPI créés par l'entreprise.
+
+====================================================
+RAPPORT RSE
+====================================================
+
+Toutes les données de ce module alimentent automatiquement le Rapport RSE.
+
+====================================================
+ERGONOMIE
+====================================================
+
+Je souhaite un module très pédagogique.
+
+L'utilisateur ne doit jamais se demander quoi saisir.
+
+Chaque champ doit comporter une aide.
+
+Le logiciel doit calculer automatiquement tous les indicateurs possibles.
+
+Le module doit être suffisamment souple pour convenir aussi bien à une entreprise de 2 salariés qu'à une entreprise de plusieurs centaines de collaborateurs.
+
+L'objectif est de créer un véritable observatoire social et non un simple formulaire RH.
+
+Je rajouterais même une dernière fonctionnalité qui, à mon avis, apportera énormément de valeur : un constructeur de KPI. Pas seulement "ajouter un KPI", mais permettre à l'utilisateur de créer un indicateur calculé. Par exemple :
+
+Nom : Taux de féminisation des managers
+Formule : (Nombre de femmes managers / Nombre total de managers) × 100
+
+Ou :
+
+Nom : Taux de télétravail
+Formule : (Collaborateurs en télétravail / Effectif total) × 100
+
+Tu n'auras jamais à prévoir tous les indicateurs que les entreprises voudront suivre, tandis qu'avec un petit moteur de formules, Cocci deviendra beaucoup plus adaptable sans que tu aies besoin de redévelopper le module à chaque nouveau besoin. C'est une fonctionnalité que l'on retrouve plutôt dans des logiciels haut de gamme et qui pourrait vraiment différencier Cocci.

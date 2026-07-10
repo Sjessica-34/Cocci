@@ -1188,6 +1188,399 @@ export interface PublicBarometreSubmissionAck {
   ok: boolean;
 }
 
+export type EmploymentWorkforceAgeMode = typeof EmploymentWorkforceAgeMode[keyof typeof EmploymentWorkforceAgeMode];
+
+
+export const EmploymentWorkforceAgeMode = {
+  precise: 'precise',
+  brackets: 'brackets',
+} as const;
+
+export type EmploymentWorkforceSeniorityMode = typeof EmploymentWorkforceSeniorityMode[keyof typeof EmploymentWorkforceSeniorityMode];
+
+
+export const EmploymentWorkforceSeniorityMode = {
+  precise: 'precise',
+  brackets: 'brackets',
+} as const;
+
+export interface EmploymentWorkforce {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  /** @nullable */
+  totalHeadcount?: number | null;
+  /** @nullable */
+  nbCdi?: number | null;
+  /** @nullable */
+  nbCdd?: number | null;
+  /** @nullable */
+  nbAlternants?: number | null;
+  /** @nullable */
+  nbApprentis?: number | null;
+  /** @nullable */
+  nbStagiaires?: number | null;
+  /** @nullable */
+  nbInterimaires?: number | null;
+  /** @nullable */
+  nbTempsPlein?: number | null;
+  /** @nullable */
+  nbTempsPartiel?: number | null;
+  /** @nullable */
+  nbRecrutements?: number | null;
+  /** @nullable */
+  nbDeparts?: number | null;
+  ageMode: EmploymentWorkforceAgeMode;
+  /** @nullable */
+  avgAge?: number | null;
+  /** @nullable */
+  ageUnder25?: number | null;
+  /** @nullable */
+  age25to34?: number | null;
+  /** @nullable */
+  age35to44?: number | null;
+  /** @nullable */
+  age45to54?: number | null;
+  /** @nullable */
+  age55plus?: number | null;
+  seniorityMode: EmploymentWorkforceSeniorityMode;
+  /** @nullable */
+  avgSeniority?: number | null;
+  /** @nullable */
+  seniorityUnder2?: number | null;
+  /** @nullable */
+  seniority2to5?: number | null;
+  /** @nullable */
+  seniority5to10?: number | null;
+  /** @nullable */
+  seniorityOver10?: number | null;
+  updatedAt: string;
+}
+
+export type EmploymentWorkforceInputAgeMode = typeof EmploymentWorkforceInputAgeMode[keyof typeof EmploymentWorkforceInputAgeMode];
+
+
+export const EmploymentWorkforceInputAgeMode = {
+  precise: 'precise',
+  brackets: 'brackets',
+} as const;
+
+export type EmploymentWorkforceInputSeniorityMode = typeof EmploymentWorkforceInputSeniorityMode[keyof typeof EmploymentWorkforceInputSeniorityMode];
+
+
+export const EmploymentWorkforceInputSeniorityMode = {
+  precise: 'precise',
+  brackets: 'brackets',
+} as const;
+
+export interface EmploymentWorkforceInput {
+  /** @nullable */
+  totalHeadcount?: number | null;
+  /** @nullable */
+  nbCdi?: number | null;
+  /** @nullable */
+  nbCdd?: number | null;
+  /** @nullable */
+  nbAlternants?: number | null;
+  /** @nullable */
+  nbApprentis?: number | null;
+  /** @nullable */
+  nbStagiaires?: number | null;
+  /** @nullable */
+  nbInterimaires?: number | null;
+  /** @nullable */
+  nbTempsPlein?: number | null;
+  /** @nullable */
+  nbTempsPartiel?: number | null;
+  /** @nullable */
+  nbRecrutements?: number | null;
+  /** @nullable */
+  nbDeparts?: number | null;
+  ageMode?: EmploymentWorkforceInputAgeMode;
+  /** @nullable */
+  avgAge?: number | null;
+  /** @nullable */
+  ageUnder25?: number | null;
+  /** @nullable */
+  age25to34?: number | null;
+  /** @nullable */
+  age35to44?: number | null;
+  /** @nullable */
+  age45to54?: number | null;
+  /** @nullable */
+  age55plus?: number | null;
+  seniorityMode?: EmploymentWorkforceInputSeniorityMode;
+  /** @nullable */
+  avgSeniority?: number | null;
+  /** @nullable */
+  seniorityUnder2?: number | null;
+  /** @nullable */
+  seniority2to5?: number | null;
+  /** @nullable */
+  seniority5to10?: number | null;
+  /** @nullable */
+  seniorityOver10?: number | null;
+}
+
+export interface EmploymentWorkforceResponse {
+  data?: EmploymentWorkforce | null;
+}
+
+export interface EmploymentDiversity {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  /** @nullable */
+  nbHommes?: number | null;
+  /** @nullable */
+  nbFemmes?: number | null;
+  /** @nullable */
+  nbNonBinaire?: number | null;
+  /** @nullable */
+  nbAutreGenre?: number | null;
+  /** @nullable */
+  nbPrefereNePasRepondreGenre?: number | null;
+  /** @nullable */
+  nbHandicap?: number | null;
+  /** @nullable */
+  nbNationaliteFrancaise?: number | null;
+  /** @nullable */
+  nbNationaliteUe?: number | null;
+  /** @nullable */
+  nbNationaliteHorsUe?: number | null;
+  /** @nullable */
+  nbDoubleNationalite?: number | null;
+  /** @nullable */
+  nbPrefereNePasRepondreNationalite?: number | null;
+  /** @nullable */
+  politiqueDiversite?: boolean | null;
+  /** @nullable */
+  referentHandicap?: boolean | null;
+  /** @nullable */
+  sensibilisationDiversite?: boolean | null;
+  /** @nullable */
+  politiqueContreDiscriminations?: boolean | null;
+  /** @nullable */
+  politiqueEgaliteProfessionnelle?: boolean | null;
+  /** @nullable */
+  teletravailAutorise?: boolean | null;
+  /** @nullable */
+  charteDiversite?: boolean | null;
+  /** @nullable */
+  indexEgaliteHf?: number | null;
+  updatedAt: string;
+}
+
+export interface EmploymentDiversityInput {
+  /** @nullable */
+  nbHommes?: number | null;
+  /** @nullable */
+  nbFemmes?: number | null;
+  /** @nullable */
+  nbNonBinaire?: number | null;
+  /** @nullable */
+  nbAutreGenre?: number | null;
+  /** @nullable */
+  nbPrefereNePasRepondreGenre?: number | null;
+  /** @nullable */
+  nbHandicap?: number | null;
+  /** @nullable */
+  nbNationaliteFrancaise?: number | null;
+  /** @nullable */
+  nbNationaliteUe?: number | null;
+  /** @nullable */
+  nbNationaliteHorsUe?: number | null;
+  /** @nullable */
+  nbDoubleNationalite?: number | null;
+  /** @nullable */
+  nbPrefereNePasRepondreNationalite?: number | null;
+  /** @nullable */
+  politiqueDiversite?: boolean | null;
+  /** @nullable */
+  referentHandicap?: boolean | null;
+  /** @nullable */
+  sensibilisationDiversite?: boolean | null;
+  /** @nullable */
+  politiqueContreDiscriminations?: boolean | null;
+  /** @nullable */
+  politiqueEgaliteProfessionnelle?: boolean | null;
+  /** @nullable */
+  teletravailAutorise?: boolean | null;
+  /** @nullable */
+  charteDiversite?: boolean | null;
+  /** @nullable */
+  indexEgaliteHf?: number | null;
+}
+
+export interface EmploymentDiversityResponse {
+  data?: EmploymentDiversity | null;
+}
+
+export interface EmploymentTraining {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  /** @nullable */
+  nbHeuresFormation?: number | null;
+  /** @nullable */
+  budgetFormation?: number | null;
+  /** @nullable */
+  nbCollaborateursFormes?: number | null;
+  /** @nullable */
+  nbEntretiensAnnuels?: number | null;
+  /** @nullable */
+  nbEntretiensProfessionnels?: number | null;
+  /** @nullable */
+  nbCertifications?: number | null;
+  /** @nullable */
+  nbEvolutionsInternes?: number | null;
+  updatedAt: string;
+}
+
+export interface EmploymentTrainingInput {
+  /** @nullable */
+  nbHeuresFormation?: number | null;
+  /** @nullable */
+  budgetFormation?: number | null;
+  /** @nullable */
+  nbCollaborateursFormes?: number | null;
+  /** @nullable */
+  nbEntretiensAnnuels?: number | null;
+  /** @nullable */
+  nbEntretiensProfessionnels?: number | null;
+  /** @nullable */
+  nbCertifications?: number | null;
+  /** @nullable */
+  nbEvolutionsInternes?: number | null;
+}
+
+export interface EmploymentTrainingResponse {
+  data?: EmploymentTraining | null;
+}
+
+export type EmploymentCustomKpiCategory = typeof EmploymentCustomKpiCategory[keyof typeof EmploymentCustomKpiCategory];
+
+
+export const EmploymentCustomKpiCategory = {
+  diversite: 'diversite',
+  formation: 'formation',
+  autre: 'autre',
+} as const;
+
+export type EmploymentCustomKpiMode = typeof EmploymentCustomKpiMode[keyof typeof EmploymentCustomKpiMode];
+
+
+export const EmploymentCustomKpiMode = {
+  value: 'value',
+  formula: 'formula',
+} as const;
+
+export interface EmploymentCustomKpi {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  category: EmploymentCustomKpiCategory;
+  name: string;
+  /** @nullable */
+  unit?: string | null;
+  mode: EmploymentCustomKpiMode;
+  /** @nullable */
+  value?: number | null;
+  /** @nullable */
+  formula?: string | null;
+  sortOrder: number;
+  /**
+     * The resolved numeric value — the raw "value" for manual KPIs, or the evaluated formula result for computed KPIs (null when a referenced variable is missing).
+     * @nullable
+     */
+  computedValue: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type EmploymentCustomKpiInputCategory = typeof EmploymentCustomKpiInputCategory[keyof typeof EmploymentCustomKpiInputCategory];
+
+
+export const EmploymentCustomKpiInputCategory = {
+  diversite: 'diversite',
+  formation: 'formation',
+  autre: 'autre',
+} as const;
+
+export type EmploymentCustomKpiInputMode = typeof EmploymentCustomKpiInputMode[keyof typeof EmploymentCustomKpiInputMode];
+
+
+export const EmploymentCustomKpiInputMode = {
+  value: 'value',
+  formula: 'formula',
+} as const;
+
+export interface EmploymentCustomKpiInput {
+  category: EmploymentCustomKpiInputCategory;
+  name: string;
+  /** @nullable */
+  unit?: string | null;
+  mode: EmploymentCustomKpiInputMode;
+  /** @nullable */
+  value?: number | null;
+  /** @nullable */
+  formula?: string | null;
+  sortOrder?: number;
+}
+
+export interface EmploymentCustomKpiListResponse {
+  items: EmploymentCustomKpi[];
+}
+
+export interface EmploymentFormulaVariable {
+  code: string;
+  label: string;
+  /** @nullable */
+  value: number | null;
+  /** @nullable */
+  unit: string | null;
+}
+
+export interface EmploymentFormulaVariableListResponse {
+  items: EmploymentFormulaVariable[];
+}
+
+export type EmploymentIndicatorTrend = typeof EmploymentIndicatorTrend[keyof typeof EmploymentIndicatorTrend];
+
+
+export const EmploymentIndicatorTrend = {
+  up: 'up',
+  down: 'down',
+  stable: 'stable',
+  new: 'new',
+  unknown: 'unknown',
+} as const;
+
+export interface EmploymentIndicator {
+  code: string;
+  label: string;
+  /** @nullable */
+  value: number | null;
+  /** @nullable */
+  unit: string | null;
+  /** @nullable */
+  previousValue: number | null;
+  trend: EmploymentIndicatorTrend;
+}
+
+export interface EmploymentResults {
+  workforce: EmploymentWorkforce | null;
+  diversity: EmploymentDiversity | null;
+  training: EmploymentTraining | null;
+  customKpis: EmploymentCustomKpi[];
+  indicators: EmploymentIndicator[];
+  strengths: EmploymentIndicator[];
+  watchpoints: EmploymentIndicator[];
+  increasing: EmploymentIndicator[];
+  decreasing: EmploymentIndicator[];
+  isNew: EmploymentIndicator[];
+}
+
 export type BarometreCampaignStatusInputStatus = typeof BarometreCampaignStatusInputStatus[keyof typeof BarometreCampaignStatusInputStatus];
 
 

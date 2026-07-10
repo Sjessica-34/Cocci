@@ -2,6 +2,12 @@ import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { bioConnectionsTable, bioDependenciesTable, bioIssuesTable } from "./schema/biodiversite";
 import { carbonBilansTable } from "./schema/carbonBilans";
 import { customIssuesTable } from "./schema/customIssues";
+import {
+  employmentCustomKpisTable,
+  employmentDiversityTable,
+  employmentTrainingTable,
+  employmentWorkforceTable,
+} from "./schema/employment";
 import { impactScoreResultsTable } from "./schema/impactScoreResult";
 import { issueAnalysesTable } from "./schema/issueAnalyses";
 import { issueRatingsTable } from "./schema/issueRatings";
@@ -63,6 +69,10 @@ export const EXERCISE_SCOPED_TABLES: ExerciseScopedTableEntry[] = [
   { name: "bio_issues", table: bioIssuesTable, remap: "bioIssues" },
   { name: "carbon_bilans", table: carbonBilansTable },
   { name: "custom_issues", table: customIssuesTable },
+  { name: "employment_workforce", table: employmentWorkforceTable },
+  { name: "employment_diversity", table: employmentDiversityTable },
+  { name: "employment_training", table: employmentTrainingTable },
+  { name: "employment_custom_kpis", table: employmentCustomKpisTable },
   { name: "impact_score_results", table: impactScoreResultsTable },
   { name: "issue_analyses", table: issueAnalysesTable },
   { name: "issue_ratings", table: issueRatingsTable },

@@ -7,3 +7,4 @@
 - [Exercise (fiscal year) scoping](exercise-scoping.md) — X-Exercise-Id header injected app-wide via api-client-react getter; pages need zero per-page changes; must invalidateQueries() on switch since exercise isn't in query keys.
 - [Drizzle push interactive prompt false positive](drizzle-push-quirk.md) — `drizzle-kit push` can hang on a phantom truncate-confirmation for an unrelated table even in a plain non-TTY shell; apply the real diff manually via psql instead of forcing through it.
 - [Router auth leak](router-mounting-auth-leak.md) — an unscoped `router.use(requireAuth,...)` in one sub-router can 401 every route in the API, including public ones mounted later; scope it to its path prefix.
+- [Employment module conventions](employment-module-conventions.md) — readOnly/exercise-closed pattern, guided formula-KPI builder approach, and query-key gotcha for generated hooks.
