@@ -35,7 +35,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, QrCode, Copy, Check, Users, Link as LinkIcon } from "lucide-react";
+import { Plus, Trash2, QrCode, Copy, Check, Users, Link as LinkIcon, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   orgId: number;
@@ -70,6 +71,19 @@ export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, 
     d.setDate(d.getDate() + 14);
     return d.toISOString().slice(0, 10);
   });
+  const [customQuestions, setCustomQuestions] = useState<string[]>([]);
+  const [newQuestion, setNewQuestion] = useState("");
+
+  const addCustomQuestion = () => {
+    const text = newQuestion.trim();
+    if (!text) return;
+    setCustomQuestions((prev) => [...prev, text]);
+    setNewQuestion("");
+  };
+
+  const removeCustomQuestion = (index: number) => {
+    setCustomQuestions((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const invalidateList = () => queryClient.invalidateQueries({ queryKey: getListBarometreCampaignsQueryKey(orgId) });
 
@@ -80,6 +94,8 @@ export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, 
         setCreateOpen(false);
         setName("");
         setNbCollaborateurs("");
+        setCustomQuestions([]);
+        setNewQuestion("");
         onSelectCampaign(campaign.id);
       },
     },
@@ -103,6 +119,7 @@ export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, 
         openDate,
         closeDate,
         nbCollaborateurs: Number(nbCollaborateurs),
+        customQuestions: customQuestions.length ? customQuestions : undefined,
       },
     });
   };
@@ -175,6 +192,48 @@ export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, 
                   Saisie manuelle — utilisée pour calculer le taux de participation.
                 </p>
               </div>
+              <div className="space-y-1.5">
+                <Label>Questions personnalisées (facultatif)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Ajoutées après les 36 questions du référentiel. Non modifiables après création.
+                </p>
+                {customQuestions.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {customQuestions.map((q, i) => (
+                      <li key={i} className="flex items-start gap-2 rounded-md border bg-muted/40 px-2 py-1.5 text-sm">
+                        <span className="flex-1">{q}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 shrink-0"
+                          onClick={() => removeCustomQuestion(i)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newQuestion}
+                    onChange={(e) => setNewQuestion(e.target.value)}
+                    placeholder="Ex. Que pensez-vous de notre nouvel outil interne ?"
+                    className="min-h-9 resize-none"
+                    rows={1}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        addCustomQuestion();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={addCustomQuestion} disabled={!newQuestion.trim()}>
+                    Ajouter
+                  </Button>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="bs-open">Date d'ouverture</Label>
@@ -230,8 +289,9 @@ export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, 
                     )}
                     <Dialog open={qrToken === campaign.publicToken} onOpenChange={(open) => setQrToken(open ? campaign.publicToken : null)}>
                       <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon" title="QR code">
+                        <Button variant="outline" size="sm" className="gap-1.5" title="Lien et QR code à partager">
                           <QrCode className="h-4 w-4" />
+                          Lien / QR code
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-sm">
