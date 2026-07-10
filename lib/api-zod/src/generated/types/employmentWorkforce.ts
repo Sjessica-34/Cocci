@@ -5,8 +5,6 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { EmploymentWorkforceAgeMode } from './employmentWorkforceAgeMode';
-import type { EmploymentWorkforceSeniorityMode } from './employmentWorkforceSeniorityMode';
 
 export interface EmploymentWorkforce {
   id: number;
@@ -34,7 +32,6 @@ export interface EmploymentWorkforce {
   nbRecrutements?: number | null;
   /** @nullable */
   nbDeparts?: number | null;
-  ageMode: EmploymentWorkforceAgeMode;
   /** @nullable */
   avgAge?: number | null;
   /** @nullable */
@@ -47,7 +44,6 @@ export interface EmploymentWorkforce {
   age45to54?: number | null;
   /** @nullable */
   age55plus?: number | null;
-  seniorityMode: EmploymentWorkforceSeniorityMode;
   /** @nullable */
   avgSeniority?: number | null;
   /** @nullable */

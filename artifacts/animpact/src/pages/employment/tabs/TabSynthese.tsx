@@ -1,8 +1,132 @@
-import { useGetEmploymentResults, getGetEmploymentResultsQueryKey, type EmploymentIndicator } from "@workspace/api-client-react";
+import { useGetEmploymentResults, getGetEmploymentResultsQueryKey, type EmploymentIndicator, type EmploymentWorkforce, type EmploymentDiversity } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Sparkles, AlertTriangle, ThumbsUp } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+  PieChart,
+  Pie,
+  Legend,
+} from "recharts";
+
+const AGE_COLOR = "#6366f1";
+const SENIORITY_COLOR = "#0ea5e9";
+const GENDER_COLORS = ["#3b82f6", "#ec4899", "#a855f7", "#f59e0b", "#64748b"];
+
+function buildAgeBrackets(w: EmploymentWorkforce | null | undefined) {
+  if (!w) return [];
+  const brackets = [
+    { label: "< 25 ans", value: w.ageUnder25 },
+    { label: "25-34 ans", value: w.age25to34 },
+    { label: "35-44 ans", value: w.age35to44 },
+    { label: "45-54 ans", value: w.age45to54 },
+    { label: "55 ans et +", value: w.age55plus },
+  ];
+  return brackets.some((b) => b.value != null) ? brackets : [];
+}
+
+function buildSeniorityBrackets(w: EmploymentWorkforce | null | undefined) {
+  if (!w) return [];
+  const brackets = [
+    { label: "< 2 ans", value: w.seniorityUnder2 },
+    { label: "2-5 ans", value: w.seniority2to5 },
+    { label: "5-10 ans", value: w.seniority5to10 },
+    { label: "> 10 ans", value: w.seniorityOver10 },
+  ];
+  return brackets.some((b) => b.value != null) ? brackets : [];
+}
+
+function buildGenderBreakdown(d: EmploymentDiversity | null | undefined) {
+  if (!d) return [];
+  const parts = [
+    { label: "Hommes", value: d.nbHommes },
+    { label: "Femmes", value: d.nbFemmes },
+    { label: "Non-binaire", value: d.nbNonBinaire },
+    { label: "Autre", value: d.nbAutreGenre },
+    { label: "Ne se prononce pas", value: d.nbPrefereNePasRepondreGenre },
+  ];
+  return parts.filter((p): p is { label: string; value: number } => p.value != null && p.value > 0);
+}
+
+function DistributionChart({
+  title,
+  data,
+  avgValue,
+  avgLabel,
+  color,
+}: {
+  title: string;
+  data: { label: string; value: number | null | undefined }[];
+  avgValue: number | null | undefined;
+  avgLabel: string;
+  color: string;
+}) {
+  const chartData = data.map((d) => ({ label: d.label, value: d.value ?? 0 }));
+  const hasBrackets = data.length > 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {avgValue != null && (
+          <p className="text-sm text-muted-foreground mb-3">
+            {avgLabel} : <span className="font-semibold text-foreground">{avgValue} ans</span>
+          </p>
+        )}
+        {hasBrackets ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
+              <YAxis type="category" dataKey="label" width={90} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Bar dataKey="value" fill={color} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : avgValue == null ? (
+          <p className="text-sm text-muted-foreground">Aucune donnée renseignée.</p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function GenderChart({ data }: { data: { label: string; value: number }[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Répartition par genre</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucune donnée renseignée.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={data} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={80} label={(e) => `${e.label} (${e.value})`}>
+                {data.map((_, i) => (
+                  <Cell key={i} fill={GENDER_COLORS[i % GENDER_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 interface Props {
   orgId: number;
@@ -142,6 +266,29 @@ export function TabSynthese({ orgId }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      {(data.workforce || data.diversity) && (
+        <div>
+          <h2 className="text-sm font-semibold text-foreground mb-3">Pyramides & répartitions</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DistributionChart
+              title="Pyramide des âges"
+              data={buildAgeBrackets(data.workforce)}
+              avgValue={data.workforce?.avgAge ?? null}
+              avgLabel="Âge moyen"
+              color={AGE_COLOR}
+            />
+            <DistributionChart
+              title="Répartition par ancienneté"
+              data={buildSeniorityBrackets(data.workforce)}
+              avgValue={data.workforce?.avgSeniority ?? null}
+              avgLabel="Ancienneté moyenne"
+              color={SENIORITY_COLOR}
+            />
+            <GenderChart data={buildGenderBreakdown(data.diversity)} />
+          </div>
+        </div>
+      )}
 
       {(data.increasing.length > 0 || data.decreasing.length > 0 || data.isNew.length > 0) && (
         <Card>

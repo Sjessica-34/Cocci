@@ -29,8 +29,6 @@ export const employmentWorkforceTable = pgTable(
     nbRecrutements: integer("nb_recrutements"),
     nbDeparts: integer("nb_departs"),
 
-    // 'precise' | 'brackets'
-    ageMode: text("age_mode").notNull().default("precise"),
     avgAge: real("avg_age"),
     ageUnder25: integer("age_under_25"),
     age25to34: integer("age_25_34"),
@@ -38,8 +36,6 @@ export const employmentWorkforceTable = pgTable(
     age45to54: integer("age_45_54"),
     age55plus: integer("age_55_plus"),
 
-    // 'precise' | 'brackets'
-    seniorityMode: text("seniority_mode").notNull().default("precise"),
     avgSeniority: real("avg_seniority"),
     seniorityUnder2: integer("seniority_under_2"),
     seniority2to5: integer("seniority_2_5"),

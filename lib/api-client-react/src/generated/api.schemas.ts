@@ -1188,22 +1188,6 @@ export interface PublicBarometreSubmissionAck {
   ok: boolean;
 }
 
-export type EmploymentWorkforceAgeMode = typeof EmploymentWorkforceAgeMode[keyof typeof EmploymentWorkforceAgeMode];
-
-
-export const EmploymentWorkforceAgeMode = {
-  precise: 'precise',
-  brackets: 'brackets',
-} as const;
-
-export type EmploymentWorkforceSeniorityMode = typeof EmploymentWorkforceSeniorityMode[keyof typeof EmploymentWorkforceSeniorityMode];
-
-
-export const EmploymentWorkforceSeniorityMode = {
-  precise: 'precise',
-  brackets: 'brackets',
-} as const;
-
 export interface EmploymentWorkforce {
   id: number;
   organizationId: number;
@@ -1230,7 +1214,6 @@ export interface EmploymentWorkforce {
   nbRecrutements?: number | null;
   /** @nullable */
   nbDeparts?: number | null;
-  ageMode: EmploymentWorkforceAgeMode;
   /** @nullable */
   avgAge?: number | null;
   /** @nullable */
@@ -1243,7 +1226,6 @@ export interface EmploymentWorkforce {
   age45to54?: number | null;
   /** @nullable */
   age55plus?: number | null;
-  seniorityMode: EmploymentWorkforceSeniorityMode;
   /** @nullable */
   avgSeniority?: number | null;
   /** @nullable */
@@ -1256,22 +1238,6 @@ export interface EmploymentWorkforce {
   seniorityOver10?: number | null;
   updatedAt: string;
 }
-
-export type EmploymentWorkforceInputAgeMode = typeof EmploymentWorkforceInputAgeMode[keyof typeof EmploymentWorkforceInputAgeMode];
-
-
-export const EmploymentWorkforceInputAgeMode = {
-  precise: 'precise',
-  brackets: 'brackets',
-} as const;
-
-export type EmploymentWorkforceInputSeniorityMode = typeof EmploymentWorkforceInputSeniorityMode[keyof typeof EmploymentWorkforceInputSeniorityMode];
-
-
-export const EmploymentWorkforceInputSeniorityMode = {
-  precise: 'precise',
-  brackets: 'brackets',
-} as const;
 
 export interface EmploymentWorkforceInput {
   /** @nullable */
@@ -1296,7 +1262,6 @@ export interface EmploymentWorkforceInput {
   nbRecrutements?: number | null;
   /** @nullable */
   nbDeparts?: number | null;
-  ageMode?: EmploymentWorkforceInputAgeMode;
   /** @nullable */
   avgAge?: number | null;
   /** @nullable */
@@ -1309,7 +1274,6 @@ export interface EmploymentWorkforceInput {
   age45to54?: number | null;
   /** @nullable */
   age55plus?: number | null;
-  seniorityMode?: EmploymentWorkforceInputSeniorityMode;
   /** @nullable */
   avgSeniority?: number | null;
   /** @nullable */

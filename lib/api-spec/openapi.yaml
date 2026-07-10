@@ -3530,7 +3530,7 @@ components:
     # ─── EMPLOI & COMPÉTENCES ───────────────────────────────────────────────────
     EmploymentWorkforce:
       type: object
-      required: [id, organizationId, exerciseId, ageMode, seniorityMode, updatedAt]
+      required: [id, organizationId, exerciseId, updatedAt]
       properties:
         id: { type: integer }
         organizationId: { type: integer }
@@ -3546,14 +3546,12 @@ components:
         nbTempsPartiel: { type: ["integer", "null"] }
         nbRecrutements: { type: ["integer", "null"] }
         nbDeparts: { type: ["integer", "null"] }
-        ageMode: { type: string, enum: [precise, brackets] }
         avgAge: { type: ["number", "null"] }
         ageUnder25: { type: ["integer", "null"] }
         age25to34: { type: ["integer", "null"] }
         age35to44: { type: ["integer", "null"] }
         age45to54: { type: ["integer", "null"] }
         age55plus: { type: ["integer", "null"] }
-        seniorityMode: { type: string, enum: [precise, brackets] }
         avgSeniority: { type: ["number", "null"] }
         seniorityUnder2: { type: ["integer", "null"] }
         seniority2to5: { type: ["integer", "null"] }
@@ -3575,14 +3573,12 @@ components:
         nbTempsPartiel: { type: ["integer", "null"] }
         nbRecrutements: { type: ["integer", "null"] }
         nbDeparts: { type: ["integer", "null"] }
-        ageMode: { type: string, enum: [precise, brackets] }
         avgAge: { type: ["number", "null"] }
         ageUnder25: { type: ["integer", "null"] }
         age25to34: { type: ["integer", "null"] }
         age35to44: { type: ["integer", "null"] }
         age45to54: { type: ["integer", "null"] }
         age55plus: { type: ["integer", "null"] }
-        seniorityMode: { type: string, enum: [precise, brackets] }
         avgSeniority: { type: ["number", "null"] }
         seniorityUnder2: { type: ["integer", "null"] }
         seniority2to5: { type: ["integer", "null"] }

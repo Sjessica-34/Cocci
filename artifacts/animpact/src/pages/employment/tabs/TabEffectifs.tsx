@@ -9,8 +9,6 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NumberField } from "@/components/employment/NumberField";
 import { ConsistencyAlert } from "@/components/employment/ConsistencyAlert";
@@ -25,7 +23,7 @@ interface Props {
 type FormState = EmploymentWorkforceInput;
 
 function emptyForm(): FormState {
-  return { ageMode: "precise", seniorityMode: "precise" };
+  return {};
 }
 
 export function TabEffectifs({ orgId, readOnly }: Props) {
@@ -205,22 +203,10 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
           <CardTitle className="text-base">Pyramide des âges</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <RadioGroup
-            value={form.ageMode ?? "precise"}
-            onValueChange={(v) => set("ageMode", v as FormState["ageMode"])}
-            className="flex flex-wrap gap-6"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="precise" id="ageModePrecise" disabled={readOnly} />
-              <Label htmlFor="ageModePrecise" className="text-sm font-normal">Âge moyen</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="brackets" id="ageModeBrackets" disabled={readOnly} />
-              <Label htmlFor="ageModeBrackets" className="text-sm font-normal">Répartition par tranches</Label>
-            </div>
-          </RadioGroup>
+          <NumberField id="avgAge" label="Âge moyen" help="Âge moyen de l'ensemble des collaborateurs, en années." value={form.avgAge} onChange={(v) => set("avgAge", v)} unit="ans" step="0.1" disabled={readOnly} />
 
-          {form.ageMode === "brackets" ? (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Répartition par tranches d'âge (facultatif, en complément de l'âge moyen)</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <NumberField id="ageUnder25" label="Moins de 25 ans" help="Nombre de collaborateurs âgés de moins de 25 ans." value={form.ageUnder25} onChange={(v) => set("ageUnder25", v)} disabled={readOnly} />
               <NumberField id="age25to34" label="25 à 34 ans" help="Nombre de collaborateurs âgés de 25 à 34 ans." value={form.age25to34} onChange={(v) => set("age25to34", v)} disabled={readOnly} />
@@ -228,9 +214,7 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
               <NumberField id="age45to54" label="45 à 54 ans" help="Nombre de collaborateurs âgés de 45 à 54 ans." value={form.age45to54} onChange={(v) => set("age45to54", v)} disabled={readOnly} />
               <NumberField id="age55plus" label="55 ans et plus" help="Nombre de collaborateurs âgés de 55 ans et plus." value={form.age55plus} onChange={(v) => set("age55plus", v)} disabled={readOnly} />
             </div>
-          ) : (
-            <NumberField id="avgAge" label="Âge moyen" help="Âge moyen de l'ensemble des collaborateurs, en années." value={form.avgAge} onChange={(v) => set("avgAge", v)} unit="ans" step="0.1" disabled={readOnly} />
-          )}
+          </div>
         </CardContent>
       </Card>
 
@@ -239,31 +223,17 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
           <CardTitle className="text-base">Ancienneté</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <RadioGroup
-            value={form.seniorityMode ?? "precise"}
-            onValueChange={(v) => set("seniorityMode", v as FormState["seniorityMode"])}
-            className="flex flex-wrap gap-6"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="precise" id="seniorityModePrecise" disabled={readOnly} />
-              <Label htmlFor="seniorityModePrecise" className="text-sm font-normal">Ancienneté moyenne</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="brackets" id="seniorityModeBrackets" disabled={readOnly} />
-              <Label htmlFor="seniorityModeBrackets" className="text-sm font-normal">Répartition par tranches</Label>
-            </div>
-          </RadioGroup>
+          <NumberField id="avgSeniority" label="Ancienneté moyenne" help="Ancienneté moyenne de l'ensemble des collaborateurs, en années." value={form.avgSeniority} onChange={(v) => set("avgSeniority", v)} unit="ans" step="0.1" disabled={readOnly} />
 
-          {form.seniorityMode === "brackets" ? (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Répartition par tranches d'ancienneté (facultatif, en complément de l'ancienneté moyenne)</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <NumberField id="seniorityUnder2" label="Moins de 2 ans" help="Nombre de collaborateurs ayant moins de 2 ans d'ancienneté." value={form.seniorityUnder2} onChange={(v) => set("seniorityUnder2", v)} disabled={readOnly} />
               <NumberField id="seniority2to5" label="2 à 5 ans" help="Nombre de collaborateurs ayant entre 2 et 5 ans d'ancienneté." value={form.seniority2to5} onChange={(v) => set("seniority2to5", v)} disabled={readOnly} />
               <NumberField id="seniority5to10" label="5 à 10 ans" help="Nombre de collaborateurs ayant entre 5 et 10 ans d'ancienneté." value={form.seniority5to10} onChange={(v) => set("seniority5to10", v)} disabled={readOnly} />
               <NumberField id="seniorityOver10" label="Plus de 10 ans" help="Nombre de collaborateurs ayant plus de 10 ans d'ancienneté." value={form.seniorityOver10} onChange={(v) => set("seniorityOver10", v)} disabled={readOnly} />
             </div>
-          ) : (
-            <NumberField id="avgSeniority" label="Ancienneté moyenne" help="Ancienneté moyenne de l'ensemble des collaborateurs, en années." value={form.avgSeniority} onChange={(v) => set("avgSeniority", v)} unit="ans" step="0.1" disabled={readOnly} />
-          )}
+          </div>
         </CardContent>
       </Card>
 
