@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import {
   useGetEmploymentTraining,
   useUpsertEmploymentTraining,
+  useGetEmploymentWorkforce,
+  getGetEmploymentWorkforceQueryKey,
   getGetEmploymentTrainingQueryKey,
   getGetEmploymentResultsQueryKey,
   type EmploymentTrainingInput,
@@ -11,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NumberField } from "@/components/employment/NumberField";
+import { ConsistencyAlert } from "@/components/employment/ConsistencyAlert";
+import { checkNotExceeding } from "../utils/consistency";
 import { Save, Check } from "lucide-react";
 import { CustomKpiSection } from "@/pages/employment/components/CustomKpiSection";
 
@@ -29,6 +33,10 @@ export function TabFormation({ orgId, readOnly }: Props) {
   const { data, isLoading } = useGetEmploymentTraining(orgId, {
     query: { enabled: !!orgId, queryKey: getGetEmploymentTrainingQueryKey(orgId) },
   });
+  const { data: workforceData } = useGetEmploymentWorkforce(orgId, {
+    query: { enabled: !!orgId, queryKey: getGetEmploymentWorkforceQueryKey(orgId) },
+  });
+  const totalHeadcount = workforceData?.data?.totalHeadcount;
 
   useEffect(() => {
     if (data?.data) {
@@ -52,6 +60,29 @@ export function TabFormation({ orgId, readOnly }: Props) {
 
   const set = <K extends keyof FormState>(key: K, val: FormState[K]) => setForm((f) => ({ ...f, [key]: val }));
 
+  const warnings = [
+    checkNotExceeding({
+      sum: form.nbCollaborateursFormes ?? null,
+      total: totalHeadcount,
+      label: "Le nombre de collaborateurs formés",
+    }),
+    checkNotExceeding({
+      sum: form.nbEntretiensAnnuels ?? null,
+      total: totalHeadcount,
+      label: "Le nombre d'entretiens annuels réalisés",
+    }),
+    checkNotExceeding({
+      sum: form.nbEntretiensProfessionnels ?? null,
+      total: totalHeadcount,
+      label: "Le nombre d'entretiens professionnels réalisés",
+    }),
+    checkNotExceeding({
+      sum: form.nbEvolutionsInternes ?? null,
+      total: totalHeadcount,
+      label: "Le nombre d'évolutions internes",
+    }),
+  ];
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -62,6 +93,8 @@ export function TabFormation({ orgId, readOnly }: Props) {
 
   return (
     <div className="space-y-6">
+      <ConsistencyAlert warnings={warnings} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Formation</CardTitle>

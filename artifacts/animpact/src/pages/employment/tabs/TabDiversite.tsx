@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import {
   useGetEmploymentDiversity,
   useUpsertEmploymentDiversity,
+  useGetEmploymentWorkforce,
+  getGetEmploymentWorkforceQueryKey,
   getGetEmploymentDiversityQueryKey,
   getGetEmploymentResultsQueryKey,
   type EmploymentDiversityInput,
@@ -12,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NumberField } from "@/components/employment/NumberField";
 import { BooleanField } from "@/components/employment/BooleanField";
+import { ConsistencyAlert } from "@/components/employment/ConsistencyAlert";
+import { checkNotExceeding, sumFields } from "../utils/consistency";
 import { Save, Check } from "lucide-react";
 import { CustomKpiSection } from "@/pages/employment/components/CustomKpiSection";
 
@@ -30,6 +34,10 @@ export function TabDiversite({ orgId, readOnly }: Props) {
   const { data, isLoading } = useGetEmploymentDiversity(orgId, {
     query: { enabled: !!orgId, queryKey: getGetEmploymentDiversityQueryKey(orgId) },
   });
+  const { data: workforceData } = useGetEmploymentWorkforce(orgId, {
+    query: { enabled: !!orgId, queryKey: getGetEmploymentWorkforceQueryKey(orgId) },
+  });
+  const totalHeadcount = workforceData?.data?.totalHeadcount;
 
   useEffect(() => {
     if (data?.data) {
@@ -53,6 +61,24 @@ export function TabDiversite({ orgId, readOnly }: Props) {
 
   const set = <K extends keyof FormState>(key: K, val: FormState[K]) => setForm((f) => ({ ...f, [key]: val }));
 
+  const warnings = [
+    checkNotExceeding({
+      sum: sumFields([form.nbHommes, form.nbFemmes, form.nbNonBinaire, form.nbAutreGenre, form.nbPrefereNePasRepondreGenre]),
+      total: totalHeadcount,
+      label: "La somme de la répartition par genre",
+    }),
+    checkNotExceeding({
+      sum: form.nbHandicap ?? null,
+      total: totalHeadcount,
+      label: "Le nombre de collaborateurs en situation de handicap",
+    }),
+    checkNotExceeding({
+      sum: sumFields([form.nbNationaliteFrancaise, form.nbNationaliteUe, form.nbNationaliteHorsUe, form.nbDoubleNationalite, form.nbPrefereNePasRepondreNationalite]),
+      total: totalHeadcount,
+      label: "La somme de la répartition par nationalité",
+    }),
+  ];
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -64,6 +90,8 @@ export function TabDiversite({ orgId, readOnly }: Props) {
 
   return (
     <div className="space-y-6">
+      <ConsistencyAlert warnings={warnings} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Répartition par genre</CardTitle>

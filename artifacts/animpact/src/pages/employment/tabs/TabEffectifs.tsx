@@ -13,6 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NumberField } from "@/components/employment/NumberField";
+import { ConsistencyAlert } from "@/components/employment/ConsistencyAlert";
+import { checkNotExceeding, sumFields } from "../utils/consistency";
 import { Save, Check } from "lucide-react";
 
 interface Props {
@@ -57,6 +59,30 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
 
   const set = <K extends keyof FormState>(key: K, val: FormState[K]) => setForm((f) => ({ ...f, [key]: val }));
 
+  const total = form.totalHeadcount;
+  const warnings = [
+    checkNotExceeding({
+      sum: sumFields([form.nbCdi, form.nbCdd, form.nbAlternants, form.nbApprentis, form.nbInterimaires]),
+      total,
+      label: "La somme des types de contrats (CDI, CDD, alternants, apprentis, intérimaires)",
+    }),
+    checkNotExceeding({
+      sum: sumFields([form.nbTempsPlein, form.nbTempsPartiel]),
+      total,
+      label: "La somme des temps pleins et temps partiels",
+    }),
+    checkNotExceeding({
+      sum: sumFields([form.ageUnder25, form.age25to34, form.age35to44, form.age45to54, form.age55plus]),
+      total,
+      label: "La somme des tranches d'âge",
+    }),
+    checkNotExceeding({
+      sum: sumFields([form.seniorityUnder2, form.seniority2to5, form.seniority5to10, form.seniorityOver10]),
+      total,
+      label: "La somme des tranches d'ancienneté",
+    }),
+  ];
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -68,6 +94,8 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
 
   return (
     <div className="space-y-6">
+      <ConsistencyAlert warnings={warnings} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Effectifs & typologie de contrats</CardTitle>
