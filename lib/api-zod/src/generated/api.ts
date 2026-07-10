@@ -2183,7 +2183,6 @@ export const GetEmploymentDiversityResponse = zod.object({
   "politiqueEgaliteProfessionnelle": zod.boolean().nullish(),
   "teletravailAutorise": zod.boolean().nullish(),
   "charteDiversite": zod.boolean().nullish(),
-  "indexEgaliteHf": zod.number().nullish(),
   "updatedAt": zod.coerce.date()
 }),zod.null()]).optional()
 })
@@ -2214,8 +2213,7 @@ export const UpsertEmploymentDiversityBody = zod.object({
   "politiqueContreDiscriminations": zod.boolean().nullish(),
   "politiqueEgaliteProfessionnelle": zod.boolean().nullish(),
   "teletravailAutorise": zod.boolean().nullish(),
-  "charteDiversite": zod.boolean().nullish(),
-  "indexEgaliteHf": zod.number().nullish()
+  "charteDiversite": zod.boolean().nullish()
 })
 
 export const UpsertEmploymentDiversityResponse = zod.object({
@@ -2240,7 +2238,6 @@ export const UpsertEmploymentDiversityResponse = zod.object({
   "politiqueEgaliteProfessionnelle": zod.boolean().nullish(),
   "teletravailAutorise": zod.boolean().nullish(),
   "charteDiversite": zod.boolean().nullish(),
-  "indexEgaliteHf": zod.number().nullish(),
   "updatedAt": zod.coerce.date()
 })
 
@@ -2484,7 +2481,6 @@ export const GetEmploymentResultsResponse = zod.object({
   "politiqueEgaliteProfessionnelle": zod.boolean().nullish(),
   "teletravailAutorise": zod.boolean().nullish(),
   "charteDiversite": zod.boolean().nullish(),
-  "indexEgaliteHf": zod.number().nullish(),
   "updatedAt": zod.coerce.date()
 }),zod.null()]),
   "training": zod.union([zod.object({

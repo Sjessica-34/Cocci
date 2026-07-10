@@ -3622,7 +3622,6 @@ components:
         politiqueEgaliteProfessionnelle: { type: ["boolean", "null"] }
         teletravailAutorise: { type: ["boolean", "null"] }
         charteDiversite: { type: ["boolean", "null"] }
-        indexEgaliteHf: { type: ["number", "null"] }
         updatedAt: { type: string, format: date-time }
 
     EmploymentDiversityInput:
@@ -3646,7 +3645,6 @@ components:
         politiqueEgaliteProfessionnelle: { type: ["boolean", "null"] }
         teletravailAutorise: { type: ["boolean", "null"] }
         charteDiversite: { type: ["boolean", "null"] }
-        indexEgaliteHf: { type: ["number", "null"] }
 
     EmploymentDiversityResponse:
       type: object

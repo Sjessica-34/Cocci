@@ -89,7 +89,6 @@ export const employmentDiversityTable = pgTable(
     politiqueEgaliteProfessionnelle: boolean("politique_egalite_professionnelle"),
     teletravailAutorise: boolean("teletravail_autorise"),
     charteDiversite: boolean("charte_diversite"),
-    indexEgaliteHf: real("index_egalite_hf"),
 
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

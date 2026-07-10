@@ -97,7 +97,6 @@ export function buildVariableMap(
     nb_femmes: d?.nbFemmes ?? null,
     nb_non_binaire: d?.nbNonBinaire ?? null,
     nb_handicap: d?.nbHandicap ?? null,
-    index_egalite_hf: d?.indexEgaliteHf ?? null,
 
     nb_heures_formation: t?.nbHeuresFormation ?? null,
     budget_formation: t?.budgetFormation ?? null,
@@ -116,7 +115,27 @@ export function buildVariableMap(
     taux_hommes: pct(d?.nbHommes, effectifTotal),
     taux_formation: pct(t?.nbCollaborateursFormes, effectifTotal),
     turnover: computeTurnover(w),
+    indice_parite_hf: computeParityIndex(d),
   };
+}
+
+/**
+ * Automatically computed parity indicator (0-100): 100 means a perfectly
+ * balanced Hommes/Femmes representation, decreasing as the gap between the
+ * two shares widens. Replaces the previous manual "Index Egapro" entry,
+ * which this app doesn't have the data to compute per the official
+ * methodology (pay gap, promotion rate, etc.) — this is a simpler,
+ * automatically derived parity proxy computed from headcount only.
+ */
+function computeParityIndex(d: EmploymentDiversity | null): number | null {
+  const hommes = d?.nbHommes ?? null;
+  const femmes = d?.nbFemmes ?? null;
+  if (hommes == null || femmes == null) return null;
+  const total = hommes + femmes;
+  if (total <= 0) return null;
+  const partFemmes = (femmes / total) * 100;
+  const partHommes = (hommes / total) * 100;
+  return round(100 - Math.abs(partFemmes - partHommes));
 }
 
 function computeTurnover(w: EmploymentWorkforce | null): number | null {
@@ -144,7 +163,6 @@ export const FORMULA_VARIABLE_LABELS: Record<string, { label: string; unit: stri
   nb_femmes: { label: "Nombre de femmes", unit: null },
   nb_non_binaire: { label: "Nombre de non-binaires", unit: null },
   nb_handicap: { label: "Collaborateurs en situation de handicap", unit: null },
-  index_egalite_hf: { label: "Index égalité H/F", unit: "pts" },
   nb_heures_formation: { label: "Heures de formation", unit: "h" },
   budget_formation: { label: "Budget formation", unit: "€" },
   nb_collaborateurs_formes: { label: "Collaborateurs formés", unit: null },
@@ -160,6 +178,7 @@ export const FORMULA_VARIABLE_LABELS: Record<string, { label: string; unit: stri
   taux_hommes: { label: "% d'hommes", unit: "%" },
   taux_formation: { label: "% de collaborateurs formés", unit: "%" },
   turnover: { label: "Turn-over", unit: "%" },
+  indice_parite_hf: { label: "Indice de parité Femmes-Hommes", unit: "/100" },
 };
 
 export function listFormulaVariables(
@@ -256,6 +275,7 @@ export function computeStandardIndicators(
     "taux_stagiaires",
     "taux_femmes",
     "taux_hommes",
+    "indice_parite_hf",
     "taux_formation",
     "nb_heures_formation",
     "nb_recrutements",

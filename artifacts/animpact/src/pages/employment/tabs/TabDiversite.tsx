@@ -132,7 +132,9 @@ export function TabDiversite({ orgId, readOnly }: Props) {
           <CardTitle className="text-base">Index & politiques internes</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <NumberField id="indexEgaliteHf" label="Index de l'égalité professionnelle Femmes-Hommes" help="Note globale sur 100 de l'Index Egapro publié par votre entreprise (obligatoire pour les entreprises de 50 salariés et plus)." value={form.indexEgaliteHf} onChange={(v) => set("indexEgaliteHf", v)} unit="/100" step="0.1" disabled={readOnly} />
+          <p className="text-xs text-muted-foreground">
+            L'indice de parité Femmes-Hommes est calculé automatiquement à partir de la répartition par genre ci-dessus et affiché dans l'onglet Synthèse.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 pt-2">
             <BooleanField id="politiqueDiversite" label="Politique diversité formalisée" help="L'entreprise dispose d'une politique diversité écrite et diffusée en interne." value={form.politiqueDiversite} onChange={(v) => set("politiqueDiversite", v)} disabled={readOnly} />
             <BooleanField id="referentHandicap" label="Référent handicap désigné" help="Un référent handicap a été formellement désigné (obligatoire à partir de 250 salariés)." value={form.referentHandicap} onChange={(v) => set("referentHandicap", v)} disabled={readOnly} />

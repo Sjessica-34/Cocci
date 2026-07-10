@@ -1366,8 +1366,6 @@ export interface EmploymentDiversity {
   teletravailAutorise?: boolean | null;
   /** @nullable */
   charteDiversite?: boolean | null;
-  /** @nullable */
-  indexEgaliteHf?: number | null;
   updatedAt: string;
 }
 
@@ -1408,8 +1406,6 @@ export interface EmploymentDiversityInput {
   teletravailAutorise?: boolean | null;
   /** @nullable */
   charteDiversite?: boolean | null;
-  /** @nullable */
-  indexEgaliteHf?: number | null;
 }
 
 export interface EmploymentDiversityResponse {
