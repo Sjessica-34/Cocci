@@ -7,7 +7,6 @@ import {
   barometreCustomQuestionsTable,
   barometreResponsesTable,
   barometreAnswersTable,
-  barometreActionsTable,
   barometreAiSummariesTable,
   type BarometreCampaign,
 } from "@workspace/db";
@@ -425,45 +424,6 @@ router.post(
       });
 
     res.json(await buildSynthese(campaign));
-  },
-);
-
-// ─── ACTIONS ──────────────────────────────────────────────────────────────────
-
-router.post(
-  "/organizations/:orgId/barometre-campaigns/:id/actions",
-  requireAuth,
-  requireOrgMembership,
-  requireExerciseScope,
-  async (req, res): Promise<void> => {
-    const id = parseId(req.params.id);
-    const [campaign] = await db
-      .select()
-      .from(barometreCampaignsTable)
-      .where(scopeToExercise(barometreCampaignsTable, req, eq(barometreCampaignsTable.id, id)))
-      .limit(1);
-    if (!campaign) {
-      res.status(404).json({ error: "Not found" });
-      return;
-    }
-    const b = req.body as { title: string; sourceTheme?: string | null };
-    const [action] = await db
-      .insert(barometreActionsTable)
-      .values({
-        organizationId: campaign.organizationId,
-        campaignId: id,
-        title: b.title,
-        sourceTheme: b.sourceTheme ?? null,
-      })
-      .returning();
-    res.status(201).json({
-      id: action.id,
-      organizationId: action.organizationId,
-      campaignId: action.campaignId,
-      title: action.title,
-      sourceTheme: action.sourceTheme,
-      createdAt: action.createdAt.toISOString(),
-    });
   },
 );
 

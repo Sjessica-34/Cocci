@@ -1720,40 +1720,6 @@ paths:
         "404":
           description: Not found
 
-  /organizations/{orgId}/barometre-campaigns/{id}/actions:
-    post:
-      operationId: createBarometreAction
-      tags: [barometre-social]
-      summary: Create an action from a Baromètre Social theme (stored in a dedicated table pending the "Mes actions" module)
-      parameters:
-        - name: orgId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/BarometreActionInput"
-      responses:
-        "201":
-          description: Created action
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BarometreAction"
-        "403":
-          description: Forbidden
-        "404":
-          description: Not found
-
   # Public, unauthenticated endpoints — employees never have a Cocci account.
   /public/barometre/{token}:
     get:
@@ -3195,24 +3161,6 @@ components:
           oneOf:
             - $ref: "#/components/schemas/BarometreAiSummary"
             - type: "null"
-
-    BarometreAction:
-      type: object
-      required: [id, organizationId, campaignId, title, createdAt]
-      properties:
-        id: { type: integer }
-        organizationId: { type: integer }
-        campaignId: { type: integer }
-        title: { type: string }
-        sourceTheme: { type: ["string", "null"] }
-        createdAt: { type: string, format: date-time }
-
-    BarometreActionInput:
-      type: object
-      required: [title]
-      properties:
-        title: { type: string }
-        sourceTheme: { type: ["string", "null"] }
 
     PublicBarometreQuestion:
       type: object

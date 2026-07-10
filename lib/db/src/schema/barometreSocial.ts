@@ -65,26 +65,6 @@ export const barometreAnswersTable = pgTable("barometre_answers", {
 
 export type BarometreAnswer = typeof barometreAnswersTable.$inferSelect;
 
-// Dedicated table so the barometre module can create "actions" today without
-// depending on the "Mes actions" module (module 7, not built yet). Once that
-// module exists, these rows can be migrated/linked instead of duplicating
-// this table's purpose.
-export const barometreActionsTable = pgTable("barometre_actions", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
-  campaignId: integer("campaign_id").notNull().references(() => barometreCampaignsTable.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  sourceTheme: text("source_theme"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
-
-export const insertBarometreActionSchema = createInsertSchema(barometreActionsTable).omit({
-  id: true,
-  createdAt: true,
-});
-export type InsertBarometreAction = z.infer<typeof insertBarometreActionSchema>;
-export type BarometreAction = typeof barometreActionsTable.$inferSelect;
-
 // Cached AI summary of free-text comments for a campaign — regenerated on
 // demand, never computed synchronously on every page load.
 export const barometreAiSummariesTable = pgTable("barometre_ai_summaries", {

@@ -2005,29 +2005,6 @@ export const RegenerateBarometreAiSummaryResponse = zod.object({
 
 
 /**
- * @summary Create an action from a Baromètre Social theme (stored in a dedicated table pending the "Mes actions" module)
- */
-export const CreateBarometreActionParams = zod.object({
-  "orgId": zod.coerce.number(),
-  "id": zod.coerce.number()
-})
-
-export const CreateBarometreActionBody = zod.object({
-  "title": zod.string(),
-  "sourceTheme": zod.string().nullish()
-})
-
-export const CreateBarometreActionResponse = zod.object({
-  "id": zod.number(),
-  "organizationId": zod.number(),
-  "campaignId": zod.number(),
-  "title": zod.string(),
-  "sourceTheme": zod.string().nullish(),
-  "createdAt": zod.coerce.date()
-})
-
-
-/**
  * @summary Get the questionnaire for a campaign by its public token (no auth)
  */
 export const GetPublicBarometreQuestionnaireParams = zod.object({

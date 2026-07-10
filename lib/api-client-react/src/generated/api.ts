@@ -24,8 +24,6 @@ import type {
   AdminOrganization,
   AdminStats,
   AdminUser,
-  BarometreAction,
-  BarometreActionInput,
   BarometreCampaign,
   BarometreCampaignDetail,
   BarometreCampaignInput,
@@ -5306,79 +5304,6 @@ export const useRegenerateBarometreAiSummary = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRegenerateBarometreAiSummaryMutationOptions(options));
-    }
-
-export const getCreateBarometreActionUrl = (orgId: number,
-    id: number,) => {
-
-
-
-
-  return `/api/organizations/${orgId}/barometre-campaigns/${id}/actions`
-}
-
-/**
- * @summary Create an action from a Baromètre Social theme (stored in a dedicated table pending the "Mes actions" module)
- */
-export const createBarometreAction = async (orgId: number,
-    id: number,
-    barometreActionInput: BarometreActionInput, options?: RequestInit): Promise<BarometreAction> => {
-
-  return customFetch<BarometreAction>(getCreateBarometreActionUrl(orgId,id),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(barometreActionInput)
-  }
-);}
-
-
-
-
-export const getCreateBarometreActionMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBarometreAction>>, TError,{orgId: number;id: number;data: BodyType<BarometreActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createBarometreAction>>, TError,{orgId: number;id: number;data: BodyType<BarometreActionInput>}, TContext> => {
-
-const mutationKey = ['createBarometreAction'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBarometreAction>>, {orgId: number;id: number;data: BodyType<BarometreActionInput>}> = (props) => {
-          const {orgId,id,data} = props ?? {};
-
-          return  createBarometreAction(orgId,id,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateBarometreActionMutationResult = NonNullable<Awaited<ReturnType<typeof createBarometreAction>>>
-    export type CreateBarometreActionMutationBody = BodyType<BarometreActionInput>
-    export type CreateBarometreActionMutationError = ErrorType<void>
-
-    /**
- * @summary Create an action from a Baromètre Social theme (stored in a dedicated table pending the "Mes actions" module)
- */
-export const useCreateBarometreAction = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBarometreAction>>, TError,{orgId: number;id: number;data: BodyType<BarometreActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createBarometreAction>>,
-        TError,
-        {orgId: number;id: number;data: BodyType<BarometreActionInput>},
-        TContext
-      > => {
-      return useMutation(getCreateBarometreActionMutationOptions(options));
     }
 
 export const getGetPublicBarometreQuestionnaireUrl = (token: string,) => {

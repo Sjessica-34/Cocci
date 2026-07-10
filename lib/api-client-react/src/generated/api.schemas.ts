@@ -1139,22 +1139,6 @@ export interface BarometreSynthese {
   aiSummary: BarometreAiSummary | null;
 }
 
-export interface BarometreAction {
-  id: number;
-  organizationId: number;
-  campaignId: number;
-  title: string;
-  /** @nullable */
-  sourceTheme?: string | null;
-  createdAt: string;
-}
-
-export interface BarometreActionInput {
-  title: string;
-  /** @nullable */
-  sourceTheme?: string | null;
-}
-
 export type PublicBarometreQuestionType = typeof PublicBarometreQuestionType[keyof typeof PublicBarometreQuestionType];
 
 

@@ -13,8 +13,6 @@ export * from './adminMemberUser';
 export * from './adminOrganization';
 export * from './adminStats';
 export * from './adminUser';
-export * from './barometreAction';
-export * from './barometreActionInput';
 export * from './barometreAiSummary';
 export * from './barometreCampaign';
 export * from './barometreCampaignDetail';

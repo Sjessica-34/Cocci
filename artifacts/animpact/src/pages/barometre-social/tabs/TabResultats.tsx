@@ -1,8 +1,5 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetBarometreResults,
-  useCreateBarometreAction,
   getGetBarometreResultsQueryKey,
   type BarometreCampaign,
 } from "@workspace/api-client-react";
@@ -10,20 +7,8 @@ import { BAROMETRE_SCALE_LABELS } from "@workspace/rse-referentials";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { TrendingUp, TrendingDown, MessageSquare, ListPlus } from "lucide-react";
+import { TrendingUp, TrendingDown, MessageSquare } from "lucide-react";
 
 interface Props {
   orgId: number;
@@ -44,21 +29,8 @@ function TrendBadge({ current, previous }: { current: number | null; previous: n
 }
 
 export function TabResultats({ orgId, campaign }: Props) {
-  const queryClient = useQueryClient();
-  const [actionDialogFor, setActionDialogFor] = useState<{ code: string; theme: string } | null>(null);
-  const [actionTitle, setActionTitle] = useState("");
-
   const { data, isLoading } = useGetBarometreResults(orgId, campaign?.id ?? 0, {
     query: { enabled: !!campaign, queryKey: getGetBarometreResultsQueryKey(orgId, campaign?.id ?? 0) },
-  });
-
-  const { mutate: createAction, isPending: isCreatingAction } = useCreateBarometreAction({
-    mutation: {
-      onSuccess: () => {
-        setActionDialogFor(null);
-        setActionTitle("");
-      },
-    },
   });
 
   if (!campaign) {
@@ -104,41 +76,7 @@ export function TabResultats({ orgId, campaign }: Props) {
           <CardContent className="space-y-4">
             {data.questions.filter((q) => q.theme === theme).map((q) => (
               <div key={q.code} className="space-y-1.5 pb-3 border-b last:border-0 last:pb-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-foreground flex-1">{q.text}</p>
-                  <Dialog open={actionDialogFor?.code === q.code} onOpenChange={(open) => setActionDialogFor(open ? { code: q.code, theme: q.theme } : null)}>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="gap-1 shrink-0 text-xs">
-                        <ListPlus className="h-3.5 w-3.5" />
-                        Créer une action
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Nouvelle action</DialogTitle>
-                        <DialogDescription>À partir de : « {q.text} »</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-1.5 py-2">
-                        <Label htmlFor="action-title">Intitulé de l'action</Label>
-                        <Input id="action-title" value={actionTitle} onChange={(e) => setActionTitle(e.target.value)} placeholder="Ex. Mettre en place un point d'équipe mensuel" />
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          disabled={!actionTitle.trim() || isCreatingAction}
-                          onClick={() =>
-                            createAction({
-                              orgId,
-                              id: campaign.id,
-                              data: { title: actionTitle.trim(), sourceTheme: q.theme },
-                            })
-                          }
-                        >
-                          Créer
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+                <p className="text-sm font-medium text-foreground">{q.text}</p>
 
                 {q.type === "scale" ? (
                   <div className="flex items-center gap-3">

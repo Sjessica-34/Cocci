@@ -1,8 +1,6 @@
-import { useState } from "react";
 import {
   useGetBarometreSynthese,
   useRegenerateBarometreAiSummary,
-  useCreateBarometreAction,
   getGetBarometreSyntheseQueryKey,
   type BarometreCampaign,
 } from "@workspace/api-client-react";
@@ -12,18 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Sparkles, RefreshCw, TrendingUp, TrendingDown, ThumbsUp, ThumbsDown, AlertTriangle, ListPlus } from "lucide-react";
+import { Sparkles, RefreshCw, TrendingUp, TrendingDown, ThumbsUp, ThumbsDown, AlertTriangle } from "lucide-react";
 
 interface Props {
   orgId: number;
@@ -32,8 +19,6 @@ interface Props {
 
 export function TabSynthese({ orgId, campaign }: Props) {
   const queryClient = useQueryClient();
-  const [actionDialogOpen, setActionDialogOpen] = useState<string | null>(null);
-  const [actionTitle, setActionTitle] = useState("");
 
   const { data, isLoading } = useGetBarometreSynthese(orgId, campaign?.id ?? 0, {
     query: { enabled: !!campaign, queryKey: getGetBarometreSyntheseQueryKey(orgId, campaign?.id ?? 0) },
@@ -43,15 +28,6 @@ export function TabSynthese({ orgId, campaign }: Props) {
 
   const { mutate: regenerate, isPending: isRegenerating } = useRegenerateBarometreAiSummary({
     mutation: { onSuccess: invalidate },
-  });
-
-  const { mutate: createAction, isPending: isCreatingAction } = useCreateBarometreAction({
-    mutation: {
-      onSuccess: () => {
-        setActionDialogOpen(null);
-        setActionTitle("");
-      },
-    },
   });
 
   if (!campaign) {
@@ -202,36 +178,11 @@ export function TabSynthese({ orgId, campaign }: Props) {
               <p className="text-sm text-foreground leading-relaxed">{data.aiSummary.summary}</p>
               {!!data.aiSummary.suggestions.length && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Suggestions d'actions</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Pistes d'amélioration suggérées</p>
                   <div className="space-y-1.5">
                     {data.aiSummary.suggestions.map((s, i) => (
-                      <div key={i} className="flex items-center justify-between gap-2 text-sm bg-muted/50 rounded-lg p-2">
+                      <div key={i} className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg p-2">
                         <span className="text-foreground">{s}</span>
-                        <Dialog open={actionDialogOpen === s} onOpenChange={(open) => { setActionDialogOpen(open ? s : null); setActionTitle(open ? s : ""); }}>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="gap-1 shrink-0 text-xs">
-                              <ListPlus className="h-3.5 w-3.5" /> Créer une action
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Nouvelle action</DialogTitle>
-                              <DialogDescription>Suggestion issue de la synthèse IA</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-1.5 py-2">
-                              <Label htmlFor="ai-action-title">Intitulé de l'action</Label>
-                              <Input id="ai-action-title" value={actionTitle} onChange={(e) => setActionTitle(e.target.value)} />
-                            </div>
-                            <DialogFooter>
-                              <Button
-                                disabled={!actionTitle.trim() || isCreatingAction}
-                                onClick={() => createAction({ orgId, id: campaign.id, data: { title: actionTitle.trim(), sourceTheme: null } })}
-                              >
-                                Créer
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
                       </div>
                     ))}
                   </div>
