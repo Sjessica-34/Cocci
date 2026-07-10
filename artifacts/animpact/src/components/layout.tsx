@@ -67,7 +67,7 @@ const navGroups: NavItem[][] = [
   ],
   [
     { href: "/barometre-social", label: "Baromètre Social", icon: Smile },
-    { href: "/employment", label: "Emploi & Compétences", icon: GraduationCap },
+    { href: "/capital-humain", label: "Capital Humain", icon: GraduationCap },
   ],
   [
     { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },

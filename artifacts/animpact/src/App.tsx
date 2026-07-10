@@ -36,7 +36,7 @@ import { MesDocuments } from "@/pages/mes-documents";
 import { MesLabels } from "@/pages/mes-labels";
 import { BarometreSocial } from "@/pages/barometre-social";
 import { BarometreSocialPublic } from "@/pages/barometre-social/public";
-import { Employment } from "@/pages/employment";
+import { CapitalHumain } from "@/pages/employment";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
@@ -275,7 +275,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/mes-documents"><ProtectedRoute component={MesDocuments} /></Route>
             <Route path="/mes-labels"><ProtectedRoute component={MesLabels} /></Route>
             <Route path="/barometre-social"><ProtectedRoute component={BarometreSocial} /></Route>
-            <Route path="/employment"><ProtectedRoute component={Employment} /></Route>
+            <Route path="/capital-humain"><ProtectedRoute component={CapitalHumain} /></Route>
 
             <Route component={NotFound} />
           </Switch>

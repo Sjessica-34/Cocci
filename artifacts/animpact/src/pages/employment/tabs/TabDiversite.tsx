@@ -79,10 +79,18 @@ export function TabDiversite({ orgId, readOnly }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Handicap & nationalités</CardTitle>
+          <CardTitle className="text-base">Handicap</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <NumberField id="nbHandicap" label="Collaborateurs en situation de handicap" help="Nombre de collaborateurs bénéficiaires de l'obligation d'emploi (RQTH ou équivalent), déclarés volontairement." value={form.nbHandicap} onChange={(v) => set("nbHandicap", v)} disabled={readOnly} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Nationalités</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <NumberField id="nbNationaliteFrancaise" label="Nationalité française" help="Collaborateurs de nationalité française." value={form.nbNationaliteFrancaise} onChange={(v) => set("nbNationaliteFrancaise", v)} disabled={readOnly} />
           <NumberField id="nbNationaliteUe" label="Nationalité UE (hors France)" help="Collaborateurs ressortissants d'un autre État membre de l'Union Européenne." value={form.nbNationaliteUe} onChange={(v) => set("nbNationaliteUe", v)} disabled={readOnly} />
           <NumberField id="nbNationaliteHorsUe" label="Nationalité hors UE" help="Collaborateurs ressortissants d'un pays hors Union Européenne." value={form.nbNationaliteHorsUe} onChange={(v) => set("nbNationaliteHorsUe", v)} disabled={readOnly} />
