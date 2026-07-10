@@ -102,62 +102,68 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full justify-start px-2 h-9 hover:bg-sidebar-accent/60 text-sidebar-foreground"
-          >
-            <CalendarRange className="h-4 w-4 mr-2 text-sidebar-foreground/60 shrink-0" />
-            <span className="text-sm font-medium truncate flex-1 text-left">
-              {current ? `Exercice ${current.year}` : "Exercice"}
-            </span>
-            {current && (
-              <Badge
-                variant={current.status === "active" ? "default" : "secondary"}
-                className="mr-1.5 text-[10px] px-1.5 py-0 h-4"
-              >
-                {current.status === "active" ? "En cours" : "Clôturé"}
-              </Badge>
-            )}
-            <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground/40 shrink-0" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-64">
-          <DropdownMenuLabel className="text-xs text-muted-foreground">Changer d'exercice</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {recentExercises.map((ex) => (
-            <DropdownMenuItem
-              key={ex.id}
-              className={cn("cursor-pointer justify-between", ex.id === currentExerciseId && "bg-accent")}
-              onClick={() => switchExercise(ex.id)}
+      <div className="flex items-center gap-1.5 w-full">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex-1 justify-start px-2 h-9 hover:bg-sidebar-accent/60 text-sidebar-foreground min-w-0"
             >
-              <span>Exercice {ex.year}</span>
-              <Badge
-                variant={ex.status === "active" ? "default" : "secondary"}
-                className="text-[10px] px-1.5 py-0 h-4"
+              <CalendarRange className="h-4 w-4 mr-2 text-sidebar-foreground/60 shrink-0" />
+              <span className="text-sm font-medium truncate flex-1 text-left">
+                {current ? `Exercice ${current.year}` : "Exercice"}
+              </span>
+              {current && (
+                <Badge
+                  variant={current.status === "active" ? "default" : "secondary"}
+                  className="mr-1.5 text-[10px] px-1.5 py-0 h-4"
+                >
+                  {current.status === "active" ? "En cours" : "Clôturé"}
+                </Badge>
+              )}
+              <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground/40 shrink-0" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Changer d'exercice</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {recentExercises.map((ex) => (
+              <DropdownMenuItem
+                key={ex.id}
+                className={cn("cursor-pointer justify-between", ex.id === currentExerciseId && "bg-accent")}
+                onClick={() => switchExercise(ex.id)}
               >
-                {ex.status === "active" ? "En cours" : "Clôturé"}
-              </Badge>
-            </DropdownMenuItem>
-          ))}
-          {hasMoreExercises && (
-            <DropdownMenuItem className="cursor-pointer" onClick={() => setAllOpen(true)}>
-              <ListFilter className="h-4 w-4 mr-2" />
-              Voir tous les exercices…
-            </DropdownMenuItem>
-          )}
-          {canAdvance && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setConfirmOpen(true)}>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Clôturer et créer l'exercice suivant
+                <span>Exercice {ex.year}</span>
+                <Badge
+                  variant={ex.status === "active" ? "default" : "secondary"}
+                  className="text-[10px] px-1.5 py-0 h-4"
+                >
+                  {ex.status === "active" ? "En cours" : "Clôturé"}
+                </Badge>
               </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            ))}
+            {hasMoreExercises && (
+              <DropdownMenuItem className="cursor-pointer" onClick={() => setAllOpen(true)}>
+                <ListFilter className="h-4 w-4 mr-2" />
+                Voir tous les exercices…
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {canAdvance && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-9 w-9 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent/60"
+            title="Clôturer et créer l'exercice suivant"
+            onClick={() => setConfirmOpen(true)}
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>

@@ -47,3 +47,15 @@ one).
 On a fresh/empty database, none of this matters: `pnpm --filter
 @workspace/db run push` against the current schema is sufficient, since there
 is no pre-existing data to violate the NOT NULL constraint.
+
+5. **Phase 4 — automatic advance workflow**
+   ```
+   psql "$DATABASE_URL" -f lib/db/migrations/exercise-rollout/phase4_advance_workflow.sql
+   ```
+   Adds `organizations.exercise_opening_month` (default 12/December) and the
+   partial unique index enforcing a single "active" exercise per
+   organization. Defensively closes any extra active exercises (keeping the
+   most recent by year) before creating the index, so it is safe to run even
+   if a populated database has leftover duplicate-active rows from the
+   previous manual-exercise workflow. Idempotent — safe on fresh databases
+   too.
