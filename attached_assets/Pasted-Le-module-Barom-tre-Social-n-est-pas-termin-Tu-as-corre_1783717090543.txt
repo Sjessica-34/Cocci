@@ -1,0 +1,405 @@
+Le module Baromètre Social n'est pas terminé.
+
+Tu as correctement développé le référentiel du questionnaire, mais ce n'est pas le fonctionnement attendu.
+
+Je ne souhaite pas un simple Google Forms intégré.
+
+Je souhaite un véritable module métier permettant de gérer des campagnes, collecter les réponses, analyser automatiquement les résultats et piloter le climat social.
+
+Merci de conserver tout le travail déjà réalisé et de le faire évoluer selon les éléments ci-dessous.
+
+====================================================
+ARCHITECTURE DU MODULE
+====================================================
+
+Le module sera composé de 4 onglets.
+
+1. Campagnes
+
+2. Aperçu du questionnaire
+
+3. Résultats
+
+4. Synthèse
+
+L'ergonomie doit être identique aux autres modules de Cocci.
+
+====================================================
+ONGLET 1
+CAMPAGNES
+====================================================
+
+Cet onglet devient la véritable porte d'entrée du module.
+
+Chaque campagne est liée obligatoirement :
+
+Entreprise
+
+↓
+
+Exercice
+
+↓
+
+Campagne
+
+Une entreprise peut créer plusieurs campagnes.
+
+Exemple :
+
+Baromètre social 2026
+
+Baromètre social 2027
+
+Afficher une liste des campagnes.
+
+Pour chaque campagne afficher :
+
+• Nom
+
+• Exercice
+
+• Date d'ouverture
+
+• Date de clôture
+
+• Statut
+
+    ○ Brouillon
+
+    ○ En cours
+
+    ○ Terminée
+
+• Nombre de collaborateurs
+
+• Nombre de répondants
+
+• Taux de participation
+
+Créer un bouton :
+
+➕ Nouvelle campagne
+
+Lors de la création,
+
+ouvrir une fenêtre permettant de renseigner :
+
+• Nom de la campagne
+
+• Exercice (pré-rempli avec l'exercice actif)
+
+• Date d'ouverture
+
+• Date de clôture
+
+• Mode
+
+○ Anonyme
+
+○ Identifié
+
+Une fois la campagne créée,
+
+générer automatiquement :
+
+• un lien sécurisé unique
+
+• un QR Code
+
+• un bouton "Copier le lien"
+
+• un bouton "Télécharger le QR Code"
+
+Le responsable RH peut simplement envoyer ce lien aux collaborateurs.
+
+Les collaborateurs ne possèdent jamais de compte Cocci.
+
+Ils répondent uniquement via ce lien.
+
+Lorsque la date de clôture est dépassée,
+
+la campagne devient automatiquement :
+
+Terminée
+
+Le questionnaire n'est alors plus accessible.
+
+====================================================
+ONGLET 2
+APERÇU DU QUESTIONNAIRE
+====================================================
+
+Je ne souhaite plus appeler cet onglet "Questionnaire".
+
+Je souhaite le renommer :
+
+Aperçu du questionnaire
+
+Cet onglet permet uniquement de visualiser le questionnaire envoyé aux collaborateurs.
+
+Le responsable ne remplit rien ici.
+
+Le questionnaire Cocci est fixe.
+
+Les questions Cocci ne peuvent pas être modifiées.
+
+En revanche,
+
+je souhaite permettre d'ajouter quelques questions personnalisées à la fin du questionnaire.
+
+Créer un bouton :
+
+➕
+
+Ajouter une question
+
+Types disponibles :
+
+• Échelle de 1 à 5
+
+• Oui / Non
+
+• Choix multiple
+
+• Liste déroulante
+
+• Texte libre
+
+Ces questions seront ajoutées uniquement à la campagne en cours.
+
+Le questionnaire doit rester moderne.
+
+Une question par écran.
+
+Barre de progression.
+
+Compatible mobile.
+
+Sauvegarde automatique.
+
+====================================================
+RÉFÉRENTIEL COCCl
+====================================================
+
+Le questionnaire Cocci est composé des thématiques suivantes :
+
+• Bien-être des collaborateurs
+
+• Évolution professionnelle
+
+• Communication et dynamique d'équipe
+
+• Charge de travail
+
+• Rémunération et avantages
+
+• Culture d'entreprise
+
+Conserver le référentiel actuel déjà développé.
+
+Les questions Cocci ne sont pas modifiables.
+
+====================================================
+ONGLET 3
+RÉSULTATS
+====================================================
+
+Cet onglet est entièrement alimenté automatiquement.
+
+Je ne souhaite aucune saisie manuelle.
+
+Les réponses des collaborateurs doivent apparaître automatiquement dès leur validation.
+
+Afficher notamment :
+
+• Nombre de collaborateurs
+
+• Nombre de répondants
+
+• Taux de participation
+
+• Moyenne générale
+
+Puis, pour chaque thématique :
+
+• moyenne
+
+• graphique
+
+• histogramme
+
+Puis, pour chaque question :
+
+• moyenne
+
+• nombre de réponses
+
+• répartition des réponses
+
+• évolution par rapport à la campagne précédente
+
+Créer également une section :
+
+Commentaires libres
+
+Tous les commentaires doivent être regroupés automatiquement.
+
+Prévoir des filtres :
+
+• campagne
+
+• exercice
+
+====================================================
+ONGLET 4
+SYNTHÈSE
+====================================================
+
+Cet onglet est le tableau de bord du module.
+
+Je souhaite une page très graphique.
+
+Afficher en haut :
+
+• Satisfaction globale (/100)
+
+• Nombre de collaborateurs
+
+• Nombre de répondants
+
+• Taux de participation
+
+• Radar des 6 grandes thématiques
+
+Puis plusieurs cartes.
+
+====================================================
+
+POINTS FORTS
+
+Lister automatiquement les 3 thématiques ayant obtenu les meilleurs résultats.
+
+====================================================
+
+POINTS FAIBLES
+
+Lister automatiquement les 3 thématiques ayant obtenu les moins bons résultats.
+
+====================================================
+
+THÈMES À SURVEILLER
+
+Lister les thématiques :
+
+• dont le score est faible
+
+ou
+
+• dont le score diminue par rapport à la campagne précédente.
+
+====================================================
+
+ÉVOLUTION
+
+Afficher automatiquement :
+
+• progression globale
+
+• progression par thématique
+
+• comparaison avec la campagne précédente
+
+• comparaison avec l'exercice précédent
+
+====================================================
+
+ANALYSE DES COMMENTAIRES
+
+L'IA intervient uniquement ici.
+
+Je souhaite limiter au maximum son utilisation.
+
+L'IA doit uniquement :
+
+• résumer les principaux sujets évoqués
+
+• identifier les thèmes récurrents
+
+• proposer quelques pistes d'amélioration
+
+Elle ne doit jamais modifier les résultats.
+
+====================================================
+
+MES ACTIONS
+
+Depuis les onglets Résultats et Synthèse,
+
+permettre de créer directement une action.
+
+Exemple :
+
+Créer une action
+
+↓
+
+Améliorer la communication interne
+
+↓
+
+Cette action est automatiquement envoyée dans le module "Mes actions".
+
+====================================================
+
+RAPPORT RSE
+
+Le Rapport RSE récupère automatiquement :
+
+• Satisfaction globale
+
+• Radar
+
+• Taux de participation
+
+• Nombre de répondants
+
+• Principaux points forts
+
+• Principaux points faibles
+
+• Évolution par rapport à la campagne précédente
+
+====================================================
+
+ERGONOMIE
+
+Je souhaite un module moderne.
+
+Le workflow attendu est :
+
+Créer une campagne
+
+↓
+
+Générer automatiquement un lien et un QR Code
+
+↓
+
+Envoyer le lien aux collaborateurs
+
+↓
+
+Les collaborateurs répondent
+
+↓
+
+Les réponses alimentent automatiquement l'onglet Résultats
+
+↓
+
+L'onglet Synthèse se met automatiquement à jour
+
+Je souhaite un véritable outil de pilotage du climat social, cohérent avec le reste de Cocci et non un simple formulaire en ligne.
+
+Je te ferais encore une amélioration : ne mets pas les 36 questions "en dur" dans le code. Crée une table questionnaire_templates (ou équivalent) qui contient les questions Cocci. Ainsi, le jour où tu modifies une formulation, ajoutes une question ou crées un second questionnaire (QVT, télétravail, etc.), tu n'auras pas à toucher au code. Tu modifieras simplement le référentiel. C'est une petite décision d'architecture aujourd'hui qui peut t'éviter beaucoup de travail plus tard
