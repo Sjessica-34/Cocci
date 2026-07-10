@@ -1,0 +1,301 @@
+Nous allons refondre complètement la gestion des exercices de Cocci.
+
+L'objectif est que la gestion des exercices soit totalement automatique, intuitive et impossible à mettre en erreur.
+
+Je ne souhaite plus que l'utilisateur puisse créer librement des exercices ou choisir une année.
+
+Je veux que Cocci pilote entièrement la chronologie.
+
+====================================================
+1. PHILOSOPHIE GÉNÉRALE
+====================================================
+
+Chaque exercice représente une photographie complète de l'entreprise pour une année donnée.
+
+Toutes les données de Cocci sont rattachées à un exercice.
+
+Un exercice terminé ne doit plus jamais être modifié.
+
+Un nouvel exercice reprend automatiquement toutes les données de l'exercice précédent.
+
+Chaque exercice reste totalement indépendant.
+
+====================================================
+2. UN SEUL EXERCICE EN COURS
+====================================================
+
+Cette règle est obligatoire.
+
+Il ne peut jamais exister plusieurs exercices "En cours".
+
+Si un exercice est en cours :
+
+aucun autre exercice ne peut être créé.
+
+====================================================
+3. ANNÉES AUTOMATIQUES
+====================================================
+
+Supprimer totalement le choix de l'année.
+
+L'utilisateur ne peut jamais saisir une année.
+
+Lors de la création d'un nouvel exercice :
+
+Cocci calcule automatiquement :
+
+année précédente + 1.
+
+Exemple :
+
+2026
+
+↓
+
+2027
+
+Il est impossible de créer :
+
+2028
+
+2035
+
+1998
+
+etc.
+
+====================================================
+4. PRÉPARATION DU NOUVEL EXERCICE
+====================================================
+
+Je souhaite que la création du nouvel exercice soit autorisée uniquement à partir d'un mois défini.
+
+Créer un paramètre global :
+
+"Mois d'ouverture du nouvel exercice"
+
+Valeur par défaut :
+
+Décembre.
+
+Ainsi :
+
+De janvier à novembre :
+
+impossible de créer l'exercice suivant.
+
+À partir du 1er décembre :
+
+le logiciel autorise la création de l'exercice suivant.
+
+Ce paramètre devra pouvoir être modifié ultérieurement dans les paramètres généraux.
+
+====================================================
+5. HEADER
+====================================================
+
+Conserver le sélecteur d'exercice dans le header.
+
+Exemple :
+
+📅 Exercice 2026
+
+En cours
+
+Le menu déroulant sert uniquement à changer d'exercice.
+
+Exemple :
+
+Exercice 2026 • En cours
+
+Exercice 2025 • Clôturé
+
+Exercice 2024 • Clôturé
+
+Le menu ne doit contenir aucune action.
+
+Aucun bouton :
+
+Créer
+
+Supprimer
+
+Clôturer
+
+etc.
+
+====================================================
+6. ACTION UNIQUE
+====================================================
+
+Lorsque les conditions sont réunies,
+
+afficher à côté du sélecteur :
+
+✨ Clôturer et créer l'exercice suivant
+
+Cette action remplace totalement :
+
+Créer un exercice
+
+Supprimer un exercice
+
+Clôturer un exercice
+
+====================================================
+7. FENÊTRE DE CONFIRMATION
+====================================================
+
+Au clic :
+
+ouvrir une fenêtre.
+
+Titre :
+
+Créer l'exercice 2027
+
+Texte :
+
+Vous êtes sur le point de clôturer définitivement l'exercice 2026.
+
+Cocci va automatiquement :
+
+✔ clôturer l'exercice 2026
+
+✔ créer l'exercice 2027
+
+✔ recopier automatiquement toutes les données
+
+✔ conserver les anciens exercices figés
+
+✔ ouvrir automatiquement l'exercice 2027
+
+Information :
+
+Les documents ne seront pas dupliqués physiquement.
+
+Les anciens exercices resteront totalement indépendants.
+
+Boutons :
+
+Annuler
+
+Créer l'exercice 2027
+
+====================================================
+8. DUPLICATION
+====================================================
+
+La duplication est automatique.
+
+L'utilisateur n'a plus à choisir.
+
+Toutes les données métier sont reprises.
+
+Exemple :
+
+Parties prenantes
+
+Matrice de matérialité
+
+Réponses RSE
+
+Numérique Responsable
+
+Biodiversité
+
+Bilan carbone
+
+RH
+
+Baromètre social
+
+Mes actions
+
+Plans d'actions
+
+Rapport RSE
+
+Impact Score
+
+Questionnaires
+
+etc.
+
+Les nouveaux enregistrements appartiennent uniquement au nouvel exercice.
+
+====================================================
+9. DOCUMENTS
+====================================================
+
+Ne jamais dupliquer physiquement les fichiers.
+
+Créer uniquement les nouvelles liaisons avec le nouvel exercice.
+
+Si un document est remplacé en 2027,
+
+celui de 2026 reste disponible dans l'exercice 2026.
+
+====================================================
+10. LECTURE SEULE
+====================================================
+
+Une fois clôturé,
+
+un exercice devient automatiquement en lecture seule.
+
+Toutes les données sont verrouillées.
+
+Prévoir qu'un administrateur système pourra éventuellement rouvrir un exercice.
+
+Cette fonctionnalité n'a pas besoin d'être développée maintenant.
+
+====================================================
+11. SUPPRESSION
+====================================================
+
+Supprimer totalement la possibilité de supprimer un exercice depuis l'interface utilisateur.
+
+Cette fonctionnalité ne sera accessible qu'à un administrateur système si elle est développée un jour.
+
+====================================================
+12. EXERCISE CONTEXT
+====================================================
+
+Créer un service central "ExerciseContext" (ou équivalent selon la technologie utilisée).
+
+Ce service est l'unique source de vérité concernant l'exercice actif.
+
+Tous les modules doivent obligatoirement utiliser ce service.
+
+Aucun module ne doit gérer lui-même l'exercice courant.
+
+Toutes les requêtes, API, composants et futurs développements devront récupérer automatiquement l'exercice actif via ExerciseContext.
+
+L'objectif est que n'importe quel futur module soit immédiatement compatible avec la gestion des exercices sans développement supplémentaire.
+
+====================================================
+13. MIGRATION
+====================================================
+
+Migrer automatiquement toutes les données actuelles dans l'exercice correspondant à l'année en cours.
+
+Aucune donnée ne doit être perdue.
+
+Le logiciel doit continuer à fonctionner normalement après cette migration.
+
+====================================================
+14. OBJECTIF
+====================================================
+
+Je souhaite que la gestion des exercices devienne totalement invisible pour l'utilisateur.
+
+Il ne doit jamais se poser la question :
+
+"Quelle année dois-je créer ?"
+
+Cocci doit gérer automatiquement la chronologie.
+
+L'utilisateur travaille simplement sur son exercice courant et valide le passage à l'exercice suivant lorsque le moment est venu.
+
+Je souhaite une interface extrêmement simple, professionnelle et impossible à mettre en erreur.
