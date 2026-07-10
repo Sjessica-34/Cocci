@@ -38,7 +38,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setExerciseIdGetter } from "@workspace/api-client-react";
+import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -52,6 +53,10 @@ function stripBase(path: string): string {
 }
 
 if (!clerkPubKey) throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
+
+// Registered once at module load — every API request will carry the
+// currently active exercise so backend routes scope their data accordingly.
+setExerciseIdGetter(() => getCurrentExerciseId());
 
 const clerkLocalization = {
   ...frFR,

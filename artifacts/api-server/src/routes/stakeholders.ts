@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { db, membersTable, stakeholdersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, stakeholdersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { getOrCreateUser } from "../lib/auth";
+import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
+import { scopeToExercise, withExerciseValues } from "../lib/exercise";
 
 const router = Router();
 
@@ -10,43 +11,17 @@ function parseId(raw: string | string[]): number {
   return Number(Array.isArray(raw) ? raw[0] : raw);
 }
 
-async function verifyMembership(
-  clerkUserId: string,
-  orgId: number,
-): Promise<number | null> {
-  const user = await getOrCreateUser(clerkUserId);
-  const [membership] = await db
-    .select({ id: membersTable.id })
-    .from(membersTable)
-    .where(
-      and(
-        eq(membersTable.organizationId, orgId),
-        eq(membersTable.userId, user.id),
-      ),
-    )
-    .limit(1);
-  return membership ? user.id : null;
-}
-
 // GET /organizations/:orgId/stakeholders
 router.get(
   "/organizations/:orgId/stakeholders",
   requireAuth,
+  requireOrgMembership,
+  requireExerciseScope,
   async (req, res): Promise<void> => {
-    const orgId = parseId(req.params.orgId);
-    if (!orgId || isNaN(orgId)) {
-      res.status(400).json({ error: "Invalid organization id" });
-      return;
-    }
-    const userId = await verifyMembership(req.clerkUserId!, orgId);
-    if (!userId) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
     const rows = await db
       .select()
       .from(stakeholdersTable)
-      .where(eq(stakeholdersTable.organizationId, orgId))
+      .where(scopeToExercise(stakeholdersTable, req))
       .orderBy(stakeholdersTable.createdAt);
     res.json(rows);
   },
@@ -56,17 +31,9 @@ router.get(
 router.post(
   "/organizations/:orgId/stakeholders",
   requireAuth,
+  requireOrgMembership,
+  requireWritableExerciseScope,
   async (req, res): Promise<void> => {
-    const orgId = parseId(req.params.orgId);
-    if (!orgId || isNaN(orgId)) {
-      res.status(400).json({ error: "Invalid organization id" });
-      return;
-    }
-    const userId = await verifyMembership(req.clerkUserId!, orgId);
-    if (!userId) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
     const { name, category, subcategory, description, influence, interest, notes } = req.body;
     if (!category || influence == null || interest == null) {
       res.status(400).json({ error: "Missing required fields: category, influence, interest" });
@@ -74,17 +41,18 @@ router.post(
     }
     const [created] = await db
       .insert(stakeholdersTable)
-      .values({
-        organizationId: orgId,
-        name: name ? String(name) : null,
-        category: String(category),
-        subcategory: subcategory ? String(subcategory) : null,
-        description: description ? String(description) : null,
-        influence: Math.min(5, Math.max(1, Number(influence))),
-        interest: Math.min(5, Math.max(1, Number(interest))),
-        notes: notes ? String(notes) : null,
-        createdBy: userId,
-      })
+      .values(
+        withExerciseValues(req, {
+          name: name ? String(name) : null,
+          category: String(category),
+          subcategory: subcategory ? String(subcategory) : null,
+          description: description ? String(description) : null,
+          influence: Math.min(5, Math.max(1, Number(influence))),
+          interest: Math.min(5, Math.max(1, Number(interest))),
+          notes: notes ? String(notes) : null,
+          createdBy: req.userId!,
+        }),
+      )
       .returning();
     res.status(201).json(created);
   },
@@ -94,27 +62,18 @@ router.post(
 router.get(
   "/organizations/:orgId/stakeholders/:id",
   requireAuth,
+  requireOrgMembership,
+  requireExerciseScope,
   async (req, res): Promise<void> => {
-    const orgId = parseId(req.params.orgId);
     const id = parseId(req.params.id);
-    if (!orgId || !id) {
+    if (!id) {
       res.status(400).json({ error: "Invalid id" });
-      return;
-    }
-    const userId = await verifyMembership(req.clerkUserId!, orgId);
-    if (!userId) {
-      res.status(403).json({ error: "Forbidden" });
       return;
     }
     const [row] = await db
       .select()
       .from(stakeholdersTable)
-      .where(
-        and(
-          eq(stakeholdersTable.id, id),
-          eq(stakeholdersTable.organizationId, orgId),
-        ),
-      )
+      .where(scopeToExercise(stakeholdersTable, req, eq(stakeholdersTable.id, id)))
       .limit(1);
     if (!row) {
       res.status(404).json({ error: "Not found" });
@@ -128,16 +87,12 @@ router.get(
 router.put(
   "/organizations/:orgId/stakeholders/:id",
   requireAuth,
+  requireOrgMembership,
+  requireWritableExerciseScope,
   async (req, res): Promise<void> => {
-    const orgId = parseId(req.params.orgId);
     const id = parseId(req.params.id);
-    if (!orgId || !id) {
+    if (!id) {
       res.status(400).json({ error: "Invalid id" });
-      return;
-    }
-    const userId = await verifyMembership(req.clerkUserId!, orgId);
-    if (!userId) {
-      res.status(403).json({ error: "Forbidden" });
       return;
     }
     const { name, category, subcategory, description, influence, interest, notes } = req.body;
@@ -161,12 +116,7 @@ router.put(
     const [updated] = await db
       .update(stakeholdersTable)
       .set(patch)
-      .where(
-        and(
-          eq(stakeholdersTable.id, id),
-          eq(stakeholdersTable.organizationId, orgId),
-        ),
-      )
+      .where(scopeToExercise(stakeholdersTable, req, eq(stakeholdersTable.id, id)))
       .returning();
     if (!updated) {
       res.status(404).json({ error: "Not found" });
@@ -180,26 +130,17 @@ router.put(
 router.delete(
   "/organizations/:orgId/stakeholders/:id",
   requireAuth,
+  requireOrgMembership,
+  requireWritableExerciseScope,
   async (req, res): Promise<void> => {
-    const orgId = parseId(req.params.orgId);
     const id = parseId(req.params.id);
-    if (!orgId || !id) {
+    if (!id) {
       res.status(400).json({ error: "Invalid id" });
-      return;
-    }
-    const userId = await verifyMembership(req.clerkUserId!, orgId);
-    if (!userId) {
-      res.status(403).json({ error: "Forbidden" });
       return;
     }
     const [deleted] = await db
       .delete(stakeholdersTable)
-      .where(
-        and(
-          eq(stakeholdersTable.id, id),
-          eq(stakeholdersTable.organizationId, orgId),
-        ),
-      )
+      .where(scopeToExercise(stakeholdersTable, req, eq(stakeholdersTable.id, id)))
       .returning();
     if (!deleted) {
       res.status(404).json({ error: "Not found" });

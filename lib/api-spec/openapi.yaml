@@ -26,6 +26,8 @@ tags:
     description: Stakeholder (parties prenantes) management
   - name: carbon
     description: Bilan Carbone® management
+  - name: exercises
+    description: Annual exercise (fiscal year) management
 
 paths:
   /healthz:
@@ -307,6 +309,123 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+
+  # ─── EXERCISES ───────────────────────────────────────────────────────────────
+  /organizations/{orgId}/exercises:
+    get:
+      operationId: listExercises
+      tags: [exercises]
+      summary: List exercises for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of exercises, most recent year first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exercise"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    post:
+      operationId: createExercise
+      tags: [exercises]
+      summary: Create a new exercise, optionally duplicating data from the previous one
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExerciseInput"
+      responses:
+        "201":
+          description: Created exercise
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "409":
+          description: An exercise already exists for that year
+
+  /organizations/{orgId}/exercises/{id}:
+    patch:
+      operationId: updateExerciseStatus
+      tags: [exercises]
+      summary: Update an exercise's status (reopen/close)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExerciseStatusUpdate"
+      responses:
+        "200":
+          description: Updated exercise
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteExercise
+      tags: [exercises]
+      summary: Delete an exercise (only if active and another exercise exists)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Exercise deleted
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+        "409":
+          description: Exercise cannot be deleted (closed, or only exercise left)
 
   # ─── ADMIN ───────────────────────────────────────────────────────────────────
   /admin/stats:
@@ -1903,6 +2022,45 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    # ─── EXERCISE ───────────────────────────────────────────────────────────────
+    Exercise:
+      type: object
+      required: [id, organizationId, year, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        year:
+          type: integer
+        status:
+          type: string
+          enum: [active, closed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ExerciseInput:
+      type: object
+      required: [year]
+      properties:
+        year:
+          type: integer
+        duplicatePreviousData:
+          type: boolean
+          description: When true, duplicates all business data from the most recent existing exercise into the new one.
+
+    ExerciseStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [active, closed]
 
     StakeholderInput:
       type: object

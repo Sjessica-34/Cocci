@@ -40,6 +40,9 @@ import type {
   CustomIssueInput,
   DashboardSummary,
   DocumentMeta,
+  Exercise,
+  ExerciseInput,
+  ExerciseStatusUpdate,
   HealthStatus,
   ImpactScoreResult,
   ImpactScoreResultInput,
@@ -992,6 +995,299 @@ export function useGetOrganizationDashboard<TData = Awaited<ReturnType<typeof ge
 
 
 
+
+export const getListExercisesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/exercises`
+}
+
+/**
+ * @summary List exercises for an organization
+ */
+export const listExercises = async (orgId: number, options?: RequestInit): Promise<Exercise[]> => {
+
+  return customFetch<Exercise[]>(getListExercisesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListExercisesQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/exercises`
+    ] as const;
+    }
+
+
+export const getListExercisesQueryOptions = <TData = Awaited<ReturnType<typeof listExercises>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListExercisesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listExercises>>> = ({ signal }) => listExercises(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListExercisesQueryResult = NonNullable<Awaited<ReturnType<typeof listExercises>>>
+export type ListExercisesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List exercises for an organization
+ */
+
+export function useListExercises<TData = Awaited<ReturnType<typeof listExercises>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListExercisesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateExerciseUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/exercises`
+}
+
+/**
+ * @summary Create a new exercise, optionally duplicating data from the previous one
+ */
+export const createExercise = async (orgId: number,
+    exerciseInput: ExerciseInput, options?: RequestInit): Promise<Exercise> => {
+
+  return customFetch<Exercise>(getCreateExerciseUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(exerciseInput)
+  }
+);}
+
+
+
+
+export const getCreateExerciseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createExercise>>, TError,{orgId: number;data: BodyType<ExerciseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createExercise>>, TError,{orgId: number;data: BodyType<ExerciseInput>}, TContext> => {
+
+const mutationKey = ['createExercise'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createExercise>>, {orgId: number;data: BodyType<ExerciseInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createExercise(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateExerciseMutationResult = NonNullable<Awaited<ReturnType<typeof createExercise>>>
+    export type CreateExerciseMutationBody = BodyType<ExerciseInput>
+    export type CreateExerciseMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new exercise, optionally duplicating data from the previous one
+ */
+export const useCreateExercise = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createExercise>>, TError,{orgId: number;data: BodyType<ExerciseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createExercise>>,
+        TError,
+        {orgId: number;data: BodyType<ExerciseInput>},
+        TContext
+      > => {
+      return useMutation(getCreateExerciseMutationOptions(options));
+    }
+
+export const getUpdateExerciseStatusUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/exercises/${id}`
+}
+
+/**
+ * @summary Update an exercise's status (reopen/close)
+ */
+export const updateExerciseStatus = async (orgId: number,
+    id: number,
+    exerciseStatusUpdate: ExerciseStatusUpdate, options?: RequestInit): Promise<Exercise> => {
+
+  return customFetch<Exercise>(getUpdateExerciseStatusUrl(orgId,id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(exerciseStatusUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateExerciseStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateExerciseStatus>>, TError,{orgId: number;id: number;data: BodyType<ExerciseStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateExerciseStatus>>, TError,{orgId: number;id: number;data: BodyType<ExerciseStatusUpdate>}, TContext> => {
+
+const mutationKey = ['updateExerciseStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateExerciseStatus>>, {orgId: number;id: number;data: BodyType<ExerciseStatusUpdate>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateExerciseStatus(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateExerciseStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateExerciseStatus>>>
+    export type UpdateExerciseStatusMutationBody = BodyType<ExerciseStatusUpdate>
+    export type UpdateExerciseStatusMutationError = ErrorType<void>
+
+    /**
+ * @summary Update an exercise's status (reopen/close)
+ */
+export const useUpdateExerciseStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateExerciseStatus>>, TError,{orgId: number;id: number;data: BodyType<ExerciseStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateExerciseStatus>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<ExerciseStatusUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateExerciseStatusMutationOptions(options));
+    }
+
+export const getDeleteExerciseUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/exercises/${id}`
+}
+
+/**
+ * @summary Delete an exercise (only if active and another exercise exists)
+ */
+export const deleteExercise = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteExerciseUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteExerciseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteExercise>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteExercise>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteExercise'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteExercise>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteExercise(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteExerciseMutationResult = NonNullable<Awaited<ReturnType<typeof deleteExercise>>>
+
+    export type DeleteExerciseMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an exercise (only if active and another exercise exists)
+ */
+export const useDeleteExercise = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteExercise>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteExercise>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteExerciseMutationOptions(options));
+    }
 
 export const getGetAdminStatsUrl = () => {
 

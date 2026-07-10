@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _exerciseIdGetter: (() => number | null) | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +43,18 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Register a getter that supplies the currently active exercise (fiscal year)
+ * id. Before every fetch the getter is invoked; when it returns a number, an
+ * `X-Exercise-Id` header is attached to the request so the API server can
+ * scope the request to that exercise.
+ *
+ * Pass `null` to clear the getter.
+ */
+export function setExerciseIdGetter(getter: (() => number | null) | null): void {
+  _exerciseIdGetter = getter;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -355,6 +368,13 @@ export async function customFetch<T = unknown>(
     const token = await _authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
+    }
+  }
+
+  if (_exerciseIdGetter && !headers.has("x-exercise-id")) {
+    const exerciseId = _exerciseIdGetter();
+    if (exerciseId != null) {
+      headers.set("x-exercise-id", String(exerciseId));
     }
   }
 

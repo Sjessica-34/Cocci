@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { useListOrganizations } from "@workspace/api-client-react";
+import { useListOrganizations, useListExercises } from "@workspace/api-client-react";
 import {
   LayoutDashboard,
   Settings,
@@ -36,7 +36,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { ExerciseSelector } from "@/components/ExerciseSelector";
+import { ClosedExerciseBanner } from "@/components/ClosedExerciseBanner";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -86,6 +89,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const currentOrg = orgs?.find((o) => o.id === currentOrgId) ?? null;
 
   const insideOrg = location.startsWith("/organizations/") && location !== "/organizations/new";
+
+  // The exercise selector and its read-only enforcement apply to every
+  // workspace/module page (dashboard + all RSE modules), not just the
+  // /organizations/:id/* org-management screens. Only exclude the
+  // org-picker screens and the admin area, where there is no single
+  // active organization/exercise context yet.
+  const isAdminRoute = location.startsWith("/admin");
+  const isOrgPickerRoute = location === "/organizations" || location === "/organizations/new";
+  const showExerciseUi = !isAdminRoute && !isOrgPickerRoute && currentOrgId != null;
+
+  const { currentExerciseId } = useCurrentExercise();
+  const { data: exercises } = useListExercises(currentOrgId ?? 0, {
+    query: { queryKey: ["/api/organizations", currentOrgId, "exercises"], enabled: showExerciseUi },
+  });
+  const currentExercise = exercises?.find((e) => e.id === currentExerciseId);
+  // When the active exercise is closed, the whole workspace becomes
+  // read-only: mutating controls (forms, buttons, inputs) in the main
+  // content area are made inert. Navigation (sidebar) and the exercise
+  // selector itself stay interactive so the user can switch/reopen.
+  const isExerciseClosed = showExerciseUi && currentExercise?.status === "closed";
   const { isSuperAdmin } = useIsSuperAdmin();
 
   function isActive(item: NavItem) {
@@ -148,6 +171,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            <div className="my-2.5 h-px bg-sidebar-border/40 mx-1" />
+          </div>
+        )}
+
+        {/* Exercise switcher */}
+        {showExerciseUi && currentOrgId && (
+          <div className="mb-2">
+            <ExerciseSelector orgId={currentOrgId} />
             <div className="my-2.5 h-px bg-sidebar-border/40 mx-1" />
           </div>
         )}
@@ -286,7 +317,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0 max-w-full">
-        <div className="flex-1 p-4 md:p-8 w-full max-w-6xl mx-auto">
+        <div
+          className="flex-1 p-4 md:p-8 w-full max-w-6xl mx-auto"
+          // @ts-expect-error -- `inert` is a valid HTML boolean attribute (React 19+) not yet in JSX types.
+          inert={isExerciseClosed ? "" : undefined}
+        >
+          {showExerciseUi && <ClosedExerciseBanner />}
           {children}
         </div>
       </main>

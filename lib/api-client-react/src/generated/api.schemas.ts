@@ -293,6 +293,41 @@ export interface Stakeholder {
   updatedAt: string;
 }
 
+export type ExerciseStatus = typeof ExerciseStatus[keyof typeof ExerciseStatus];
+
+
+export const ExerciseStatus = {
+  active: 'active',
+  closed: 'closed',
+} as const;
+
+export interface Exercise {
+  id: number;
+  organizationId: number;
+  year: number;
+  status: ExerciseStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExerciseInput {
+  year: number;
+  /** When true, duplicates all business data from the most recent existing exercise into the new one. */
+  duplicatePreviousData?: boolean;
+}
+
+export type ExerciseStatusUpdateStatus = typeof ExerciseStatusUpdateStatus[keyof typeof ExerciseStatusUpdateStatus];
+
+
+export const ExerciseStatusUpdateStatus = {
+  active: 'active',
+  closed: 'closed',
+} as const;
+
+export interface ExerciseStatusUpdate {
+  status: ExerciseStatusUpdateStatus;
+}
+
 export interface StakeholderInput {
   name?: string;
   category: string;

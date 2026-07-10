@@ -1,24 +1,11 @@
 import { Router } from "express";
-import { db, membersTable, carbonBilansTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, carbonBilansTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { getOrCreateUser } from "../lib/auth";
+import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
+import { scopeToExercise, withExerciseValues } from "../lib/exercise";
 
 const router = Router();
-
-function parseId(raw: string | string[]): number {
-  return Number(Array.isArray(raw) ? raw[0] : raw);
-}
-
-async function verifyMembership(clerkUserId: string, orgId: number): Promise<number | null> {
-  const user = await getOrCreateUser(clerkUserId);
-  const [membership] = await db
-    .select({ id: membersTable.id })
-    .from(membersTable)
-    .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id)))
-    .limit(1);
-  return membership ? user.id : null;
-}
 
 function numOrNull(v: unknown): string | null {
   if (v === null || v === undefined || v === "") return null;
@@ -27,16 +14,11 @@ function numOrNull(v: unknown): string | null {
 }
 
 // GET /organizations/:orgId/carbon
-router.get("/organizations/:orgId/carbon", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const [bilan] = await db
     .select()
     .from(carbonBilansTable)
-    .where(eq(carbonBilansTable.organizationId, orgId))
+    .where(scopeToExercise(carbonBilansTable, req))
     .orderBy(carbonBilansTable.updatedAt)
     .limit(1);
 
@@ -46,16 +28,10 @@ router.get("/organizations/:orgId/carbon", requireAuth, async (req, res): Promis
 });
 
 // PUT /organizations/:orgId/carbon
-router.put("/organizations/:orgId/carbon", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.put("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
 
-  const payload = {
-    organizationId: orgId,
+  const payload = withExerciseValues(req, {
     year: Number(body.year) || new Date().getFullYear(),
     mode: String(body.mode ?? "saisie"),
     status: String(body.status ?? "draft"),
@@ -95,12 +71,12 @@ router.put("/organizations/:orgId/carbon", requireAuth, async (req, res): Promis
     utilCountry: (body.utilCountry as string) ?? null,
     utilCustomFactor: numOrNull(body.utilCustomFactor),
     updatedAt: new Date(),
-  };
+  });
 
   const [existing] = await db
     .select({ id: carbonBilansTable.id })
     .from(carbonBilansTable)
-    .where(eq(carbonBilansTable.organizationId, orgId))
+    .where(scopeToExercise(carbonBilansTable, req))
     .limit(1);
 
   let bilan;
@@ -118,15 +94,10 @@ router.put("/organizations/:orgId/carbon", requireAuth, async (req, res): Promis
 });
 
 // DELETE /organizations/:orgId/carbon
-router.delete("/organizations/:orgId/carbon", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.delete("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const deleted = await db
     .delete(carbonBilansTable)
-    .where(eq(carbonBilansTable.organizationId, orgId))
+    .where(scopeToExercise(carbonBilansTable, req))
     .returning();
 
   if (!deleted.length) { res.status(404).json({ error: "Not found" }); return; }

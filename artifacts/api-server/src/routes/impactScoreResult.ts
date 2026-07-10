@@ -1,37 +1,18 @@
 import { Router } from "express";
-import { db, impactScoreResultsTable, membersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, impactScoreResultsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { getOrCreateUser } from "../lib/auth";
+import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
+import { scopeToExercise, withExerciseValues } from "../lib/exercise";
 
 const router = Router();
 
-function parseId(raw: string | string[]): number {
-  return Number(Array.isArray(raw) ? raw[0] : raw);
-}
-
-async function verifyMembership(clerkUserId: string, orgId: number): Promise<number | null> {
-  const user = await getOrCreateUser(clerkUserId);
-  const [membership] = await db
-    .select({ id: membersTable.id })
-    .from(membersTable)
-    .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id)))
-    .limit(1);
-  return membership ? user.id : null;
-}
-
 // GET /organizations/:orgId/impact-score-result
-router.get("/organizations/:orgId/impact-score-result", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/organizations/:orgId/impact-score-result", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const [row] = await db
     .select()
     .from(impactScoreResultsTable)
-    .where(eq(impactScoreResultsTable.organizationId, orgId))
+    .where(scopeToExercise(impactScoreResultsTable, req))
     .limit(1);
 
   res.json({
@@ -49,13 +30,7 @@ router.get("/organizations/:orgId/impact-score-result", requireAuth, async (req,
 });
 
 // PUT /organizations/:orgId/impact-score-result
-router.put("/organizations/:orgId/impact-score-result", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.put("/organizations/:orgId/impact-score-result", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const body = req.body as { score?: number; dateRealisation?: string; commentaire?: string | null };
 
   if (body.score === undefined || body.dateRealisation === undefined) {
@@ -70,7 +45,7 @@ router.put("/organizations/:orgId/impact-score-result", requireAuth, async (req,
   const [existing] = await db
     .select({ id: impactScoreResultsTable.id })
     .from(impactScoreResultsTable)
-    .where(eq(impactScoreResultsTable.organizationId, orgId))
+    .where(scopeToExercise(impactScoreResultsTable, req))
     .limit(1);
 
   let row;
@@ -88,12 +63,13 @@ router.put("/organizations/:orgId/impact-score-result", requireAuth, async (req,
   } else {
     [row] = await db
       .insert(impactScoreResultsTable)
-      .values({
-        organizationId: orgId,
-        score: body.score,
-        dateRealisation: body.dateRealisation,
-        commentaire: body.commentaire ?? null,
-      })
+      .values(
+        withExerciseValues(req, {
+          score: body.score,
+          dateRealisation: body.dateRealisation,
+          commentaire: body.commentaire ?? null,
+        }),
+      )
       .returning();
   }
 

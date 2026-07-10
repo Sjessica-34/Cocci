@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { db, membersTable, issueRatingsTable, customIssuesTable, issueAnalysesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, issueRatingsTable, customIssuesTable, issueAnalysesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { getOrCreateUser } from "../lib/auth";
+import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { ISSUE_LIBRARY } from "../lib/issueLibrary";
+import { scopeToExercise, withExerciseValues } from "../lib/exercise";
 
 const router = Router();
 
@@ -12,26 +13,11 @@ function parseId(raw: string | string[]): number {
   return Number(Array.isArray(raw) ? raw[0] : raw);
 }
 
-async function verifyMembership(clerkUserId: string, orgId: number): Promise<number | null> {
-  const user = await getOrCreateUser(clerkUserId);
-  const [membership] = await db
-    .select({ id: membersTable.id })
-    .from(membersTable)
-    .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id)))
-    .limit(1);
-  return membership ? user.id : null;
-}
-
 // GET /organizations/:orgId/issues
-router.get("/organizations/:orgId/issues", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/organizations/:orgId/issues", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const [ratings, customs] = await Promise.all([
-    db.select().from(issueRatingsTable).where(eq(issueRatingsTable.organizationId, orgId)),
-    db.select().from(customIssuesTable).where(eq(customIssuesTable.organizationId, orgId)),
+    db.select().from(issueRatingsTable).where(scopeToExercise(issueRatingsTable, req)),
+    db.select().from(customIssuesTable).where(scopeToExercise(customIssuesTable, req)),
   ]);
 
   const ratingsMap = new Map(ratings.map((r) => [r.issueKey, r]));
@@ -71,12 +57,7 @@ router.get("/organizations/:orgId/issues", requireAuth, async (req, res): Promis
 });
 
 // PUT /organizations/:orgId/issues/ratings
-router.put("/organizations/:orgId/issues/ratings", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.put("/organizations/:orgId/issues/ratings", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const { issueKey, stakeholderScore, companyScore, impactScore, tendance } = req.body as {
     issueKey: string;
     stakeholderScore: number | null;
@@ -88,9 +69,9 @@ router.put("/organizations/:orgId/issues/ratings", requireAuth, async (req, res)
 
   const [upserted] = await db
     .insert(issueRatingsTable)
-    .values({ organizationId: orgId, issueKey, stakeholderScore, companyScore, impactScore, tendance })
+    .values(withExerciseValues(req, { issueKey, stakeholderScore, companyScore, impactScore, tendance }))
     .onConflictDoUpdate({
-      target: [issueRatingsTable.organizationId, issueRatingsTable.issueKey],
+      target: [issueRatingsTable.exerciseId, issueRatingsTable.issueKey],
       set: {
         stakeholderScore,
         companyScore,
@@ -105,34 +86,26 @@ router.put("/organizations/:orgId/issues/ratings", requireAuth, async (req, res)
 });
 
 // POST /organizations/:orgId/issues
-router.post("/organizations/:orgId/issues", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.post("/organizations/:orgId/issues", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const { category, label } = req.body as { category: string; label: string };
   if (!category || !label) { res.status(400).json({ error: "category and label are required" }); return; }
 
   const [created] = await db
     .insert(customIssuesTable)
-    .values({ organizationId: orgId, category, label })
+    .values(withExerciseValues(req, { category, label }))
     .returning();
 
   res.status(201).json(created);
 });
 
 // DELETE /organizations/:orgId/issues/custom/:issueId
-router.delete("/organizations/:orgId/issues/custom/:issueId", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
+router.delete("/organizations/:orgId/issues/custom/:issueId", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const issueId = parseId(req.params.issueId);
-  if (!orgId || isNaN(orgId) || !issueId || isNaN(issueId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (!issueId || isNaN(issueId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const deleted = await db
     .delete(customIssuesTable)
-    .where(and(eq(customIssuesTable.id, issueId), eq(customIssuesTable.organizationId, orgId)))
+    .where(scopeToExercise(customIssuesTable, req, eq(customIssuesTable.id, issueId)))
     .returning();
 
   if (!deleted.length) { res.status(404).json({ error: "Not found" }); return; }
@@ -140,22 +113,17 @@ router.delete("/organizations/:orgId/issues/custom/:issueId", requireAuth, async
   // also remove associated rating
   await db
     .delete(issueRatingsTable)
-    .where(and(eq(issueRatingsTable.organizationId, orgId), eq(issueRatingsTable.issueKey, `custom_${issueId}`)));
+    .where(scopeToExercise(issueRatingsTable, req, eq(issueRatingsTable.issueKey, `custom_${issueId}`)));
 
   res.status(204).end();
 });
 
 // GET /organizations/:orgId/issues/analysis
-router.get("/organizations/:orgId/issues/analysis", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/organizations/:orgId/issues/analysis", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const [latest] = await db
     .select()
     .from(issueAnalysesTable)
-    .where(eq(issueAnalysesTable.organizationId, orgId))
+    .where(scopeToExercise(issueAnalysesTable, req))
     .orderBy(issueAnalysesTable.createdAt)
     .limit(1);
 
@@ -165,16 +133,11 @@ router.get("/organizations/:orgId/issues/analysis", requireAuth, async (req, res
 });
 
 // POST /organizations/:orgId/issues/analyze
-router.post("/organizations/:orgId/issues/analyze", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.post("/organizations/:orgId/issues/analyze", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   // load all rated items
   const [ratings, customs] = await Promise.all([
-    db.select().from(issueRatingsTable).where(eq(issueRatingsTable.organizationId, orgId)),
-    db.select().from(customIssuesTable).where(eq(customIssuesTable.organizationId, orgId)),
+    db.select().from(issueRatingsTable).where(scopeToExercise(issueRatingsTable, req)),
+    db.select().from(customIssuesTable).where(scopeToExercise(customIssuesTable, req)),
   ]);
 
   const ratingsMap = new Map(ratings.map((r) => [r.issueKey, r]));
@@ -259,12 +222,13 @@ Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans commentaire, avec e
   // save to DB
   await db
     .delete(issueAnalysesTable)
-    .where(eq(issueAnalysesTable.organizationId, orgId));
+    .where(scopeToExercise(issueAnalysesTable, req));
 
-  await db.insert(issueAnalysesTable).values({
-    organizationId: orgId,
-    result: JSON.stringify(parsed),
-  });
+  await db.insert(issueAnalysesTable).values(
+    withExerciseValues(req, {
+      result: JSON.stringify(parsed),
+    }),
+  );
 
   res.json(parsed);
 });

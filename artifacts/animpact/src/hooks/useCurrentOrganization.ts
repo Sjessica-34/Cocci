@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { setExerciseOrgContext } from "./useCurrentExercise";
 
 const STORAGE_KEY = "animpact:currentOrgId";
 
@@ -15,6 +16,7 @@ function readFromStorage(): number | null {
 
 let listeners: Array<() => void> = [];
 let currentValue: number | null = readFromStorage();
+setExerciseOrgContext(currentValue);
 
 function notifyListeners() {
   listeners.forEach((fn) => fn());
@@ -31,6 +33,7 @@ export function setCurrentOrg(id: number | null) {
   } catch {
     // ignore storage errors
   }
+  setExerciseOrgContext(id);
   notifyListeners();
 }
 

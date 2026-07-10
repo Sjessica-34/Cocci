@@ -276,6 +276,79 @@ export const GetOrganizationDashboardResponse = zod.object({
 
 
 /**
+ * @summary List exercises for an organization
+ */
+export const ListExercisesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListExercisesResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "year": zod.number(),
+  "status": zod.enum(['active', 'closed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListExercisesResponse = zod.array(ListExercisesResponseItem)
+
+
+/**
+ * @summary Create a new exercise, optionally duplicating data from the previous one
+ */
+export const CreateExerciseParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const CreateExerciseBody = zod.object({
+  "year": zod.number(),
+  "duplicatePreviousData": zod.boolean().optional().describe('When true, duplicates all business data from the most recent existing exercise into the new one.')
+})
+
+export const CreateExerciseResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "year": zod.number(),
+  "status": zod.enum(['active', 'closed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update an exercise's status (reopen/close)
+ */
+export const UpdateExerciseStatusParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const UpdateExerciseStatusBody = zod.object({
+  "status": zod.enum(['active', 'closed'])
+})
+
+export const UpdateExerciseStatusResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "year": zod.number(),
+  "status": zod.enum(['active', 'closed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete an exercise (only if active and another exercise exists)
+ */
+export const DeleteExerciseParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const DeleteExerciseResponse = zod.void()
+
+
+/**
  * @summary Global platform statistics
  */
 export const GetAdminStatsResponse = zod.object({

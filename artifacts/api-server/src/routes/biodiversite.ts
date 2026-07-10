@@ -1,24 +1,15 @@
 import { Router } from "express";
-import { db, bioDependenciesTable, bioConnectionsTable, bioIssuesTable, membersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, bioDependenciesTable, bioConnectionsTable, bioIssuesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { getOrCreateUser } from "../lib/auth";
+import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { scopeToExercise, withExerciseValues } from "../lib/exercise";
 
 const router = Router();
 
 function parseId(raw: string | string[]): number {
   return Number(Array.isArray(raw) ? raw[0] : raw);
-}
-
-async function verifyMembership(clerkUserId: string, orgId: number): Promise<number | null> {
-  const user = await getOrCreateUser(clerkUserId);
-  const [m] = await db
-    .select({ id: membersTable.id })
-    .from(membersTable)
-    .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id)))
-    .limit(1);
-  return m ? user.id : null;
 }
 
 function mapDep(row: typeof bioDependenciesTable.$inferSelect) {
@@ -75,52 +66,43 @@ function mapIssue(row: typeof bioIssuesTable.$inferSelect) {
 
 // ─── DEPENDENCIES ─────────────────────────────────────────────────────────────
 
-router.get("/organizations/:orgId/bio-dependencies", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const rows = await db.select().from(bioDependenciesTable).where(eq(bioDependenciesTable.organizationId, orgId));
+router.get("/organizations/:orgId/bio-dependencies", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const rows = await db.select().from(bioDependenciesTable).where(scopeToExercise(bioDependenciesTable, req));
   res.json({ items: rows.map(mapDep) });
 });
 
-router.post("/organizations/:orgId/bio-dependencies", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
+router.post("/organizations/:orgId/bio-dependencies", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const b = req.body as Record<string, unknown>;
   const docIds = Array.isArray(b.documentIds) ? (b.documentIds as number[]) : [];
-  const [row] = await db.insert(bioDependenciesTable).values({
-    organizationId:  orgId,
-    name:            (b.name as string | undefined) ?? null,
-    category:        (b.category as string | undefined) ?? null,
-    subCategory:     (b.subCategory as string | undefined) ?? null,
-    chainPosition:   (b.chainPosition as string | undefined) ?? null,
-    dependencyLevel: (b.dependencyLevel as number | undefined) ?? null,
-    masteryLevel:    (b.masteryLevel as number | undefined) ?? null,
-    comments:        (b.comments as string | undefined) ?? null,
-    documentIds:     JSON.stringify(docIds),
-    posX:            (b.x as number | undefined) ?? null,
-    posY:            (b.y as number | undefined) ?? null,
-  }).returning();
+  const [row] = await db.insert(bioDependenciesTable).values(
+    withExerciseValues(req, {
+      name:            (b.name as string | undefined) ?? null,
+      category:        (b.category as string | undefined) ?? null,
+      subCategory:     (b.subCategory as string | undefined) ?? null,
+      chainPosition:   (b.chainPosition as string | undefined) ?? null,
+      dependencyLevel: (b.dependencyLevel as number | undefined) ?? null,
+      masteryLevel:    (b.masteryLevel as number | undefined) ?? null,
+      comments:        (b.comments as string | undefined) ?? null,
+      documentIds:     JSON.stringify(docIds),
+      posX:            (b.x as number | undefined) ?? null,
+      posY:            (b.y as number | undefined) ?? null,
+    }),
+  ).returning();
   res.json(mapDep(row));
 });
 
-router.get("/organizations/:orgId/bio-dependencies/:id", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  const id    = parseId(req.params.id);
-  if (isNaN(orgId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
+router.get("/organizations/:orgId/bio-dependencies/:id", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [row] = await db.select().from(bioDependenciesTable)
-    .where(and(eq(bioDependenciesTable.id, id), eq(bioDependenciesTable.organizationId, orgId))).limit(1);
+    .where(scopeToExercise(bioDependenciesTable, req, eq(bioDependenciesTable.id, id))).limit(1);
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(mapDep(row));
 });
 
-router.put("/organizations/:orgId/bio-dependencies/:id", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  const id    = parseId(req.params.id);
-  if (isNaN(orgId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
+router.put("/organizations/:orgId/bio-dependencies/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const b = req.body as Record<string, unknown>;
   const updates: Partial<typeof bioDependenciesTable.$inferInsert> = { updatedAt: new Date() };
   if (b.name !== undefined)            updates.name            = (b.name            as string | null) ?? null;
@@ -134,111 +116,91 @@ router.put("/organizations/:orgId/bio-dependencies/:id", requireAuth, async (req
   if (b.x !== undefined)               updates.posX            = (b.x as number | null) ?? null;
   if (b.y !== undefined)               updates.posY            = (b.y as number | null) ?? null;
   const [row] = await db.update(bioDependenciesTable).set(updates)
-    .where(and(eq(bioDependenciesTable.id, id), eq(bioDependenciesTable.organizationId, orgId))).returning();
+    .where(scopeToExercise(bioDependenciesTable, req, eq(bioDependenciesTable.id, id))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(mapDep(row));
 });
 
-router.delete("/organizations/:orgId/bio-dependencies/:id", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  const id    = parseId(req.params.id);
-  if (isNaN(orgId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
-  await db.delete(bioDependenciesTable).where(and(eq(bioDependenciesTable.id, id), eq(bioDependenciesTable.organizationId, orgId)));
+router.delete("/organizations/:orgId/bio-dependencies/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(bioDependenciesTable).where(scopeToExercise(bioDependenciesTable, req, eq(bioDependenciesTable.id, id)));
   res.status(204).send();
 });
 
 // ─── CONNECTIONS ───────────────────────────────────────────────────────────────
 
-router.get("/organizations/:orgId/bio-connections", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const rows = await db.select().from(bioConnectionsTable).where(eq(bioConnectionsTable.organizationId, orgId));
+router.get("/organizations/:orgId/bio-connections", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const rows = await db.select().from(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req));
   res.json({ items: rows.map(mapConn) });
 });
 
-router.post("/organizations/:orgId/bio-connections", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
+router.post("/organizations/:orgId/bio-connections", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const b = req.body as Record<string, unknown>;
   const fromElementId = Number(b.fromElementId);
   const toElementId   = Number(b.toElementId);
   if (isNaN(fromElementId) || isNaN(toElementId)) { res.status(400).json({ error: "Invalid element ids" }); return; }
-  const [row] = await db.insert(bioConnectionsTable).values({
-    organizationId: orgId,
-    fromElementId,
-    toElementId,
-    relationType:  (b.relationType as string | undefined) ?? null,
-  }).returning();
+  const [row] = await db.insert(bioConnectionsTable).values(
+    withExerciseValues(req, {
+      fromElementId,
+      toElementId,
+      relationType: (b.relationType as string | undefined) ?? null,
+    }),
+  ).returning();
   res.json(mapConn(row));
 });
 
-router.put("/organizations/:orgId/bio-connections/:id", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  const id    = parseId(req.params.id);
-  if (isNaN(orgId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
+router.put("/organizations/:orgId/bio-connections/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const b = req.body as Record<string, unknown>;
   const [row] = await db.update(bioConnectionsTable).set({
     relationType: (b.relationType as string | null | undefined) ?? null,
     updatedAt:    new Date(),
-  }).where(and(eq(bioConnectionsTable.id, id), eq(bioConnectionsTable.organizationId, orgId))).returning();
+  }).where(scopeToExercise(bioConnectionsTable, req, eq(bioConnectionsTable.id, id))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(mapConn(row));
 });
 
-router.delete("/organizations/:orgId/bio-connections/:id", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  const id    = parseId(req.params.id);
-  if (isNaN(orgId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
-  await db.delete(bioConnectionsTable).where(and(eq(bioConnectionsTable.id, id), eq(bioConnectionsTable.organizationId, orgId)));
+router.delete("/organizations/:orgId/bio-connections/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req, eq(bioConnectionsTable.id, id)));
   res.status(204).send();
 });
 
 // ─── ISSUES ───────────────────────────────────────────────────────────────────
 
-router.get("/organizations/:orgId/bio-issues", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
-  const rows = await db.select().from(bioIssuesTable).where(eq(bioIssuesTable.organizationId, orgId));
+router.get("/organizations/:orgId/bio-issues", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const rows = await db.select().from(bioIssuesTable).where(scopeToExercise(bioIssuesTable, req));
   res.json({ items: rows.map(mapIssue) });
 });
 
-router.post("/organizations/:orgId/bio-issues", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
+router.post("/organizations/:orgId/bio-issues", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const b = req.body as Record<string, unknown>;
   const elIds = Array.isArray(b.elementIds) ? (b.elementIds as number[]) : [];
-  const [row] = await db.insert(bioIssuesTable).values({
-    organizationId: orgId,
-    name:           (b.name        as string | undefined) ?? null,
-    description:    (b.description as string | undefined) ?? null,
-    issueType:      (b.issueType   as string | undefined) ?? null,
-    importance:     (b.importance  as number | undefined) ?? null,
-    probability:    (b.probability as number | undefined) ?? null,
-    urgency:        (b.urgency     as number | undefined) ?? null,
-    reversibility:  (b.reversibility as number | undefined) ?? null,
-    comments:       (b.comments    as string | undefined) ?? null,
-    chainPosition:  (b.chainPosition as string | undefined) ?? null,
-    dependencyIds:  JSON.stringify(elIds),
-    posX:           (b.x as number | undefined) ?? null,
-    posY:           (b.y as number | undefined) ?? null,
-  }).returning();
+  const [row] = await db.insert(bioIssuesTable).values(
+    withExerciseValues(req, {
+      name:           (b.name        as string | undefined) ?? null,
+      description:    (b.description as string | undefined) ?? null,
+      issueType:      (b.issueType   as string | undefined) ?? null,
+      importance:     (b.importance  as number | undefined) ?? null,
+      probability:    (b.probability as number | undefined) ?? null,
+      urgency:        (b.urgency     as number | undefined) ?? null,
+      reversibility:  (b.reversibility as number | undefined) ?? null,
+      comments:       (b.comments    as string | undefined) ?? null,
+      chainPosition:  (b.chainPosition as string | undefined) ?? null,
+      dependencyIds:  JSON.stringify(elIds),
+      posX:           (b.x as number | undefined) ?? null,
+      posY:           (b.y as number | undefined) ?? null,
+    }),
+  ).returning();
   res.json(mapIssue(row));
 });
 
-router.post("/organizations/:orgId/bio-issues/generate", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
-
-  const elements    = await db.select().from(bioDependenciesTable).where(eq(bioDependenciesTable.organizationId, orgId));
-  const connections = await db.select().from(bioConnectionsTable).where(eq(bioConnectionsTable.organizationId, orgId));
+router.post("/organizations/:orgId/bio-issues/generate", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const elements    = await db.select().from(bioDependenciesTable).where(scopeToExercise(bioDependenciesTable, req));
+  const connections = await db.select().from(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req));
 
   if (elements.length === 0) { res.json({ suggestions: [] }); return; }
 
@@ -292,11 +254,9 @@ importance de 1 (faible) à 5 (critique) selon le niveau de dépendance moyen et
   res.json(parsed);
 });
 
-router.put("/organizations/:orgId/bio-issues/:id", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  const id    = parseId(req.params.id);
-  if (isNaN(orgId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
+router.put("/organizations/:orgId/bio-issues/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const b = req.body as Record<string, unknown>;
   const elIds = Array.isArray(b.elementIds) ? (b.elementIds as number[]) : undefined;
   const updates: Partial<typeof bioIssuesTable.$inferInsert> = { updatedAt: new Date() };
@@ -313,17 +273,15 @@ router.put("/organizations/:orgId/bio-issues/:id", requireAuth, async (req, res)
   if (b.x             !== undefined) updates.posX          = (b.x as number | null) ?? null;
   if (b.y             !== undefined) updates.posY          = (b.y as number | null) ?? null;
   const [row] = await db.update(bioIssuesTable).set(updates)
-    .where(and(eq(bioIssuesTable.id, id), eq(bioIssuesTable.organizationId, orgId))).returning();
+    .where(scopeToExercise(bioIssuesTable, req, eq(bioIssuesTable.id, id))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(mapIssue(row));
 });
 
-router.delete("/organizations/:orgId/bio-issues/:id", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  const id    = parseId(req.params.id);
-  if (isNaN(orgId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await verifyMembership(req.clerkUserId!, orgId)) { res.status(403).json({ error: "Forbidden" }); return; }
-  await db.delete(bioIssuesTable).where(and(eq(bioIssuesTable.id, id), eq(bioIssuesTable.organizationId, orgId)));
+router.delete("/organizations/:orgId/bio-issues/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(bioIssuesTable).where(scopeToExercise(bioIssuesTable, req, eq(bioIssuesTable.id, id)));
   res.status(204).send();
 });
 

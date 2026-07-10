@@ -4,3 +4,4 @@
 - [Frontend type imports](frontend-type-imports.md) — Importer les types Zod (Stakeholder…) depuis `@workspace/api-client-react`, jamais `@workspace/api-zod` (non installé dans animpact). AppLayout → `@/components/layout`.
 - [Drizzle numeric → string](drizzle-numeric-string.md) — Drizzle `numeric()` columns map to `string` in TypeScript; always call `String(value)` before insert/update, never pass a `number` directly.
 - [Biodiversité module](biodiversite.md) — CRUD deps + issues + IA Anthropic haiku generate, JSON.stringify pour dependencyIds (text column), `?? null` obligatoire sur champs optional du schema Zod généré.
+- [Exercise (fiscal year) scoping](exercise-scoping.md) — X-Exercise-Id header injected app-wide via api-client-react getter; pages need zero per-page changes; must invalidateQueries() on switch since exercise isn't in query keys.

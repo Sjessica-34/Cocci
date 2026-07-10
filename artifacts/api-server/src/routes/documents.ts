@@ -1,9 +1,9 @@
 import { Router } from "express";
 import multer from "multer";
-import { db, documentsTable, membersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, documentsTable, documentExerciseLinksTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { getOrCreateUser } from "../lib/auth";
+import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 
 const router = Router();
 const upload = multer({
@@ -15,24 +15,16 @@ function parseId(raw: string | string[]): number {
   return Number(Array.isArray(raw) ? raw[0] : raw);
 }
 
-async function verifyMembership(clerkUserId: string, orgId: number): Promise<number | null> {
-  const user = await getOrCreateUser(clerkUserId);
-  const [membership] = await db
-    .select({ id: membersTable.id })
-    .from(membersTable)
-    .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id)))
-    .limit(1);
-  return membership ? user.id : null;
-}
-
 // GET /organizations/:orgId/documents[?category=xxx]
-router.get("/organizations/:orgId/documents", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
-  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/organizations/:orgId/documents", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const { category } = req.query as { category?: string };
+
+  const links = await db
+    .select({ documentId: documentExerciseLinksTable.documentId })
+    .from(documentExerciseLinksTable)
+    .where(eq(documentExerciseLinksTable.exerciseId, req.exercise!.id));
+  const docIds = links.map((l) => l.documentId);
+  if (docIds.length === 0) { res.json([]); return; }
 
   const rows = await db
     .select({
@@ -48,8 +40,8 @@ router.get("/organizations/:orgId/documents", requireAuth, async (req, res): Pro
     .from(documentsTable)
     .where(
       category
-        ? and(eq(documentsTable.organizationId, orgId), eq(documentsTable.category, category))
-        : eq(documentsTable.organizationId, orgId),
+        ? and(eq(documentsTable.organizationId, req.orgId!), eq(documentsTable.category, category), inArray(documentsTable.id, docIds))
+        : and(eq(documentsTable.organizationId, req.orgId!), inArray(documentsTable.id, docIds)),
     )
     .orderBy(documentsTable.createdAt);
 
@@ -60,14 +52,10 @@ router.get("/organizations/:orgId/documents", requireAuth, async (req, res): Pro
 router.post(
   "/organizations/:orgId/documents",
   requireAuth,
+  requireOrgMembership,
+  requireWritableExerciseScope,
   upload.single("file"),
   async (req, res): Promise<void> => {
-    const orgId = parseId(req.params.orgId);
-    if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid organization id" }); return; }
-    const user = await getOrCreateUser(req.clerkUserId!);
-    const membership = await verifyMembership(req.clerkUserId!, orgId);
-    if (!membership) { res.status(403).json({ error: "Forbidden" }); return; }
-
     const file = req.file;
     if (!file) { res.status(400).json({ error: "No file provided" }); return; }
 
@@ -76,8 +64,8 @@ router.post(
     const [doc] = await db
       .insert(documentsTable)
       .values({
-        organizationId: orgId,
-        uploadedByUserId: user.id,
+        organizationId: req.orgId!,
+        uploadedByUserId: req.userId!,
         category,
         originalName: file.originalname,
         mimeType: file.mimetype,
@@ -95,22 +83,28 @@ router.post(
         createdAt: documentsTable.createdAt,
       });
 
+    await db.insert(documentExerciseLinksTable).values({ documentId: doc!.id, exerciseId: req.exercise!.id });
+
     res.status(201).json({ ...doc, createdAt: doc!.createdAt.toISOString() });
   },
 );
 
 // GET /organizations/:orgId/documents/:docId/download
-router.get("/organizations/:orgId/documents/:docId/download", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
+router.get("/organizations/:orgId/documents/:docId/download", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const docId = parseId(req.params.docId);
-  if (!orgId || isNaN(orgId) || !docId || isNaN(docId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (!docId || isNaN(docId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [link] = await db
+    .select({ id: documentExerciseLinksTable.id })
+    .from(documentExerciseLinksTable)
+    .where(and(eq(documentExerciseLinksTable.documentId, docId), eq(documentExerciseLinksTable.exerciseId, req.exercise!.id)))
+    .limit(1);
+  if (!link) { res.status(404).json({ error: "Not found" }); return; }
 
   const [doc] = await db
     .select()
     .from(documentsTable)
-    .where(and(eq(documentsTable.id, docId), eq(documentsTable.organizationId, orgId)))
+    .where(and(eq(documentsTable.id, docId), eq(documentsTable.organizationId, req.orgId!)))
     .limit(1);
 
   if (!doc) { res.status(404).json({ error: "Not found" }); return; }
@@ -122,19 +116,27 @@ router.get("/organizations/:orgId/documents/:docId/download", requireAuth, async
 });
 
 // DELETE /organizations/:orgId/documents/:docId
-router.delete("/organizations/:orgId/documents/:docId", requireAuth, async (req, res): Promise<void> => {
-  const orgId = parseId(req.params.orgId);
+router.delete("/organizations/:orgId/documents/:docId", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const docId = parseId(req.params.docId);
-  if (!orgId || isNaN(orgId) || !docId || isNaN(docId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const userId = await verifyMembership(req.clerkUserId!, orgId);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (!docId || isNaN(docId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const deleted = await db
-    .delete(documentsTable)
-    .where(and(eq(documentsTable.id, docId), eq(documentsTable.organizationId, orgId)))
-    .returning({ id: documentsTable.id });
+  const deletedLink = await db
+    .delete(documentExerciseLinksTable)
+    .where(and(eq(documentExerciseLinksTable.documentId, docId), eq(documentExerciseLinksTable.exerciseId, req.exercise!.id)))
+    .returning({ id: documentExerciseLinksTable.id });
 
-  if (!deleted.length) { res.status(404).json({ error: "Not found" }); return; }
+  if (!deletedLink.length) { res.status(404).json({ error: "Not found" }); return; }
+
+  const remainingLinks = await db
+    .select({ id: documentExerciseLinksTable.id })
+    .from(documentExerciseLinksTable)
+    .where(eq(documentExerciseLinksTable.documentId, docId))
+    .limit(1);
+
+  if (remainingLinks.length === 0) {
+    await db.delete(documentsTable).where(and(eq(documentsTable.id, docId), eq(documentsTable.organizationId, req.orgId!)));
+  }
+
   res.status(204).end();
 });
 

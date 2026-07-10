@@ -1,9 +1,11 @@
 import { pgTable, serial, integer, text, timestamp, real } from "drizzle-orm/pg-core";
 import { organizationsTable } from "./organizations";
+import { exercisesTable } from "./exercises";
 
 export const bioDependenciesTable = pgTable("bio_dependencies", {
   id:              serial("id").primaryKey(),
   organizationId:  integer("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  exerciseId:      integer("exercise_id").notNull().references(() => exercisesTable.id, { onDelete: "cascade" }),
   name:            text("name"),
   category:        text("category"),
   subCategory:     text("sub_category"),
@@ -23,6 +25,7 @@ export const bioDependenciesTable = pgTable("bio_dependencies", {
 export const bioConnectionsTable = pgTable("bio_connections", {
   id:             serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  exerciseId:     integer("exercise_id").notNull().references(() => exercisesTable.id, { onDelete: "cascade" }),
   fromElementId:  integer("from_element_id").notNull().references(() => bioDependenciesTable.id, { onDelete: "cascade" }),
   toElementId:    integer("to_element_id").notNull().references(() => bioDependenciesTable.id, { onDelete: "cascade" }),
   relationType:   text("relation_type"),
@@ -33,6 +36,7 @@ export const bioConnectionsTable = pgTable("bio_connections", {
 export const bioIssuesTable = pgTable("bio_issues", {
   id:             serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  exerciseId:     integer("exercise_id").notNull().references(() => exercisesTable.id, { onDelete: "cascade" }),
   name:           text("name"),
   description:    text("description"),
   issueType:      text("issue_type"),

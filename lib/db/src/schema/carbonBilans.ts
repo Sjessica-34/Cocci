@@ -1,11 +1,15 @@
 import { pgTable, serial, integer, text, numeric, timestamp } from "drizzle-orm/pg-core";
 import { organizationsTable } from "./organizations";
+import { exercisesTable } from "./exercises";
 
 export const carbonBilansTable = pgTable("carbon_bilans", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id")
     .notNull()
     .references(() => organizationsTable.id, { onDelete: "cascade" }),
+  exerciseId: integer("exercise_id")
+    .notNull()
+    .references(() => exercisesTable.id, { onDelete: "cascade" }),
   year: integer("year").notNull(),
   mode: text("mode").notNull(),           // 'saisie' | 'estimation'
   status: text("status").notNull().default("draft"), // 'draft' | 'validated'

@@ -15,12 +15,14 @@ import impactScoreResultRouter from "./impactScoreResult";
 import suppliersRouter from "./suppliers";
 import biodiversiteRouter from "./biodiversite";
 import labelsRouter from "./labels";
+import exercisesRouter from "./exercises";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(usersRouter);
 router.use(organizationsRouter);
+router.use(exercisesRouter);
 router.use(membersRouter);
 router.use(dashboardRouter);
 router.use(adminRouter);
