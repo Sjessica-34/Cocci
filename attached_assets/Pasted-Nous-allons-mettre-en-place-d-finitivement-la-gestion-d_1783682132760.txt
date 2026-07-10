@@ -1,0 +1,276 @@
+Nous allons mettre en place définitivement la gestion des exercices annuels dans Cocci.
+
+IMPORTANT
+
+Il s'agit d'une refonte d'architecture.
+
+Je souhaite développer le système complet maintenant afin de ne plus avoir à revenir dessus ultérieurement.
+
+Toutes les fonctionnalités existantes doivent continuer à fonctionner.
+
+Ne pas modifier le design général.
+
+Conserver tous les modules existants.
+
+L'objectif est que Cocci fonctionne désormais entièrement par exercice annuel.
+
+Chaque exercice représente une photographie complète de l'entreprise à une date donnée.
+
+Toutes les données d'un exercice sont indépendantes des exercices précédents ou suivants.
+
+Les rapports, indicateurs, scores, réponses et documents associés doivent toujours correspondre à l'exercice sélectionné.
+
+-----------------------------------------------------
+1. ARCHITECTURE
+
+Créer une nouvelle entité :
+
+Exercise
+
+Elle contient au minimum :
+
+- id
+- company_id
+- year
+- status (En cours / Clôturé)
+- created_at
+- updated_at
+
+Prévoir une architecture évolutive.
+
+-----------------------------------------------------
+2. MIGRATION
+
+Migrer automatiquement toutes les données existantes vers un exercice correspondant à l'année en cours.
+
+L'utilisateur ne doit perdre aucune donnée.
+
+Toutes les fonctionnalités actuelles doivent continuer à fonctionner.
+
+-----------------------------------------------------
+3. LIAISON DES DONNÉES
+
+Toutes les données métier doivent désormais être liées à un exercice.
+
+Notamment :
+
+- Tableau de bord
+- Parties prenantes
+- Matrice de matérialité
+- Démarche RSE
+- Bilan carbone
+- Numérique Responsable
+- Dépendances à la biodiversité
+- RH
+- Baromètre social
+- Mes actions
+- Plans d'actions
+- Impact Score
+- Rapport RSE
+- Conformité & Questionnaires
+- Tous les futurs modules métier
+
+En revanche, les données suivantes restent indépendantes des exercices :
+
+- Entreprise
+- Utilisateurs
+- Paramètres
+- Configuration
+- Bibliothèques de référentiels
+- Modèles de questionnaires
+
+-----------------------------------------------------
+4. HEADER
+
+Ajouter dans le header un sélecteur d'exercice.
+
+Exemple :
+
+📅 2026 ▼
+
+Le sélecteur est visible sur toutes les pages de l'espace client.
+
+Il remplace la gestion actuelle des années.
+
+Le menu déroulant affiche uniquement les exercices existants.
+
+Afficher au maximum les trois exercices les plus récents.
+
+Si davantage d'exercices existent :
+
+Afficher en bas :
+
+Voir tous les exercices...
+
+-----------------------------------------------------
+5. CHANGEMENT D'EXERCICE
+
+Lorsque l'utilisateur sélectionne un exercice :
+
+Toute l'application bascule automatiquement sur cet exercice.
+
+Tous les modules affichent immédiatement les données correspondantes.
+
+Le changement doit être instantané.
+
+L'utilisateur ne doit effectuer aucune autre manipulation.
+
+-----------------------------------------------------
+6. CRÉATION D'UN EXERCICE
+
+Le menu déroulant contient en bas :
+
+➕ Créer un exercice
+
+Au clic,
+
+ouvrir une fenêtre modale.
+
+Titre :
+
+Créer un nouvel exercice
+
+Champ :
+
+Année
+
+Par défaut :
+
+année de l'exercice actuel + 1
+
+Case cochée par défaut :
+
+☑ Reprendre automatiquement toutes les données de l'exercice précédent.
+
+Texte explicatif :
+
+Une copie complète des données de l'exercice précédent sera créée.
+
+Vous pourrez ensuite modifier librement ce nouvel exercice sans impacter les exercices précédents.
+
+Boutons :
+
+Annuler
+
+Créer
+
+-----------------------------------------------------
+7. DUPLICATION
+
+Si la case est cochée,
+
+le logiciel crée automatiquement une copie complète des données métier.
+
+Toutes les données sont dupliquées pour le nouvel exercice.
+
+Exemples :
+
+- Parties prenantes
+- Réponses RSE
+- Matrice
+- Biodiversité
+- Numérique Responsable
+- Bilan carbone
+- RH
+- Baromètre social
+- Actions
+- Plans d'actions
+- Rapport RSE
+- Impact Score
+- Questionnaires
+
+Chaque exercice devient totalement indépendant.
+
+Toute modification réalisée dans un exercice ne doit jamais modifier un autre exercice.
+
+-----------------------------------------------------
+8. DOCUMENTS
+
+Ne jamais dupliquer physiquement les fichiers.
+
+Conserver un seul fichier.
+
+Créer simplement les nouvelles liaisons entre le document et le nouvel exercice.
+
+Si un document est remplacé dans un exercice,
+
+les anciens exercices continuent d'utiliser leur ancienne version.
+
+-----------------------------------------------------
+9. STATUT DES EXERCICES
+
+Chaque exercice possède un statut :
+
+En cours
+
+Clôturé
+
+Lorsqu'un exercice est clôturé,
+
+toutes les données deviennent en lecture seule.
+
+Prévoir qu'un administrateur pourra éventuellement le rouvrir.
+
+-----------------------------------------------------
+10. SUPPRESSION
+
+Autoriser la suppression uniquement :
+
+- d'un exercice "En cours"
+- s'il existe au moins un autre exercice
+
+Ne jamais permettre la suppression d'un exercice clôturé.
+
+-----------------------------------------------------
+11. COMPARAISONS
+
+Ne pas développer maintenant les comparaisons.
+
+Préparer uniquement l'architecture.
+
+Les comparaisons seront développées ultérieurement dans le module Rapport RSE.
+
+-----------------------------------------------------
+12. SERVICE CENTRAL D'ARCHITECTURE
+
+Créer un service central "ExerciseContext" (ou équivalent selon la technologie utilisée).
+
+Ce service doit être l'unique source de vérité concernant l'exercice actif.
+
+Tous les modules de Cocci doivent récupérer l'exercice actif via ce service.
+
+Aucun module ne doit gérer lui-même l'année courante.
+
+Toutes les requêtes, API et composants devront utiliser ExerciseContext afin de connaître automatiquement l'exercice sélectionné.
+
+L'objectif est que toute l'application fonctionne avec une seule notion d'exercice actif.
+
+Cette architecture devra également permettre aux futurs modules d'être immédiatement compatibles avec la gestion des exercices sans développement spécifique.
+
+-----------------------------------------------------
+13. ÉVOLUTIVITÉ
+
+L'objectif est que cette architecture soit définitive.
+
+Tous les futurs modules devront automatiquement fonctionner avec les exercices.
+
+Je ne souhaite plus avoir à refactoriser cette partie dans le futur.
+
+-----------------------------------------------------
+14. CONTRAINTES
+
+Conserver le design actuel.
+
+Ne pas casser les fonctionnalités existantes.
+
+Migrer automatiquement les données actuelles.
+
+Le logiciel doit être entièrement fonctionnel à la fin de cette refonte.
+
+Je privilégie une architecture propre, évolutive et maintenable plutôt qu'une solution rapide.
+
+Cette refonte doit constituer la fondation de Cocci pour les prochaines années.
+
+J'ajouterais une dernière exigence, qui me paraît presque aussi importante qu'ExerciseContext :
+
+Chaque création, modification ou suppression d'une donnée doit automatiquement être rattachée à l'exercice actif via ExerciseContext, sans que les développeurs aient à gérer manuellement exercise_id dans chaque module. Autrement dit, le contexte d'exercice doit être transparent pour le reste de l'application. Si, dans un an, tu ajoutes un module "Énergie", "Déchets" ou "Eau", il héritera automatiquement du bon exercice sans développement spécifique. C'est ce qui rendra vraiment l'architecture durable.
