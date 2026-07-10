@@ -24,6 +24,7 @@ import {
   Sparkles,
   FileText,
   Award,
+  Smile,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,7 @@ const navGroups: NavItem[][] = [
     { href: "/demarche-rse", label: "Ma démarche RSE", icon: BarChart3 },
     { href: "/bilan-carbone", label: "Mon bilan carbone", icon: Globe },
     { href: "/numerique-responsable", label: "Ma démarche Numérique Responsable", icon: Monitor },
+    { href: "/barometre-social", label: "Baromètre Social", icon: Smile },
   ],
   [
     { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },

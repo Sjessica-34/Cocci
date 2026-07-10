@@ -14,3 +14,4 @@ export * from "./impactScoreResult";
 export * from "./suppliers";
 export * from "./biodiversite";
 export * from "./labels";
+export * from "./barometreSocial";

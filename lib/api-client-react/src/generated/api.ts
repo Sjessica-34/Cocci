@@ -24,6 +24,15 @@ import type {
   AdminOrganization,
   AdminStats,
   AdminUser,
+  BarometreAction,
+  BarometreActionInput,
+  BarometreCampaign,
+  BarometreCampaignDetail,
+  BarometreCampaignInput,
+  BarometreCampaignListResponse,
+  BarometreCampaignStatusInput,
+  BarometreResults,
+  BarometreSynthese,
   BioConnection,
   BioConnectionInput,
   BioConnectionListResponse,
@@ -60,6 +69,9 @@ import type {
   Organization,
   OrganizationInput,
   OrganizationUpdate,
+  PublicBarometreQuestionnaire,
+  PublicBarometreSubmission,
+  PublicBarometreSubmissionAck,
   Resource,
   ResourceInput,
   ResourcePublishUpdate,
@@ -4683,6 +4695,838 @@ export const useDeleteSupplier = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteSupplierMutationOptions(options));
+    }
+
+export const getListBarometreCampaignsUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns`
+}
+
+/**
+ * @summary List all Baromètre Social campaigns for an organization
+ */
+export const listBarometreCampaigns = async (orgId: number, options?: RequestInit): Promise<BarometreCampaignListResponse> => {
+
+  return customFetch<BarometreCampaignListResponse>(getListBarometreCampaignsUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBarometreCampaignsQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/barometre-campaigns`
+    ] as const;
+    }
+
+
+export const getListBarometreCampaignsQueryOptions = <TData = Awaited<ReturnType<typeof listBarometreCampaigns>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBarometreCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBarometreCampaignsQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBarometreCampaigns>>> = ({ signal }) => listBarometreCampaigns(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBarometreCampaigns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBarometreCampaignsQueryResult = NonNullable<Awaited<ReturnType<typeof listBarometreCampaigns>>>
+export type ListBarometreCampaignsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all Baromètre Social campaigns for an organization
+ */
+
+export function useListBarometreCampaigns<TData = Awaited<ReturnType<typeof listBarometreCampaigns>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBarometreCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBarometreCampaignsQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBarometreCampaignUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns`
+}
+
+/**
+ * @summary Create a new Baromètre Social campaign for the active exercise
+ */
+export const createBarometreCampaign = async (orgId: number,
+    barometreCampaignInput: BarometreCampaignInput, options?: RequestInit): Promise<BarometreCampaign> => {
+
+  return customFetch<BarometreCampaign>(getCreateBarometreCampaignUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(barometreCampaignInput)
+  }
+);}
+
+
+
+
+export const getCreateBarometreCampaignMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBarometreCampaign>>, TError,{orgId: number;data: BodyType<BarometreCampaignInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBarometreCampaign>>, TError,{orgId: number;data: BodyType<BarometreCampaignInput>}, TContext> => {
+
+const mutationKey = ['createBarometreCampaign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBarometreCampaign>>, {orgId: number;data: BodyType<BarometreCampaignInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createBarometreCampaign(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBarometreCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof createBarometreCampaign>>>
+    export type CreateBarometreCampaignMutationBody = BodyType<BarometreCampaignInput>
+    export type CreateBarometreCampaignMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new Baromètre Social campaign for the active exercise
+ */
+export const useCreateBarometreCampaign = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBarometreCampaign>>, TError,{orgId: number;data: BodyType<BarometreCampaignInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBarometreCampaign>>,
+        TError,
+        {orgId: number;data: BodyType<BarometreCampaignInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBarometreCampaignMutationOptions(options));
+    }
+
+export const getGetBarometreCampaignUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns/${id}`
+}
+
+/**
+ * @summary Get a single campaign with its custom questions
+ */
+export const getBarometreCampaign = async (orgId: number,
+    id: number, options?: RequestInit): Promise<BarometreCampaignDetail> => {
+
+  return customFetch<BarometreCampaignDetail>(getGetBarometreCampaignUrl(orgId,id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBarometreCampaignQueryKey = (orgId: number,
+    id: number,) => {
+    return [
+    `/api/organizations/${orgId}/barometre-campaigns/${id}`
+    ] as const;
+    }
+
+
+export const getGetBarometreCampaignQueryOptions = <TData = Awaited<ReturnType<typeof getBarometreCampaign>>, TError = ErrorType<void>>(orgId: number,
+    id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBarometreCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBarometreCampaignQueryKey(orgId,id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBarometreCampaign>>> = ({ signal }) => getBarometreCampaign(orgId,id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined && id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBarometreCampaign>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBarometreCampaignQueryResult = NonNullable<Awaited<ReturnType<typeof getBarometreCampaign>>>
+export type GetBarometreCampaignQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a single campaign with its custom questions
+ */
+
+export function useGetBarometreCampaign<TData = Awaited<ReturnType<typeof getBarometreCampaign>>, TError = ErrorType<void>>(
+ orgId: number,
+    id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBarometreCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBarometreCampaignQueryOptions(orgId,id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateBarometreCampaignStatusUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns/${id}`
+}
+
+/**
+ * @summary Transition a campaign's status (draft → active → closed)
+ */
+export const updateBarometreCampaignStatus = async (orgId: number,
+    id: number,
+    barometreCampaignStatusInput: BarometreCampaignStatusInput, options?: RequestInit): Promise<BarometreCampaign> => {
+
+  return customFetch<BarometreCampaign>(getUpdateBarometreCampaignStatusUrl(orgId,id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(barometreCampaignStatusInput)
+  }
+);}
+
+
+
+
+export const getUpdateBarometreCampaignStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBarometreCampaignStatus>>, TError,{orgId: number;id: number;data: BodyType<BarometreCampaignStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBarometreCampaignStatus>>, TError,{orgId: number;id: number;data: BodyType<BarometreCampaignStatusInput>}, TContext> => {
+
+const mutationKey = ['updateBarometreCampaignStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBarometreCampaignStatus>>, {orgId: number;id: number;data: BodyType<BarometreCampaignStatusInput>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateBarometreCampaignStatus(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBarometreCampaignStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateBarometreCampaignStatus>>>
+    export type UpdateBarometreCampaignStatusMutationBody = BodyType<BarometreCampaignStatusInput>
+    export type UpdateBarometreCampaignStatusMutationError = ErrorType<void>
+
+    /**
+ * @summary Transition a campaign's status (draft → active → closed)
+ */
+export const useUpdateBarometreCampaignStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBarometreCampaignStatus>>, TError,{orgId: number;id: number;data: BodyType<BarometreCampaignStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBarometreCampaignStatus>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<BarometreCampaignStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateBarometreCampaignStatusMutationOptions(options));
+    }
+
+export const getDeleteBarometreCampaignUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns/${id}`
+}
+
+/**
+ * @summary Delete a draft campaign (only allowed while status is "draft")
+ */
+export const deleteBarometreCampaign = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteBarometreCampaignUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteBarometreCampaignMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBarometreCampaign>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBarometreCampaign>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteBarometreCampaign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBarometreCampaign>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteBarometreCampaign(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBarometreCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBarometreCampaign>>>
+
+    export type DeleteBarometreCampaignMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a draft campaign (only allowed while status is "draft")
+ */
+export const useDeleteBarometreCampaign = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBarometreCampaign>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBarometreCampaign>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteBarometreCampaignMutationOptions(options));
+    }
+
+export const getGetBarometreResultsUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns/${id}/results`
+}
+
+/**
+ * @summary Aggregated per-question results for a campaign, with comparison to the previous campaign
+ */
+export const getBarometreResults = async (orgId: number,
+    id: number, options?: RequestInit): Promise<BarometreResults> => {
+
+  return customFetch<BarometreResults>(getGetBarometreResultsUrl(orgId,id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBarometreResultsQueryKey = (orgId: number,
+    id: number,) => {
+    return [
+    `/api/organizations/${orgId}/barometre-campaigns/${id}/results`
+    ] as const;
+    }
+
+
+export const getGetBarometreResultsQueryOptions = <TData = Awaited<ReturnType<typeof getBarometreResults>>, TError = ErrorType<void>>(orgId: number,
+    id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBarometreResults>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBarometreResultsQueryKey(orgId,id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBarometreResults>>> = ({ signal }) => getBarometreResults(orgId,id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined && id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBarometreResults>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBarometreResultsQueryResult = NonNullable<Awaited<ReturnType<typeof getBarometreResults>>>
+export type GetBarometreResultsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Aggregated per-question results for a campaign, with comparison to the previous campaign
+ */
+
+export function useGetBarometreResults<TData = Awaited<ReturnType<typeof getBarometreResults>>, TError = ErrorType<void>>(
+ orgId: number,
+    id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBarometreResults>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBarometreResultsQueryOptions(orgId,id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBarometreSyntheseUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns/${id}/synthese`
+}
+
+/**
+ * @summary Pilot-view synthesis for a campaign (score, radar, forces/faiblesses, évolution, résumé IA des commentaires)
+ */
+export const getBarometreSynthese = async (orgId: number,
+    id: number, options?: RequestInit): Promise<BarometreSynthese> => {
+
+  return customFetch<BarometreSynthese>(getGetBarometreSyntheseUrl(orgId,id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBarometreSyntheseQueryKey = (orgId: number,
+    id: number,) => {
+    return [
+    `/api/organizations/${orgId}/barometre-campaigns/${id}/synthese`
+    ] as const;
+    }
+
+
+export const getGetBarometreSyntheseQueryOptions = <TData = Awaited<ReturnType<typeof getBarometreSynthese>>, TError = ErrorType<void>>(orgId: number,
+    id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBarometreSynthese>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBarometreSyntheseQueryKey(orgId,id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBarometreSynthese>>> = ({ signal }) => getBarometreSynthese(orgId,id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined && id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBarometreSynthese>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBarometreSyntheseQueryResult = NonNullable<Awaited<ReturnType<typeof getBarometreSynthese>>>
+export type GetBarometreSyntheseQueryError = ErrorType<void>
+
+
+/**
+ * @summary Pilot-view synthesis for a campaign (score, radar, forces/faiblesses, évolution, résumé IA des commentaires)
+ */
+
+export function useGetBarometreSynthese<TData = Awaited<ReturnType<typeof getBarometreSynthese>>, TError = ErrorType<void>>(
+ orgId: number,
+    id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBarometreSynthese>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBarometreSyntheseQueryOptions(orgId,id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRegenerateBarometreAiSummaryUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns/${id}/synthese/regenerate`
+}
+
+/**
+ * @summary Regenerate the AI summary of free-text comments on demand (never computed automatically)
+ */
+export const regenerateBarometreAiSummary = async (orgId: number,
+    id: number, options?: RequestInit): Promise<BarometreSynthese> => {
+
+  return customFetch<BarometreSynthese>(getRegenerateBarometreAiSummaryUrl(orgId,id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRegenerateBarometreAiSummaryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateBarometreAiSummary>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof regenerateBarometreAiSummary>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['regenerateBarometreAiSummary'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof regenerateBarometreAiSummary>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  regenerateBarometreAiSummary(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegenerateBarometreAiSummaryMutationResult = NonNullable<Awaited<ReturnType<typeof regenerateBarometreAiSummary>>>
+
+    export type RegenerateBarometreAiSummaryMutationError = ErrorType<void>
+
+    /**
+ * @summary Regenerate the AI summary of free-text comments on demand (never computed automatically)
+ */
+export const useRegenerateBarometreAiSummary = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateBarometreAiSummary>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof regenerateBarometreAiSummary>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getRegenerateBarometreAiSummaryMutationOptions(options));
+    }
+
+export const getCreateBarometreActionUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/barometre-campaigns/${id}/actions`
+}
+
+/**
+ * @summary Create an action from a Baromètre Social theme (stored in a dedicated table pending the "Mes actions" module)
+ */
+export const createBarometreAction = async (orgId: number,
+    id: number,
+    barometreActionInput: BarometreActionInput, options?: RequestInit): Promise<BarometreAction> => {
+
+  return customFetch<BarometreAction>(getCreateBarometreActionUrl(orgId,id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(barometreActionInput)
+  }
+);}
+
+
+
+
+export const getCreateBarometreActionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBarometreAction>>, TError,{orgId: number;id: number;data: BodyType<BarometreActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBarometreAction>>, TError,{orgId: number;id: number;data: BodyType<BarometreActionInput>}, TContext> => {
+
+const mutationKey = ['createBarometreAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBarometreAction>>, {orgId: number;id: number;data: BodyType<BarometreActionInput>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  createBarometreAction(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBarometreActionMutationResult = NonNullable<Awaited<ReturnType<typeof createBarometreAction>>>
+    export type CreateBarometreActionMutationBody = BodyType<BarometreActionInput>
+    export type CreateBarometreActionMutationError = ErrorType<void>
+
+    /**
+ * @summary Create an action from a Baromètre Social theme (stored in a dedicated table pending the "Mes actions" module)
+ */
+export const useCreateBarometreAction = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBarometreAction>>, TError,{orgId: number;id: number;data: BodyType<BarometreActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBarometreAction>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<BarometreActionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBarometreActionMutationOptions(options));
+    }
+
+export const getGetPublicBarometreQuestionnaireUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/barometre/${token}`
+}
+
+/**
+ * @summary Get the questionnaire for a campaign by its public token (no auth)
+ */
+export const getPublicBarometreQuestionnaire = async (token: string, options?: RequestInit): Promise<PublicBarometreQuestionnaire> => {
+
+  return customFetch<PublicBarometreQuestionnaire>(getGetPublicBarometreQuestionnaireUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicBarometreQuestionnaireQueryKey = (token: string,) => {
+    return [
+    `/api/public/barometre/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicBarometreQuestionnaireQueryOptions = <TData = Awaited<ReturnType<typeof getPublicBarometreQuestionnaire>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicBarometreQuestionnaire>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicBarometreQuestionnaireQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicBarometreQuestionnaire>>> = ({ signal }) => getPublicBarometreQuestionnaire(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicBarometreQuestionnaire>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicBarometreQuestionnaireQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicBarometreQuestionnaire>>>
+export type GetPublicBarometreQuestionnaireQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the questionnaire for a campaign by its public token (no auth)
+ */
+
+export function useGetPublicBarometreQuestionnaire<TData = Awaited<ReturnType<typeof getPublicBarometreQuestionnaire>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicBarometreQuestionnaire>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicBarometreQuestionnaireQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitPublicBarometreResponseUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/barometre/${token}/responses`
+}
+
+/**
+ * @summary Submit (or autosave) an employee's answers, identified by a client-generated responseId
+ */
+export const submitPublicBarometreResponse = async (token: string,
+    publicBarometreSubmission: PublicBarometreSubmission, options?: RequestInit): Promise<PublicBarometreSubmissionAck> => {
+
+  return customFetch<PublicBarometreSubmissionAck>(getSubmitPublicBarometreResponseUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(publicBarometreSubmission)
+  }
+);}
+
+
+
+
+export const getSubmitPublicBarometreResponseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPublicBarometreResponse>>, TError,{token: string;data: BodyType<PublicBarometreSubmission>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitPublicBarometreResponse>>, TError,{token: string;data: BodyType<PublicBarometreSubmission>}, TContext> => {
+
+const mutationKey = ['submitPublicBarometreResponse'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitPublicBarometreResponse>>, {token: string;data: BodyType<PublicBarometreSubmission>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  submitPublicBarometreResponse(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitPublicBarometreResponseMutationResult = NonNullable<Awaited<ReturnType<typeof submitPublicBarometreResponse>>>
+    export type SubmitPublicBarometreResponseMutationBody = BodyType<PublicBarometreSubmission>
+    export type SubmitPublicBarometreResponseMutationError = ErrorType<void>
+
+    /**
+ * @summary Submit (or autosave) an employee's answers, identified by a client-generated responseId
+ */
+export const useSubmitPublicBarometreResponse = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPublicBarometreResponse>>, TError,{token: string;data: BodyType<PublicBarometreSubmission>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitPublicBarometreResponse>>,
+        TError,
+        {token: string;data: BodyType<PublicBarometreSubmission>},
+        TContext
+      > => {
+      return useMutation(getSubmitPublicBarometreResponseMutationOptions(options));
     }
 
 export const getGetImpactScoreResultUrl = (orgId: number,) => {

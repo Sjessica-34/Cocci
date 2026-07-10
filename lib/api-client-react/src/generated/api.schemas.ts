@@ -1003,3 +1003,204 @@ export interface DashboardSummary {
   lastActivityAt?: string | null;
 }
 
+export type BarometreCampaignMode = typeof BarometreCampaignMode[keyof typeof BarometreCampaignMode];
+
+
+export const BarometreCampaignMode = {
+  anonymous: 'anonymous',
+  identified: 'identified',
+} as const;
+
+export type BarometreCampaignStatus = typeof BarometreCampaignStatus[keyof typeof BarometreCampaignStatus];
+
+
+export const BarometreCampaignStatus = {
+  draft: 'draft',
+  active: 'active',
+  closed: 'closed',
+} as const;
+
+export interface BarometreCampaign {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  name: string;
+  mode: BarometreCampaignMode;
+  status: BarometreCampaignStatus;
+  openDate: string;
+  closeDate: string;
+  nbCollaborateurs: number;
+  nbRepondants: number;
+  tauxParticipation: number;
+  publicToken: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BarometreCampaignInputMode = typeof BarometreCampaignInputMode[keyof typeof BarometreCampaignInputMode];
+
+
+export const BarometreCampaignInputMode = {
+  anonymous: 'anonymous',
+  identified: 'identified',
+} as const;
+
+export interface BarometreCampaignInput {
+  name: string;
+  mode: BarometreCampaignInputMode;
+  openDate: string;
+  closeDate: string;
+  nbCollaborateurs: number;
+  customQuestions?: string[];
+}
+
+export interface BarometreCampaignListResponse {
+  items: BarometreCampaign[];
+}
+
+export interface BarometreCustomQuestion {
+  id: number;
+  text: string;
+  sortOrder: number;
+}
+
+export interface BarometreCampaignDetail {
+  campaign: BarometreCampaign;
+  customQuestions: BarometreCustomQuestion[];
+}
+
+export type BarometreQuestionResultType = typeof BarometreQuestionResultType[keyof typeof BarometreQuestionResultType];
+
+
+export const BarometreQuestionResultType = {
+  scale: 'scale',
+  text: 'text',
+} as const;
+
+export type BarometreQuestionResultDistribution = {[key: string]: number};
+
+export interface BarometreQuestionResult {
+  code: string;
+  theme: string;
+  text: string;
+  type: BarometreQuestionResultType;
+  /** @nullable */
+  average?: number | null;
+  responseCount: number;
+  distribution?: BarometreQuestionResultDistribution;
+  /** @nullable */
+  previousAverage?: number | null;
+  comments?: string[];
+}
+
+export interface BarometreResults {
+  campaign: BarometreCampaign;
+  questions: BarometreQuestionResult[];
+}
+
+export interface BarometreThemeScore {
+  theme: string;
+  /** @nullable */
+  average: number | null;
+  /** @nullable */
+  previousAverage?: number | null;
+}
+
+export interface BarometreAiSummary {
+  summary: string;
+  themes: string[];
+  suggestions: string[];
+  generatedAt: string;
+}
+
+export interface BarometreSynthese {
+  campaign: BarometreCampaign;
+  /** @nullable */
+  satisfactionGlobale: number | null;
+  nbCollaborateurs: number;
+  nbRepondants: number;
+  tauxParticipation: number;
+  themeScores: BarometreThemeScore[];
+  pointsForts: string[];
+  pointsFaibles: string[];
+  themesASurveiller: string[];
+  aiSummary: BarometreAiSummary | null;
+}
+
+export interface BarometreAction {
+  id: number;
+  organizationId: number;
+  campaignId: number;
+  title: string;
+  /** @nullable */
+  sourceTheme?: string | null;
+  createdAt: string;
+}
+
+export interface BarometreActionInput {
+  title: string;
+  /** @nullable */
+  sourceTheme?: string | null;
+}
+
+export type PublicBarometreQuestionType = typeof PublicBarometreQuestionType[keyof typeof PublicBarometreQuestionType];
+
+
+export const PublicBarometreQuestionType = {
+  scale: 'scale',
+  text: 'text',
+} as const;
+
+export interface PublicBarometreQuestion {
+  code: string;
+  theme: string;
+  text: string;
+  type: PublicBarometreQuestionType;
+}
+
+export type PublicBarometreQuestionnaireMode = typeof PublicBarometreQuestionnaireMode[keyof typeof PublicBarometreQuestionnaireMode];
+
+
+export const PublicBarometreQuestionnaireMode = {
+  anonymous: 'anonymous',
+  identified: 'identified',
+} as const;
+
+export interface PublicBarometreQuestionnaire {
+  campaignName: string;
+  mode: PublicBarometreQuestionnaireMode;
+  questions: PublicBarometreQuestion[];
+  closeDate: string;
+}
+
+export interface PublicBarometreAnswerInput {
+  questionCode: string;
+  /** @nullable */
+  scaleValue?: number | null;
+  /** @nullable */
+  freeText?: string | null;
+}
+
+export interface PublicBarometreSubmission {
+  /** @nullable */
+  respondentLabel?: string | null;
+  completed?: boolean;
+  answers: PublicBarometreAnswerInput[];
+}
+
+export interface PublicBarometreSubmissionAck {
+  ok: boolean;
+}
+
+export type BarometreCampaignStatusInputStatus = typeof BarometreCampaignStatusInputStatus[keyof typeof BarometreCampaignStatusInputStatus];
+
+
+export const BarometreCampaignStatusInputStatus = {
+  active: 'active',
+  closed: 'closed',
+} as const;
+
+export interface BarometreCampaignStatusInput {
+  status: BarometreCampaignStatusInputStatus;
+}
+

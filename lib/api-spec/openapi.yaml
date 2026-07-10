@@ -28,6 +28,8 @@ tags:
     description: Bilan Carbone® management
   - name: exercises
     description: Annual exercise (fiscal year) management
+  - name: barometre-social
+    description: Baromètre Social — employee survey campaigns, public responses, results and synthesis
 
 paths:
   /healthz:
@@ -1501,6 +1503,310 @@ paths:
         "404":
           description: Not found
 
+  # ─── BAROMÈTRE SOCIAL ───────────────────────────────────────────────────────
+  /organizations/{orgId}/barometre-campaigns:
+    get:
+      operationId: listBarometreCampaigns
+      tags: [barometre-social]
+      summary: List all Baromètre Social campaigns for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarometreCampaignListResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    post:
+      operationId: createBarometreCampaign
+      tags: [barometre-social]
+      summary: Create a new Baromètre Social campaign for the active exercise
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarometreCampaignInput"
+      responses:
+        "201":
+          description: Created campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarometreCampaign"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/barometre-campaigns/{id}:
+    get:
+      operationId: getBarometreCampaign
+      tags: [barometre-social]
+      summary: Get a single campaign with its custom questions
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarometreCampaignDetail"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    patch:
+      operationId: updateBarometreCampaignStatus
+      tags: [barometre-social]
+      summary: Transition a campaign's status (draft → active → closed)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarometreCampaignStatusInput"
+      responses:
+        "200":
+          description: Updated campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarometreCampaign"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBarometreCampaign
+      tags: [barometre-social]
+      summary: Delete a draft campaign (only allowed while status is "draft")
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /organizations/{orgId}/barometre-campaigns/{id}/results:
+    get:
+      operationId: getBarometreResults
+      tags: [barometre-social]
+      summary: Aggregated per-question results for a campaign, with comparison to the previous campaign
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarometreResults"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /organizations/{orgId}/barometre-campaigns/{id}/synthese:
+    get:
+      operationId: getBarometreSynthese
+      tags: [barometre-social]
+      summary: Pilot-view synthesis for a campaign (score, radar, forces/faiblesses, évolution, résumé IA des commentaires)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Synthesis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarometreSynthese"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /organizations/{orgId}/barometre-campaigns/{id}/synthese/regenerate:
+    post:
+      operationId: regenerateBarometreAiSummary
+      tags: [barometre-social]
+      summary: Regenerate the AI summary of free-text comments on demand (never computed automatically)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Synthesis with a freshly generated AI summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarometreSynthese"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /organizations/{orgId}/barometre-campaigns/{id}/actions:
+    post:
+      operationId: createBarometreAction
+      tags: [barometre-social]
+      summary: Create an action from a Baromètre Social theme (stored in a dedicated table pending the "Mes actions" module)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarometreActionInput"
+      responses:
+        "201":
+          description: Created action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarometreAction"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  # Public, unauthenticated endpoints — employees never have a Cocci account.
+  /public/barometre/{token}:
+    get:
+      operationId: getPublicBarometreQuestionnaire
+      tags: [barometre-social]
+      summary: Get the questionnaire for a campaign by its public token (no auth)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Questionnaire
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicBarometreQuestionnaire"
+        "404":
+          description: Not found
+        "410":
+          description: Campaign is not currently open
+
+  /public/barometre/{token}/responses:
+    post:
+      operationId: submitPublicBarometreResponse
+      tags: [barometre-social]
+      summary: Submit (or autosave) an employee's answers, identified by a client-generated responseId
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicBarometreSubmission"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicBarometreSubmissionAck"
+        "404":
+          description: Not found
+        "410":
+          description: Campaign is not currently open
+
   # ─── IMPACT SCORE ───────────────────────────────────────────────────────────
   /organizations/{orgId}/impact-score-result:
     get:
@@ -2730,3 +3036,226 @@ components:
         lastActivityAt:
           type: ["string", "null"]
           format: date-time
+
+    # ─── BAROMÈTRE SOCIAL ───────────────────────────────────────────────────────
+    BarometreCampaign:
+      type: object
+      required: [id, organizationId, exerciseId, name, mode, status, openDate, closeDate, nbCollaborateurs, publicToken, nbRepondants, tauxParticipation, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        exerciseId: { type: integer }
+        name: { type: string }
+        mode:
+          type: string
+          enum: [anonymous, identified]
+        status:
+          type: string
+          enum: [draft, active, closed]
+        openDate: { type: string, format: date }
+        closeDate: { type: string, format: date }
+        nbCollaborateurs: { type: integer }
+        nbRepondants: { type: integer }
+        tauxParticipation: { type: number }
+        publicToken: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    BarometreCampaignInput:
+      type: object
+      required: [name, mode, openDate, closeDate, nbCollaborateurs]
+      properties:
+        name: { type: string }
+        mode:
+          type: string
+          enum: [anonymous, identified]
+        openDate: { type: string, format: date }
+        closeDate: { type: string, format: date }
+        nbCollaborateurs: { type: integer }
+        customQuestions:
+          type: array
+          items: { type: string }
+
+    BarometreCampaignListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BarometreCampaign"
+
+    BarometreCustomQuestion:
+      type: object
+      required: [id, text, sortOrder]
+      properties:
+        id: { type: integer }
+        text: { type: string }
+        sortOrder: { type: integer }
+
+    BarometreCampaignDetail:
+      type: object
+      required: [campaign, customQuestions]
+      properties:
+        campaign:
+          $ref: "#/components/schemas/BarometreCampaign"
+        customQuestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/BarometreCustomQuestion"
+
+    BarometreQuestionResult:
+      type: object
+      required: [code, theme, text, type, responseCount]
+      properties:
+        code: { type: string }
+        theme: { type: string }
+        text: { type: string }
+        type:
+          type: string
+          enum: [scale, text]
+        average: { type: ["number", "null"] }
+        responseCount: { type: integer }
+        distribution:
+          type: object
+          additionalProperties: { type: integer }
+        previousAverage: { type: ["number", "null"] }
+        comments:
+          type: array
+          items: { type: string }
+
+    BarometreResults:
+      type: object
+      required: [campaign, questions]
+      properties:
+        campaign:
+          $ref: "#/components/schemas/BarometreCampaign"
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/BarometreQuestionResult"
+
+    BarometreThemeScore:
+      type: object
+      required: [theme, average]
+      properties:
+        theme: { type: string }
+        average: { type: ["number", "null"] }
+        previousAverage: { type: ["number", "null"] }
+
+    BarometreAiSummary:
+      type: object
+      required: [summary, themes, suggestions, generatedAt]
+      properties:
+        summary: { type: string }
+        themes:
+          type: array
+          items: { type: string }
+        suggestions:
+          type: array
+          items: { type: string }
+        generatedAt: { type: string, format: date-time }
+
+    BarometreSynthese:
+      type: object
+      required: [campaign, satisfactionGlobale, nbCollaborateurs, nbRepondants, tauxParticipation, themeScores, pointsForts, pointsFaibles, themesASurveiller, aiSummary]
+      properties:
+        campaign:
+          $ref: "#/components/schemas/BarometreCampaign"
+        satisfactionGlobale: { type: ["number", "null"] }
+        nbCollaborateurs: { type: integer }
+        nbRepondants: { type: integer }
+        tauxParticipation: { type: number }
+        themeScores:
+          type: array
+          items:
+            $ref: "#/components/schemas/BarometreThemeScore"
+        pointsForts:
+          type: array
+          items: { type: string }
+        pointsFaibles:
+          type: array
+          items: { type: string }
+        themesASurveiller:
+          type: array
+          items: { type: string }
+        aiSummary:
+          oneOf:
+            - $ref: "#/components/schemas/BarometreAiSummary"
+            - type: "null"
+
+    BarometreAction:
+      type: object
+      required: [id, organizationId, campaignId, title, createdAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        campaignId: { type: integer }
+        title: { type: string }
+        sourceTheme: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    BarometreActionInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string }
+        sourceTheme: { type: ["string", "null"] }
+
+    PublicBarometreQuestion:
+      type: object
+      required: [code, theme, text, type]
+      properties:
+        code: { type: string }
+        theme: { type: string }
+        text: { type: string }
+        type:
+          type: string
+          enum: [scale, text]
+
+    PublicBarometreQuestionnaire:
+      type: object
+      required: [campaignName, mode, questions, closeDate]
+      properties:
+        campaignName: { type: string }
+        mode:
+          type: string
+          enum: [anonymous, identified]
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicBarometreQuestion"
+        closeDate: { type: string, format: date }
+
+    PublicBarometreAnswerInput:
+      type: object
+      required: [questionCode]
+      properties:
+        questionCode: { type: string }
+        scaleValue: { type: ["integer", "null"] }
+        freeText: { type: ["string", "null"] }
+
+    PublicBarometreSubmission:
+      type: object
+      required: [answers]
+      properties:
+        respondentLabel: { type: ["string", "null"] }
+        completed: { type: boolean }
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicBarometreAnswerInput"
+
+    PublicBarometreSubmissionAck:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+
+    BarometreCampaignStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [active, closed]

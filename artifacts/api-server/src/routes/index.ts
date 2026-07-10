@@ -16,6 +16,7 @@ import suppliersRouter from "./suppliers";
 import biodiversiteRouter from "./biodiversite";
 import labelsRouter from "./labels";
 import exercisesRouter from "./exercises";
+import barometreSocialRouter from "./barometreSocial";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(impactScoreResultRouter);
 router.use(suppliersRouter);
 router.use(biodiversiteRouter);
 router.use(labelsRouter);
+router.use(barometreSocialRouter);
 
 export default router;

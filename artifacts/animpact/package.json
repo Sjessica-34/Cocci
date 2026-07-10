@@ -49,6 +49,7 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "@workspace/api-client-react": "workspace:*",
+    "@workspace/rse-referentials": "workspace:*",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "^1.1.1",
@@ -79,6 +80,7 @@
     "@clerk/react": "^6.11.3",
     "@clerk/themes": "^2.4.57",
     "@xyflow/react": "^12.11.1",
-    "internal": "link:@clerk/react/internal"
+    "internal": "link:@clerk/react/internal",
+    "qrcode.react": "^4.2.0"
   }
 }

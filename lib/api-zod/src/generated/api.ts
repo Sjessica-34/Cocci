@@ -1739,6 +1739,337 @@ export const DeleteSupplierResponse = zod.void()
 
 
 /**
+ * @summary List all Baromètre Social campaigns for an organization
+ */
+export const ListBarometreCampaignsParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListBarometreCampaignsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "name": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "status": zod.enum(['draft', 'active', 'closed']),
+  "openDate": zod.coerce.date(),
+  "closeDate": zod.coerce.date(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "publicToken": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Create a new Baromètre Social campaign for the active exercise
+ */
+export const CreateBarometreCampaignParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const CreateBarometreCampaignBody = zod.object({
+  "name": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "openDate": zod.coerce.date(),
+  "closeDate": zod.coerce.date(),
+  "nbCollaborateurs": zod.number(),
+  "customQuestions": zod.array(zod.string()).optional()
+})
+
+export const CreateBarometreCampaignResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "name": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "status": zod.enum(['draft', 'active', 'closed']),
+  "openDate": zod.coerce.date(),
+  "closeDate": zod.coerce.date(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "publicToken": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get a single campaign with its custom questions
+ */
+export const GetBarometreCampaignParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const GetBarometreCampaignResponse = zod.object({
+  "campaign": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "name": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "status": zod.enum(['draft', 'active', 'closed']),
+  "openDate": zod.coerce.date(),
+  "closeDate": zod.coerce.date(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "publicToken": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "customQuestions": zod.array(zod.object({
+  "id": zod.number(),
+  "text": zod.string(),
+  "sortOrder": zod.number()
+}))
+})
+
+
+/**
+ * @summary Transition a campaign's status (draft → active → closed)
+ */
+export const UpdateBarometreCampaignStatusParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const UpdateBarometreCampaignStatusBody = zod.object({
+  "status": zod.enum(['active', 'closed'])
+})
+
+export const UpdateBarometreCampaignStatusResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "name": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "status": zod.enum(['draft', 'active', 'closed']),
+  "openDate": zod.coerce.date(),
+  "closeDate": zod.coerce.date(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "publicToken": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a draft campaign (only allowed while status is "draft")
+ */
+export const DeleteBarometreCampaignParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const DeleteBarometreCampaignResponse = zod.void()
+
+
+/**
+ * @summary Aggregated per-question results for a campaign, with comparison to the previous campaign
+ */
+export const GetBarometreResultsParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const GetBarometreResultsResponse = zod.object({
+  "campaign": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "name": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "status": zod.enum(['draft', 'active', 'closed']),
+  "openDate": zod.coerce.date(),
+  "closeDate": zod.coerce.date(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "publicToken": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "questions": zod.array(zod.object({
+  "code": zod.string(),
+  "theme": zod.string(),
+  "text": zod.string(),
+  "type": zod.enum(['scale', 'text']),
+  "average": zod.number().nullish(),
+  "responseCount": zod.number(),
+  "distribution": zod.record(zod.string(), zod.number()).optional(),
+  "previousAverage": zod.number().nullish(),
+  "comments": zod.array(zod.string()).optional()
+}))
+})
+
+
+/**
+ * @summary Pilot-view synthesis for a campaign (score, radar, forces/faiblesses, évolution, résumé IA des commentaires)
+ */
+export const GetBarometreSyntheseParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const GetBarometreSyntheseResponse = zod.object({
+  "campaign": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "name": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "status": zod.enum(['draft', 'active', 'closed']),
+  "openDate": zod.coerce.date(),
+  "closeDate": zod.coerce.date(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "publicToken": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "satisfactionGlobale": zod.number().nullable(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "themeScores": zod.array(zod.object({
+  "theme": zod.string(),
+  "average": zod.number().nullable(),
+  "previousAverage": zod.number().nullish()
+})),
+  "pointsForts": zod.array(zod.string()),
+  "pointsFaibles": zod.array(zod.string()),
+  "themesASurveiller": zod.array(zod.string()),
+  "aiSummary": zod.union([zod.object({
+  "summary": zod.string(),
+  "themes": zod.array(zod.string()),
+  "suggestions": zod.array(zod.string()),
+  "generatedAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Regenerate the AI summary of free-text comments on demand (never computed automatically)
+ */
+export const RegenerateBarometreAiSummaryParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const RegenerateBarometreAiSummaryResponse = zod.object({
+  "campaign": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "name": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "status": zod.enum(['draft', 'active', 'closed']),
+  "openDate": zod.coerce.date(),
+  "closeDate": zod.coerce.date(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "publicToken": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "satisfactionGlobale": zod.number().nullable(),
+  "nbCollaborateurs": zod.number(),
+  "nbRepondants": zod.number(),
+  "tauxParticipation": zod.number(),
+  "themeScores": zod.array(zod.object({
+  "theme": zod.string(),
+  "average": zod.number().nullable(),
+  "previousAverage": zod.number().nullish()
+})),
+  "pointsForts": zod.array(zod.string()),
+  "pointsFaibles": zod.array(zod.string()),
+  "themesASurveiller": zod.array(zod.string()),
+  "aiSummary": zod.union([zod.object({
+  "summary": zod.string(),
+  "themes": zod.array(zod.string()),
+  "suggestions": zod.array(zod.string()),
+  "generatedAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Create an action from a Baromètre Social theme (stored in a dedicated table pending the "Mes actions" module)
+ */
+export const CreateBarometreActionParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "id": zod.coerce.number()
+})
+
+export const CreateBarometreActionBody = zod.object({
+  "title": zod.string(),
+  "sourceTheme": zod.string().nullish()
+})
+
+export const CreateBarometreActionResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "campaignId": zod.number(),
+  "title": zod.string(),
+  "sourceTheme": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the questionnaire for a campaign by its public token (no auth)
+ */
+export const GetPublicBarometreQuestionnaireParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicBarometreQuestionnaireResponse = zod.object({
+  "campaignName": zod.string(),
+  "mode": zod.enum(['anonymous', 'identified']),
+  "questions": zod.array(zod.object({
+  "code": zod.string(),
+  "theme": zod.string(),
+  "text": zod.string(),
+  "type": zod.enum(['scale', 'text'])
+})),
+  "closeDate": zod.coerce.date()
+})
+
+
+/**
+ * @summary Submit (or autosave) an employee's answers, identified by a client-generated responseId
+ */
+export const SubmitPublicBarometreResponseParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const SubmitPublicBarometreResponseBody = zod.object({
+  "respondentLabel": zod.string().nullish(),
+  "completed": zod.boolean().optional(),
+  "answers": zod.array(zod.object({
+  "questionCode": zod.string(),
+  "scaleValue": zod.number().nullish(),
+  "freeText": zod.string().nullish()
+}))
+})
+
+export const SubmitPublicBarometreResponseResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * @summary Get the Impact Score result for an organization
  */
 export const GetImpactScoreResultParams = zod.object({

@@ -58,6 +58,7 @@ Plateforme SaaS de pilotage RSE (Responsabilité Sociétale des Entreprises) des
 | 10 | Rapport RSE + Comparaison annuelle | À faire |
 | 11 | Tableau de bord avancé | À faire |
 | 12 | IA | À faire |
+| 13 | Baromètre Social (enquête climat social, réponses sans login, synthèse IA) | ✅ Livré (Comparaison différée) |
 
 ## User preferences
 

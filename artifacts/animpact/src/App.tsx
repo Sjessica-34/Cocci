@@ -34,6 +34,8 @@ import { PartiesPrenantes } from "@/pages/parties-prenantes";
 import { Materialite } from "@/pages/materialite";
 import { MesDocuments } from "@/pages/mes-documents";
 import { MesLabels } from "@/pages/mes-labels";
+import { BarometreSocial } from "@/pages/barometre-social";
+import { BarometreSocialPublic } from "@/pages/barometre-social/public";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
@@ -271,6 +273,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/rapport-rse"><ProtectedRoute component={RapportRse} /></Route>
             <Route path="/mes-documents"><ProtectedRoute component={MesDocuments} /></Route>
             <Route path="/mes-labels"><ProtectedRoute component={MesLabels} /></Route>
+            <Route path="/barometre-social"><ProtectedRoute component={BarometreSocial} /></Route>
 
             <Route component={NotFound} />
           </Switch>
@@ -281,10 +284,21 @@ function ClerkProviderWithRoutes() {
   );
 }
 
+function AppRoutes() {
+  return (
+    <Switch>
+      <Route path="/repondre/:token" component={BarometreSocialPublic} />
+      <Route>
+        <ClerkProviderWithRoutes />
+      </Route>
+    </Switch>
+  );
+}
+
 export default function App() {
   return (
     <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
+      <AppRoutes />
     </WouterRouter>
   );
 }

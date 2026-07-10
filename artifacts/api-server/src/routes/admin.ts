@@ -6,7 +6,7 @@ import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
 const router = Router();
 
 // Toutes les routes admin nécessitent auth + superadmin
-router.use(requireAuth, requireSuperAdmin);
+router.use("/admin", requireAuth, requireSuperAdmin);
 
 // GET /admin/stats — statistiques globales
 router.get("/admin/stats", async (req, res) => {
