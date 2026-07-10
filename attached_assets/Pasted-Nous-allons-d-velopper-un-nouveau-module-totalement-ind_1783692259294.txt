@@ -1,0 +1,372 @@
+Nous allons développer un nouveau module totalement indépendant intitulé :
+
+😊 Baromètre Social
+
+Ce module sera ajouté dans le menu principal immédiatement après "Numérique Responsable".
+
+Je souhaite qu'il reprenne exactement la même ergonomie que les autres modules de Cocci (onglets, design, fonctionnement, navigation).
+
+L'objectif est de permettre à une entreprise de lancer un baromètre social auprès de ses collaborateurs, de collecter automatiquement les réponses puis d'obtenir une analyse complète.
+
+Le salarié ne possède jamais de compte Cocci.
+
+Il répond simplement via un lien sécurisé ou un QR Code.
+
+Les réponses sont automatiquement intégrées dans Cocci.
+
+Je souhaite limiter au maximum l'utilisation de l'IA.
+
+L'IA ne devra intervenir que pour l'analyse des commentaires libres.
+
+====================================================
+ARCHITECTURE
+====================================================
+
+Chaque campagne est liée :
+
+Entreprise
+
+↓
+
+Exercice
+
+↓
+
+Campagne
+
+↓
+
+Réponses
+
+↓
+
+Résultats
+
+↓
+
+Synthèse
+
+Une entreprise peut créer plusieurs campagnes.
+
+Exemple :
+
+Baromètre Social 2026
+
+Baromètre Social 2027
+
+Toutes les données sont automatiquement rattachées à l'exercice actif.
+
+====================================================
+ONGLET 1
+CAMPAGNES
+====================================================
+
+Créer une page de gestion des campagnes.
+
+Chaque campagne contient :
+
+- Nom
+- Exercice
+- Date d'ouverture
+- Date de clôture
+- Statut
+    • Brouillon
+    • En cours
+    • Terminée
+- Nombre de collaborateurs
+- Nombre de répondants
+- Taux de participation
+
+Créer un bouton :
+
+Nouvelle campagne
+
+Lors de la création :
+
+Le responsable choisit :
+
+- Nom
+- Dates
+- Mode
+
+○ Anonyme
+
+○ Identifié
+
+Une fois enregistrée,
+
+Cocci génère automatiquement :
+
+- un lien sécurisé
+- un QR Code
+
+Les salariés utilisent uniquement ce lien.
+
+Aucun compte supplémentaire n'est nécessaire.
+
+Lorsque la campagne est terminée,
+
+le questionnaire devient automatiquement inaccessible.
+
+====================================================
+ONGLET 2
+QUESTIONNAIRE
+====================================================
+
+Le questionnaire utilise le référentiel Cocci.
+
+Les entreprises utilisent les questions proposées par défaut.
+
+Je pourrai modifier le référentiel moi-même ultérieurement.
+
+Les entreprises ne peuvent pas modifier les questions Cocci.
+
+En revanche,
+
+elles pourront ajouter quelques questions personnalisées à la fin du questionnaire.
+
+Le questionnaire doit être moderne.
+
+Une seule question par écran.
+
+Barre de progression.
+
+Sauvegarde automatique.
+
+Compatible mobile.
+
+Design agréable.
+
+====================================================
+RÉFÉRENTIEL DU BAROMÈTRE SOCIAL
+====================================================
+
+BIEN-ÊTRE DES COLLABORATEURS
+
+1. Trouvez-vous un sens à votre travail ? Est-ce une source d'émulation ?
+
+2. Vous sentez-vous apprécié à votre juste valeur au sein de l'entreprise ?
+
+3. Savez-vous clairement quels sont les objectifs stratégiques de l'entreprise et comment vous contribuez à leur réussite ?
+
+4. Votre travail a-t-il parfois un impact négatif sur votre bien-être ou votre vie personnelle ?
+
+5. Pensez-vous que l'entreprise met en œuvre les actions nécessaires pour favoriser le bien-être des collaborateurs ?
+
+6. De manière générale, comment évaluez-vous votre bien-être au sein de l'entreprise ?
+
+----------------------------------------------------
+
+ÉVOLUTION PROFESSIONNELLE
+
+7. Connaissez-vous les possibilités d'évolution proposées par l'entreprise ?
+
+8. Vous sentez-vous motivé par vos missions ?
+
+9. Avez-vous bénéficié d'une opportunité d'évolution ou de développement au cours des 12 derniers mois ?
+
+10. Savez-vous quelles actions entreprendre pour évoluer professionnellement ?
+
+11. Disposez-vous de toutes les ressources nécessaires pour évoluer ?
+
+12. Si non, de quoi auriez-vous besoin ? (texte libre)
+
+13. Avez-vous régulièrement l'occasion de relever de nouveaux défis ?
+
+14. Commentaires libres sur votre évolution professionnelle.
+
+----------------------------------------------------
+
+COMMUNICATION ET DYNAMIQUE D'ÉQUIPE
+
+15. Vous sentez-vous bien intégré au sein de votre équipe ?
+
+16. La collaboration avec vos collègues est-elle satisfaisante ?
+
+17. Vous sentez-vous soutenu par votre responsable ?
+
+18. Comprenez-vous les différents canaux de communication utilisés ?
+
+19. Pensez-vous que la communication interne est claire et efficace ?
+
+20. Si non, comment pourrait-elle être améliorée ? (texte libre)
+
+21. Savez-vous qui est votre interlocuteur social référent ?
+
+22. Êtes-vous satisfait des événements de cohésion proposés ?
+
+23. Avez-vous des idées d'événements de cohésion ? (texte libre)
+
+----------------------------------------------------
+
+CHARGE DE TRAVAIL
+
+24. Disposez-vous de suffisamment de temps et de ressources pour accomplir vos missions ?
+
+25. Vos responsabilités sont-elles clairement définies ?
+
+----------------------------------------------------
+
+RÉMUNÉRATION ET AVANTAGES
+
+26. Pensez-vous être rémunéré à votre juste valeur ?
+
+27. Êtes-vous satisfait de votre régime de retraite ?
+
+28. Êtes-vous satisfait de votre couverture d'assurance ?
+
+29. Êtes-vous satisfait des avantages proposés par l'entreprise ?
+
+30. Disposez-vous d'un équilibre satisfaisant entre travail et congés ?
+
+----------------------------------------------------
+
+CULTURE D'ENTREPRISE
+
+31. Êtes-vous satisfait de la culture de l'entreprise ?
+
+32. Pensez-vous que la diversité et l'inclusion sont réellement prises en compte ?
+
+33. Pensez-vous que chacun bénéficie des mêmes opportunités ?
+
+34. Pensez-vous que l'entreprise est ouverte au changement ?
+
+35. Pensez-vous que les informations sont communiquées de manière transparente ?
+
+36. Expression libre.
+
+----------------------------------------------------
+
+Toutes les questions fermées utilisent la même échelle :
+
+1 = Pas du tout d'accord
+
+2 = Plutôt pas d'accord
+
+3 = Neutre
+
+4 = Plutôt d'accord
+
+5 = Tout à fait d'accord
+
+Les questions libres sont analysées séparément.
+
+====================================================
+ONGLET 3
+RÉSULTATS
+====================================================
+
+Toutes les réponses des salariés alimentent automatiquement cette page.
+
+Aucune saisie manuelle.
+
+Pour chaque question afficher :
+
+- moyenne
+- nombre de réponses
+- graphique de répartition
+- histogramme
+- évolution par rapport à la campagne précédente
+
+Afficher également tous les commentaires libres.
+
+Prévoir un filtre :
+
+- campagne
+- exercice
+
+====================================================
+ONGLET 4
+SYNTHÈSE
+====================================================
+
+Créer une véritable page de pilotage.
+
+Afficher en haut :
+
+- Satisfaction globale (/100)
+- Nombre de collaborateurs
+- Nombre de répondants
+- Taux de participation
+- Radar des grandes thématiques
+
+Créer ensuite plusieurs cartes.
+
+POINTS FORTS
+
+Lister automatiquement les thèmes ayant obtenu les meilleurs scores.
+
+POINTS FAIBLES
+
+Lister automatiquement les thèmes ayant obtenu les scores les plus faibles.
+
+THÈMES À SURVEILLER
+
+Lister les thèmes dont les résultats diminuent par rapport à la campagne précédente.
+
+ÉVOLUTION
+
+Afficher automatiquement :
+
+- progression globale
+- progression par thème
+- comparaison avec la campagne précédente
+
+COMMENTAIRES
+
+Regrouper les commentaires libres.
+
+L'IA intervient uniquement ici.
+
+Elle doit :
+
+- résumer les principaux sujets évoqués
+- identifier les thèmes récurrents
+- proposer quelques pistes d'amélioration
+
+Je souhaite limiter fortement l'usage de l'IA.
+
+====================================================
+MES ACTIONS
+====================================================
+
+Depuis les onglets Résultats et Synthèse,
+
+permettre de créer directement une action.
+
+Exemple :
+
+Créer une action
+
+↓
+
+Améliorer la communication interne
+
+↓
+
+L'action est automatiquement envoyée dans le module "Mes actions".
+
+====================================================
+RAPPORT RSE
+====================================================
+
+Le Rapport RSE récupère automatiquement :
+
+- moyenne générale
+- radar
+- taux de participation
+- principaux points forts
+- principaux points faibles
+- évolution d'une campagne à l'autre
+
+====================================================
+OBJECTIF
+====================================================
+
+Je souhaite un véritable module professionnel de mesure et de pilotage du climat social.
+
+Je ne souhaite pas intégrer un simple Google Forms.
+
+L'interface doit être moderne, agréable, intuitive et cohérente avec les autres modules de Cocci.
+
+💡 Je rajouterais un cinquième onglet "Comparaison" (pas tout de suite si tu veux rester simple, mais à prévoir). Tu as déjà mis en place les exercices annuels : ce serait dommage de ne pas exploiter cette force. Cet onglet afficherait directement l'évolution des scores entre deux campagnes, les thèmes en progression, ceux en recul, et les commentaires marquants. Peu de logiciels le font de manière claire, alors que c'est exactement ce qu'un dirigeant attend d'un baromètre social.
