@@ -2088,6 +2088,9 @@ export const GetImpactScoreResultResponse = zod.object({
   "score": zod.number().min(getImpactScoreResultResponseResultOneScoreMin).max(getImpactScoreResultResponseResultOneScoreMax),
   "dateRealisation": zod.coerce.date(),
   "commentaire": zod.string().nullish(),
+  "limitationImpactsNegatifs": zod.string().nullish(),
+  "partageValeurPouvoir": zod.string().nullish(),
+  "strategieImpactPositif": zod.string().nullish(),
   "updatedAt": zod.coerce.date()
 }),zod.null()])
 })
@@ -2108,7 +2111,10 @@ export const upsertImpactScoreResultBodyScoreMax = 100;
 export const UpsertImpactScoreResultBody = zod.object({
   "score": zod.number().min(upsertImpactScoreResultBodyScoreMin).max(upsertImpactScoreResultBodyScoreMax),
   "dateRealisation": zod.coerce.date(),
-  "commentaire": zod.string().nullish()
+  "commentaire": zod.string().nullish(),
+  "limitationImpactsNegatifs": zod.string().nullish(),
+  "partageValeurPouvoir": zod.string().nullish(),
+  "strategieImpactPositif": zod.string().nullish()
 })
 
 export const upsertImpactScoreResultResponseScoreMin = 0;
@@ -2122,6 +2128,9 @@ export const UpsertImpactScoreResultResponse = zod.object({
   "score": zod.number().min(upsertImpactScoreResultResponseScoreMin).max(upsertImpactScoreResultResponseScoreMax),
   "dateRealisation": zod.coerce.date(),
   "commentaire": zod.string().nullish(),
+  "limitationImpactsNegatifs": zod.string().nullish(),
+  "partageValeurPouvoir": zod.string().nullish(),
+  "strategieImpactPositif": zod.string().nullish(),
   "updatedAt": zod.coerce.date()
 })
 

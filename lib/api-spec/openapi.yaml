@@ -2993,6 +2993,12 @@ components:
           format: date
         commentaire:
           type: ["string", "null"]
+        limitationImpactsNegatifs:
+          type: ["string", "null"]
+        partageValeurPouvoir:
+          type: ["string", "null"]
+        strategieImpactPositif:
+          type: ["string", "null"]
         updatedAt:
           type: string
           format: date-time
@@ -3018,6 +3024,12 @@ components:
           type: string
           format: date
         commentaire:
+          type: ["string", "null"]
+        limitationImpactsNegatifs:
+          type: ["string", "null"]
+        partageValeurPouvoir:
+          type: ["string", "null"]
+        strategieImpactPositif:
           type: ["string", "null"]
 
     DashboardSummary:

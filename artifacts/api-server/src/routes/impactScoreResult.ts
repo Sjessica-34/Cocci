@@ -23,6 +23,9 @@ router.get("/organizations/:orgId/impact-score-result", requireAuth, requireOrgM
           score: row.score,
           dateRealisation: row.dateRealisation,
           commentaire: row.commentaire ?? null,
+          limitationImpactsNegatifs: row.limitationImpactsNegatifs ?? null,
+          partageValeurPouvoir: row.partageValeurPouvoir ?? null,
+          strategieImpactPositif: row.strategieImpactPositif ?? null,
           updatedAt: row.updatedAt.toISOString(),
         }
       : null,
@@ -31,7 +34,14 @@ router.get("/organizations/:orgId/impact-score-result", requireAuth, requireOrgM
 
 // PUT /organizations/:orgId/impact-score-result
 router.put("/organizations/:orgId/impact-score-result", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
-  const body = req.body as { score?: number; dateRealisation?: string; commentaire?: string | null };
+  const body = req.body as {
+    score?: number;
+    dateRealisation?: string;
+    commentaire?: string | null;
+    limitationImpactsNegatifs?: string | null;
+    partageValeurPouvoir?: string | null;
+    strategieImpactPositif?: string | null;
+  };
 
   if (body.score === undefined || body.dateRealisation === undefined) {
     res.status(400).json({ error: "score and dateRealisation are required" });
@@ -56,6 +66,9 @@ router.put("/organizations/:orgId/impact-score-result", requireAuth, requireOrgM
         score: body.score,
         dateRealisation: body.dateRealisation,
         commentaire: body.commentaire ?? null,
+        limitationImpactsNegatifs: body.limitationImpactsNegatifs ?? null,
+        partageValeurPouvoir: body.partageValeurPouvoir ?? null,
+        strategieImpactPositif: body.strategieImpactPositif ?? null,
         updatedAt: new Date(),
       })
       .where(eq(impactScoreResultsTable.id, existing.id))
@@ -68,6 +81,9 @@ router.put("/organizations/:orgId/impact-score-result", requireAuth, requireOrgM
           score: body.score,
           dateRealisation: body.dateRealisation,
           commentaire: body.commentaire ?? null,
+          limitationImpactsNegatifs: body.limitationImpactsNegatifs ?? null,
+          partageValeurPouvoir: body.partageValeurPouvoir ?? null,
+          strategieImpactPositif: body.strategieImpactPositif ?? null,
         }),
       )
       .returning();
@@ -79,6 +95,9 @@ router.put("/organizations/:orgId/impact-score-result", requireAuth, requireOrgM
     score: row.score,
     dateRealisation: row.dateRealisation,
     commentaire: row.commentaire ?? null,
+    limitationImpactsNegatifs: row.limitationImpactsNegatifs ?? null,
+    partageValeurPouvoir: row.partageValeurPouvoir ?? null,
+    strategieImpactPositif: row.strategieImpactPositif ?? null,
     updatedAt: row.updatedAt.toISOString(),
   });
 });

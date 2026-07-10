@@ -15,4 +15,10 @@ export interface ImpactScoreResultInput {
   dateRealisation: Date;
   /** @nullable */
   commentaire?: string | null;
+  /** @nullable */
+  limitationImpactsNegatifs?: string | null;
+  /** @nullable */
+  partageValeurPouvoir?: string | null;
+  /** @nullable */
+  strategieImpactPositif?: string | null;
 }

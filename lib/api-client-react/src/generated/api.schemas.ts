@@ -975,6 +975,12 @@ export interface ImpactScoreResult {
   dateRealisation: string;
   /** @nullable */
   commentaire?: string | null;
+  /** @nullable */
+  limitationImpactsNegatifs?: string | null;
+  /** @nullable */
+  partageValeurPouvoir?: string | null;
+  /** @nullable */
+  strategieImpactPositif?: string | null;
   updatedAt: string;
 }
 
@@ -991,6 +997,12 @@ export interface ImpactScoreResultInput {
   dateRealisation: string;
   /** @nullable */
   commentaire?: string | null;
+  /** @nullable */
+  limitationImpactsNegatifs?: string | null;
+  /** @nullable */
+  partageValeurPouvoir?: string | null;
+  /** @nullable */
+  strategieImpactPositif?: string | null;
 }
 
 export interface DashboardSummary {
