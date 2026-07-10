@@ -287,7 +287,11 @@ function ClerkProviderWithRoutes() {
 function AppRoutes() {
   return (
     <Switch>
-      <Route path="/repondre/:token" component={BarometreSocialPublic} />
+      <Route path="/repondre/:token">
+        <QueryClientProvider client={queryClient}>
+          <BarometreSocialPublic />
+        </QueryClientProvider>
+      </Route>
       <Route>
         <ClerkProviderWithRoutes />
       </Route>
