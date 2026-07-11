@@ -1,11 +1,8 @@
 import { AppLayout } from "@/components/layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckSquare, BookOpen, HelpCircle } from "lucide-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
-import { TabPlan } from "./TabPlan";
-import { TabBibliotheque } from "./TabBibliotheque";
-import { TabGuide } from "./TabGuide";
+import { AlertCircle, ListChecks } from "lucide-react";
+import { ActionChecklist } from "./ActionChecklist";
 
 export function MesActions() {
   const { currentOrgId } = useCurrentOrganization();
@@ -13,47 +10,26 @@ export function MesActions() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-16">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mes actions RSE</h1>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <ListChecks className="h-6 w-6 text-primary" />
+            Mes actions RSE
+          </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Suivez vos engagements RSE tout au long de l'exercice grâce au référentiel Cocci.
+            Cochez les actions réalisées et documentez-les avec une date, un commentaire et un justificatif.
           </p>
         </div>
 
         {!currentOrgId || !currentExerciseId ? (
-          <div className="rounded-lg border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-            Sélectionnez une organisation et un exercice pour accéder à votre plan d'actions.
+          <div className="flex items-center gap-3 p-5 rounded-xl border border-amber-200 bg-amber-50">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+            <p className="text-sm text-amber-800">
+              Sélectionnez une organisation et un exercice pour accéder aux actions RSE.
+            </p>
           </div>
         ) : (
-          <Tabs defaultValue="plan" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="plan" className="gap-2 text-sm">
-                <CheckSquare className="h-4 w-4" />
-                Plan d'actions
-              </TabsTrigger>
-              <TabsTrigger value="bibliotheque" className="gap-2 text-sm">
-                <BookOpen className="h-4 w-4" />
-                Bibliothèque d'actions
-              </TabsTrigger>
-              <TabsTrigger value="guide" className="gap-2 text-sm">
-                <HelpCircle className="h-4 w-4" />
-                Guide
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="plan">
-              <TabPlan orgId={currentOrgId} />
-            </TabsContent>
-
-            <TabsContent value="bibliotheque">
-              <TabBibliotheque orgId={currentOrgId} />
-            </TabsContent>
-
-            <TabsContent value="guide">
-              <TabGuide />
-            </TabsContent>
-          </Tabs>
+          <ActionChecklist orgId={currentOrgId} />
         )}
       </div>
     </AppLayout>

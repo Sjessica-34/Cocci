@@ -119,6 +119,11 @@ router.post(
       }
     }
 
+    const bodyChecked = (req.body as any).isChecked;
+    const bodyCompletedAt = (req.body as any).completedAt;
+    const initialIsChecked = typeof bodyChecked === "boolean" ? bodyChecked : false;
+    const initialCompletedAt = bodyCompletedAt ? new Date(bodyCompletedAt) : null;
+
     const [created] = await db
       .insert(organizationActionPlansTable)
       .values({
@@ -127,7 +132,8 @@ router.post(
         libraryActionId: libraryActionId ?? null,
         customName: customName ?? null,
         source: source ?? (libraryActionId ? "library" : "manual"),
-        isChecked: false,
+        isChecked: initialIsChecked,
+        completedAt: initialIsChecked && !initialCompletedAt ? new Date() : initialCompletedAt,
       })
       .returning();
 

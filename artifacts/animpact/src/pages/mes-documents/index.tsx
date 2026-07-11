@@ -24,6 +24,7 @@ const ORDERED_CATEGORIES = [
   "achats-responsables",
   "demarche-rse",
   "numerique-responsable",
+  "mes-actions",
   "autre",
 ];
 

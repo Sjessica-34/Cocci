@@ -11,4 +11,6 @@ export interface ActionPlanItemInput {
   libraryActionId?: number | null;
   customName?: string | null;
   source?: ActionPlanItemInputSource;
+  isChecked?: boolean;
+  completedAt?: Date | null;
 }

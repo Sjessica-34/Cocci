@@ -4080,6 +4080,12 @@ components:
         source:
           type: string
           enum: [library, suggestion, manual]
+        isChecked:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
 
     ActionPlanItemUpdate:
       type: object

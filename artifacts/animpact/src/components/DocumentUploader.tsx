@@ -22,6 +22,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "achats-responsables":  "Achats & Fournisseurs Responsables",
   "demarche-rse":         "Ma démarche RSE",
   "numerique-responsable":"Ma démarche Numérique Responsable",
+  "mes-actions":          "Mes actions RSE",
   "autre":                "Autres documents",
 };
 

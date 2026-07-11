@@ -2846,7 +2846,9 @@ export const AddActionToPlanParams = zod.object({
 export const AddActionToPlanBody = zod.object({
   "libraryActionId": zod.number().nullish(),
   "customName": zod.string().nullish(),
-  "source": zod.enum(['library', 'suggestion', 'manual']).optional()
+  "source": zod.enum(['library', 'suggestion', 'manual']).optional(),
+  "isChecked": zod.boolean().optional(),
+  "completedAt": zod.coerce.date().nullish()
 })
 
 export const AddActionToPlanResponse = zod.object({
