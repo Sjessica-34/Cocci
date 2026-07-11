@@ -1,335 +1,519 @@
-import { useState, useRef } from "react";
-import { useAuth } from "@clerk/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import {
-  useListActionPlan,
-  useUpdateActionPlanItem,
-  useDeleteActionPlanItem,
-  getListActionPlanQueryKey,
+  useGetIssues,
+  useListStakeholders,
+  useListBioDependencies,
+  useListBioIssues,
+  useGetCarbonBilan,
+  useGetNrData,
+  useGetEmploymentResults,
+  useListBarometreCampaigns,
+  useGetBarometreResults,
 } from "@workspace/api-client-react";
+import { PILLARS } from "@/pages/numerique-responsable/data";
 import {
-  Calendar, MessageSquare, Paperclip, FileText, Download,
-  Upload, Loader2, Trash2, ChevronDown, ChevronUp, CheckCircle2,
+  Target, Users, Leaf, Factory, BarChart2, Monitor, HeartPulse,
+  AlertTriangle, CheckCircle2, Info, ArrowRight, Loader2,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   orgId: number;
 }
 
-const CATEGORY_COLOR: Record<string, string> = {
-  "Environnement":          "bg-emerald-100 text-emerald-800 border-emerald-200",
-  "Numérique responsable":  "bg-sky-100 text-sky-800 border-sky-200",
-  "Biodiversité":           "bg-lime-100 text-lime-800 border-lime-200",
-  "Social":                 "bg-blue-100 text-blue-800 border-blue-200",
-  "Achats responsables":    "bg-orange-100 text-orange-800 border-orange-200",
-  "Gouvernance":            "bg-purple-100 text-purple-800 border-purple-200",
-};
+// ─── Carbon posts ─────────────────────────────────────────────────────────────
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  "Environnement": "🌍", "Numérique responsable": "💻", "Biodiversité": "🌿",
-  "Social": "👥", "Achats responsables": "🤝", "Gouvernance": "⚖️",
-};
+const CARBON_POSTS: { key: string; label: string; scope: string }[] = [
+  { key: "energie1",         label: "Énergie — combustion stationnaire", scope: "Scope 1" },
+  { key: "energie2",         label: "Énergie — combustion mobile",        scope: "Scope 2" },
+  { key: "horsEnergie1",     label: "Procédés hors énergie",              scope: "Scope 1" },
+  { key: "horsEnergie2",     label: "Fugitives",                          scope: "Scope 1" },
+  { key: "intrantsBiens",    label: "Intrants — biens et matières",       scope: "Scope 3" },
+  { key: "intrantsServices", label: "Intrants — services",                scope: "Scope 3" },
+  { key: "futursEmballages", label: "Emballages / déchets futurs",        scope: "Scope 3" },
+  { key: "fret",             label: "Fret",                               scope: "Scope 3" },
+  { key: "deplacements",     label: "Déplacements professionnels",        scope: "Scope 3" },
+  { key: "dechetsDirects",   label: "Déchets directs",                   scope: "Scope 3" },
+  { key: "immobilisations",  label: "Immobilisations",                   scope: "Scope 3" },
+  { key: "utilisation",      label: "Utilisation des produits",          scope: "Scope 3" },
+  { key: "finDeVie",         label: "Fin de vie des produits",           scope: "Scope 3" },
+];
 
-function formatDate(iso: string | null | undefined) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+function fmt(v: number) {
+  return v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
 }
 
-function toInputDate(iso: string | null | undefined): string {
-  if (!iso) return new Date().toISOString().slice(0, 10);
-  return iso.slice(0, 10);
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface AlertItem {
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  badgeVariant?: "destructive" | "warning" | "default";
 }
 
-interface PlanItemRowProps {
-  item: any;
-  orgId: number;
+type SectionStatus = "loading" | "no-data" | "ok" | "alerts";
+
+// ─── Section card ─────────────────────────────────────────────────────────────
+
+interface SectionProps {
+  icon: React.ElementType;
+  iconColor: string;
+  headerBg: string;
+  label: string;
+  link: string;
+  status: SectionStatus;
+  items: AlertItem[];
+  emptyLabel?: string;
+  noDataLabel?: string;
 }
 
-function PlanItemRow({ item, orgId }: PlanItemRowProps) {
-  const { toast } = useToast();
-  const { getToken } = useAuth();
-  const qc = useQueryClient();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState(false);
-
-  const { mutateAsync: updateItem } = useUpdateActionPlanItem();
-  const { mutateAsync: deleteItem } = useDeleteActionPlanItem();
-
-  const [completedAt, setCompletedAt] = useState(toInputDate(item.completedAt));
-  const [comment, setComment] = useState(item.comment ?? "");
-  const [justificationUrl, setJustificationUrl] = useState(item.justificationUrl ?? "");
-  const [justificationName, setJustificationName] = useState<string | null>(
-    item.justificationUrl
-      ? decodeURIComponent(item.justificationUrl.split("/").pop() ?? "Justificatif")
-      : null,
-  );
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [removing, setRemoving] = useState(false);
-
-  const actionName = item.actionName ?? item.customName ?? "Action personnalisée";
-  const category = item.actionCategory;
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      await updateItem({
-        orgId,
-        actionId: item.id,
-        data: {
-          completedAt: completedAt ? new Date(completedAt).toISOString() : null,
-          comment: comment.trim() || null,
-          justificationUrl: justificationUrl || null,
-        },
-      });
-      qc.invalidateQueries({ queryKey: getListActionPlanQueryKey(orgId) });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder.", variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleRemove() {
-    setRemoving(true);
-    try {
-      await deleteItem({ orgId, actionId: item.id });
-      qc.invalidateQueries({ queryKey: getListActionPlanQueryKey(orgId) });
-      toast({ title: "Action retirée du plan" });
-    } catch {
-      toast({ title: "Erreur", description: "Impossible de retirer l'action.", variant: "destructive" });
-      setRemoving(false);
-    }
-  }
-
-  async function handleFileUpload(file: File) {
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "Fichier trop volumineux", description: "Maximum 10 Mo.", variant: "destructive" });
-      return;
-    }
-    setUploading(true);
-    try {
-      const token = await getToken();
-      const form = new FormData();
-      form.append("file", file);
-      form.append("category", "mes-actions");
-      const res = await fetch(`/api/organizations/${orgId}/documents`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: form,
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const doc = await res.json();
-      const url = `/api/organizations/${orgId}/documents/${doc.id}/download`;
-      setJustificationUrl(url);
-      setJustificationName(file.name);
-      await updateItem({
-        orgId,
-        actionId: item.id,
-        data: {
-          completedAt: completedAt ? new Date(completedAt).toISOString() : null,
-          comment: comment.trim() || null,
-          justificationUrl: url,
-        },
-      });
-      qc.invalidateQueries({ queryKey: getListActionPlanQueryKey(orgId) });
-      toast({ title: "Justificatif ajouté", description: "Disponible dans Mes documents → Mes actions RSE." });
-    } catch {
-      toast({ title: "Erreur upload", description: "Impossible d'uploader le fichier.", variant: "destructive" });
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function handleDownload() {
-    if (!justificationUrl) return;
-    const token = await getToken();
-    const res = await fetch(justificationUrl, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = justificationName ?? "justificatif";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
+function ModuleSection({
+  icon: Icon,
+  iconColor,
+  headerBg,
+  label,
+  link,
+  status,
+  items,
+  emptyLabel = "Aucun point critique détecté.",
+  noDataLabel = "Module non encore renseigné — complétez-le pour obtenir des recommandations.",
+}: SectionProps) {
   return (
-    <div className="rounded-lg border bg-card overflow-hidden">
-      {/* Header row */}
-      <div className="flex items-start gap-3 p-4">
-        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium leading-snug">{actionName}</p>
-          <div className="flex flex-wrap items-center gap-2 mt-1.5">
-            {category && (
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${CATEGORY_COLOR[category] ?? ""}`}>
-                {CATEGORY_EMOJI[category]} {item.actionSubcategory ?? category}
-              </Badge>
-            )}
-            <span className="text-xs text-emerald-700 font-medium">
-              📅 {formatDate(item.completedAt)}
-            </span>
-            {item.comment && (
-              <span className="text-xs text-muted-foreground truncate max-w-[200px]">
-                📝 {item.comment}
-              </span>
-            )}
-            {justificationUrl && (
-              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                <Paperclip className="h-3 w-3" /> Justificatif
-              </span>
-            )}
-          </div>
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <div className={`flex items-center justify-between px-4 py-3 ${headerBg}`}>
+        <div className="flex items-center gap-2.5">
+          <Icon className={`h-4 w-4 ${iconColor}`} />
+          <span className="text-sm font-semibold">{label}</span>
         </div>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="text-muted-foreground hover:text-foreground shrink-0"
-          title={open ? "Masquer" : "Modifier"}
-        >
-          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
+        <Link href={link}>
+          <a className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            Accéder <ArrowRight className="h-3 w-3" />
+          </a>
+        </Link>
       </div>
 
-      {/* Edit form */}
-      {open && (
-        <div className="border-t bg-muted/20 px-4 py-4 space-y-3">
-          {/* Date */}
-          <div className="flex items-center gap-2">
-            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <label className="text-xs text-muted-foreground w-40 shrink-0">Date de réalisation</label>
-            <input
-              type="date"
-              value={completedAt}
-              onChange={(e) => setCompletedAt(e.target.value)}
-              className="h-7 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            />
+      <div className="px-4 py-3">
+        {status === "loading" && (
+          <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Chargement…
           </div>
+        )}
 
-          {/* Commentaire */}
-          <div className="flex items-start gap-2">
-            <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1.5" />
-            <label className="text-xs text-muted-foreground w-40 shrink-0 mt-1.5">Commentaire / Résultat</label>
-            <Textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder={`"Tous les gobelets ont été remplacés."\n"Formation réalisée pour 12 collaborateurs."`}
-              className="min-h-[56px] text-xs resize-none flex-1"
-              rows={2}
-            />
+        {status === "no-data" && (
+          <div className="flex items-start gap-2 py-2">
+            <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground">{noDataLabel}</p>
           </div>
+        )}
 
-          {/* Justificatif */}
-          <div className="flex items-center gap-2">
-            <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <label className="text-xs text-muted-foreground w-40 shrink-0">Justificatif</label>
-            <div className="flex items-center gap-2 flex-1 flex-wrap">
-              {justificationUrl && justificationName && (
-                <button
-                  onClick={handleDownload}
-                  className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  <span className="truncate max-w-[180px]">{justificationName}</span>
-                  <Download className="h-3 w-3 shrink-0" />
-                </button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1.5"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                {justificationUrl ? "Remplacer" : "Importer"}
-              </Button>
-              <span className="text-[10px] text-muted-foreground">photo, facture, PDF… (max 10 Mo)</span>
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              className="sr-only"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.png,.jpg,.jpeg,.webp"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
-                if (fileRef.current) fileRef.current.value = "";
-              }}
-            />
+        {status === "ok" && (
+          <div className="flex items-center gap-2 py-1.5">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            <p className="text-xs text-emerald-700 font-medium">{emptyLabel}</p>
           </div>
+        )}
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 gap-1.5"
-              onClick={handleRemove}
-              disabled={removing}
-            >
-              {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-              Retirer du plan
-            </Button>
-            <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-              {saved ? "✓ Enregistré" : "Enregistrer"}
-            </Button>
-          </div>
-        </div>
-      )}
+        {status === "alerts" && (
+          <ul className="divide-y">
+            {items.map((item, i) => (
+              <li key={i} className="flex items-start gap-3 py-2.5">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium leading-snug">{item.title}</p>
+                  {item.subtitle && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{item.subtitle}</p>
+                  )}
+                </div>
+                {item.badge && (
+                  <Badge
+                    variant={item.badgeVariant === "destructive" ? "destructive" : "outline"}
+                    className={
+                      item.badgeVariant === "warning"
+                        ? "text-[10px] px-1.5 py-0 bg-amber-50 text-amber-800 border-amber-200 shrink-0"
+                        : "text-[10px] px-1.5 py-0 shrink-0"
+                    }
+                  >
+                    {item.badge}
+                  </Badge>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
 
-export function TabMonPlan({ orgId }: Props) {
-  const { data: planItems = [], isLoading } = useListActionPlan(orgId);
+// ─── Baromètre (2-step fetch) ─────────────────────────────────────────────────
 
-  const checkedItems = (planItems as any[]).filter((p) => p.isChecked);
+function BarometreSection({ orgId }: { orgId: number }) {
+  const { data: campaignsData, isLoading: loadingCampaigns } = useListBarometreCampaigns(orgId, {
+    query: {
+      enabled: orgId > 0,
+      queryKey: [`/api/organizations/${orgId}/barometre-campaigns`],
+    },
+  });
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const closed = (campaignsData?.items ?? []).filter((c: any) => c.status === "closed");
+  const latest: any = closed[0];
 
-  if (checkedItems.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center space-y-2">
-        <CheckCircle2 className="h-10 w-10 text-muted-foreground/30" />
-        <p className="text-sm font-medium text-muted-foreground">Aucune action réalisée pour l'instant.</p>
-        <p className="text-xs text-muted-foreground max-w-sm">
-          Rendez-vous dans l'onglet <strong>Mes actions</strong> pour cocher vos premières réalisations.
-        </p>
-      </div>
-    );
+  const { data: resultsData, isLoading: loadingResults } = useGetBarometreResults(
+    orgId,
+    latest?.id ?? 0,
+    {
+      query: {
+        enabled: orgId > 0 && !!latest,
+        queryKey: [`/api/organizations/${orgId}/barometre-campaigns/${latest?.id}/results`],
+      },
+    },
+  );
+
+  const isLoading = loadingCampaigns || (!!latest && loadingResults);
+
+  let status: SectionStatus = isLoading ? "loading" : "no-data";
+  const items: AlertItem[] = [];
+
+  if (!isLoading) {
+    if (!latest) {
+      status = "no-data";
+    } else if (resultsData) {
+      const lowScores = (resultsData.questions as any[]).filter(
+        (q: any) => q.type === "scale" && q.average !== null && (q.average as number) <= 2.5,
+      );
+      if (lowScores.length === 0) {
+        status = "ok";
+      } else {
+        status = "alerts";
+        for (const q of lowScores) {
+          const avg = q.average as number;
+          items.push({
+            title: q.text as string,
+            subtitle: `Thème : ${q.theme} — Campagne : ${latest.name}`,
+            badge: `${avg.toFixed(1)} / 5`,
+            badgeVariant: avg <= 2 ? "destructive" : "warning",
+          });
+        }
+      }
+    }
   }
 
   return (
-    <div className="space-y-4 py-2">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">{checkedItems.length}</span>{" "}
-          action{checkedItems.length !== 1 ? "s" : ""} réalisée{checkedItems.length !== 1 ? "s" : ""}
-        </p>
-      </div>
-      <div className="space-y-2">
-        {checkedItems.map((item: any) => (
-          <PlanItemRow key={item.id} item={item} orgId={orgId} />
-        ))}
-      </div>
+    <ModuleSection
+      icon={BarChart2}
+      iconColor="text-violet-600"
+      headerBg="bg-violet-50 border-b border-violet-100"
+      label="Baromètre Social"
+      link="/barometre-social"
+      status={status}
+      items={items}
+      emptyLabel="Aucun score d'alerte (toutes les questions ≥ 2,5 / 5)."
+      noDataLabel="Aucune campagne clôturée — lancez un baromètre pour identifier les points d'alerte."
+    />
+  );
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+export function TabMonPlan({ orgId }: Props) {
+  const { data: issuesData,       isLoading: loadingIssues }    = useGetIssues(orgId, {
+    query: { enabled: orgId > 0, queryKey: [`/api/organizations/${orgId}/issues`] },
+  });
+  const { data: stakeholders,     isLoading: loadingStake }     = useListStakeholders(orgId, {
+    query: { enabled: orgId > 0, queryKey: [`/api/organizations/${orgId}/stakeholders`] },
+  });
+  const { data: bioDepsData,      isLoading: loadingBioDeps }   = useListBioDependencies(orgId, {
+    query: { enabled: orgId > 0, queryKey: [`/api/organizations/${orgId}/bio-dependencies`] },
+  });
+  const { data: bioIssuesData,    isLoading: loadingBioIssues } = useListBioIssues(orgId, {
+    query: { enabled: orgId > 0, queryKey: [`/api/organizations/${orgId}/bio-issues`] },
+  });
+  const { data: carbonData,       isLoading: loadingCarbon }    = useGetCarbonBilan(orgId, {
+    query: { enabled: orgId > 0, queryKey: [`/api/organizations/${orgId}/carbon`] },
+  });
+  const { data: nrDataRaw,        isLoading: loadingNr }        = useGetNrData(orgId, {
+    query: { enabled: orgId > 0, queryKey: [`/api/organizations/${orgId}/numerique-responsable`] },
+  });
+  const { data: employmentData,   isLoading: loadingEmploy }    = useGetEmploymentResults(orgId, {
+    query: { enabled: orgId > 0, queryKey: [`/api/organizations/${orgId}/employment/results`] },
+  });
+
+  // ── 1. Matrice de matérialité ─────────────────────────────────────────────
+  let issueStatus: SectionStatus = loadingIssues ? "loading" : "no-data";
+  const issueItems: AlertItem[] = [];
+  if (!loadingIssues && issuesData) {
+    const rated = (issuesData.items as any[]).filter(
+      (i: any) => i.impactScore != null || i.stakeholderScore != null || i.companyScore != null,
+    );
+    if (rated.length === 0) {
+      issueStatus = "no-data";
+    } else {
+      const critical = rated.filter(
+        (i: any) =>
+          (i.impactScore ?? 0) >= 4 ||
+          (i.stakeholderScore ?? 0) >= 4 ||
+          (i.companyScore ?? 0) >= 4,
+      );
+      issueStatus = critical.length > 0 ? "alerts" : "ok";
+      for (const i of critical) {
+        const maxScore = Math.max(
+          i.impactScore ?? 0,
+          i.stakeholderScore ?? 0,
+          i.companyScore ?? 0,
+        ) as number;
+        issueItems.push({
+          title: i.label as string,
+          subtitle: `Catégorie : ${i.category}`,
+          badge:
+            i.impactScore != null
+              ? `Impact ${i.impactScore}/5`
+              : i.stakeholderScore != null
+              ? `Parties prenantes ${i.stakeholderScore}/5`
+              : `Entreprise ${i.companyScore}/5`,
+          badgeVariant: maxScore >= 5 ? "destructive" : "warning",
+        });
+      }
+    }
+  }
+
+  // ── 2. Parties prenantes ─────────────────────────────────────────────────
+  let stakeStatus: SectionStatus = loadingStake ? "loading" : "no-data";
+  const stakeItems: AlertItem[] = [];
+  if (!loadingStake) {
+    const list = (stakeholders ?? []) as any[];
+    if (list.length === 0) {
+      stakeStatus = "no-data";
+    } else {
+      const key = list.filter((s: any) => (s.influence ?? 0) >= 4 && (s.interest ?? 0) >= 4);
+      stakeStatus = key.length > 0 ? "alerts" : "ok";
+      for (const s of key) {
+        stakeItems.push({
+          title: (s.name ?? s.category ?? "Partie prenante") as string,
+          subtitle: `${s.category}${s.subcategory ? ` — ${s.subcategory}` : ""}`,
+          badge: `Influence ${s.influence}/5 · Intérêt ${s.interest}/5`,
+          badgeVariant:
+            (s.influence as number) >= 5 && (s.interest as number) >= 5
+              ? "destructive"
+              : "warning",
+        });
+      }
+    }
+  }
+
+  // ── 3. Biodiversité ──────────────────────────────────────────────────────
+  let bioStatus: SectionStatus =
+    loadingBioDeps || loadingBioIssues ? "loading" : "no-data";
+  const bioItems: AlertItem[] = [];
+  if (!loadingBioDeps && !loadingBioIssues) {
+    const deps    = (bioDepsData?.items   ?? []) as any[];
+    const risks   = (bioIssuesData?.items ?? []) as any[];
+    if (deps.length === 0 && risks.length === 0) {
+      bioStatus = "no-data";
+    } else {
+      const critDeps  = deps.filter((d: any) => (d.dependencyLevel ?? 0) >= 4);
+      const critRisks = risks.filter((r: any) => (r.importance ?? 0) >= 4);
+      bioStatus = critDeps.length + critRisks.length > 0 ? "alerts" : "ok";
+      for (const d of critDeps) {
+        bioItems.push({
+          title: (d.name ?? "Dépendance") as string,
+          subtitle: `${d.category ?? ""}${d.subCategory ? ` — ${d.subCategory}` : ""}${d.chainPosition ? ` · Position : ${d.chainPosition}` : ""}`,
+          badge: `Dépendance ${d.dependencyLevel}/5`,
+          badgeVariant: (d.dependencyLevel as number) >= 5 ? "destructive" : "warning",
+        });
+      }
+      for (const r of critRisks) {
+        bioItems.push({
+          title: (r.name ?? "Risque biodiversité") as string,
+          subtitle: (r.description as string | null | undefined) ?? undefined,
+          badge: `Importance ${r.importance}/5`,
+          badgeVariant: (r.importance as number) >= 5 ? "destructive" : "warning",
+        });
+      }
+    }
+  }
+
+  // ── 4. Bilan Carbone ──────────────────────────────────────────────────────
+  let carbonStatus: SectionStatus = loadingCarbon ? "loading" : "no-data";
+  const carbonItems: AlertItem[] = [];
+  if (!loadingCarbon) {
+    if (!carbonData) {
+      carbonStatus = "no-data";
+    } else {
+      const bilan = carbonData as any;
+      const posts = CARBON_POSTS.map((p) => ({
+        ...p,
+        value: typeof bilan[p.key] === "number" ? (bilan[p.key] as number) : 0,
+      }))
+        .filter((p) => p.value > 0)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5);
+
+      if (posts.length === 0) {
+        carbonStatus = "no-data";
+      } else {
+        carbonStatus = "alerts";
+        posts.forEach((p, idx) => {
+          carbonItems.push({
+            title: p.label,
+            subtitle: p.scope,
+            badge: `${fmt(p.value)} t CO₂e`,
+            badgeVariant: idx === 0 ? "destructive" : "warning",
+          });
+        });
+      }
+    }
+  }
+
+  // ── 5. Numérique Responsable ─────────────────────────────────────────────
+  let nrStatus: SectionStatus = loadingNr ? "loading" : "no-data";
+  const nrItems: AlertItem[] = [];
+  if (!loadingNr) {
+    if (!nrDataRaw) {
+      nrStatus = "no-data";
+    } else {
+      const responses = (nrDataRaw.responses ?? []) as any[];
+      if (responses.length === 0) {
+        nrStatus = "no-data";
+      } else {
+        const checkedIds = new Set(
+          responses.filter((r: any) => r.checked).map((r: any) => r.criterionId as string),
+        );
+        const pillarStats = PILLARS.map((p) => {
+          const allCriteria = p.sections.flatMap((s) => s.criteria.filter((c) => !c.isSpecial));
+          const done = allCriteria.filter((c) => checkedIds.has(c.id)).length;
+          return { title: p.shortTitle, total: allCriteria.length, done };
+        });
+        const weak = pillarStats.filter((p) => p.total > 0 && p.done / p.total < 0.5);
+        nrStatus = weak.length > 0 ? "alerts" : "ok";
+        for (const p of weak) {
+          nrItems.push({
+            title: `Pilier "${p.title}"`,
+            subtitle: `${p.done} critère${p.done !== 1 ? "s" : ""} validé${p.done !== 1 ? "s" : ""} sur ${p.total}`,
+            badge: `${Math.round((p.done / p.total) * 100)} %`,
+            badgeVariant: p.done === 0 ? "destructive" : "warning",
+          });
+        }
+      }
+    }
+  }
+
+  // ── 6. Capital Humain ────────────────────────────────────────────────────
+  let employStatus: SectionStatus = loadingEmploy ? "loading" : "no-data";
+  const employItems: AlertItem[] = [];
+  if (!loadingEmploy) {
+    if (!employmentData) {
+      employStatus = "no-data";
+    } else if (
+      !employmentData.workforce &&
+      !employmentData.diversity &&
+      !employmentData.training
+    ) {
+      employStatus = "no-data";
+    } else {
+      const watchpoints = (employmentData.watchpoints ?? []) as any[];
+      if (watchpoints.length === 0) {
+        employStatus = "ok";
+      } else {
+        employStatus = "alerts";
+        for (const w of watchpoints) {
+          const val = w.value as number | null;
+          const prev = w.previousValue as number | null;
+          employItems.push({
+            title: w.label as string,
+            subtitle:
+              val != null
+                ? `Valeur : ${val}${w.unit ? ` ${w.unit as string}` : ""}${prev != null ? ` (précédent : ${prev}${w.unit ? ` ${w.unit as string}` : ""})` : ""}`
+                : undefined,
+            badge: "En baisse",
+            badgeVariant: "warning",
+          });
+        }
+      }
+    }
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-3 py-2">
+      <p className="text-xs text-muted-foreground pb-1">
+        Points critiques identifiés dans vos modules RSE — à traiter en priorité dans votre démarche.
+      </p>
+
+      <ModuleSection
+        icon={Target}
+        iconColor="text-emerald-600"
+        headerBg="bg-emerald-50 border-b border-emerald-100"
+        label="Matrice de matérialité"
+        link="/materialite"
+        status={issueStatus}
+        items={issueItems}
+        emptyLabel="Aucun enjeu critique (tous les scores < 4 / 5)."
+        noDataLabel="Aucun enjeu noté — évaluez vos enjeux RSE pour faire ressortir les priorités."
+      />
+
+      <ModuleSection
+        icon={Users}
+        iconColor="text-blue-600"
+        headerBg="bg-blue-50 border-b border-blue-100"
+        label="Parties prenantes"
+        link="/parties-prenantes"
+        status={stakeStatus}
+        items={stakeItems}
+        emptyLabel="Aucune partie prenante avec influence et intérêt simultanément élevés."
+        noDataLabel="Aucune partie prenante renseignée — cartographiez vos parties prenantes."
+      />
+
+      <ModuleSection
+        icon={Leaf}
+        iconColor="text-lime-600"
+        headerBg="bg-lime-50 border-b border-lime-100"
+        label="Biodiversité"
+        link="/biodiversite"
+        status={bioStatus}
+        items={bioItems}
+        emptyLabel="Aucune dépendance critique ni risque à haute importance."
+        noDataLabel="Module non renseigné — cartographiez vos dépendances et risques biodiversité."
+      />
+
+      <ModuleSection
+        icon={Factory}
+        iconColor="text-orange-600"
+        headerBg="bg-orange-50 border-b border-orange-100"
+        label="Bilan Carbone"
+        link="/bilan-carbone"
+        status={carbonStatus}
+        items={carbonItems}
+        emptyLabel="Aucun poste d'émissions renseigné avec une valeur positive."
+        noDataLabel="Aucun bilan carbone enregistré — renseignez vos émissions pour identifier les postes prioritaires."
+      />
+
+      <BarometreSection orgId={orgId} />
+
+      <ModuleSection
+        icon={Monitor}
+        iconColor="text-sky-600"
+        headerBg="bg-sky-50 border-b border-sky-100"
+        label="Numérique Responsable"
+        link="/numerique-responsable"
+        status={nrStatus}
+        items={nrItems}
+        emptyLabel="Tous les piliers sont engagés à plus de 50 %."
+        noDataLabel="Module non renseigné — complétez le questionnaire NR."
+      />
+
+      <ModuleSection
+        icon={HeartPulse}
+        iconColor="text-rose-600"
+        headerBg="bg-rose-50 border-b border-rose-100"
+        label="Capital Humain"
+        link="/employment"
+        status={employStatus}
+        items={employItems}
+        emptyLabel="Aucun indicateur RH en baisse détecté."
+        noDataLabel="Données RH non renseignées — complétez les onglets Effectifs, Diversité et Formation."
+      />
     </div>
   );
 }
