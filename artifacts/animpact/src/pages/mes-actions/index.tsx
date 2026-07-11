@@ -53,7 +53,7 @@ export function MesActions() {
                 </p>
               </div>
             ) : (
-              <TabMonPlan orgId={currentOrgId} />
+              <TabMonPlan />
             )}
           </TabsContent>
 
