@@ -69,7 +69,8 @@ const navGroups: NavItem[][] = [
   [
     { href: "/barometre-social", label: "Baromètre Social", icon: Smile },
     { href: "/capital-humain", label: "Capital Humain", icon: GraduationCap },
-    { href: "/guide-rse", label: "Guide RSE", icon: BookOpen },
+  ],
+  [
     { href: "/mes-actions", label: "Mes actions RSE", icon: ListChecks },
   ],
   [
