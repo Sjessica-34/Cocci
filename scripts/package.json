@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "backfill-exercises": "tsx ./src/backfill-exercises.ts",
     "verify-exercise-backfill": "tsx ./src/verify-exercise-backfill.ts",
+    "seed:actions": "tsx ./src/seed-action-library.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

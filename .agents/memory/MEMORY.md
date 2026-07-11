@@ -8,3 +8,5 @@
 - [Drizzle push interactive prompt false positive](drizzle-push-quirk.md) — `drizzle-kit push` can hang on a phantom truncate-confirmation for an unrelated table even in a plain non-TTY shell; apply the real diff manually via psql instead of forcing through it.
 - [Router auth leak](router-mounting-auth-leak.md) — an unscoped `router.use(requireAuth,...)` in one sub-router can 401 every route in the API, including public ones mounted later; scope it to its path prefix.
 - [Employment module conventions](employment-module-conventions.md) — readOnly/exercise-closed pattern, guided formula-KPI builder approach, and query-key gotcha for generated hooks.
+- [OpenAPI spec edit pattern](openapi-append-pattern.md) — insert paths BEFORE `components:` and schemas INSIDE components/schemas; never raw-append to EOF (breaks YAML nesting).
+- [Orval mutation hook shapes](orval-hook-shapes.md) — generated mutations take flat `{ orgId, actionId?, data }`, NOT `{ params: {...}, data }`.

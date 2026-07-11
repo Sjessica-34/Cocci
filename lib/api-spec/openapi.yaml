@@ -32,6 +32,8 @@ tags:
     description: Baromètre Social — employee survey campaigns, public responses, results and synthesis
   - name: employment
     description: Emploi & Compétences — workforce, diversity, training data and computed HR indicators
+  - name: actions
+    description: Plan d'actions RSE — referentiel Cocci et plan d'actions par organisation/exercice
 
 paths:
   /healthz:
@@ -2213,6 +2215,125 @@ paths:
         "403":
           description: Forbidden
 
+
+  # ─── ACTIONS RSE ─────────────────────────────────────────────────────────────
+  /organizations/{orgId}/actions/library:
+    get:
+      operationId: listActionLibrary
+      tags: [actions]
+      summary: List RSE action library
+      description: Returns all active actions from the Cocci referentiel (no exercise filter).
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Library actions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActionLibraryItem"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/actions/plan:
+    get:
+      operationId: listActionPlan
+      tags: [actions]
+      summary: List action plan items for active exercise
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Plan items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActionPlanItem"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    post:
+      operationId: addActionToPlan
+      tags: [actions]
+      summary: Add action to plan
+      description: Add an action from the library or a custom manual action to the plan.
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionPlanItemInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionPlanItemRaw"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "409":
+          description: Already in plan
+
+  /organizations/{orgId}/actions/plan/{actionId}:
+    patch:
+      operationId: updateActionPlanItem
+      tags: [actions]
+      summary: Update plan item (check, comment, date, justification)
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionPlanItemUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionPlanItemRaw"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteActionPlanItem
+      tags: [actions]
+      summary: Remove action from plan
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -3816,4 +3937,162 @@ components:
       properties:
         status:
           type: string
-          enum: [active, closed]
+
+    ActionLibraryItem:
+      type: object
+      required: [id, name, category, esgPillar, level, isSystem, isActive, sortOrder, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+        subcategory:
+          type: string
+          nullable: true
+        esgPillar:
+          type: string
+        odd:
+          type: string
+          nullable: true
+        level:
+          type: string
+          enum: [quick, project, engagement]
+        isSystem:
+          type: boolean
+        isActive:
+          type: boolean
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    ActionPlanItem:
+      type: object
+      required: [id, organizationId, exerciseId, source, isChecked, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        exerciseId:
+          type: integer
+        libraryActionId:
+          type: integer
+          nullable: true
+        customName:
+          type: string
+          nullable: true
+        source:
+          type: string
+          enum: [library, suggestion, manual]
+        isChecked:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        justificationUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        actionName:
+          type: string
+          nullable: true
+        actionDescription:
+          type: string
+          nullable: true
+        actionCategory:
+          type: string
+          nullable: true
+        actionSubcategory:
+          type: string
+          nullable: true
+        actionEsgPillar:
+          type: string
+          nullable: true
+        actionOdd:
+          type: string
+          nullable: true
+        actionLevel:
+          type: string
+          nullable: true
+
+    ActionPlanItemRaw:
+      type: object
+      required: [id, organizationId, exerciseId, source, isChecked, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        exerciseId:
+          type: integer
+        libraryActionId:
+          type: integer
+          nullable: true
+        customName:
+          type: string
+          nullable: true
+        source:
+          type: string
+        isChecked:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        justificationUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ActionPlanItemInput:
+      type: object
+      properties:
+        libraryActionId:
+          type: integer
+          nullable: true
+        customName:
+          type: string
+          nullable: true
+        source:
+          type: string
+          enum: [library, suggestion, manual]
+
+    ActionPlanItemUpdate:
+      type: object
+      properties:
+        isChecked:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        justificationUrl:
+          type: string
+          nullable: true

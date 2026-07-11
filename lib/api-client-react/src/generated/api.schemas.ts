@@ -1541,15 +1541,99 @@ export interface EmploymentResults {
   isNew: EmploymentIndicator[];
 }
 
-export type BarometreCampaignStatusInputStatus = typeof BarometreCampaignStatusInputStatus[keyof typeof BarometreCampaignStatusInputStatus];
+export interface BarometreCampaignStatusInput {
+  status: string;
+}
+
+export type ActionLibraryItemLevel = typeof ActionLibraryItemLevel[keyof typeof ActionLibraryItemLevel];
 
 
-export const BarometreCampaignStatusInputStatus = {
-  active: 'active',
-  closed: 'closed',
+export const ActionLibraryItemLevel = {
+  quick: 'quick',
+  project: 'project',
+  engagement: 'engagement',
 } as const;
 
-export interface BarometreCampaignStatusInput {
-  status: BarometreCampaignStatusInputStatus;
+export interface ActionLibraryItem {
+  id: number;
+  name: string;
+  description?: string | null;
+  category: string;
+  subcategory?: string | null;
+  esgPillar: string;
+  odd?: string | null;
+  level: ActionLibraryItemLevel;
+  isSystem: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export type ActionPlanItemSource = typeof ActionPlanItemSource[keyof typeof ActionPlanItemSource];
+
+
+export const ActionPlanItemSource = {
+  library: 'library',
+  suggestion: 'suggestion',
+  manual: 'manual',
+} as const;
+
+export interface ActionPlanItem {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  libraryActionId?: number | null;
+  customName?: string | null;
+  source: ActionPlanItemSource;
+  isChecked: boolean;
+  completedAt?: string | null;
+  comment?: string | null;
+  justificationUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  actionName?: string | null;
+  actionDescription?: string | null;
+  actionCategory?: string | null;
+  actionSubcategory?: string | null;
+  actionEsgPillar?: string | null;
+  actionOdd?: string | null;
+  actionLevel?: string | null;
+}
+
+export interface ActionPlanItemRaw {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  libraryActionId?: number | null;
+  customName?: string | null;
+  source: string;
+  isChecked: boolean;
+  completedAt?: string | null;
+  comment?: string | null;
+  justificationUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ActionPlanItemInputSource = typeof ActionPlanItemInputSource[keyof typeof ActionPlanItemInputSource];
+
+
+export const ActionPlanItemInputSource = {
+  library: 'library',
+  suggestion: 'suggestion',
+  manual: 'manual',
+} as const;
+
+export interface ActionPlanItemInput {
+  libraryActionId?: number | null;
+  customName?: string | null;
+  source?: ActionPlanItemInputSource;
+}
+
+export interface ActionPlanItemUpdate {
+  isChecked?: boolean;
+  completedAt?: string | null;
+  comment?: string | null;
+  justificationUrl?: string | null;
 }
 

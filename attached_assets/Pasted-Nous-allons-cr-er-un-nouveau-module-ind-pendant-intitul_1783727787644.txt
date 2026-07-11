@@ -1,0 +1,386 @@
+Nous allons créer un nouveau module indépendant intitulé :
+
+✅ Mes actions
+
+Ce module sera ajouté dans le menu principal immédiatement après le module "Emploi & Compétences".
+
+Le module est totalement indépendant.
+
+Toutes les données sont liées à l'exercice actif.
+
+Je souhaite conserver la philosophie de Cocci :
+
+Simple.
+
+Rapide.
+
+Peu de saisie.
+
+Le but n'est pas de créer un logiciel de gestion de projet mais de permettre aux entreprises de suivre facilement leurs actions RSE afin d'alimenter automatiquement le Rapport RSE.
+
+====================================================
+ARCHITECTURE
+====================================================
+
+Le module sera composé de 3 onglets.
+
+• Plan d'actions
+
+• Bibliothèque d'actions
+
+• Guide
+
+====================================================
+ONGLET 1
+PLAN D'ACTIONS
+====================================================
+
+Cet onglet représente le plan d'actions de l'entreprise.
+
+Le plan d'actions est alimenté automatiquement de trois façons :
+
+• Les actions ajoutées depuis la bibliothèque
+
+• Les suggestions automatiques de Cocci en fonction des données renseignées dans les autres modules
+
+• Les actions créées manuellement par l'utilisateur
+
+Je souhaite une interface extrêmement simple.
+
+Chaque action apparaît sous forme de case à cocher.
+
+Exemple :
+
+☐ Réaliser un bilan carbone
+
+☑ Acheter du papier certifié FSC
+
+☑ Installer une fontaine à eau
+
+☐ Organiser un baromètre social
+
+☑ Former les collaborateurs au numérique responsable
+
+Lorsque l'utilisateur coche une action,
+
+une petite fiche apparaît automatiquement dessous.
+
+Je souhaite uniquement les champs suivants :
+
+📅 Date de réalisation
+
+📝 Commentaire / Résultat obtenu
+
+📎 Importer un justificatif
+
+(photo, facture, procédure, compte rendu, PDF...)
+
+Je ne souhaite aucun autre champ.
+
+Pas de :
+
+• Responsable
+
+• Budget
+
+• Priorité
+
+• Avancement
+
+• Échéance
+
+• Statut
+
+Le but est que la saisie prenne moins de 30 secondes.
+
+====================================================
+SUGGESTIONS AUTOMATIQUES
+====================================================
+
+Je souhaite que Cocci suggère automatiquement certaines actions.
+
+Exemples :
+
+Si aucun bilan carbone
+
+↓
+
+Proposer :
+
+Réaliser un bilan carbone
+
+-----------------------------------
+
+Si aucune politique achats responsables
+
+↓
+
+Proposer :
+
+Créer une charte achats responsables
+
+-----------------------------------
+
+Si le Baromètre Social révèle une communication faible
+
+↓
+
+Proposer :
+
+Organiser une réunion d'équipe mensuelle
+
+-----------------------------------
+
+Si aucun document Numérique Responsable
+
+↓
+
+Proposer :
+
+Créer une charte Numérique Responsable
+
+-----------------------------------
+
+Si aucune analyse biodiversité
+
+↓
+
+Proposer :
+
+Identifier les dépendances à la biodiversité
+
+-----------------------------------
+
+Ces suggestions restent facultatives.
+
+====================================================
+ONGLET 2
+BIBLIOTHÈQUE D'ACTIONS
+====================================================
+
+Je vais fournir un référentiel Cocci.
+
+Merci de l'importer dans la bibliothèque.
+
+Chaque action du référentiel devra comporter :
+
+• Nom
+
+• Description
+
+• Catégorie
+
+• Sous-catégorie
+
+• Pilier ESG
+
+• ODD
+
+Je souhaite que la bibliothèque soit consultable sous forme de cartes.
+
+Prévoir :
+
+🔍 Recherche
+
+Filtres :
+
+• Environnement
+
+• Numérique Responsable
+
+• Biodiversité
+
+• Social
+
+• Achats responsables
+
+• Gouvernance
+
+• Parties prenantes
+
+Je souhaite également un filtre par sous-catégorie.
+
+Exemple :
+
+Déchets
+
+Énergie
+
+Eau
+
+Mobilité
+
+Communication
+
+Formation
+
+Diversité
+
+etc.
+
+Chaque fiche d'action comporte :
+
+Nom
+
+Courte description
+
+Catégorie
+
+Sous-catégorie
+
+Pilier ESG
+
+ODD
+
+Puis simplement un bouton :
+
+➕
+
+Ajouter au plan d'actions
+
+Lorsqu'une action est ajoutée,
+
+elle apparaît automatiquement dans le Plan d'actions.
+
+====================================================
+NIVEAUX D'ACTIONS
+====================================================
+
+Je souhaite distinguer automatiquement trois niveaux.
+
+📌 Actions rapides
+
+Moins d'une heure.
+
+Exemple :
+
+Passer les imprimantes en recto-verso
+
+Acheter des mugs
+
+Créer une boîte à idées
+
+----------------------------------------------------
+
+🚀 Projets
+
+Quelques jours à quelques semaines.
+
+Exemple :
+
+Réaliser un bilan carbone
+
+Déployer une charte achats responsables
+
+Organiser un baromètre social
+
+----------------------------------------------------
+
+🎯 Engagements
+
+Actions structurantes.
+
+Exemple :
+
+Définir une politique RSE
+
+Créer un comité RSE
+
+Préparer une labellisation
+
+Déployer une stratégie climat
+
+Ce niveau est uniquement informatif.
+
+Il ne modifie pas le fonctionnement du logiciel.
+
+====================================================
+ONGLET 3
+GUIDE
+====================================================
+
+Créer un guide utilisateur.
+
+Expliquer notamment :
+
+• À quoi sert un plan d'actions.
+
+• Comment utiliser la bibliothèque.
+
+• Comment ajouter une action.
+
+• Comment importer un justificatif.
+
+• Comment Cocci récupère automatiquement les actions dans le Rapport RSE.
+
+Ajouter également quelques bonnes pratiques.
+
+Exemple :
+
+✔ Commencer par des actions simples.
+
+✔ Ajouter progressivement de nouvelles actions.
+
+✔ Conserver les justificatifs.
+
+✔ Mettre à jour le plan d'actions au fil de l'année.
+
+✔ Réaliser une revue annuelle.
+
+====================================================
+RAPPORT RSE
+====================================================
+
+Toutes les actions cochées alimentent automatiquement le Rapport RSE.
+
+Le rapport pourra automatiquement indiquer :
+
+• Nombre total d'actions réalisées
+
+• Répartition par catégorie
+
+• Répartition par pilier ESG
+
+• Répartition par ODD
+
+• Évolution par rapport à l'exercice précédent
+
+Les commentaires renseignés par l'utilisateur pourront être repris automatiquement dans le rapport.
+
+====================================================
+ERGONOMIE
+====================================================
+
+Je souhaite un module très simple.
+
+L'utilisateur ne doit jamais avoir l'impression de remplir un logiciel compliqué.
+
+Le principe est :
+
+Je vois une action.
+
+↓
+
+Je la coche.
+
+↓
+
+Je renseigne éventuellement une date, un commentaire et un justificatif.
+
+↓
+
+Cocci se charge du reste.
+
+====================================================
+RÉFÉRENTIEL
+====================================================
+
+Je vais fournir mon propre référentiel Cocci.
+
+Merci de l'utiliser comme base de données officielle.
+
+Ne pas créer un autre référentiel.
+
+Importer mon référentiel et le rendre facilement enrichissable dans le futur.
+
+Le logiciel devra être capable d'ajouter de nouvelles actions sans modifier le code.

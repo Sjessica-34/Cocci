@@ -1841,7 +1841,7 @@ export const UpdateBarometreCampaignStatusParams = zod.object({
 })
 
 export const UpdateBarometreCampaignStatusBody = zod.object({
-  "status": zod.enum(['active', 'closed'])
+  "status": zod.string()
 })
 
 export const UpdateBarometreCampaignStatusResponse = zod.object({
@@ -2777,5 +2777,133 @@ export const DeleteCarbonBilanParams = zod.object({
 })
 
 export const DeleteCarbonBilanResponse = zod.void()
+
+
+/**
+ * Returns all active actions from the Cocci referentiel (no exercise filter).
+ * @summary List RSE action library
+ */
+export const ListActionLibraryParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListActionLibraryResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string(),
+  "subcategory": zod.string().nullish(),
+  "esgPillar": zod.string(),
+  "odd": zod.string().nullish(),
+  "level": zod.enum(['quick', 'project', 'engagement']),
+  "isSystem": zod.boolean(),
+  "isActive": zod.boolean(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+export const ListActionLibraryResponse = zod.array(ListActionLibraryResponseItem)
+
+
+/**
+ * @summary List action plan items for active exercise
+ */
+export const ListActionPlanParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListActionPlanResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "libraryActionId": zod.number().nullish(),
+  "customName": zod.string().nullish(),
+  "source": zod.enum(['library', 'suggestion', 'manual']),
+  "isChecked": zod.boolean(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "actionName": zod.string().nullish(),
+  "actionDescription": zod.string().nullish(),
+  "actionCategory": zod.string().nullish(),
+  "actionSubcategory": zod.string().nullish(),
+  "actionEsgPillar": zod.string().nullish(),
+  "actionOdd": zod.string().nullish(),
+  "actionLevel": zod.string().nullish()
+})
+export const ListActionPlanResponse = zod.array(ListActionPlanResponseItem)
+
+
+/**
+ * Add an action from the library or a custom manual action to the plan.
+ * @summary Add action to plan
+ */
+export const AddActionToPlanParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const AddActionToPlanBody = zod.object({
+  "libraryActionId": zod.number().nullish(),
+  "customName": zod.string().nullish(),
+  "source": zod.enum(['library', 'suggestion', 'manual']).optional()
+})
+
+export const AddActionToPlanResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "libraryActionId": zod.number().nullish(),
+  "customName": zod.string().nullish(),
+  "source": zod.string(),
+  "isChecked": zod.boolean(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update plan item (check, comment, date, justification)
+ */
+export const UpdateActionPlanItemParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "actionId": zod.coerce.number()
+})
+
+export const UpdateActionPlanItemBody = zod.object({
+  "isChecked": zod.boolean().optional(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish()
+})
+
+export const UpdateActionPlanItemResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "libraryActionId": zod.number().nullish(),
+  "customName": zod.string().nullish(),
+  "source": zod.string(),
+  "isChecked": zod.boolean(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove action from plan
+ */
+export const DeleteActionPlanItemParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "actionId": zod.coerce.number()
+})
+
+export const DeleteActionPlanItemResponse = zod.void()
 
 

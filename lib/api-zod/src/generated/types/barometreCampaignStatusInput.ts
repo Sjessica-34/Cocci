@@ -5,8 +5,7 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { BarometreCampaignStatusInputStatus } from './barometreCampaignStatusInputStatus';
 
 export interface BarometreCampaignStatusInput {
-  status: BarometreCampaignStatusInputStatus;
+  status: string;
 }

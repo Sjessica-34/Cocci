@@ -16,3 +16,4 @@ export * from "./biodiversite";
 export * from "./labels";
 export * from "./barometreSocial";
 export * from "./employment";
+export * from "./actionPlan";
