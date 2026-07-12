@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import {
   useGetDiagnosticResponses,
   useUpsertDiagnosticResponses,
   getGetDiagnosticResponsesQueryKey,
+  getGetDiagnosticScoresQueryKey,
 } from "@workspace/api-client-react";
 import type { DiagnosticResponse } from "@workspace/api-client-react";
 import {
@@ -39,7 +41,6 @@ const LEVEL_SELECTED_BG = [
   "bg-emerald-100 border-emerald-400",
 ] as const;
 
-// ── Question card ──────────────────────────────────────────────────────────
 function QuestionCard({
   index,
   question,
@@ -102,17 +103,16 @@ function QuestionCard({
   );
 }
 
-// ── Main questionnaire page ────────────────────────────────────────────────
 export function DiagnosticQuestionnaire() {
   const params = useParams<{ categoryId: string; subcategoryId: string }>();
   const [, navigate] = useLocation();
   const { currentOrgId } = useCurrentOrganization();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const subcategory = getSubcategoryById(params.subcategoryId ?? "");
   const category = getCategoryById(params.categoryId ?? "");
 
-  // Local state: map questionId → level
   const [answers, setAnswers] = useState<Map<string, number>>(new Map());
   const [isDirty, setIsDirty] = useState(false);
 
@@ -122,7 +122,6 @@ export function DiagnosticQuestionnaire() {
     { query: { enabled: !!currentOrgId, queryKey: getGetDiagnosticResponsesQueryKey(orgId) } },
   );
 
-  // Seed answers from server data when loaded
   useEffect(() => {
     if (!existing || !subcategory) return;
     const map = new Map<string, number>();
@@ -155,10 +154,14 @@ export function DiagnosticQuestionnaire() {
     if (responses.length === 0) return;
 
     try {
-      await mutation.mutateAsync({
-        orgId: currentOrgId,
-        data: { responses },
-      });
+      await mutation.mutateAsync({ orgId: currentOrgId, data: { responses } });
+
+      // Invalidate both caches so dashboard + responses reload
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetDiagnosticResponsesQueryKey(orgId) }),
+        queryClient.invalidateQueries({ queryKey: getGetDiagnosticScoresQueryKey(orgId) }),
+      ]);
+
       setIsDirty(false);
       toast({ title: "Réponses enregistrées", description: `${responses.length} réponses sauvegardées.` });
     } catch {
@@ -191,7 +194,7 @@ export function DiagnosticQuestionnaire() {
     <AppLayout>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
 
-        {/* Breadcrumb + nav */}
+        {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground flex-wrap">
           <button
             onClick={() => navigate("/diagnostic")}
@@ -201,7 +204,7 @@ export function DiagnosticQuestionnaire() {
             Diagnostic RSE
           </button>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-muted-foreground">{category.label}</span>
+          <span>{category.label}</span>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="font-medium text-foreground">{subcategory.label}</span>
         </div>
@@ -231,7 +234,7 @@ export function DiagnosticQuestionnaire() {
           </Button>
         </div>
 
-        {/* Progress bar */}
+        {/* Progress */}
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Progression</span>
@@ -264,7 +267,7 @@ export function DiagnosticQuestionnaire() {
           </div>
         )}
 
-        {/* Sticky save bar when dirty */}
+        {/* Sticky save bar */}
         {isDirty && (
           <div className="sticky bottom-4 flex justify-center">
             <div className="flex items-center gap-3 rounded-full border border-border bg-card px-5 py-2.5 shadow-lg">
