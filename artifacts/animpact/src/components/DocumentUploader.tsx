@@ -35,9 +35,15 @@ export function isDiagnosticCategory(category: string): boolean {
   return category.startsWith("diagnostic-rse/");
 }
 
-/** Extrait l'ID de sous-catégorie d'une catégorie de document diagnostic */
+/**
+ * Extrait l'ID de sous-catégorie d'une catégorie de document diagnostic.
+ * Gère les formats :
+ *  - "diagnostic-rse/ENV-CLI"            → "ENV-CLI"
+ *  - "diagnostic-rse/ENV-CLI/ENV-CLI-001" → "ENV-CLI"
+ */
 export function getDiagnosticSubcategoryId(category: string): string {
-  return category.replace("diagnostic-rse/", "");
+  const parts = category.replace("diagnostic-rse/", "").split("/");
+  return parts[0] ?? "";
 }
 
 function formatSize(bytes: number): string {

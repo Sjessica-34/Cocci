@@ -47,15 +47,23 @@ function formatSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
 }
 
-// ── Upload compact de preuves pour une sous-catégorie ─────────────────────
-function ProofsUploader({ orgId, subcategoryId }: { orgId: number; subcategoryId: string }) {
+// ── Upload compact de preuves pour une question ───────────────────────────
+function ProofsUploader({
+  orgId,
+  subcategoryId,
+  questionId,
+}: {
+  orgId: number;
+  subcategoryId: string;
+  questionId: string;
+}) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const docCategory = `diagnostic-rse/${subcategoryId}`;
+  const docCategory = `diagnostic-rse/${subcategoryId}/${questionId}`;
 
   const { data: allDocs = [] } = useListDocuments(orgId, {
     query: { enabled: !!orgId, queryKey: getListDocumentsQueryKey(orgId) },
@@ -182,6 +190,8 @@ function ProofsUploader({ orgId, subcategoryId }: { orgId: number; subcategoryId
 function QuestionCard({
   index,
   question,
+  subcategoryId,
+  orgId,
   level,
   comment,
   onLevelChange,
@@ -189,6 +199,8 @@ function QuestionCard({
 }: {
   index: number;
   question: { id: string; question: string; levels: [string, string, string, string] };
+  subcategoryId: string;
+  orgId: number;
   level: number | null;
   comment: string;
   onLevelChange: (level: number) => void;
@@ -248,6 +260,13 @@ function QuestionCard({
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
         />
       </div>
+
+      {/* Upload preuves pour cette question */}
+      {orgId > 0 && (
+        <div className="pl-9">
+          <ProofsUploader orgId={orgId} subcategoryId={subcategoryId} questionId={question.id} />
+        </div>
+      )}
     </div>
   );
 }
@@ -407,11 +426,6 @@ export function DiagnosticQuestionnaire() {
           </div>
         </div>
 
-        {/* Upload preuves (au niveau de la sous-catégorie) */}
-        {currentOrgId && (
-          <ProofsUploader orgId={currentOrgId} subcategoryId={subcategory.id} />
-        )}
-
         {/* Questions */}
         {loadingResponses ? (
           <div className="flex items-center justify-center py-12">
@@ -424,6 +438,8 @@ export function DiagnosticQuestionnaire() {
                 key={q.id}
                 index={i + 1}
                 question={q}
+                subcategoryId={subcategory.id}
+                orgId={currentOrgId ?? 0}
                 level={answers.get(q.id) ?? null}
                 comment={comments.get(q.id) ?? ""}
                 onLevelChange={(lvl) => handleLevelChange(q.id, lvl)}
