@@ -19,7 +19,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Upload, FileText, Trash2, Download, Loader2, Check,
   History, ChevronDown, ChevronUp, AlertCircle, Plus, X,
-  ThumbsUp, ThumbsDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -412,7 +411,6 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
   const [uploadingSlug, setUploadingSlug] = useState<string | null>(null);
   const [uploadError, setUploadError]   = useState<string | null>(null);
   const [addFormOpen, setAddFormOpen]   = useState(false);
-  const [hasDocAnswer, setHasDocAnswer] = useState<"oui" | "non" | null>(null);
 
   const { data: allDocs = [], isLoading } = useListDocuments(orgId, {
     query: { enabled: !!orgId, queryKey: getListDocumentsQueryKey(orgId) },
@@ -503,74 +501,10 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
 
   return (
     <div className="space-y-6">
-      {/* Question d'amorçage */}
-      <div className={cn(
-        "rounded-xl border px-5 py-4 transition-colors",
-        hasDocAnswer === "oui" ? "border-emerald-200 bg-emerald-50/40" :
-        hasDocAnswer === "non" ? "border-amber-200 bg-amber-50/40" :
-        "border-border bg-card",
-      )}>
-        {hasDocAnswer === null && (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <p className="flex-1 text-sm font-medium text-foreground">
-              Avez-vous déjà rédigé un de ces documents&nbsp;?
-            </p>
-            <div className="flex gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                onClick={() => setHasDocAnswer("oui")}
-              >
-                <ThumbsUp className="h-3.5 w-3.5" />
-                Oui
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
-                onClick={() => setHasDocAnswer("non")}
-              >
-                <ThumbsDown className="h-3.5 w-3.5" />
-                Non
-              </Button>
-            </div>
-          </div>
-        )}
-        {hasDocAnswer === "oui" && (
-          <div className="flex items-start gap-3">
-            <div className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
-              <Check className="h-3 w-3 text-white stroke-[3]" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-emerald-800">Parfait&nbsp;!</p>
-              <p className="text-xs text-emerald-700 mt-0.5">
-                Importez-les ci-dessous pour les centraliser dans Cocci et suivre votre progression.
-              </p>
-            </div>
-            <button onClick={() => setHasDocAnswer(null)} className="text-muted-foreground hover:text-foreground">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-        {hasDocAnswer === "non" && (
-          <div className="flex items-start gap-3">
-            <div className="h-5 w-5 rounded-full bg-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-              <AlertCircle className="h-3 w-3 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-amber-800">Pas encore&nbsp;?</p>
-              <p className="text-xs text-amber-700 mt-0.5">
-                Ces documents structurent votre démarche RSE. Commencez par ceux qui correspondent le mieux
-                à votre activité — la Politique RSE et la Charte éthique sont souvent les plus accessibles.
-              </p>
-            </div>
-            <button onClick={() => setHasDocAnswer(null)} className="text-muted-foreground hover:text-foreground">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Titre */}
+      <h2 className="text-lg font-semibold text-foreground">
+        Avez-vous rédigé un de ces documents&nbsp;?
+      </h2>
 
       {/* Introduction */}
       <div className="rounded-xl border border-blue-200 bg-blue-50/40 px-5 py-4">
