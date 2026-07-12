@@ -5,6 +5,8 @@ import { AppLayout } from "@/components/layout";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import {
   useGetDiagnosticResponses,
+  useGetDiagnosticPrefill,
+  getGetDiagnosticPrefillQueryKey,
   useUpsertDiagnosticResponses,
   getGetDiagnosticResponsesQueryKey,
   getGetDiagnosticScoresQueryKey,
@@ -12,14 +14,14 @@ import {
   useDeleteDocument,
   getListDocumentsQueryKey,
 } from "@workspace/api-client-react";
-import type { DiagnosticResponse, DocumentMeta } from "@workspace/api-client-react";
+import type { DiagnosticResponse, DiagnosticPrefillSuggestion, DocumentMeta } from "@workspace/api-client-react";
 import {
   getSubcategoryById,
   getCategoryById,
 } from "@workspace/rse-referentials";
 import {
   ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle, ChevronRight,
-  Upload, FileText, Trash2, Download,
+  Upload, FileText, Trash2, Download, Brain, Lightbulb, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/react";
@@ -45,6 +47,41 @@ function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
   return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+}
+
+// ── Badge pré-remplissage ──────────────────────────────────────────────────
+function PrefillBadge({
+  suggestion,
+  onDismiss,
+}: {
+  suggestion: DiagnosticPrefillSuggestion;
+  onDismiss: () => void;
+}) {
+  const isAuto = suggestion.confidence === "auto";
+  return (
+    <div className={cn(
+      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+      isAuto
+        ? "border-violet-200 bg-violet-50 text-violet-700"
+        : "border-sky-200 bg-sky-50 text-sky-700",
+    )}>
+      {isAuto
+        ? <Brain className="h-3 w-3 shrink-0" />
+        : <Lightbulb className="h-3 w-3 shrink-0" />}
+      <span>
+        {isAuto ? "Pré-rempli automatiquement" : "Suggéré par Cocci"}
+        {" · "}
+        <span className="font-normal opacity-80">{suggestion.source}</span>
+      </span>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+        className="ml-0.5 rounded-full p-0.5 hover:bg-black/10 transition-colors"
+        title="Ignorer la suggestion"
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </div>
+  );
 }
 
 // ── Upload compact de preuves pour une question ───────────────────────────
@@ -194,8 +231,10 @@ function QuestionCard({
   orgId,
   level,
   comment,
+  prefillSuggestion,
   onLevelChange,
   onCommentChange,
+  onDismissPrefill,
 }: {
   index: number;
   question: { id: string; question: string; levels: [string, string, string, string] };
@@ -203,17 +242,30 @@ function QuestionCard({
   orgId: number;
   level: number | null;
   comment: string;
+  prefillSuggestion: DiagnosticPrefillSuggestion | null;
   onLevelChange: (level: number) => void;
   onCommentChange: (comment: string) => void;
+  onDismissPrefill: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-      {/* Numéro + question */}
+    <div className={cn(
+      "rounded-xl border bg-card p-5 space-y-4 transition-colors",
+      prefillSuggestion ? "border-violet-200" : "border-border",
+    )}>
+      {/* Numéro + question + badge pré-remplissage */}
       <div className="flex gap-3">
         <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-muted text-xs font-semibold text-muted-foreground">
           {index}
         </span>
-        <p className="text-sm font-medium text-foreground leading-relaxed">{question.question}</p>
+        <div className="flex-1 min-w-0 space-y-2">
+          <p className="text-sm font-medium text-foreground leading-relaxed">{question.question}</p>
+          {prefillSuggestion && (
+            <PrefillBadge
+              suggestion={prefillSuggestion}
+              onDismiss={onDismissPrefill}
+            />
+          )}
+        </div>
       </div>
 
       {/* Niveaux de maturité */}
@@ -225,7 +277,12 @@ function QuestionCard({
             className={cn(
               "text-left rounded-lg border-2 p-3 transition-all",
               level === lvl
-                ? LEVEL_SELECTED_BG[lvl]
+                ? prefillSuggestion
+                  ? cn(LEVEL_SELECTED_BG[lvl], "ring-2 ring-offset-1",
+                      prefillSuggestion.confidence === "auto"
+                        ? "ring-violet-300"
+                        : "ring-sky-300")
+                  : LEVEL_SELECTED_BG[lvl]
                 : "border-border bg-background hover:border-muted-foreground/30 hover:bg-muted/30",
             )}
           >
@@ -284,6 +341,8 @@ export function DiagnosticQuestionnaire() {
 
   const [answers, setAnswers] = useState<Map<string, number>>(new Map());
   const [comments, setComments] = useState<Map<string, string>>(new Map());
+  // Garde trace des questions pré-remplies non encore confirmées par l'utilisateur
+  const [prefillOrigins, setPrefillOrigins] = useState<Map<string, DiagnosticPrefillSuggestion>>(new Map());
   const [isDirty, setIsDirty] = useState(false);
 
   const orgId = currentOrgId ?? 0;
@@ -293,9 +352,17 @@ export function DiagnosticQuestionnaire() {
     { query: { enabled: !!currentOrgId, queryKey: getGetDiagnosticResponsesQueryKey(orgId) } },
   );
 
-  // Initialise depuis le serveur
+  const { data: prefillData, isLoading: loadingPrefill } = useGetDiagnosticPrefill(
+    orgId,
+    { query: { enabled: !!currentOrgId, queryKey: getGetDiagnosticPrefillQueryKey(orgId) } },
+  );
+
+  // Initialise les réponses depuis le serveur + applique le pré-remplissage pour les questions vides
   useEffect(() => {
-    if (!existing || !subcategory) return;
+    if (!subcategory) return;
+    if (!existing) return;
+
+    // 1. Réponses existantes en base
     const aMap = new Map<string, number>();
     const cMap = new Map<string, string>();
     for (const r of existing as DiagnosticResponse[]) {
@@ -304,15 +371,33 @@ export function DiagnosticQuestionnaire() {
         if (r.comment) cMap.set(r.questionId, r.comment);
       }
     }
+
+    // 2. Suggestions de pré-remplissage pour les questions sans réponse
+    const newPrefillOrigins = new Map<string, DiagnosticPrefillSuggestion>();
+    if (prefillData) {
+      for (const suggestion of prefillData as DiagnosticPrefillSuggestion[]) {
+        const belongsHere = subcategory.questions.some((q) => q.id === suggestion.questionId);
+        if (belongsHere && !aMap.has(suggestion.questionId)) {
+          aMap.set(suggestion.questionId, suggestion.suggestedLevel);
+          newPrefillOrigins.set(suggestion.questionId, suggestion);
+        }
+      }
+    }
+
     setAnswers(aMap);
     setComments(cMap);
+    setPrefillOrigins(newPrefillOrigins);
     setIsDirty(false);
-  }, [existing, subcategory?.id]);
+  }, [existing, prefillData, subcategory?.id]);
 
   const mutation = useUpsertDiagnosticResponses();
 
   function handleLevelChange(questionId: string, level: number) {
     setAnswers((prev) => { const n = new Map(prev); n.set(questionId, level); return n; });
+    // Quand l'utilisateur choisit explicitement un niveau, le badge disparaît
+    if (prefillOrigins.has(questionId)) {
+      setPrefillOrigins((prev) => { const n = new Map(prev); n.delete(questionId); return n; });
+    }
     setIsDirty(true);
   }
 
@@ -321,12 +406,17 @@ export function DiagnosticQuestionnaire() {
     setIsDirty(true);
   }
 
+  function handleDismissPrefill(questionId: string) {
+    // Retirer la suggestion et la réponse pré-remplie
+    setPrefillOrigins((prev) => { const n = new Map(prev); n.delete(questionId); return n; });
+    setAnswers((prev) => { const n = new Map(prev); n.delete(questionId); return n; });
+  }
+
   async function handleSave() {
     if (!currentOrgId || !subcategory) return;
-    // Inclure toutes les questions qui ont une réponse ou un commentaire
     const questionIds = new Set([...answers.keys(), ...comments.keys()]);
     const responses = Array.from(questionIds)
-      .filter((id) => answers.has(id)) // niveau obligatoire
+      .filter((id) => answers.has(id))
       .map((questionId) => ({
         questionId,
         level: answers.get(questionId)!,
@@ -340,6 +430,8 @@ export function DiagnosticQuestionnaire() {
         queryClient.invalidateQueries({ queryKey: getGetDiagnosticResponsesQueryKey(orgId) }),
         queryClient.invalidateQueries({ queryKey: getGetDiagnosticScoresQueryKey(orgId) }),
       ]);
+      // Après sauvegarde, les suggestions pré-remplies sont désormais confirmées
+      setPrefillOrigins(new Map());
       setIsDirty(false);
       toast({ title: "Réponses enregistrées", description: `${responses.length} réponses sauvegardées.` });
     } catch {
@@ -362,7 +454,12 @@ export function DiagnosticQuestionnaire() {
   }
 
   const answeredCount = subcategory.questions.filter((q) => answers.has(q.id)).length;
+  const prefillCount = prefillOrigins.size;
   const progress = Math.round((answeredCount / subcategory.questions.length) * 100);
+
+  // Le bouton save est actif si l'utilisateur a fait des modifications OU si des suggestions de pré-remplissage n'ont pas encore été sauvegardées
+  const hasPendingPrefill = prefillCount > 0 && answeredCount > 0;
+  const canSave = (isDirty || hasPendingPrefill) && !mutation.isPending && answeredCount > 0;
 
   return (
     <AppLayout>
@@ -396,17 +493,23 @@ export function DiagnosticQuestionnaire() {
             <h1 className="text-xl font-bold text-foreground">{subcategory.label}</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {subcategory.questions.length} questions · {answeredCount} répondues
+              {prefillCount > 0 && (
+                <span className="ml-1.5 inline-flex items-center gap-1 text-violet-600">
+                  <Brain className="h-3 w-3" />
+                  {prefillCount} pré-remplie{prefillCount > 1 ? "s" : ""}
+                </span>
+              )}
             </p>
           </div>
           <Button
             onClick={handleSave}
-            disabled={!isDirty || mutation.isPending || answeredCount === 0}
+            disabled={!canSave}
             size="sm"
             className="flex-shrink-0"
           >
             {mutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : mutation.isSuccess && !isDirty ? (
+            ) : mutation.isSuccess && !isDirty && !hasPendingPrefill ? (
               <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-400" />
             ) : (
               <Save className="h-4 w-4 mr-2" />
@@ -414,6 +517,18 @@ export function DiagnosticQuestionnaire() {
             Enregistrer
           </Button>
         </div>
+
+        {/* Bannière pré-remplissage si des suggestions sont présentes */}
+        {prefillCount > 0 && !loadingPrefill && (
+          <div className="flex items-start gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+            <Brain className="h-4 w-4 text-violet-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-violet-800">
+              <span className="font-semibold">{prefillCount} question{prefillCount > 1 ? "s ont été pré-remplies" : " a été pré-remplie"}</span>
+              {" "}automatiquement à partir des données de vos autres modules RSE.
+              Vérifiez et ajustez si nécessaire, puis enregistrez pour confirmer.
+            </div>
+          </div>
+        )}
 
         {/* Barre de progression */}
         <div className="space-y-1.5">
@@ -442,18 +557,24 @@ export function DiagnosticQuestionnaire() {
                 orgId={currentOrgId ?? 0}
                 level={answers.get(q.id) ?? null}
                 comment={comments.get(q.id) ?? ""}
+                prefillSuggestion={prefillOrigins.get(q.id) ?? null}
                 onLevelChange={(lvl) => handleLevelChange(q.id, lvl)}
                 onCommentChange={(c) => handleCommentChange(q.id, c)}
+                onDismissPrefill={() => handleDismissPrefill(q.id)}
               />
             ))}
           </div>
         )}
 
         {/* Barre de sauvegarde sticky */}
-        {isDirty && (
+        {(isDirty || hasPendingPrefill) && (
           <div className="sticky bottom-4 flex justify-center">
             <div className="flex items-center gap-3 rounded-full border border-border bg-card px-5 py-2.5 shadow-lg">
-              <span className="text-sm text-muted-foreground">Modifications non sauvegardées</span>
+              <span className="text-sm text-muted-foreground">
+                {isDirty
+                  ? "Modifications non sauvegardées"
+                  : `${prefillCount} suggestion${prefillCount > 1 ? "s" : ""} à confirmer`}
+              </span>
               <Button size="sm" onClick={handleSave} disabled={mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 Enregistrer

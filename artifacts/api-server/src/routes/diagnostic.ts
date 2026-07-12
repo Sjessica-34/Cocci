@@ -14,6 +14,7 @@ import {
   requireWritableExerciseScope,
 } from "../middlewares/exerciseScope";
 import { UpsertDiagnosticResponsesBody } from "@workspace/api-zod";
+import { computePrefillSuggestions } from "./diagnosticPrefill";
 
 const router = Router();
 
@@ -148,6 +149,21 @@ router.get(
     });
 
     res.json(scores);
+  },
+);
+
+// ─── GET PREFILL SUGGESTIONS ───────────────────────────────────────────────
+router.get(
+  "/organizations/:orgId/diagnostic/prefill",
+  requireAuth,
+  requireOrgMembership,
+  requireExerciseScope,
+  async (req, res) => {
+    const suggestions = await computePrefillSuggestions(
+      req.orgId!,
+      req.exercise!.id,
+    );
+    res.json(suggestions);
   },
 );
 

@@ -3110,3 +3110,24 @@ export const GetDiagnosticScoresResponseItem = zod.object({
 export const GetDiagnosticScoresResponse = zod.array(GetDiagnosticScoresResponseItem)
 
 
+/**
+ * @summary Get intelligent pre-fill suggestions from existing module data
+ */
+export const GetDiagnosticPrefillParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const getDiagnosticPrefillResponseSuggestedLevelMin = 0;
+export const getDiagnosticPrefillResponseSuggestedLevelMax = 3;
+
+
+
+export const GetDiagnosticPrefillResponseItem = zod.object({
+  "questionId": zod.string().describe('Diagnostic question ID (e.g. ENV-CLI-001)'),
+  "suggestedLevel": zod.number().min(getDiagnosticPrefillResponseSuggestedLevelMin).max(getDiagnosticPrefillResponseSuggestedLevelMax).describe('Suggested maturity level (0-3)'),
+  "source": zod.string().describe('Module name that provided this suggestion'),
+  "confidence": zod.enum(['auto', 'suggested']).describe('\'auto\' = certainement déduit des données, \'suggested\' = inféré, nécessite validation')
+})
+export const GetDiagnosticPrefillResponse = zod.array(GetDiagnosticPrefillResponseItem)
+
+

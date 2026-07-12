@@ -55,6 +55,8 @@ export * from './carbonBilanInputStatus';
 export * from './customIssue';
 export * from './customIssueInput';
 export * from './dashboardSummary';
+export * from './diagnosticPrefillSuggestion';
+export * from './diagnosticPrefillSuggestionConfidence';
 export * from './diagnosticResponse';
 export * from './diagnosticResponseItem';
 export * from './diagnosticResponsesInput';

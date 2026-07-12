@@ -2511,6 +2511,31 @@ paths:
         "403":
           description: Forbidden
 
+  /organizations/{orgId}/diagnostic/prefill:
+    get:
+      operationId: getDiagnosticPrefill
+      tags: [diagnostic]
+      summary: Get intelligent pre-fill suggestions from existing module data
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pre-fill suggestions per question
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiagnosticPrefillSuggestion"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
 components:
   schemas:
     HealthStatus:
@@ -4504,3 +4529,23 @@ components:
           nullable: true
         maturityLabel:
           type: string
+
+    DiagnosticPrefillSuggestion:
+      type: object
+      required: [questionId, suggestedLevel, source, confidence]
+      properties:
+        questionId:
+          type: string
+          description: Diagnostic question ID (e.g. ENV-CLI-001)
+        suggestedLevel:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: Suggested maturity level (0-3)
+        source:
+          type: string
+          description: Module name that provided this suggestion
+        confidence:
+          type: string
+          enum: [auto, suggested]
+          description: "'auto' = certainement déduit des données, 'suggested' = inféré, nécessite validation"

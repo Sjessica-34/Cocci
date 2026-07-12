@@ -1740,3 +1740,29 @@ export interface DiagnosticSubcategoryScore {
   maturityLabel: string;
 }
 
+/**
+ * 'auto' = certainement déduit des données, 'suggested' = inféré, nécessite validation
+ */
+export type DiagnosticPrefillSuggestionConfidence = typeof DiagnosticPrefillSuggestionConfidence[keyof typeof DiagnosticPrefillSuggestionConfidence];
+
+
+export const DiagnosticPrefillSuggestionConfidence = {
+  auto: 'auto',
+  suggested: 'suggested',
+} as const;
+
+export interface DiagnosticPrefillSuggestion {
+  /** Diagnostic question ID (e.g. ENV-CLI-001) */
+  questionId: string;
+  /**
+     * Suggested maturity level (0-3)
+     * @minimum 0
+     * @maximum 3
+     */
+  suggestedLevel: number;
+  /** Module name that provided this suggestion */
+  source: string;
+  /** 'auto' = certainement déduit des données, 'suggested' = inféré, nécessite validation */
+  confidence: DiagnosticPrefillSuggestionConfidence;
+}
+

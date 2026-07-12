@@ -51,6 +51,7 @@ import type {
   CustomIssue,
   CustomIssueInput,
   DashboardSummary,
+  DiagnosticPrefillSuggestion,
   DiagnosticResponse,
   DiagnosticResponsesInput,
   DiagnosticSubcategoryScore,
@@ -7621,6 +7622,83 @@ export function useGetDiagnosticScores<TData = Awaited<ReturnType<typeof getDiag
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDiagnosticScoresQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDiagnosticPrefillUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/diagnostic/prefill`
+}
+
+/**
+ * @summary Get intelligent pre-fill suggestions from existing module data
+ */
+export const getDiagnosticPrefill = async (orgId: number, options?: RequestInit): Promise<DiagnosticPrefillSuggestion[]> => {
+
+  return customFetch<DiagnosticPrefillSuggestion[]>(getGetDiagnosticPrefillUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDiagnosticPrefillQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/diagnostic/prefill`
+    ] as const;
+    }
+
+
+export const getGetDiagnosticPrefillQueryOptions = <TData = Awaited<ReturnType<typeof getDiagnosticPrefill>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticPrefill>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDiagnosticPrefillQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDiagnosticPrefill>>> = ({ signal }) => getDiagnosticPrefill(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticPrefill>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDiagnosticPrefillQueryResult = NonNullable<Awaited<ReturnType<typeof getDiagnosticPrefill>>>
+export type GetDiagnosticPrefillQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get intelligent pre-fill suggestions from existing module data
+ */
+
+export function useGetDiagnosticPrefill<TData = Awaited<ReturnType<typeof getDiagnosticPrefill>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticPrefill>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDiagnosticPrefillQueryOptions(orgId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
