@@ -19,7 +19,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Award, Plus, Pencil, Trash2, FileText, ExternalLink } from "lucide-react";
+import { Award, Plus, Pencil, Trash2, FileText, ExternalLink, FolderOpen } from "lucide-react";
+import { DocumentUploader } from "@/components/DocumentUploader";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { CATEGORY_LABELS } from "@/components/DocumentUploader";
 import { cn } from "@/lib/utils";
@@ -271,6 +272,23 @@ export function MesLabels() {
                 onDelete={(id) => setDeleteId(id)}
               />
             ))}
+          </div>
+        )}
+
+        {!!currentOrgId && (
+          <div className="rounded-xl border bg-card p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <FolderOpen className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Documents labels & certifications</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Certificats, attestations, rapports d'audit, documents de renouvellement…
+            </p>
+            <DocumentUploader
+              orgId={currentOrgId}
+              category="mes-labels"
+              question="Ajoutez vos certificats et attestations de labels"
+            />
           </div>
         )}
       </div>

@@ -21,10 +21,8 @@ import { AdminOrganizations } from "@/pages/admin/organizations";
 import { AdminOrganizationDetail } from "@/pages/admin/organization-detail";
 import { AdminUsers } from "@/pages/admin/users";
 import { Resources } from "@/pages/resources";
-import {
-  DemarcheRse,
-  RapportRse,
-} from "@/pages/stubs";
+import { DemarcheRse } from "@/pages/stubs";
+import { RapportRse } from "@/pages/rapport-rse";
 import { Biodiversite } from "@/pages/biodiversite";
 import { AchatsResponsables } from "@/pages/achats-responsables";
 import { ImpactScore } from "@/pages/impact-score";

@@ -5,12 +5,13 @@ import { useListExercises } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { ClosedExerciseBanner } from "@/components/ClosedExerciseBanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Users2, HeartHandshake, GraduationCap, Sparkles, BookOpen } from "lucide-react";
+import { AlertCircle, Users2, HeartHandshake, GraduationCap, Sparkles, BookOpen, FolderOpen } from "lucide-react";
 import { TabGuide } from "./tabs/TabGuide";
 import { TabEffectifs } from "./tabs/TabEffectifs";
 import { TabDiversite } from "./tabs/TabDiversite";
 import { TabFormation } from "./tabs/TabFormation";
 import { TabSynthese } from "./tabs/TabSynthese";
+import { DocumentUploader } from "@/components/DocumentUploader";
 
 const TABS = [
   { value: "guide", label: "Guide", icon: <BookOpen className="h-3.5 w-3.5" /> },
@@ -18,6 +19,7 @@ const TABS = [
   { value: "diversite", label: "Diversité & Inclusion", icon: <HeartHandshake className="h-3.5 w-3.5" /> },
   { value: "formation", label: "Formation & Développement", icon: <GraduationCap className="h-3.5 w-3.5" /> },
   { value: "synthese", label: "Synthèse", icon: <Sparkles className="h-3.5 w-3.5" /> },
+  { value: "documents", label: "Documents", icon: <FolderOpen className="h-3.5 w-3.5" /> },
 ];
 
 export function CapitalHumain() {
@@ -83,6 +85,20 @@ export function CapitalHumain() {
 
             <TabsContent value="synthese" className="mt-0">
               <TabSynthese orgId={currentOrgId} />
+            </TabsContent>
+
+            <TabsContent value="documents" className="mt-0">
+              <div className="rounded-xl border bg-card p-6">
+                <h2 className="text-sm font-semibold mb-1">Documents Capital Humain</h2>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Bilan social, accords collectifs, rapport de formation, index égalité femmes-hommes, organigrammes…
+                </p>
+                <DocumentUploader
+                  orgId={currentOrgId}
+                  category="capital-humain"
+                  question="Ajoutez vos documents RH et sociaux"
+                />
+              </div>
             </TabsContent>
           </Tabs>
         )}

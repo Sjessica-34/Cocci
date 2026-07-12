@@ -23,6 +23,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "demarche-rse":         "Ma démarche RSE",
   "numerique-responsable":"Ma démarche Numérique Responsable",
   "mes-actions":          "Mes actions RSE",
+  "capital-humain":       "Capital Humain",
+  "mes-labels":           "Mes labels & certifications",
+  "rapport-rse":          "Mon rapport RSE",
   "autre":                "Autres documents",
 };
 

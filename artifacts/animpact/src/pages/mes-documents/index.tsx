@@ -25,6 +25,9 @@ const ORDERED_CATEGORIES = [
   "demarche-rse",
   "numerique-responsable",
   "mes-actions",
+  "capital-humain",
+  "mes-labels",
+  "rapport-rse",
   "autre",
 ];
 
