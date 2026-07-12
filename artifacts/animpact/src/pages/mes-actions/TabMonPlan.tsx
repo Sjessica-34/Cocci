@@ -29,11 +29,6 @@ const PLAN_ACTIONS: { title: string; description: string }[] = [
       "Prolonger la durée de vie des équipements informatiques d'au moins un an, privilégier le matériel reconditionné lors des renouvellements et mettre en place un don ou une filière DEEE.",
   },
   {
-    title: "Adopter un moteur de recherche écologique ou éthique",
-    description:
-      "Migrer l'ensemble des collaborateurs vers un moteur de recherche à impact réduit ou positif — Ecosia (plantation d'arbres), Lilo, Ecogine, YouCare, OceanHero, Ekoru, Gexsi, MetaGer, GOOD Search, Rapusia, Swisscows, Qwant, DuckDuckGo, Startpage, Mojeek, Seekr, Presearch, Yep ou Brave Search — et formaliser cette recommandation dans la charte numérique responsable.",
-  },
-  {
     title: "Égalité salariale femmes-hommes",
     description:
       "Conduire une analyse de l'égalité salariale par poste et niveau, publier les écarts identifiés et mettre en œuvre un plan de correction chiffré et daté.",
@@ -91,7 +86,7 @@ export function TabMonPlan() {
   return (
     <div className="space-y-2.5 py-2">
       <p className="text-xs text-muted-foreground pb-1">
-        16 actions RSE prioritaires, concrètes et actionnables pour votre démarche.
+        15 actions RSE prioritaires, concrètes et actionnables pour votre démarche.
       </p>
       {PLAN_ACTIONS.map((action, i) => (
         <div
