@@ -5,7 +5,10 @@ import {
   useListOrganizations,
   useGetNrData,
   useUpsertNrData,
+  useListLabels,
+  useCreateLabel,
   getGetNrDataQueryKey,
+  getListLabelsQueryKey,
 } from "@workspace/api-client-react";
 import type { NrDataInput, NrMeta } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
@@ -24,6 +27,13 @@ const TABS = [
   { value: "resultats",   label: "Résultats",    icon: <BarChart2     className="h-3.5 w-3.5" /> },
   { value: "calculateur", label: "Calculateur",  icon: <Calculator    className="h-3.5 w-3.5" /> },
 ];
+
+// Mapping certif NR → entrée Mes Labels (labels prédéfinis uniquement)
+const CERT_TO_LABEL: Record<string, { name: string; holder: string }> = {
+  inr: { name: "Label Numérique Responsable (INR)", holder: "Institut du Numérique Responsable" },
+  nr1: { name: "NR Niveau 1",                       holder: "Institut du Numérique Responsable" },
+  nr2: { name: "NR Niveau 2",                       holder: "Institut du Numérique Responsable" },
+};
 
 export function NumeriqueResponsable() {
   const { currentOrgId } = useCurrentOrganization();
@@ -58,11 +68,16 @@ export function NumeriqueResponsable() {
     setComments(c);
   }, [nrData]);
 
+  // ── Labels (pour la sync automatique) ──────────────────────────────────────
+  const { data: labelsData } = useListLabels(currentOrgId ?? 0, {
+    query: { enabled: !!currentOrgId, queryKey: getListLabelsQueryKey(currentOrgId ?? 0) },
+  });
+  const { mutateAsync: createLabelAsync } = useCreateLabel();
+
   // ── Mutation ────────────────────────────────────────────────────────────────
   const { mutate: upsertNr } = useUpsertNrData({
     mutation: {
       onSuccess: () => {
-        // Invalider le cache → prochain accès recharge depuis le serveur
         queryClient.invalidateQueries({
           queryKey: getGetNrDataQueryKey(currentOrgId ?? 0),
         });
@@ -70,12 +85,30 @@ export function NumeriqueResponsable() {
     },
   });
 
+  // Synchronise la certification NR vers Mes Labels (labels prédéfinis uniquement)
+  const syncCertToLabel = useCallback(async (cert: string) => {
+    if (!currentOrgId || !cert || cert === "none" || cert === "other") return;
+    const mapping = CERT_TO_LABEL[cert];
+    if (!mapping) return;
+    const existing = labelsData?.items ?? [];
+    if (existing.some((l) => l.name === mapping.name)) return; // déjà présent
+    await createLabelAsync({
+      orgId: currentOrgId,
+      data: { name: mapping.name, holder: mapping.holder, logoUrl: null, year: null, score: null, documentIds: [] },
+    });
+    queryClient.invalidateQueries({ queryKey: getListLabelsQueryKey(currentOrgId) });
+  }, [currentOrgId, labelsData, createLabelAsync, queryClient]);
+
   const handleSave = useCallback(
     (input: NrDataInput) => {
       if (!currentOrgId) return;
       upsertNr({ orgId: currentOrgId, data: input });
+      // Sync certification → Mes Labels si un label prédéfini est sélectionné
+      if (input.meta?.certificationLabel) {
+        syncCertToLabel(input.meta.certificationLabel);
+      }
     },
-    [currentOrgId, upsertNr],
+    [currentOrgId, upsertNr, syncCertToLabel],
   );
 
   // Handlers exposés aux enfants
