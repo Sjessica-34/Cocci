@@ -11,40 +11,140 @@ import { BarChart3, ChevronRight, Loader2, AlertCircle, TrendingUp, CheckCircle2
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 
-// ── Palette par axe ────────────────────────────────────────────────────────
-const CATEGORY_CONFIG: Record<string, { primary: string; light: string; label: string; text: string }> = {
-  ENV: { primary: "#10b981", light: "#d1fae5", label: "Environnement", text: "text-emerald-700" },
-  SOC: { primary: "#3b82f6", light: "#dbeafe", label: "Social",          text: "text-blue-700"    },
-  GOV: { primary: "#8b5cf6", light: "#ede9fe", label: "Gouvernance",     text: "text-violet-700"  },
+// ── Couleur selon le score ──────────────────────────────────────────────────
+function getScoreColor(score: number | null): string {
+  if (score === null) return "#cbd5e1"; // non évalué — slate-300
+  if (score >= 80)   return "#10b981"; // vert    — emerald-500
+  if (score >= 60)   return "#eab308"; // jaune   — yellow-500
+  if (score >= 40)   return "#f97316"; // orange  — orange-500
+  return               "#ef4444";       // rouge   — red-500
+}
+
+function getScoreBg(score: number | null): string {
+  if (score === null) return "#f8fafc";
+  if (score >= 80)   return "#ecfdf5";
+  if (score >= 60)   return "#fefce8";
+  if (score >= 40)   return "#fff7ed";
+  return               "#fef2f2";
+}
+
+// ── Config par axe (identités visuelles) ───────────────────────────────────
+const CATEGORY_CONFIG: Record<string, { primary: string; light: string; label: string }> = {
+  ENV: { primary: "#10b981", light: "#d1fae5", label: "Environnement" },
+  SOC: { primary: "#3b82f6", light: "#dbeafe", label: "Social"        },
+  GOV: { primary: "#8b5cf6", light: "#ede9fe", label: "Gouvernance"   },
 };
 
 const MATURITY: Record<string, { bg: string; text: string; border: string }> = {
   Excellent:     { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-  Confirmé:      { bg: "bg-teal-50",    text: "text-teal-700",    border: "border-teal-200"    },
-  Intermédiaire: { bg: "bg-amber-50",   text: "text-amber-700",   border: "border-amber-200"   },
-  Débutant:      { bg: "bg-rose-50",    text: "text-rose-700",    border: "border-rose-200"    },
+  Confirmé:      { bg: "bg-yellow-50",  text: "text-yellow-700",  border: "border-yellow-200"  },
+  Intermédiaire: { bg: "bg-orange-50",  text: "text-orange-700",  border: "border-orange-200"  },
+  Débutant:      { bg: "bg-red-50",     text: "text-red-700",     border: "border-red-200"     },
   "Non évalué":  { bg: "bg-slate-50",   text: "text-slate-500",   border: "border-slate-200"   },
 };
+
+// ── Donut axe (grand, au-dessus des grilles) ────────────────────────────────
+function AxisDonut({
+  categoryId,
+  scores,
+}: {
+  categoryId: string;
+  scores: DiagnosticSubcategoryScore[];
+}) {
+  const cfg = CATEGORY_CONFIG[categoryId];
+  const catScores = scores.filter((s) => s.categoryId === categoryId);
+  const evaluated = catScores.filter((s) => s.scorePercent !== null);
+  const avg = evaluated.length > 0
+    ? Math.round(evaluated.reduce((a, s) => a + (s.scorePercent ?? 0), 0) / evaluated.length)
+    : null;
+
+  const scoreColor = getScoreColor(avg);
+  const scoreBg    = getScoreBg(avg);
+  const data = [{ value: avg ?? 0 }, { value: Math.max(0, 100 - (avg ?? 0)) }];
+
+  // Maturity label for axis average
+  let matLabel = "Non évalué";
+  if (avg !== null) {
+    if (avg >= 80) matLabel = "Excellent";
+    else if (avg >= 60) matLabel = "Confirmé";
+    else if (avg >= 40) matLabel = "Intermédiaire";
+    else matLabel = "Débutant";
+  }
+  const mat = MATURITY[matLabel];
+
+  return (
+    <div
+      className="rounded-xl border p-5 flex flex-col items-center gap-3"
+      style={{ borderColor: scoreColor + "50", backgroundColor: scoreBg }}
+    >
+      {/* Badge axe */}
+      <div
+        className="h-7 w-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+        style={{ backgroundColor: cfg.primary }}
+      >
+        {categoryId}
+      </div>
+
+      {/* Donut */}
+      <div className="relative h-28 w-28">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={36}
+              outerRadius={50}
+              startAngle={90}
+              endAngle={-270}
+              dataKey="value"
+              strokeWidth={0}
+            >
+              <Cell fill={scoreColor} />
+              <Cell fill="#e2e8f0" />
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          {avg !== null ? (
+            <span className="text-xl font-bold text-foreground">{avg}%</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </div>
+      </div>
+
+      <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
+
+      <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium border", mat.bg, mat.text, mat.border)}>
+        {matLabel}
+      </span>
+
+      <p className="text-xs text-muted-foreground">{evaluated.length}/{catScores.length} évaluées</p>
+    </div>
+  );
+}
 
 // ── Petit donut pour une sous-catégorie ────────────────────────────────────
 function SubcategoryDonut({
   score,
-  color,
   onClick,
 }: {
   score: DiagnosticSubcategoryScore;
-  color: string;
   onClick: () => void;
 }) {
-  const filled = score.scorePercent ?? 0;
-  const data = [{ value: filled }, { value: Math.max(0, 100 - filled) }];
-  const mat = MATURITY[score.maturityLabel] ?? MATURITY["Non évalué"];
-  const hasScore = score.scorePercent !== null;
+  const filled     = score.scorePercent ?? 0;
+  const pct        = score.scorePercent ?? null;
+  const scoreColor = getScoreColor(pct);
+  const data       = [{ value: filled }, { value: Math.max(0, 100 - filled) }];
+  const mat        = MATURITY[score.maturityLabel] ?? MATURITY["Non évalué"];
+  const hasScore   = pct !== null;
 
   return (
     <button
       onClick={onClick}
       className="group flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all text-center"
+      style={hasScore ? { borderColor: scoreColor + "40", backgroundColor: getScoreBg(pct) } : {}}
     >
       {/* Donut */}
       <div className="relative h-20 w-20">
@@ -61,8 +161,8 @@ function SubcategoryDonut({
               dataKey="value"
               strokeWidth={0}
             >
-              <Cell fill={hasScore ? color : "#e2e8f0"} />
-              <Cell fill="#f1f5f9" />
+              <Cell fill={scoreColor} />
+              <Cell fill="#e2e8f0" />
             </Pie>
           </PieChart>
         </ResponsiveContainer>
@@ -83,15 +183,15 @@ function SubcategoryDonut({
         {score.maturityLabel}
       </span>
 
-      {/* Progression */}
+      {/* Réponses */}
       <div className="w-full space-y-0.5">
         <div className="h-1 rounded-full bg-muted overflow-hidden">
           <div
             className="h-full rounded-full transition-all"
-            style={{ width: `${score.completeness}%`, backgroundColor: color, opacity: 0.6 }}
+            style={{ width: `${score.completeness}%`, backgroundColor: scoreColor, opacity: 0.7 }}
           />
         </div>
-        <p className="text-[10px] text-muted-foreground">{score.answered}/{score.totalQuestions}</p>
+        <p className="text-[10px] text-muted-foreground">{score.answered}/{score.totalQuestions} réponses</p>
       </div>
 
       <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -99,35 +199,24 @@ function SubcategoryDonut({
   );
 }
 
-// ── Carte résumé d'un axe ─────────────────────────────────────────────────
-function AxisSummary({ categoryId, scores }: { categoryId: string; scores: DiagnosticSubcategoryScore[] }) {
-  const cfg = CATEGORY_CONFIG[categoryId];
-  const catScores = scores.filter((s) => s.categoryId === categoryId);
-  const evaluated = catScores.filter((s) => s.scorePercent !== null);
-  const avg = evaluated.length > 0
-    ? Math.round(evaluated.reduce((a, s) => a + (s.scorePercent ?? 0), 0) / evaluated.length)
-    : null;
-
+// ── Légende des couleurs ───────────────────────────────────────────────────
+function ScoreLegend() {
+  const items = [
+    { color: "#10b981", label: "Excellent",     range: "80–100 %" },
+    { color: "#eab308", label: "Confirmé",      range: "60–79 %"  },
+    { color: "#f97316", label: "Intermédiaire", range: "40–59 %"  },
+    { color: "#ef4444", label: "Débutant",      range: "0–39 %"   },
+  ];
   return (
-    <div
-      className="rounded-xl border px-4 py-3 flex items-center gap-3"
-      style={{ borderColor: cfg.primary + "40", backgroundColor: cfg.light + "60" }}
-    >
-      <div
-        className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
-        style={{ backgroundColor: cfg.primary }}
-      >
-        {categoryId}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
-        <p className="text-xs text-muted-foreground">{evaluated.length}/{catScores.length} évaluées</p>
-      </div>
-      {avg !== null ? (
-        <span className="text-xl font-bold text-foreground">{avg}%</span>
-      ) : (
-        <span className="text-sm text-muted-foreground">—</span>
-      )}
+    <div className="flex flex-wrap gap-3">
+      {items.map((item) => (
+        <div key={item.label} className="flex items-center gap-1.5">
+          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+          <span className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">{item.label}</span> {item.range}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -142,11 +231,11 @@ export function DiagnosticRse() {
     query: { enabled: !!currentOrgId, queryKey: getGetDiagnosticScoresQueryKey(orgId) },
   });
 
-  const totalQuestions = scores ? scores.reduce((a, s) => a + s.totalQuestions, 0) : 0;
-  const totalAnswered  = scores ? scores.reduce((a, s) => a + s.answered, 0) : 0;
-  const globalProgress = totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0;
-  const evaluatedCount = scores ? scores.filter((s) => s.scorePercent !== null).length : 0;
-  const totalSubs = DIAGNOSTIC_CATEGORIES.flatMap((c) => c.subcategories).length;
+  const totalQuestions  = scores ? scores.reduce((a, s) => a + s.totalQuestions, 0) : 0;
+  const totalAnswered   = scores ? scores.reduce((a, s) => a + s.answered, 0) : 0;
+  const globalProgress  = totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0;
+  const evaluatedCount  = scores ? scores.filter((s) => s.scorePercent !== null).length : 0;
+  const totalSubs       = DIAGNOSTIC_CATEGORIES.flatMap((c) => c.subcategories).length;
   const totalQuestionsRef = DIAGNOSTIC_CATEGORIES.flatMap((c) => c.subcategories).flatMap((s) => s.questions).length;
 
   return (
@@ -202,17 +291,20 @@ export function DiagnosticRse() {
               </div>
             </div>
 
-            {/* Résumé des 3 axes */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Légende des couleurs */}
+            <ScoreLegend />
+
+            {/* 3 grands donuts par axe */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {DIAGNOSTIC_CATEGORIES.map((cat) => (
-                <AxisSummary key={cat.id} categoryId={cat.id} scores={scores ?? []} />
+                <AxisDonut key={cat.id} categoryId={cat.id} scores={scores ?? []} />
               ))}
             </div>
 
             {/* Donuts par sous-catégorie, groupés par axe */}
             {DIAGNOSTIC_CATEGORIES.map((cat) => {
-              const cfg = CATEGORY_CONFIG[cat.id];
               const catScores = (scores ?? []).filter((s) => s.categoryId === cat.id);
+              const cfg = CATEGORY_CONFIG[cat.id];
               return (
                 <section key={cat.id}>
                   <div className="flex items-center gap-2 mb-4">
@@ -225,7 +317,6 @@ export function DiagnosticRse() {
                       <SubcategoryDonut
                         key={s.subcategoryId}
                         score={s}
-                        color={cfg.primary}
                         onClick={() => navigate(`/diagnostic/${s.categoryId}/${s.subcategoryId}`)}
                       />
                     ))}
