@@ -20,6 +20,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "bilan-carbone":        "Bilan Carbone®",
   "biodiversite":         "Mes dépendances à la biodiversité",
   "achats-responsables":  "Achats & Fournisseurs Responsables",
+  "diagnostic-rse":       "Diagnostic RSE",
   "demarche-rse":         "Ma démarche RSE",
   "numerique-responsable":"Ma démarche Numérique Responsable",
   "mes-actions":          "Mes actions RSE",
@@ -28,6 +29,16 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "rapport-rse":          "Mon rapport RSE",
   "autre":                "Autres documents",
 };
+
+/** Retourne true si la catégorie est une preuve liée au Diagnostic RSE */
+export function isDiagnosticCategory(category: string): boolean {
+  return category.startsWith("diagnostic-rse/");
+}
+
+/** Extrait l'ID de sous-catégorie d'une catégorie de document diagnostic */
+export function getDiagnosticSubcategoryId(category: string): string {
+  return category.replace("diagnostic-rse/", "");
+}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`;

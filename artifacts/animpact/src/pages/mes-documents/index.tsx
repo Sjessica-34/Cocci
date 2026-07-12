@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "wouter";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useListDocuments, useDeleteDocument, useListLabels, getListDocumentsQueryKey, getListLabelsQueryKey } from "@workspace/api-client-react";
@@ -10,11 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   FolderOpen, Upload, FileText, Trash2, Download, Loader2, AlertCircle,
-  ChevronDown, ChevronRight, Award,
+  ChevronDown, ChevronRight, Award, ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CATEGORY_LABELS } from "@/components/DocumentUploader";
-import { useRef } from "react";
+import { CATEGORY_LABELS, isDiagnosticCategory, getDiagnosticSubcategoryId } from "@/components/DocumentUploader";
+import { DIAGNOSTIC_CATEGORIES } from "@workspace/rse-referentials";
 
 const ORDERED_CATEGORIES = [
   "parties-prenantes",
@@ -37,6 +37,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
 }
 
+// ── Encart Labels ──────────────────────────────────────────────────────────
 function LabelsEncart({ labels, orgId }: { labels: Label[]; orgId: number }) {
   const [open, setOpen] = useState(true);
 
@@ -117,6 +118,7 @@ function LabelsEncart({ labels, orgId }: { labels: Label[]; orgId: number }) {
   );
 }
 
+// ── Section catégorie standard ─────────────────────────────────────────────
 function CategorySection({
   category,
   docs,
@@ -245,6 +247,213 @@ function CategorySection({
   );
 }
 
+// ── Section Diagnostic RSE (groupée par sous-catégorie) ───────────────────
+function SubcategoryDocRow({
+  doc,
+  onDelete,
+  onDownload,
+}: {
+  doc: DocumentMeta;
+  onDelete: (docId: number) => void;
+  onDownload: (doc: DocumentMeta) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
+      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-foreground truncate">{doc.originalName}</p>
+        <p className="text-[10px] text-muted-foreground">
+          {formatSize(doc.size)} · {new Date(doc.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+        </p>
+      </div>
+      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => onDownload(doc)} title="Télécharger">
+        <Download className="h-3 w-3" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(doc.id)} title="Supprimer">
+        <Trash2 className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
+
+function DiagnosticRseSection({
+  docs,
+  orgId,
+  onDelete,
+  onDownload,
+  onUpload,
+  uploading,
+  uploadingCategory,
+}: {
+  docs: DocumentMeta[];
+  orgId: number;
+  onDelete: (docId: number) => void;
+  onDownload: (doc: DocumentMeta) => void;
+  onUpload: (file: File, category: string) => void;
+  uploading: boolean;
+  uploadingCategory: string | null;
+}) {
+  const [open, setOpen] = useState(true);
+  // Construit un mapping subcategoryId → docs
+  const bySubcat: Record<string, DocumentMeta[]> = {};
+  for (const doc of docs) {
+    const sub = getDiagnosticSubcategoryId(doc.category);
+    if (!bySubcat[sub]) bySubcat[sub] = [];
+    bySubcat[sub].push(doc);
+  }
+
+  return (
+    <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+      {/* En-tête */}
+      <button
+        className="w-full flex items-center justify-between px-5 py-3.5 border-b border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="flex items-center gap-2.5">
+          <ClipboardList className="h-4 w-4 text-emerald-700 shrink-0" />
+          <span className="text-sm font-semibold text-foreground">Diagnostic RSE</span>
+          <span className="text-xs text-muted-foreground">
+            ({docs.length} preuve{docs.length !== 1 ? "s" : ""})
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/diagnostic">
+            <span
+              className="text-xs text-emerald-700 underline underline-offset-2 hover:text-emerald-900 mr-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Aller au diagnostic
+            </span>
+          </Link>
+          {open
+            ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        </div>
+      </button>
+
+      {open && (
+        <div className="p-4 space-y-3">
+          {docs.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-xs text-muted-foreground">
+                Aucune preuve importée. Ouvrez une sous-catégorie du diagnostic pour ajouter des documents.
+              </p>
+              <Link href="/diagnostic">
+                <span className="text-xs text-emerald-700 underline underline-offset-2 hover:text-emerald-900 cursor-pointer mt-1 inline-block">
+                  Accéder au diagnostic
+                </span>
+              </Link>
+            </div>
+          ) : (
+            // Groupement par axe puis sous-catégorie
+            DIAGNOSTIC_CATEGORIES.map((cat) => {
+              const subcatsWithDocs = cat.subcategories.filter((s) => bySubcat[s.id]?.length);
+              if (subcatsWithDocs.length === 0) return null;
+              return (
+                <div key={cat.id} className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                    {cat.label}
+                  </p>
+                  {subcatsWithDocs.map((sub) => (
+                    <SubcatGroup
+                      key={sub.id}
+                      label={sub.label}
+                      subcategoryId={sub.id}
+                      docs={bySubcat[sub.id] ?? []}
+                      orgId={orgId}
+                      onDelete={onDelete}
+                      onDownload={onDownload}
+                      onUpload={onUpload}
+                      uploading={uploading}
+                      uploadingCategory={uploadingCategory}
+                    />
+                  ))}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubcatGroup({
+  label,
+  subcategoryId,
+  docs,
+  orgId,
+  onDelete,
+  onDownload,
+  onUpload,
+  uploading,
+  uploadingCategory,
+}: {
+  label: string;
+  subcategoryId: string;
+  docs: DocumentMeta[];
+  orgId: number;
+  onDelete: (docId: number) => void;
+  onDownload: (doc: DocumentMeta) => void;
+  onUpload: (file: File, category: string) => void;
+  uploading: boolean;
+  uploadingCategory: string | null;
+}) {
+  const [open, setOpen] = useState(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const docCategory = `diagnostic-rse/${subcategoryId}`;
+  const isUploading = uploading && uploadingCategory === docCategory;
+
+  return (
+    <div className="rounded-lg border border-emerald-100 bg-white overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/5 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="flex items-center gap-2">
+          <FolderOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+          <span className="text-xs font-medium text-foreground">{label}</span>
+          <span className="text-[10px] text-muted-foreground">({docs.length})</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 gap-1 text-[10px] px-2"
+            onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+            disabled={isUploading}
+          >
+            {isUploading ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Upload className="h-2.5 w-2.5" />}
+            Ajouter
+          </Button>
+          {open
+            ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+        </div>
+      </button>
+      {open && docs.length > 0 && (
+        <div className="px-4 pb-3 border-t border-border/50 divide-y divide-border/50">
+          {docs.map((doc) => (
+            <SubcategoryDocRow key={doc.id} doc={doc} onDelete={onDelete} onDownload={onDownload} />
+          ))}
+        </div>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        className="sr-only"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.png,.jpg,.jpeg"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onUpload(file, docCategory);
+          if (inputRef.current) inputRef.current.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Page principale ────────────────────────────────────────────────────────
 export function MesDocuments() {
   const { currentOrgId } = useCurrentOrganization();
   const { getToken } = useAuth();
@@ -316,12 +525,18 @@ export function MesDocuments() {
     deleteDoc({ orgId: currentOrgId, docId });
   };
 
+  const allDocs = docs as DocumentMeta[];
+
+  // Séparer les documents diagnostic RSE des autres
+  const diagnosticDocs = allDocs.filter((d) => isDiagnosticCategory(d.category));
+  const regularDocs = allDocs.filter((d) => !isDiagnosticCategory(d.category));
+
   const docsByCategory = ORDERED_CATEGORIES.reduce<Record<string, DocumentMeta[]>>((acc, cat) => {
-    acc[cat] = (docs as DocumentMeta[]).filter((d) => d.category === cat);
+    acc[cat] = regularDocs.filter((d) => d.category === cat);
     return acc;
   }, {});
 
-  const totalDocs = (docs as DocumentMeta[]).length;
+  const totalDocs = allDocs.length;
 
   return (
     <AppLayout>
@@ -370,6 +585,18 @@ export function MesDocuments() {
 
         {!isLoading && !!currentOrgId && (
           <div className="space-y-4">
+            {/* Section Diagnostic RSE (preuves par sous-catégorie) */}
+            <DiagnosticRseSection
+              docs={diagnosticDocs}
+              orgId={currentOrgId}
+              onDelete={handleDelete}
+              onDownload={handleDownload}
+              onUpload={handleUpload}
+              uploading={uploading}
+              uploadingCategory={uploadingCategory}
+            />
+
+            {/* Sections standard */}
             {ORDERED_CATEGORIES.map((cat) => (
               <CategorySection
                 key={cat}
