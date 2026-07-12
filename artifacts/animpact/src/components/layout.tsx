@@ -334,6 +334,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
         >
           {showExerciseUi && <ClosedExerciseBanner />}
           {children}
+          <div className="mt-12 pt-6 border-t border-border/50 text-center">
+            <p className="text-xs text-muted-foreground">Besoin d'un accompagnement ?</p>
+            <a
+              href="mailto:bonjour@a-nim-pact.fr"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              bonjour@a-nim-pact.fr
+            </a>
+          </div>
         </div>
       </main>
     </div>
