@@ -1,0 +1,83 @@
+PRÉ-REMPLISSAGE INTELLIGENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le Diagnostic RSE doit être capable d'utiliser automatiquement les données déjà présentes dans les autres modules de Cocci.
+
+L'objectif est d'éviter les doubles saisies.
+
+Lorsqu'une information existe déjà dans un autre module, Cocci doit :
+
+• pré-remplir automatiquement la réponse lorsqu'elle est certaine ;
+
+• proposer une réponse suggérée lorsqu'une validation de l'utilisateur est préférable ;
+
+• laisser l'utilisateur modifier la réponse à tout moment.
+
+Chaque réponse pré-remplie doit être identifiable par un badge discret :
+
+🧠 Pré-rempli automatiquement
+
+ou
+
+💡 Réponse suggérée par Cocci
+
+Le calcul du score doit prendre en compte ces réponses.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULES CONCERNÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le Diagnostic RSE doit être capable d'utiliser automatiquement les informations provenant notamment de :
+
+• Capital humain
+• Baromètre social
+• Bilan carbone
+• Parties prenantes
+• Mes actions
+• Mon plan d'action
+• Numérique responsable
+• Documents
+• Consommations d'énergie
+• Consommations d'eau
+• Déchets
+• Mobilité
+• Biodiversité
+• Fournisseurs
+• Achats responsables
+• KPI
+• Tableau de bord
+• Toute nouvelle fonctionnalité développée dans Cocci.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXEMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si un bilan carbone existe déjà dans Cocci :
+
+→ la question
+"Avez-vous réalisé un bilan carbone ?"
+est automatiquement pré-remplie.
+
+Si un plan d'action existe :
+
+→ les questions concernant le pilotage des actions peuvent être suggérées.
+
+Si des indicateurs RH existent :
+
+→ les questions relatives au suivi des effectifs peuvent être proposées automatiquement.
+
+Si des enquêtes du Baromètre social ont déjà été réalisées :
+
+→ les questions relatives au dialogue social ou à la QVCT peuvent être pré-remplies.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBJECTIF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Plus l'entreprise utilise Cocci, moins elle doit répondre manuellement au Diagnostic RSE.
+
+Le Diagnostic RSE doit devenir de plus en plus intelligent au fil de l'utilisation du SaaS.
+
+À terme, une entreprise utilisant régulièrement Cocci ne doit avoir à compléter que les questions qui ne peuvent pas être déduites automatiquement des données déjà présentes.
+
+Le Diagnostic RSE doit fonctionner comme un véritable assistant intelligent et non comme un simple questionnaire.
