@@ -62,7 +62,6 @@ const navGroups: NavItem[][] = [
     { href: "/achats-responsables", label: "Achats & Fournisseurs Responsables", icon: ShoppingBag },
   ],
   [
-    { href: "/demarche-rse", label: "Ma démarche RSE", icon: BarChart3 },
     { href: "/bilan-carbone", label: "Mon bilan carbone", icon: Globe },
     { href: "/numerique-responsable", label: "Ma démarche Numérique Responsable", icon: Monitor },
   ],
@@ -76,6 +75,7 @@ const navGroups: NavItem[][] = [
   [
     { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },
     { href: "/mes-labels", label: "Mes labels", icon: Award },
+    { href: "/demarche-rse", label: "Ma démarche RSE", icon: BarChart3 },
     { href: "/rapport-rse", label: "Mon rapport RSE", icon: FileText },
   ],
   [
