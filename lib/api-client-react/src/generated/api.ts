@@ -86,6 +86,10 @@ import type {
   Organization,
   OrganizationInput,
   OrganizationUpdate,
+  PlanAchievement,
+  PlanSlot,
+  PlanSlotUpdate,
+  PlanSlotUpdateResult,
   PublicBarometreQuestionnaire,
   PublicBarometreSubmission,
   PublicBarometreSubmissionAck,
@@ -7101,4 +7105,303 @@ export const useDeleteActionPlanItem = <TError = ErrorType<void>,
       > => {
       return useMutation(getDeleteActionPlanItemMutationOptions(options));
     }
+
+export const getListPlanSlotsUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/plan-slots`
+}
+
+/**
+ * Returns the 15 active slots + done slots for the current exercise.
+ * @summary List plan slots for current exercise
+ */
+export const listPlanSlots = async (orgId: number, options?: RequestInit): Promise<PlanSlot[]> => {
+
+  return customFetch<PlanSlot[]>(getListPlanSlotsUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlanSlotsQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/plan-slots`
+    ] as const;
+    }
+
+
+export const getListPlanSlotsQueryOptions = <TData = Awaited<ReturnType<typeof listPlanSlots>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanSlots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlanSlotsQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlanSlots>>> = ({ signal }) => listPlanSlots(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlanSlots>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlanSlotsQueryResult = NonNullable<Awaited<ReturnType<typeof listPlanSlots>>>
+export type ListPlanSlotsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List plan slots for current exercise
+ */
+
+export function useListPlanSlots<TData = Awaited<ReturnType<typeof listPlanSlots>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanSlots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlanSlotsQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getInitializePlanSlotsUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/plan-slots/initialize`
+}
+
+/**
+ * Seeds the plan with 15 actions from the library if not already done.
+ * @summary Initialize 15 plan slots (idempotent)
+ */
+export const initializePlanSlots = async (orgId: number, options?: RequestInit): Promise<PlanSlot[]> => {
+
+  return customFetch<PlanSlot[]>(getInitializePlanSlotsUrl(orgId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getInitializePlanSlotsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initializePlanSlots>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof initializePlanSlots>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['initializePlanSlots'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof initializePlanSlots>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  initializePlanSlots(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InitializePlanSlotsMutationResult = NonNullable<Awaited<ReturnType<typeof initializePlanSlots>>>
+
+    export type InitializePlanSlotsMutationError = ErrorType<void>
+
+    /**
+ * @summary Initialize 15 plan slots (idempotent)
+ */
+export const useInitializePlanSlots = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initializePlanSlots>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof initializePlanSlots>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getInitializePlanSlotsMutationOptions(options));
+    }
+
+export const getUpdatePlanSlotUrl = (orgId: number,
+    slotId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/plan-slots/${slotId}`
+}
+
+/**
+ * @summary Update a plan slot (mark done, comment, justification)
+ */
+export const updatePlanSlot = async (orgId: number,
+    slotId: number,
+    planSlotUpdate: PlanSlotUpdate, options?: RequestInit): Promise<PlanSlotUpdateResult> => {
+
+  return customFetch<PlanSlotUpdateResult>(getUpdatePlanSlotUrl(orgId,slotId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planSlotUpdate)
+  }
+);}
+
+
+
+
+export const getUpdatePlanSlotMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlanSlot>>, TError,{orgId: number;slotId: number;data: BodyType<PlanSlotUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlanSlot>>, TError,{orgId: number;slotId: number;data: BodyType<PlanSlotUpdate>}, TContext> => {
+
+const mutationKey = ['updatePlanSlot'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlanSlot>>, {orgId: number;slotId: number;data: BodyType<PlanSlotUpdate>}> = (props) => {
+          const {orgId,slotId,data} = props ?? {};
+
+          return  updatePlanSlot(orgId,slotId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlanSlotMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlanSlot>>>
+    export type UpdatePlanSlotMutationBody = BodyType<PlanSlotUpdate>
+    export type UpdatePlanSlotMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a plan slot (mark done, comment, justification)
+ */
+export const useUpdatePlanSlot = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlanSlot>>, TError,{orgId: number;slotId: number;data: BodyType<PlanSlotUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlanSlot>>,
+        TError,
+        {orgId: number;slotId: number;data: BodyType<PlanSlotUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlanSlotMutationOptions(options));
+    }
+
+export const getListPlanAchievementsUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/plan-slots/achievements`
+}
+
+/**
+ * @summary List all done slots across all exercises (Réalisations)
+ */
+export const listPlanAchievements = async (orgId: number, options?: RequestInit): Promise<PlanAchievement[]> => {
+
+  return customFetch<PlanAchievement[]>(getListPlanAchievementsUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlanAchievementsQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/plan-slots/achievements`
+    ] as const;
+    }
+
+
+export const getListPlanAchievementsQueryOptions = <TData = Awaited<ReturnType<typeof listPlanAchievements>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanAchievements>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlanAchievementsQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlanAchievements>>> = ({ signal }) => listPlanAchievements(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlanAchievements>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlanAchievementsQueryResult = NonNullable<Awaited<ReturnType<typeof listPlanAchievements>>>
+export type ListPlanAchievementsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all done slots across all exercises (Réalisations)
+ */
+
+export function useListPlanAchievements<TData = Awaited<ReturnType<typeof listPlanAchievements>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanAchievements>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlanAchievementsQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

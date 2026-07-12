@@ -2334,6 +2334,99 @@ paths:
         "404":
           description: Not found
 
+  # ─── PLAN D'ACTION COCCI (SLOTS) ─────────────────────────────────────────────
+
+  /organizations/{orgId}/plan-slots:
+    get:
+      operationId: listPlanSlots
+      tags: [actions]
+      summary: List plan slots for current exercise
+      description: Returns the 15 active slots + done slots for the current exercise.
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Plan slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanSlot"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/plan-slots/initialize:
+    post:
+      operationId: initializePlanSlots
+      tags: [actions]
+      summary: Initialize 15 plan slots (idempotent)
+      description: Seeds the plan with 15 actions from the library if not already done.
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Plan initialized (or already initialized)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanSlot"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/plan-slots/{slotId}:
+    patch:
+      operationId: updatePlanSlot
+      tags: [actions]
+      summary: Update a plan slot (mark done, comment, justification)
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+        - { name: slotId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanSlotUpdate"
+      responses:
+        "200":
+          description: Updated slot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanSlotUpdateResult"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /organizations/{orgId}/plan-slots/achievements:
+    get:
+      operationId: listPlanAchievements
+      tags: [actions]
+      summary: List all done slots across all exercises (Réalisations)
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Achievements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanAchievement"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
 components:
   schemas:
     HealthStatus:
@@ -4101,4 +4194,160 @@ components:
           nullable: true
         justificationUrl:
           type: string
+          nullable: true
+
+  # ─── PLAN D'ACTION COCCI (SLOTS) ─────────────────────────────────────────────
+
+    PlanSlot:
+      type: object
+      required: [id, organizationId, exerciseId, slotOrder, isDone, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        exerciseId:
+          type: integer
+        libraryActionId:
+          type: integer
+          nullable: true
+        slotOrder:
+          type: integer
+        isDone:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        justificationUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        actionName:
+          type: string
+          nullable: true
+        actionDescription:
+          type: string
+          nullable: true
+        actionCategory:
+          type: string
+          nullable: true
+        actionSubcategory:
+          type: string
+          nullable: true
+        actionLevel:
+          type: string
+          nullable: true
+        exerciseYear:
+          type: integer
+          nullable: true
+
+    PlanSlotUpdate:
+      type: object
+      properties:
+        isDone:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        justificationUrl:
+          type: string
+          nullable: true
+
+    PlanSlotUpdateResult:
+      type: object
+      required: [id, organizationId, exerciseId, slotOrder, isDone, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        exerciseId:
+          type: integer
+        libraryActionId:
+          type: integer
+          nullable: true
+        slotOrder:
+          type: integer
+        isDone:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        justificationUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PlanAchievement:
+      type: object
+      required: [id, organizationId, exerciseId, slotOrder, isDone, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        exerciseId:
+          type: integer
+        libraryActionId:
+          type: integer
+          nullable: true
+        slotOrder:
+          type: integer
+        isDone:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        justificationUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        actionName:
+          type: string
+          nullable: true
+        actionDescription:
+          type: string
+          nullable: true
+        actionCategory:
+          type: string
+          nullable: true
+        actionSubcategory:
+          type: string
+          nullable: true
+        actionLevel:
+          type: string
+          nullable: true
+        exerciseYear:
+          type: integer
           nullable: true

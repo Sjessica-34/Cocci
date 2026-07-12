@@ -2,10 +2,11 @@ import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
-import { AlertCircle, ListChecks, BookOpen, ClipboardCheck } from "lucide-react";
+import { AlertCircle, ListChecks, BookOpen, ClipboardCheck, Trophy } from "lucide-react";
 import { TabGuideContent } from "./TabGuideContent";
 import { TabMonPlan } from "./TabMonPlan";
 import { ActionChecklist } from "./ActionChecklist";
+import { TabRealisations } from "./TabRealisations";
 
 export function MesActions() {
   const { currentOrgId } = useCurrentOrganization();
@@ -38,6 +39,10 @@ export function MesActions() {
               <ListChecks className="h-4 w-4" />
               Mes actions
             </TabsTrigger>
+            <TabsTrigger value="realisations" className="gap-2 text-sm">
+              <Trophy className="h-4 w-4" />
+              Réalisations
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="guide">
@@ -53,7 +58,7 @@ export function MesActions() {
                 </p>
               </div>
             ) : (
-              <TabMonPlan />
+              <TabMonPlan orgId={currentOrgId} />
             )}
           </TabsContent>
 
@@ -67,6 +72,19 @@ export function MesActions() {
               </div>
             ) : (
               <ActionChecklist orgId={currentOrgId} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="realisations">
+            {!currentOrgId ? (
+              <div className="flex items-center gap-3 p-5 rounded-xl border border-amber-200 bg-amber-50">
+                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                <p className="text-sm text-amber-800">
+                  Sélectionnez une organisation pour accéder à vos réalisations.
+                </p>
+              </div>
+            ) : (
+              <TabRealisations orgId={currentOrgId} />
             )}
           </TabsContent>
         </Tabs>

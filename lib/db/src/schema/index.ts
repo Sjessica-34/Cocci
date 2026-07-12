@@ -17,3 +17,4 @@ export * from "./labels";
 export * from "./barometreSocial";
 export * from "./employment";
 export * from "./actionPlan";
+export * from "./planSlots";

@@ -2909,3 +2909,122 @@ export const DeleteActionPlanItemParams = zod.object({
 export const DeleteActionPlanItemResponse = zod.void()
 
 
+/**
+ * Returns the 15 active slots + done slots for the current exercise.
+ * @summary List plan slots for current exercise
+ */
+export const ListPlanSlotsParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListPlanSlotsResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "libraryActionId": zod.number().nullish(),
+  "slotOrder": zod.number(),
+  "isDone": zod.boolean(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "actionName": zod.string().nullish(),
+  "actionDescription": zod.string().nullish(),
+  "actionCategory": zod.string().nullish(),
+  "actionSubcategory": zod.string().nullish(),
+  "actionLevel": zod.string().nullish(),
+  "exerciseYear": zod.number().nullish()
+})
+export const ListPlanSlotsResponse = zod.array(ListPlanSlotsResponseItem)
+
+
+/**
+ * Seeds the plan with 15 actions from the library if not already done.
+ * @summary Initialize 15 plan slots (idempotent)
+ */
+export const InitializePlanSlotsParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const InitializePlanSlotsResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "libraryActionId": zod.number().nullish(),
+  "slotOrder": zod.number(),
+  "isDone": zod.boolean(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "actionName": zod.string().nullish(),
+  "actionDescription": zod.string().nullish(),
+  "actionCategory": zod.string().nullish(),
+  "actionSubcategory": zod.string().nullish(),
+  "actionLevel": zod.string().nullish(),
+  "exerciseYear": zod.number().nullish()
+})
+export const InitializePlanSlotsResponse = zod.array(InitializePlanSlotsResponseItem)
+
+
+/**
+ * @summary Update a plan slot (mark done, comment, justification)
+ */
+export const UpdatePlanSlotParams = zod.object({
+  "orgId": zod.coerce.number(),
+  "slotId": zod.coerce.number()
+})
+
+export const UpdatePlanSlotBody = zod.object({
+  "isDone": zod.boolean().optional(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish()
+})
+
+export const UpdatePlanSlotResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "libraryActionId": zod.number().nullish(),
+  "slotOrder": zod.number(),
+  "isDone": zod.boolean(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List all done slots across all exercises (Réalisations)
+ */
+export const ListPlanAchievementsParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const ListPlanAchievementsResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "libraryActionId": zod.number().nullish(),
+  "slotOrder": zod.number(),
+  "isDone": zod.boolean(),
+  "completedAt": zod.coerce.date().nullish(),
+  "comment": zod.string().nullish(),
+  "justificationUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "actionName": zod.string().nullish(),
+  "actionDescription": zod.string().nullish(),
+  "actionCategory": zod.string().nullish(),
+  "actionSubcategory": zod.string().nullish(),
+  "actionLevel": zod.string().nullish(),
+  "exerciseYear": zod.number().nullish()
+})
+export const ListPlanAchievementsResponse = zod.array(ListPlanAchievementsResponseItem)
+
+

@@ -19,6 +19,7 @@ import exercisesRouter from "./exercises";
 import barometreSocialRouter from "./barometreSocial";
 import employmentRouter from "./employment";
 import actionPlanRouter from "./actionPlan";
+import planSlotsRouter from "./planSlots";
 
 const router: IRouter = Router();
 
@@ -42,5 +43,6 @@ router.use(labelsRouter);
 router.use(barometreSocialRouter);
 router.use(employmentRouter);
 router.use(actionPlanRouter);
+router.use(planSlotsRouter);
 
 export default router;

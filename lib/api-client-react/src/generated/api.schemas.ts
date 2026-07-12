@@ -1639,3 +1639,64 @@ export interface ActionPlanItemUpdate {
   justificationUrl?: string | null;
 }
 
+export interface PlanSlot {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  libraryActionId?: number | null;
+  slotOrder: number;
+  isDone: boolean;
+  completedAt?: string | null;
+  comment?: string | null;
+  justificationUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  actionName?: string | null;
+  actionDescription?: string | null;
+  actionCategory?: string | null;
+  actionSubcategory?: string | null;
+  actionLevel?: string | null;
+  exerciseYear?: number | null;
+}
+
+export interface PlanSlotUpdate {
+  isDone?: boolean;
+  completedAt?: string | null;
+  comment?: string | null;
+  justificationUrl?: string | null;
+}
+
+export interface PlanSlotUpdateResult {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  libraryActionId?: number | null;
+  slotOrder: number;
+  isDone: boolean;
+  completedAt?: string | null;
+  comment?: string | null;
+  justificationUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlanAchievement {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  libraryActionId?: number | null;
+  slotOrder: number;
+  isDone: boolean;
+  completedAt?: string | null;
+  comment?: string | null;
+  justificationUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  actionName?: string | null;
+  actionDescription?: string | null;
+  actionCategory?: string | null;
+  actionSubcategory?: string | null;
+  actionLevel?: string | null;
+  exerciseYear?: number | null;
+}
+
