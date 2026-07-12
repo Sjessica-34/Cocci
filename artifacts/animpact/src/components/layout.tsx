@@ -75,7 +75,9 @@ const navGroups: NavItem[][] = [
   [
     { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },
     { href: "/mes-labels", label: "Mes labels", icon: Award },
-    { href: "/diagnostic", label: "Diagnostic RSE", icon: BarChart3 },
+  ],
+  [
+    { href: "/diagnostic", label: "Mon diagnostic RSE", icon: BarChart3 },
     { href: "/rapport-rse", label: "Mon rapport RSE", icon: FileText },
   ],
   [
