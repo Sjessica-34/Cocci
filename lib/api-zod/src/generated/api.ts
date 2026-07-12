@@ -3028,3 +3028,85 @@ export const ListPlanAchievementsResponseItem = zod.object({
 export const ListPlanAchievementsResponse = zod.array(ListPlanAchievementsResponseItem)
 
 
+/**
+ * @summary Get all diagnostic responses for an exercise
+ */
+export const GetDiagnosticResponsesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const getDiagnosticResponsesResponseLevelMin = 0;
+export const getDiagnosticResponsesResponseLevelMax = 3;
+
+
+
+export const GetDiagnosticResponsesResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "questionId": zod.string(),
+  "level": zod.number().min(getDiagnosticResponsesResponseLevelMin).max(getDiagnosticResponsesResponseLevelMax),
+  "comment": zod.string().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+export const GetDiagnosticResponsesResponse = zod.array(GetDiagnosticResponsesResponseItem)
+
+
+/**
+ * @summary Upsert diagnostic responses (batch)
+ */
+export const UpsertDiagnosticResponsesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const upsertDiagnosticResponsesBodyResponsesItemLevelMin = 0;
+export const upsertDiagnosticResponsesBodyResponsesItemLevelMax = 3;
+
+
+
+
+export const UpsertDiagnosticResponsesBody = zod.object({
+  "responses": zod.array(zod.object({
+  "questionId": zod.string(),
+  "level": zod.number().min(upsertDiagnosticResponsesBodyResponsesItemLevelMin).max(upsertDiagnosticResponsesBodyResponsesItemLevelMax),
+  "comment": zod.string().nullish()
+})).min(1)
+})
+
+export const upsertDiagnosticResponsesResponseLevelMin = 0;
+export const upsertDiagnosticResponsesResponseLevelMax = 3;
+
+
+
+export const UpsertDiagnosticResponsesResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "questionId": zod.string(),
+  "level": zod.number().min(upsertDiagnosticResponsesResponseLevelMin).max(upsertDiagnosticResponsesResponseLevelMax),
+  "comment": zod.string().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+export const UpsertDiagnosticResponsesResponse = zod.array(UpsertDiagnosticResponsesResponseItem)
+
+
+/**
+ * @summary Get computed diagnostic scores per subcategory
+ */
+export const GetDiagnosticScoresParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetDiagnosticScoresResponseItem = zod.object({
+  "subcategoryId": zod.string(),
+  "categoryId": zod.string(),
+  "label": zod.string(),
+  "totalQuestions": zod.number(),
+  "answered": zod.number(),
+  "completeness": zod.number(),
+  "scorePercent": zod.number().nullish(),
+  "maturityLabel": zod.string()
+})
+export const GetDiagnosticScoresResponse = zod.array(GetDiagnosticScoresResponseItem)
+
+

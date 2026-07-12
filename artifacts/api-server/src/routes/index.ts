@@ -20,6 +20,7 @@ import barometreSocialRouter from "./barometreSocial";
 import employmentRouter from "./employment";
 import actionPlanRouter from "./actionPlan";
 import planSlotsRouter from "./planSlots";
+import diagnosticRouter from "./diagnostic";
 
 const router: IRouter = Router();
 
@@ -44,5 +45,6 @@ router.use(barometreSocialRouter);
 router.use(employmentRouter);
 router.use(actionPlanRouter);
 router.use(planSlotsRouter);
+router.use(diagnosticRouter);
 
 export default router;

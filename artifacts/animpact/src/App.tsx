@@ -21,7 +21,8 @@ import { AdminOrganizations } from "@/pages/admin/organizations";
 import { AdminOrganizationDetail } from "@/pages/admin/organization-detail";
 import { AdminUsers } from "@/pages/admin/users";
 import { Resources } from "@/pages/resources";
-import { DemarcheRse } from "@/pages/stubs";
+import { DiagnosticRse } from "@/pages/diagnostic/index";
+import { DiagnosticQuestionnaire } from "@/pages/diagnostic/questionnaire";
 import { RapportRse } from "@/pages/rapport-rse";
 import { Biodiversite } from "@/pages/biodiversite";
 import { AchatsResponsables } from "@/pages/achats-responsables";
@@ -267,7 +268,8 @@ function ClerkProviderWithRoutes() {
             <Route path="/parties-prenantes"><ProtectedRoute component={PartiesPrenantes} /></Route>
             <Route path="/biodiversite"><ProtectedRoute component={Biodiversite} /></Route>
             <Route path="/achats-responsables"><ProtectedRoute component={AchatsResponsables} /></Route>
-            <Route path="/demarche-rse"><ProtectedRoute component={DemarcheRse} /></Route>
+            <Route path="/diagnostic"><ProtectedRoute component={DiagnosticRse} /></Route>
+            <Route path="/diagnostic/:categoryId/:subcategoryId"><ProtectedRoute component={DiagnosticQuestionnaire} /></Route>
             <Route path="/bilan-carbone"><ProtectedRoute component={BilanCarbone} /></Route>
             <Route path="/numerique-responsable"><ProtectedRoute component={NumeriqueResponsable} /></Route>
             <Route path="/impact-score"><ProtectedRoute component={ImpactScore} /></Route>

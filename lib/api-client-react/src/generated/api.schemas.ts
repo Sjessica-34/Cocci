@@ -1700,3 +1700,43 @@ export interface PlanAchievement {
   exerciseYear?: number | null;
 }
 
+export interface DiagnosticResponse {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  questionId: string;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  level: number;
+  comment?: string | null;
+  updatedAt: string;
+}
+
+export interface DiagnosticResponseItem {
+  questionId: string;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  level: number;
+  comment?: string | null;
+}
+
+export interface DiagnosticResponsesInput {
+  /** @minItems 1 */
+  responses: DiagnosticResponseItem[];
+}
+
+export interface DiagnosticSubcategoryScore {
+  subcategoryId: string;
+  categoryId: string;
+  label: string;
+  totalQuestions: number;
+  answered: number;
+  completeness: number;
+  scorePercent?: number | null;
+  maturityLabel: string;
+}
+

@@ -51,6 +51,9 @@ import type {
   CustomIssue,
   CustomIssueInput,
   DashboardSummary,
+  DiagnosticResponse,
+  DiagnosticResponsesInput,
+  DiagnosticSubcategoryScore,
   DocumentMeta,
   EmploymentCustomKpi,
   EmploymentCustomKpiInput,
@@ -7393,6 +7396,231 @@ export function useListPlanAchievements<TData = Awaited<ReturnType<typeof listPl
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListPlanAchievementsQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDiagnosticResponsesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/diagnostic/responses`
+}
+
+/**
+ * @summary Get all diagnostic responses for an exercise
+ */
+export const getDiagnosticResponses = async (orgId: number, options?: RequestInit): Promise<DiagnosticResponse[]> => {
+
+  return customFetch<DiagnosticResponse[]>(getGetDiagnosticResponsesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDiagnosticResponsesQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/diagnostic/responses`
+    ] as const;
+    }
+
+
+export const getGetDiagnosticResponsesQueryOptions = <TData = Awaited<ReturnType<typeof getDiagnosticResponses>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticResponses>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDiagnosticResponsesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDiagnosticResponses>>> = ({ signal }) => getDiagnosticResponses(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticResponses>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDiagnosticResponsesQueryResult = NonNullable<Awaited<ReturnType<typeof getDiagnosticResponses>>>
+export type GetDiagnosticResponsesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get all diagnostic responses for an exercise
+ */
+
+export function useGetDiagnosticResponses<TData = Awaited<ReturnType<typeof getDiagnosticResponses>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticResponses>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDiagnosticResponsesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertDiagnosticResponsesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/diagnostic/responses`
+}
+
+/**
+ * @summary Upsert diagnostic responses (batch)
+ */
+export const upsertDiagnosticResponses = async (orgId: number,
+    diagnosticResponsesInput: DiagnosticResponsesInput, options?: RequestInit): Promise<DiagnosticResponse[]> => {
+
+  return customFetch<DiagnosticResponse[]>(getUpsertDiagnosticResponsesUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(diagnosticResponsesInput)
+  }
+);}
+
+
+
+
+export const getUpsertDiagnosticResponsesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertDiagnosticResponses>>, TError,{orgId: number;data: BodyType<DiagnosticResponsesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertDiagnosticResponses>>, TError,{orgId: number;data: BodyType<DiagnosticResponsesInput>}, TContext> => {
+
+const mutationKey = ['upsertDiagnosticResponses'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertDiagnosticResponses>>, {orgId: number;data: BodyType<DiagnosticResponsesInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertDiagnosticResponses(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertDiagnosticResponsesMutationResult = NonNullable<Awaited<ReturnType<typeof upsertDiagnosticResponses>>>
+    export type UpsertDiagnosticResponsesMutationBody = BodyType<DiagnosticResponsesInput>
+    export type UpsertDiagnosticResponsesMutationError = ErrorType<void>
+
+    /**
+ * @summary Upsert diagnostic responses (batch)
+ */
+export const useUpsertDiagnosticResponses = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertDiagnosticResponses>>, TError,{orgId: number;data: BodyType<DiagnosticResponsesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertDiagnosticResponses>>,
+        TError,
+        {orgId: number;data: BodyType<DiagnosticResponsesInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertDiagnosticResponsesMutationOptions(options));
+    }
+
+export const getGetDiagnosticScoresUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/diagnostic/scores`
+}
+
+/**
+ * @summary Get computed diagnostic scores per subcategory
+ */
+export const getDiagnosticScores = async (orgId: number, options?: RequestInit): Promise<DiagnosticSubcategoryScore[]> => {
+
+  return customFetch<DiagnosticSubcategoryScore[]>(getGetDiagnosticScoresUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDiagnosticScoresQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/diagnostic/scores`
+    ] as const;
+    }
+
+
+export const getGetDiagnosticScoresQueryOptions = <TData = Awaited<ReturnType<typeof getDiagnosticScores>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticScores>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDiagnosticScoresQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDiagnosticScores>>> = ({ signal }) => getDiagnosticScores(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticScores>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDiagnosticScoresQueryResult = NonNullable<Awaited<ReturnType<typeof getDiagnosticScores>>>
+export type GetDiagnosticScoresQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get computed diagnostic scores per subcategory
+ */
+
+export function useGetDiagnosticScores<TData = Awaited<ReturnType<typeof getDiagnosticScores>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticScores>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDiagnosticScoresQueryOptions(orgId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

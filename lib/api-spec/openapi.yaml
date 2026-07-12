@@ -34,6 +34,8 @@ tags:
     description: Emploi & Compétences — workforce, diversity, training data and computed HR indicators
   - name: actions
     description: Plan d'actions RSE — referentiel Cocci et plan d'actions par organisation/exercice
+  - name: diagnostic
+    description: Diagnostic RSE — questionnaire RCMR par sous-catégorie, scores et maturité
 
 paths:
   /healthz:
@@ -2427,6 +2429,88 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── DIAGNOSTIC RSE ──────────────────────────────────────────────────────────
+  /organizations/{orgId}/diagnostic/responses:
+    get:
+      operationId: getDiagnosticResponses
+      tags: [diagnostic]
+      summary: Get all diagnostic responses for an exercise
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of diagnostic responses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiagnosticResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    put:
+      operationId: upsertDiagnosticResponses
+      tags: [diagnostic]
+      summary: Upsert diagnostic responses (batch)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagnosticResponsesInput"
+      responses:
+        "200":
+          description: Updated responses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiagnosticResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/diagnostic/scores:
+    get:
+      operationId: getDiagnosticScores
+      tags: [diagnostic]
+      summary: Get computed diagnostic scores per subcategory
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Diagnostic scores per subcategory
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiagnosticSubcategoryScore"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
 components:
   schemas:
     HealthStatus:
@@ -4351,3 +4435,72 @@ components:
         exerciseYear:
           type: integer
           nullable: true
+
+    DiagnosticResponse:
+      type: object
+      required: [id, organizationId, exerciseId, questionId, level, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        exerciseId:
+          type: integer
+        questionId:
+          type: string
+        level:
+          type: integer
+          minimum: 0
+          maximum: 3
+        comment:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    DiagnosticResponseItem:
+      type: object
+      required: [questionId, level]
+      properties:
+        questionId:
+          type: string
+        level:
+          type: integer
+          minimum: 0
+          maximum: 3
+        comment:
+          type: string
+          nullable: true
+
+    DiagnosticResponsesInput:
+      type: object
+      required: [responses]
+      properties:
+        responses:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagnosticResponseItem"
+          minItems: 1
+
+    DiagnosticSubcategoryScore:
+      type: object
+      required: [subcategoryId, categoryId, label, totalQuestions, answered, completeness, maturityLabel]
+      properties:
+        subcategoryId:
+          type: string
+        categoryId:
+          type: string
+        label:
+          type: string
+        totalQuestions:
+          type: integer
+        answered:
+          type: integer
+        completeness:
+          type: integer
+        scorePercent:
+          type: integer
+          nullable: true
+        maturityLabel:
+          type: string
