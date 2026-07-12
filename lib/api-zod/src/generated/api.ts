@@ -877,6 +877,8 @@ export const ListDocumentsResponseItem = zod.object({
   "organizationId": zod.number(),
   "uploadedByUserId": zod.number(),
   "category": zod.string(),
+  "label": zod.string().nullish().describe('Custom label for personalized documents'),
+  "description": zod.string().nullish().describe('Custom description for personalized documents'),
   "originalName": zod.string(),
   "mimeType": zod.string(),
   "size": zod.number(),

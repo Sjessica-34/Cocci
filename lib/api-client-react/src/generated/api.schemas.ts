@@ -465,6 +465,16 @@ export interface DocumentMeta {
   organizationId: number;
   uploadedByUserId: number;
   category: string;
+  /**
+     * Custom label for personalized documents
+     * @nullable
+     */
+  label?: string | null;
+  /**
+     * Custom description for personalized documents
+     * @nullable
+     */
+  description?: string | null;
   originalName: string;
   mimeType: string;
   size: number;

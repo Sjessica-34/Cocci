@@ -3099,6 +3099,12 @@ components:
           type: integer
         category:
           type: string
+        label:
+          type: ["string", "null"]
+          description: Custom label for personalized documents
+        description:
+          type: ["string", "null"]
+          description: Custom description for personalized documents
         originalName:
           type: string
         mimeType:

@@ -32,6 +32,8 @@ router.get("/organizations/:orgId/documents", requireAuth, requireOrgMembership,
       organizationId: documentsTable.organizationId,
       uploadedByUserId: documentsTable.uploadedByUserId,
       category: documentsTable.category,
+      label: documentsTable.label,
+      description: documentsTable.description,
       originalName: documentsTable.originalName,
       mimeType: documentsTable.mimeType,
       size: documentsTable.size,
@@ -59,7 +61,9 @@ router.post(
     const file = req.file;
     if (!file) { res.status(400).json({ error: "No file provided" }); return; }
 
-    const category = String(req.body?.category ?? "autre");
+    const category    = String(req.body?.category ?? "autre");
+    const label       = req.body?.label       ? String(req.body.label)       : null;
+    const description = req.body?.description ? String(req.body.description) : null;
 
     const [doc] = await db
       .insert(documentsTable)
@@ -67,6 +71,8 @@ router.post(
         organizationId: req.orgId!,
         uploadedByUserId: req.userId!,
         category,
+        label,
+        description,
         originalName: file.originalname,
         mimeType: file.mimetype,
         size: file.size,
@@ -77,6 +83,8 @@ router.post(
         organizationId: documentsTable.organizationId,
         uploadedByUserId: documentsTable.uploadedByUserId,
         category: documentsTable.category,
+        label: documentsTable.label,
+        description: documentsTable.description,
         originalName: documentsTable.originalName,
         mimeType: documentsTable.mimeType,
         size: documentsTable.size,

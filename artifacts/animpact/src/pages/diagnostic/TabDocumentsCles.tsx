@@ -1,6 +1,6 @@
 /**
  * Onglet "Documents clés" du Diagnostic RSE.
- * Centralise les 14 documents structurants de la démarche RSE.
+ * 14 documents prédéfinis + documents personnalisés (nom, description, fichier).
  * Architecture prête pour un futur bouton "Créer avec l'IA" (propriété aiReady).
  */
 
@@ -14,13 +14,15 @@ import {
 } from "@workspace/api-client-react";
 import type { DocumentMeta } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Upload, FileText, Trash2, Download, Loader2, Check,
-  History, ChevronDown, ChevronUp, AlertCircle,
+  History, ChevronDown, ChevronUp, AlertCircle, Plus, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Définition des documents clés ─────────────────────────────────────────
+// ── Définition des documents clés prédéfinis ────────────────────────────────
 const KEY_DOCUMENTS = [
   {
     slug: "politique-rse",
@@ -108,6 +110,7 @@ const KEY_DOCUMENTS = [
   },
 ] as const;
 
+// ── Helpers ────────────────────────────────────────────────────────────────
 export const DOCS_CLES_PREFIX = "diagnostic-rse/documents-cles";
 
 export function docClesCategory(slug: string): string {
@@ -123,10 +126,20 @@ export function getDocumentsClesSlug(category: string): string {
 }
 
 export function getDocumentsClesLabel(slug: string): string {
+  if (slug.startsWith("custom/")) return slug.replace("custom/", "").replace(/-/g, " ");
   return KEY_DOCUMENTS.find((d) => d.slug === slug)?.label ?? slug;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .substring(0, 60);
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
@@ -137,9 +150,8 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// ── Carte document individuelle ────────────────────────────────────────────
+// ── Carte document (prédéfinie ou personnalisée) ───────────────────────────
 function DocCard({
-  orgId,
   slug,
   label,
   description,
@@ -149,13 +161,12 @@ function DocCard({
   onDelete,
   onDownload,
 }: {
-  orgId: number;
   slug: string;
   label: string;
   description: string;
   allDocs: DocumentMeta[];
   uploading: boolean;
-  onUpload: (file: File, category: string) => void;
+  onUpload: (file: File, category: string, label?: string, description?: string) => void;
   onDelete: (docId: number) => void;
   onDownload: (doc: DocumentMeta) => void;
 }) {
@@ -165,10 +176,10 @@ function DocCard({
   const sortedDocs = [...allDocs].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
-  const activeDoc  = sortedDocs[0] ?? null;
-  const olderDocs  = sortedDocs.slice(1);
-  const hasDoc     = !!activeDoc;
-  const category   = docClesCategory(slug);
+  const activeDoc = sortedDocs[0] ?? null;
+  const olderDocs = sortedDocs.slice(1);
+  const hasDoc    = !!activeDoc;
+  const category  = docClesCategory(slug);
 
   return (
     <div className={cn(
@@ -199,22 +210,12 @@ function DocCard({
               Version active · {formatDate(activeDoc.createdAt)} · {formatSize(activeDoc.size)}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-            onClick={() => onDownload(activeDoc)}
-            title="Télécharger"
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={() => onDownload(activeDoc)} title="Télécharger">
             <Download className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-red-400 hover:text-red-600 hover:bg-red-50"
-            onClick={() => onDelete(activeDoc.id)}
-            title="Supprimer"
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-red-400 hover:text-red-600 hover:bg-red-50"
+            onClick={() => onDelete(activeDoc.id)} title="Supprimer">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -223,10 +224,8 @@ function DocCard({
       {/* Historique des versions */}
       {olderDocs.length > 0 && (
         <div>
-          <button
-            onClick={() => setHistoryOpen((v) => !v)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <button onClick={() => setHistoryOpen((v) => !v)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <History className="h-3 w-3" />
             {olderDocs.length} version{olderDocs.length > 1 ? "s" : ""} précédente{olderDocs.length > 1 ? "s" : ""}
             {historyOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -239,20 +238,12 @@ function DocCard({
                     <p className="text-xs text-muted-foreground truncate">{doc.originalName}</p>
                     <p className="text-[10px] text-muted-foreground">{formatDate(doc.createdAt)}</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => onDownload(doc)}
-                  >
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => onDownload(doc)}>
                     <Download className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0 text-red-400 hover:text-red-600"
-                    onClick={() => onDelete(doc.id)}
-                  >
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-red-400 hover:text-red-600"
+                    onClick={() => onDelete(doc.id)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
@@ -262,7 +253,7 @@ function DocCard({
         </div>
       )}
 
-      {/* Actions : import (+ futur bouton IA) */}
+      {/* Actions */}
       <div className="flex gap-2 mt-auto pt-1">
         <Button
           variant={hasDoc ? "outline" : "default"}
@@ -271,9 +262,7 @@ function DocCard({
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
         >
-          {uploading
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <Upload className="h-3.5 w-3.5" />}
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
           {hasDoc ? "Nouvelle version" : "Importer un document"}
         </Button>
         {/* Emplacement futur : bouton "Créer avec l'IA" (aiReady) */}
@@ -293,12 +282,135 @@ function DocCard({
   );
 }
 
+// ── Formulaire d'ajout de document personnalisé ────────────────────────────
+function AddCustomDocForm({
+  existingSlugs,
+  uploading,
+  onSubmit,
+  onCancel,
+}: {
+  existingSlugs: string[];
+  uploading: boolean;
+  onSubmit: (file: File, slug: string, label: string, description: string) => void;
+  onCancel: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [label, setLabel]           = useState("");
+  const [description, setDescription] = useState("");
+  const [file, setFile]             = useState<File | null>(null);
+  const [error, setError]           = useState<string | null>(null);
+
+  const slug = label.trim() ? `custom/${slugify(label)}` : "";
+  const slugExists = !!slug && existingSlugs.includes(slug);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!label.trim()) { setError("Le nom est obligatoire."); return; }
+    if (!file)         { setError("Veuillez sélectionner un fichier."); return; }
+    if (slugExists)    { setError("Un document avec ce nom existe déjà. Choisissez un nom différent."); return; }
+    onSubmit(file, slug, label.trim(), description.trim());
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-5 space-y-4"
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-foreground">Nouveau document personnalisé</p>
+        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onCancel}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Nom */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-foreground">Nom <span className="text-red-500">*</span></label>
+        <Input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Ex. : Rapport de durabilité, Charte fournisseurs…"
+          className="text-sm h-9"
+          maxLength={120}
+        />
+        {slugExists && (
+          <p className="text-xs text-amber-600">Un document avec ce nom existe déjà.</p>
+        )}
+      </div>
+
+      {/* Description */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-foreground">Description</label>
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Décrivez brièvement le contenu ou l'objectif de ce document…"
+          className="text-sm resize-none"
+          rows={2}
+          maxLength={300}
+        />
+      </div>
+
+      {/* Fichier */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-foreground">Fichier <span className="text-red-500">*</span></label>
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs shrink-0"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Choisir un fichier
+          </Button>
+          {file ? (
+            <span className="text-xs text-foreground truncate">{file.name}</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">Aucun fichier sélectionné</span>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="sr-only"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.png,.jpg,.jpeg"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); e.target.value = ""; }}
+          />
+        </div>
+      </div>
+
+      {/* Erreur */}
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-red-600">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2 justify-end">
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button type="submit" size="sm" disabled={uploading || !label.trim() || !file || slugExists} className="gap-1.5">
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          Enregistrer
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 // ── Composant principal ────────────────────────────────────────────────────
 export function TabDocumentsCles({ orgId }: { orgId: number }) {
   const { getToken } = useAuth();
-  const queryClient = useQueryClient();
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const queryClient  = useQueryClient();
+  const [uploading, setUploading]       = useState(false);
+  const [uploadingSlug, setUploadingSlug] = useState<string | null>(null);
+  const [uploadError, setUploadError]   = useState<string | null>(null);
+  const [addFormOpen, setAddFormOpen]   = useState(false);
 
   const { data: allDocs = [], isLoading } = useListDocuments(orgId, {
     query: { enabled: !!orgId, queryKey: getListDocumentsQueryKey(orgId) },
@@ -310,29 +422,40 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
     },
   });
 
+  // Sépare prédéfinis / personnalisés
   const docsCles = (allDocs as DocumentMeta[]).filter((d) => isDocumentsClesCategory(d.category));
 
-  const bySlug: Record<string, DocumentMeta[]> = {};
+  const predefinedBySlug: Record<string, DocumentMeta[]> = {};
+  const customBySlug: Record<string, DocumentMeta[]>     = {};
+
   for (const doc of docsCles) {
     const slug = getDocumentsClesSlug(doc.category);
-    if (!bySlug[slug]) bySlug[slug] = [];
-    bySlug[slug].push(doc);
+    if (slug.startsWith("custom/")) {
+      if (!customBySlug[slug]) customBySlug[slug] = [];
+      customBySlug[slug].push(doc);
+    } else {
+      if (!predefinedBySlug[slug]) predefinedBySlug[slug] = [];
+      predefinedBySlug[slug].push(doc);
+    }
   }
 
-  const importedCount = KEY_DOCUMENTS.filter((d) => (bySlug[d.slug]?.length ?? 0) > 0).length;
+  const predefinedImported = KEY_DOCUMENTS.filter((d) => (predefinedBySlug[d.slug]?.length ?? 0) > 0).length;
+  const customCount        = Object.keys(customBySlug).length;
+  const importedCount      = predefinedImported + customCount;
+  const totalCount         = KEY_DOCUMENTS.length; // custom docs are bonus, not tracked in progress
 
-  const handleUpload = async (file: File, category: string) => {
-    if (file.size > 20 * 1024 * 1024) {
-      setUploadError("Fichier trop volumineux (max 20 Mo).");
-      return;
-    }
+  const handleUpload = async (file: File, category: string, label?: string, description?: string) => {
+    if (file.size > 20 * 1024 * 1024) { setUploadError("Fichier trop volumineux (max 20 Mo)."); return; }
     setUploadError(null);
     setUploading(true);
+    setUploadingSlug(getDocumentsClesSlug(category));
     try {
       const token = await getToken();
       const formData = new FormData();
       formData.append("file", file);
       formData.append("category", category);
+      if (label)       formData.append("label", label);
+      if (description) formData.append("description", description);
       const res = await fetch(`/api/organizations/${orgId}/documents`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -344,7 +467,13 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
       setUploadError("Erreur lors de l'import. Réessayez.");
     } finally {
       setUploading(false);
+      setUploadingSlug(null);
     }
+  };
+
+  const handleAddCustomDoc = async (file: File, slug: string, label: string, description: string) => {
+    await handleUpload(file, docClesCategory(slug), label, description);
+    setAddFormOpen(false);
   };
 
   const handleDownload = async (doc: DocumentMeta) => {
@@ -356,15 +485,11 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = doc.originalName;
-    a.click();
+    a.href = url; a.download = doc.originalName; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const handleDelete = (docId: number) => {
-    deleteDoc({ orgId, docId });
-  };
+  const handleDelete = (docId: number) => { deleteDoc({ orgId, docId }); };
 
   if (isLoading) {
     return (
@@ -387,16 +512,17 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
         </p>
       </div>
 
-      {/* Compteur de progression */}
+      {/* Barre de progression (documents prédéfinis uniquement) */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
           <div
             className="h-full rounded-full bg-emerald-500 transition-all"
-            style={{ width: `${(importedCount / KEY_DOCUMENTS.length) * 100}%` }}
+            style={{ width: `${(predefinedImported / totalCount) * 100}%` }}
           />
         </div>
         <span className="text-xs text-muted-foreground shrink-0">
-          {importedCount}/{KEY_DOCUMENTS.length} importé{importedCount !== 1 ? "s" : ""}
+          {predefinedImported}/{totalCount} importé{predefinedImported !== 1 ? "s" : ""}
+          {customCount > 0 && ` · ${customCount} personnalisé${customCount > 1 ? "s" : ""}`}
         </span>
       </div>
 
@@ -405,25 +531,91 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {uploadError}
+          <button onClick={() => setUploadError(null)} className="ml-auto text-red-400 hover:text-red-600">
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
 
-      {/* Grille de cartes */}
+      {/* ── Documents prédéfinis ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {KEY_DOCUMENTS.map((doc) => (
           <DocCard
             key={doc.slug}
-            orgId={orgId}
             slug={doc.slug}
             label={doc.label}
             description={doc.description}
-            allDocs={bySlug[doc.slug] ?? []}
-            uploading={uploading}
+            allDocs={predefinedBySlug[doc.slug] ?? []}
+            uploading={uploading && uploadingSlug === doc.slug}
             onUpload={handleUpload}
             onDelete={handleDelete}
             onDownload={handleDownload}
           />
         ))}
+      </div>
+
+      {/* ── Documents personnalisés ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Documents personnalisés</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ajoutez vos propres documents RSE avec un nom et une description personnalisés.
+            </p>
+          </div>
+          {!addFormOpen && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs shrink-0"
+              onClick={() => setAddFormOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Ajouter un document
+            </Button>
+          )}
+        </div>
+
+        {/* Formulaire d'ajout */}
+        {addFormOpen && (
+          <AddCustomDocForm
+            existingSlugs={Object.keys(customBySlug)}
+            uploading={uploading}
+            onSubmit={handleAddCustomDoc}
+            onCancel={() => setAddFormOpen(false)}
+          />
+        )}
+
+        {/* Cartes des documents personnalisés */}
+        {Object.keys(customBySlug).length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(customBySlug).map(([slug, docs]) => {
+              const sorted  = [...docs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              const active  = sorted[0]!;
+              const cardLabel = active.label ?? slug.replace("custom/", "");
+              const cardDesc  = active.description ?? "";
+              return (
+                <DocCard
+                  key={slug}
+                  slug={slug}
+                  label={cardLabel}
+                  description={cardDesc}
+                  allDocs={docs}
+                  uploading={uploading && uploadingSlug === slug}
+                  onUpload={handleUpload}
+                  onDelete={handleDelete}
+                  onDownload={handleDownload}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {Object.keys(customBySlug).length === 0 && !addFormOpen && (
+          <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+            Aucun document personnalisé pour l'instant.
+          </div>
+        )}
       </div>
     </div>
   );

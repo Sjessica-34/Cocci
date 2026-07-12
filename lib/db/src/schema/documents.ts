@@ -15,6 +15,8 @@ export const documentsTable = pgTable("documents", {
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   category: text("category").notNull(), // 'parties-prenantes'|'materialite'|'bilan-carbone'|'biodiversite'|'demarche-rse'|'numerique-responsable'|'autre'
+  label: text("label"),          // custom label for personalized documents
+  description: text("description"), // custom description for personalized documents
   originalName: text("original_name").notNull(),
   mimeType: text("mime_type").notNull(),
   size: integer("size").notNull(), // bytes
