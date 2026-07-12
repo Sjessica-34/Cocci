@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useAuth } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import {
   useListDocuments,
   useDeleteDocument,
@@ -111,12 +112,16 @@ export function DocumentUploader({
     setUploading(true);
     try {
       const token = await getToken();
+      const exerciseId = getCurrentExerciseId();
       const formData = new FormData();
       formData.append("file", file);
       formData.append("category", category);
       const res = await fetch(`/api/organizations/${orgId}/documents`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(exerciseId != null ? { "x-exercise-id": String(exerciseId) } : {}),
+        },
         body: formData,
       });
       if (!res.ok) throw new Error(await res.text());

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Link } from "wouter";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import { useListDocuments, useDeleteDocument, useListLabels, getListDocumentsQueryKey, getListLabelsQueryKey } from "@workspace/api-client-react";
 import type { DocumentMeta, Label } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
@@ -552,12 +553,16 @@ export function MesDocuments() {
     setUploadingCategory(category);
     try {
       const token = await getToken();
+      const exerciseId = getCurrentExerciseId();
       const formData = new FormData();
       formData.append("file", file);
       formData.append("category", category);
       const res = await fetch(`/api/organizations/${currentOrgId}/documents`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(exerciseId != null ? { "x-exercise-id": String(exerciseId) } : {}),
+        },
         body: formData,
       });
       if (!res.ok) throw new Error(await res.text());
