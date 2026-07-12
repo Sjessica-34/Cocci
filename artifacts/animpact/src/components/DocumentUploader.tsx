@@ -35,6 +35,16 @@ export function isDiagnosticCategory(category: string): boolean {
   return category.startsWith("diagnostic-rse/");
 }
 
+/** Retourne true si la catégorie est un document clé du Diagnostic RSE */
+export function isDocumentsClesCategory(category: string): boolean {
+  return category.startsWith("diagnostic-rse/documents-cles/");
+}
+
+/** Extrait le slug d'un document clé depuis sa catégorie */
+export function getDocumentsClesSlug(category: string): string {
+  return category.replace("diagnostic-rse/documents-cles/", "");
+}
+
 /**
  * Extrait l'ID de sous-catégorie d'une catégorie de document diagnostic.
  * Gère les formats :

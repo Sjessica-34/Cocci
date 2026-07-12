@@ -13,7 +13,8 @@ import {
   ChevronDown, ChevronRight, Award, ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CATEGORY_LABELS, isDiagnosticCategory, getDiagnosticSubcategoryId } from "@/components/DocumentUploader";
+import { CATEGORY_LABELS, isDiagnosticCategory, isDocumentsClesCategory, getDocumentsClesSlug, getDiagnosticSubcategoryId } from "@/components/DocumentUploader";
+import { getDocumentsClesLabel } from "@/pages/diagnostic/TabDocumentsCles";
 import { DIAGNOSTIC_CATEGORIES } from "@workspace/rse-referentials";
 
 const ORDERED_CATEGORIES = [
@@ -276,6 +277,94 @@ function SubcategoryDocRow({
   );
 }
 
+// ── Section Documents clés du Diagnostic RSE ────────────────────────────
+function DiagnosticDocsClesSection({
+  docs,
+  onDelete,
+  onDownload,
+}: {
+  docs: DocumentMeta[];
+  orgId: number;
+  onDelete: (docId: number) => void;
+  onDownload: (doc: DocumentMeta) => void;
+}) {
+  const [open, setOpen] = useState(true);
+
+  const bySlug: Record<string, DocumentMeta[]> = {};
+  for (const doc of docs) {
+    const slug = getDocumentsClesSlug(doc.category);
+    if (!bySlug[slug]) bySlug[slug] = [];
+    bySlug[slug].push(doc);
+  }
+
+  return (
+    <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-5 py-3.5 border-b border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="flex items-center gap-2.5">
+          <FolderOpen className="h-4 w-4 text-emerald-700 shrink-0" />
+          <span className="text-sm font-semibold text-foreground">Diagnostic RSE — Documents clés</span>
+          <span className="text-xs text-muted-foreground">
+            ({docs.length} document{docs.length !== 1 ? "s" : ""})
+          </span>
+        </div>
+        {open
+          ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+      </button>
+
+      {open && (
+        <div className="p-4 space-y-2">
+          {Object.entries(bySlug).map(([slug, slugDocs]) => {
+            const sorted = [...slugDocs].sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            );
+            const active = sorted[0]!;
+            return (
+              <div key={slug} className="rounded-lg border border-emerald-100 bg-white overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FolderOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <span className="text-xs font-medium text-foreground truncate">
+                      {getDocumentsClesLabel(slug)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      ({slugDocs.length})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                      {active.originalName}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      onClick={() => onDownload(active)}
+                    >
+                      <Download className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => onDelete(active.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DiagnosticRseSection({
   docs,
   orgId,
@@ -528,7 +617,8 @@ export function MesDocuments() {
   const allDocs = docs as DocumentMeta[];
 
   // Séparer les documents diagnostic RSE des autres
-  const diagnosticDocs = allDocs.filter((d) => isDiagnosticCategory(d.category));
+  const diagnosticDocsCles = allDocs.filter((d) => isDocumentsClesCategory(d.category));
+  const diagnosticProofs   = allDocs.filter((d) => isDiagnosticCategory(d.category) && !isDocumentsClesCategory(d.category));
   const regularDocs = allDocs.filter((d) => !isDiagnosticCategory(d.category));
 
   const docsByCategory = ORDERED_CATEGORIES.reduce<Record<string, DocumentMeta[]>>((acc, cat) => {
@@ -585,9 +675,19 @@ export function MesDocuments() {
 
         {!isLoading && !!currentOrgId && (
           <div className="space-y-4">
+            {/* Documents clés du Diagnostic RSE */}
+            {diagnosticDocsCles.length > 0 && (
+              <DiagnosticDocsClesSection
+                docs={diagnosticDocsCles}
+                orgId={currentOrgId}
+                onDelete={handleDelete}
+                onDownload={handleDownload}
+              />
+            )}
+
             {/* Section Diagnostic RSE (preuves par sous-catégorie) */}
             <DiagnosticRseSection
-              docs={diagnosticDocs}
+              docs={diagnosticProofs}
               orgId={currentOrgId}
               onDelete={handleDelete}
               onDownload={handleDownload}

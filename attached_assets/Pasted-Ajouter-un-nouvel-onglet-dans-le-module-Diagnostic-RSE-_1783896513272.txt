@@ -1,0 +1,109 @@
+Ajouter un nouvel onglet dans le module **Diagnostic RSE** intitulé :
+
+📂 Documents clés
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBJECTIF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cet onglet a pour objectif d'aider les entreprises à centraliser les principaux documents qui structurent leur démarche RSE.
+
+Ces documents ne sont pas tous obligatoires, mais ils constituent des éléments de référence qui permettront de renforcer la crédibilité du diagnostic, d'alimenter automatiquement le Rapport RSE et de préparer plus facilement d'éventuels audits ou certifications.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTRODUCTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Afficher en haut de la page le texte suivant :
+
+"Les documents ci-dessous permettent de structurer votre démarche RSE et d'en démontrer la maturité. Ils ne sont pas tous obligatoires, mais représentent des bonnes pratiques de gouvernance. Les documents importés seront automatiquement enregistrés dans **Mes documents > Diagnostic RSE > Documents clés** et pourront être réutilisés dans l'ensemble de Cocci."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFFICHAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Présenter les documents sous forme de cartes modernes (une carte par document).
+
+Chaque carte doit contenir :
+
+□ Une case à cocher (cochée automatiquement lorsqu'un document est importé)
+
+• Nom du document
+
+• Courte description (1 à 2 lignes)
+
+• Bouton :
+📤 Importer un document
+
+Les documents à afficher sont :
+
+☐ Politique RSE
+Formalise les engagements et les orientations de la démarche RSE de l'entreprise.
+
+☐ Charte éthique
+Définit les valeurs, les principes et les comportements attendus au sein de l'entreprise.
+
+☐ Code de conduite
+Encadre les règles de conduite applicables aux collaborateurs, partenaires et fournisseurs.
+
+☐ Politique RH
+Présente les engagements de l'entreprise en matière de ressources humaines.
+
+☐ Charte des achats responsables
+Formalise les engagements de l'entreprise en matière d'achats responsables.
+
+☐ Certification(s) ISO
+Permet d'importer une ou plusieurs certifications ou autres référentiels.
+
+☐ Plan de Continuité d'Activité (PCA)
+Décrit les mesures permettant d'assurer la continuité de l'activité en cas d'incident majeur.
+
+☐ Registre RGPD
+Registre des traitements de données personnelles.
+
+☐ Procédure lanceur d'alerte
+Décrit le dispositif interne permettant de signaler un comportement contraire à l'éthique ou à la réglementation.
+
+☐ Organigramme
+Organigramme de l'entreprise ou de sa gouvernance.
+
+☐ Axes stratégiques de l'entreprise
+Document présentant les orientations stratégiques et les priorités de développement de l'entreprise.
+
+☐ Guide des bonnes pratiques
+Guide interne regroupant les bonnes pratiques, règles ou recommandations applicables aux collaborateurs.
+
+☐ Cartographie des risques
+Présentation des principaux risques identifiés par l'entreprise.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FONCTIONNEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Lorsqu'un document est importé, la case correspondante se coche automatiquement.
+
+• Si le document est supprimé, la case se décoche automatiquement.
+
+• Chaque document est automatiquement enregistré dans :
+
+📁 Mes documents
+   └── Diagnostic RSE
+       └── Documents clés
+
+• Les documents importés ne devront jamais être importés une seconde fois.
+
+• Ils pourront être sélectionnés automatiquement comme justificatifs dans le Diagnostic RSE.
+
+• Ils pourront être intégrés automatiquement au Rapport RSE lorsqu'ils sont pertinents.
+
+• Si plusieurs versions d'un même document sont importées, conserver uniquement la dernière version comme document actif tout en gardant un historique des versions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ÉVOLUTIVITÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prévoir une architecture permettant, dans une future version de Cocci, de proposer pour certains documents un bouton :
+
+🤖 Créer avec l'IA
+
+sans modifier la structure actuelle de cette page.

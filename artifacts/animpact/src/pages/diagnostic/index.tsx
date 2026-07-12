@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
@@ -7,9 +8,10 @@ import {
 } from "@workspace/api-client-react";
 import type { DiagnosticSubcategoryScore } from "@workspace/api-client-react";
 import { DIAGNOSTIC_CATEGORIES } from "@workspace/rse-referentials";
-import { BarChart3, ChevronRight, Loader2, AlertCircle, TrendingUp, CheckCircle2 } from "lucide-react";
+import { BarChart3, ChevronRight, Loader2, AlertCircle, TrendingUp, CheckCircle2, FolderOpen } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
+import { TabDocumentsCles } from "./TabDocumentsCles";
 
 // ── Couleur selon le score ──────────────────────────────────────────────────
 function getScoreColor(score: number | null): string {
@@ -221,10 +223,13 @@ function ScoreLegend() {
   );
 }
 
+type DiagnosticTab = "tableau-de-bord" | "documents-cles";
+
 // ── Page principale ────────────────────────────────────────────────────────
 export function DiagnosticRse() {
   const [, navigate] = useLocation();
   const { currentOrgId } = useCurrentOrganization();
+  const [activeTab, setActiveTab] = useState<DiagnosticTab>("tableau-de-bord");
 
   const orgId = currentOrgId ?? 0;
   const { data: scores, isLoading, error } = useGetDiagnosticScores(orgId, {
@@ -240,7 +245,7 @@ export function DiagnosticRse() {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-8">
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
         {/* Header */}
         <div>
@@ -253,78 +258,120 @@ export function DiagnosticRse() {
           </p>
         </div>
 
-        {!currentOrgId ? (
+        {/* Onglets */}
+        <div className="flex gap-1 border-b border-border">
+          <button
+            onClick={() => setActiveTab("tableau-de-bord")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+              activeTab === "tableau-de-bord"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Tableau de bord
+          </button>
+          <button
+            onClick={() => setActiveTab("documents-cles")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+              activeTab === "documents-cles"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <FolderOpen className="h-4 w-4" />
+            Documents clés
+          </button>
+        </div>
+
+        {/* Onglet Documents clés */}
+        {activeTab === "documents-cles" && currentOrgId && (
+          <TabDocumentsCles orgId={currentOrgId} />
+        )}
+
+        {activeTab === "documents-cles" && !currentOrgId && (
           <div className="rounded-xl border border-border bg-muted/20 p-10 text-center text-sm text-muted-foreground">
-            Sélectionnez une organisation pour accéder au diagnostic.
+            Sélectionnez une organisation pour accéder aux documents clés.
           </div>
-        ) : isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : error ? (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            Impossible de charger les scores. Veuillez réessayer.
-          </div>
-        ) : (
-          <>
-            {/* Barre de progression globale */}
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3">
-                  {globalProgress === 100 ? (
-                    <CheckCircle2 className="h-8 w-8 text-emerald-500 flex-shrink-0" />
-                  ) : (
-                    <TrendingUp className="h-8 w-8 text-primary flex-shrink-0" />
-                  )}
-                  <div>
-                    <p className="font-semibold text-foreground">Avancement global</p>
-                    <p className="text-sm text-muted-foreground">
-                      {totalAnswered}/{totalQuestions} réponses · {evaluatedCount} sous-catégories évaluées
-                    </p>
+        )}
+
+        {/* Onglet Tableau de bord */}
+        {activeTab === "tableau-de-bord" && (
+          !currentOrgId ? (
+            <div className="rounded-xl border border-border bg-muted/20 p-10 text-center text-sm text-muted-foreground">
+              Sélectionnez une organisation pour accéder au diagnostic.
+            </div>
+          ) : isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : error ? (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              Impossible de charger les scores. Veuillez réessayer.
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Barre de progression globale */}
+              <div className="rounded-xl border border-border bg-card p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    {globalProgress === 100 ? (
+                      <CheckCircle2 className="h-8 w-8 text-emerald-500 flex-shrink-0" />
+                    ) : (
+                      <TrendingUp className="h-8 w-8 text-primary flex-shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-semibold text-foreground">Avancement global</p>
+                      <p className="text-sm text-muted-foreground">
+                        {totalAnswered}/{totalQuestions} réponses · {evaluatedCount} sous-catégories évaluées
+                      </p>
+                    </div>
                   </div>
+                  <span className="text-3xl font-bold text-foreground">{globalProgress}%</span>
                 </div>
-                <span className="text-3xl font-bold text-foreground">{globalProgress}%</span>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${globalProgress}%` }} />
+                </div>
               </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${globalProgress}%` }} />
+
+              {/* Légende des couleurs */}
+              <ScoreLegend />
+
+              {/* 3 grands donuts par axe */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {DIAGNOSTIC_CATEGORIES.map((cat) => (
+                  <AxisDonut key={cat.id} categoryId={cat.id} scores={scores ?? []} />
+                ))}
               </div>
+
+              {/* Donuts par sous-catégorie, groupés par axe */}
+              {DIAGNOSTIC_CATEGORIES.map((cat) => {
+                const catScores = (scores ?? []).filter((s) => s.categoryId === cat.id);
+                const cfg = CATEGORY_CONFIG[cat.id];
+                return (
+                  <section key={cat.id}>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: cfg.primary }} />
+                      <h2 className="text-base font-semibold text-foreground">{cfg.label}</h2>
+                      <span className="text-xs text-muted-foreground">({catScores.length} sous-catégories)</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {catScores.map((s) => (
+                        <SubcategoryDonut
+                          key={s.subcategoryId}
+                          score={s}
+                          onClick={() => navigate(`/diagnostic/${s.categoryId}/${s.subcategoryId}`)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
             </div>
-
-            {/* Légende des couleurs */}
-            <ScoreLegend />
-
-            {/* 3 grands donuts par axe */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {DIAGNOSTIC_CATEGORIES.map((cat) => (
-                <AxisDonut key={cat.id} categoryId={cat.id} scores={scores ?? []} />
-              ))}
-            </div>
-
-            {/* Donuts par sous-catégorie, groupés par axe */}
-            {DIAGNOSTIC_CATEGORIES.map((cat) => {
-              const catScores = (scores ?? []).filter((s) => s.categoryId === cat.id);
-              const cfg = CATEGORY_CONFIG[cat.id];
-              return (
-                <section key={cat.id}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: cfg.primary }} />
-                    <h2 className="text-base font-semibold text-foreground">{cfg.label}</h2>
-                    <span className="text-xs text-muted-foreground">({catScores.length} sous-catégories)</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {catScores.map((s) => (
-                      <SubcategoryDonut
-                        key={s.subcategoryId}
-                        score={s}
-                        onClick={() => navigate(`/diagnostic/${s.categoryId}/${s.subcategoryId}`)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </>
+          )
         )}
 
       </div>
