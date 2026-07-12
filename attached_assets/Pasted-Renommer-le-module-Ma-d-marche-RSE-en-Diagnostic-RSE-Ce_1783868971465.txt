@@ -1,0 +1,332 @@
+Renommer le module **"Ma démarche RSE"** en **"Diagnostic RSE"**.
+
+Ce module devient le véritable tableau de bord de maturité RSE de l'entreprise et constitue le cœur du SaaS Cocci.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Je souhaite moderniser complètement l'interface.
+
+Supprimer autant que possible les grands encadrés bleus actuellement présents dans le module.
+
+Privilégier une interface beaucoup plus épurée :
+
+• fond blanc ou gris très clair (#F8F9FA)
+• cartes discrètes
+• coins arrondis
+• ombres très légères
+• beaucoup d'espaces entre les éléments
+• très peu de bordures
+• typographie moderne
+• interface aérée
+
+Les donuts doivent devenir l'élément principal de la page.
+
+Le regard doit immédiatement être attiré par les scores.
+
+Les couleurs doivent uniquement servir à mettre en valeur :
+
+• les donuts
+• les badges
+• les indicateurs
+• les boutons
+
+Les sections doivent être séparées principalement par des espaces et non par de gros cadres.
+
+L'ensemble doit donner l'impression d'un logiciel SaaS haut de gamme.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PAGE D'ACCUEIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Créer un véritable tableau de bord.
+
+Au centre de la page afficher trois grands donuts interactifs.
+
+🌍 Environnement
+
+👥 Social
+
+🏛 Gouvernance
+
+Chaque donut affiche :
+
+• le pourcentage de maturité
+• son niveau
+• son code couleur
+
+Sous les donuts afficher :
+
+• Score RSE global
+• Niveau global
+• Complétude globale
+• Nombre de catégories évaluées
+• Nombre de questions renseignées
+• Dernière mise à jour
+
+Exemple :
+
+Score global
+
+74 %
+
+Niveau
+
+Confirmé
+
+Complétude
+
+82 %
+
+289 questions sur 352 renseignées
+
+Dernière mise à jour
+
+15 juillet 2026
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CODE COULEUR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Appliquer automatiquement ce code couleur sur tous les donuts.
+
+🟢 80 à 100 %
+
+Excellent
+
+🟡 60 à 79 %
+
+Confirmé
+
+🟠 40 à 59 %
+
+Intermédiaire
+
+🔴 0 à 39 %
+
+Débutant
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLÉTUDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le score de maturité ne doit jamais être calculé si moins de 70 % des questions de la catégorie sont renseignées.
+
+Dans ce cas afficher :
+
+Score indisponible
+
+Complétez encore X questions pour obtenir votre score de maturité.
+
+Le score et la complétude sont deux informations totalement distinctes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAVIGATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Les trois donuts sont entièrement cliquables.
+
+Lorsque l'utilisateur clique sur :
+
+🌍 Environnement
+
+ouvrir automatiquement la page des sous-catégories Environnement.
+
+Même fonctionnement pour :
+
+Social
+
+Gouvernance
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SOUS-CATÉGORIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chaque sous-catégorie est représentée par un donut.
+
+Exemple :
+
+Climat
+
+Énergie
+
+Eau
+
+Déchets & économie circulaire
+
+Biodiversité
+
+Mobilité
+
+Numérique responsable
+
+Achats responsables
+
+Chaque donut affiche :
+
+• le score
+• le niveau
+• la couleur
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PAGE D'UNE SOUS-CATÉGORIE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Lorsque l'utilisateur clique sur une sous-catégorie, afficher une page de synthèse.
+
+Exemple :
+
+Biodiversité
+
+Grand donut
+
+43 %
+
+Niveau
+
+Débutant
+
+Complétude
+
+83 %
+
+10 questions renseignées sur 12
+
+Puis afficher :
+
+Points forts
+
+✔ ...
+
+✔ ...
+
+✔ ...
+
+Puis :
+
+Axes d'amélioration
+
+• ...
+
+• ...
+
+• ...
+
+• ...
+
+Ces axes doivent être générés automatiquement en fonction des réponses.
+
+Ajouter ensuite un bouton :
+
+Évaluer cette catégorie
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUESTIONNAIRE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ne jamais afficher une longue liste de questions.
+
+Présenter les questions sous forme de cartes modernes.
+
+Chaque carte contient :
+
+• la question
+• les niveaux 0 à 3
+• un commentaire facultatif
+• un justificatif facultatif
+
+Ajouter en haut :
+
+Question 3 / 12
+
+avec une barre de progression.
+
+Le passage d'une question à l'autre doit être fluide.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SAUVEGARDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Toutes les réponses sont enregistrées automatiquement.
+
+Chaque modification met immédiatement à jour :
+
+• le score
+• la complétude
+• les donuts
+• le tableau de bord
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONNEXION AVEC LE RESTE DE COCCI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le Diagnostic RSE doit exploiter automatiquement les données déjà présentes dans les autres modules.
+
+Lorsque des informations existent déjà, elles doivent préremplir ou suggérer certaines réponses.
+
+Le Diagnostic RSE doit notamment utiliser :
+
+• Capital humain
+
+• Baromètre social
+
+• Bilan carbone
+
+• Parties prenantes
+
+• Plan d'action
+
+• Mes actions
+
+• Numérique responsable
+
+• Documents
+
+• tout futur module Cocci
+
+L'utilisateur ne doit jamais avoir à saisir deux fois la même information.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ÉVOLUTION DANS LE TEMPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sous chaque donut principal, afficher l'évolution du score dans le temps.
+
+Exemple :
+
+📈 Environnement
+
+58 % → 64 % → 71 % → 78 %
+
+👥 Social
+
+42 % → 53 % → 61 % → 68 %
+
+🏛 Gouvernance
+
+71 % → 76 % → 82 % → 88 %
+
+Permettre de consulter l'évolution par année.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBJECTIF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le Diagnostic RSE doit devenir le véritable cockpit de pilotage de la démarche RSE.
+
+En quelques secondes, l'utilisateur doit comprendre :
+
+• son niveau global de maturité ;
+
+• ses points forts ;
+
+• ses points faibles ;
+
+• les catégories à améliorer en priorité ;
+
+• sa progression dans le temps ;
+
+• son niveau de complétude.
+
+L'interface doit être élégante, moderne, très visuelle, intuitive, responsive et donner envie d'améliorer continuellement sa maturité RSE.
