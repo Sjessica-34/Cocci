@@ -7,6 +7,7 @@
  */
 import type { OrganizationUpdateGroupMode } from './organizationUpdateGroupMode';
 import type { OrganizationUpdateSize } from './organizationUpdateSize';
+import type { OrganizationUpdateType } from './organizationUpdateType';
 
 export interface OrganizationUpdate {
   /** @minLength 1 */
@@ -15,6 +16,8 @@ export interface OrganizationUpdate {
   siret?: string;
   sector?: string;
   size?: OrganizationUpdateSize;
+  /** Entity type. Use to promote an entreprise to groupe. */
+  type?: OrganizationUpdateType;
   /** Set the group calculation mode. Only for type='groupe'. */
   groupMode?: OrganizationUpdateGroupMode;
   /**

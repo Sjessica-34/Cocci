@@ -6,6 +6,7 @@ import { frFR } from "@clerk/localizations";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
+import { useListOrganizations } from "@workspace/api-client-react";
 
 import NotFound from "@/pages/not-found";
 import { Home } from "@/pages/home";
@@ -38,6 +39,8 @@ import { BarometreSocialPublic } from "@/pages/barometre-social/public";
 import { CapitalHumain } from "@/pages/employment";
 import { MesActions } from "@/pages/mes-actions";
 import { GuideRSE } from "@/pages/guide-rse";
+import { Onboarding } from "@/pages/onboarding/index";
+import { OnboardingFiliales } from "@/pages/onboarding/filiales";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Leaf } from "lucide-react";
@@ -58,8 +61,6 @@ function stripBase(path: string): string {
 
 if (!clerkPubKey) throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
 
-// Registered once at module load — every API request will carry the
-// currently active exercise so backend routes scope their data accordingly.
 setExerciseIdGetter(() => getCurrentExerciseId());
 
 const clerkLocalization = {
@@ -212,6 +213,26 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
+/**
+ * Wraps workspace pages: if the user has no org yet, redirect to onboarding.
+ * Uses React Query cache (already loaded by AppLayout) so no extra fetch.
+ */
+function WorkspaceGuard({ component: Component }: { component: React.ComponentType }) {
+  const { data: orgs, isLoading } = useListOrganizations();
+  if (isLoading) return null;
+  if (orgs && orgs.length === 0) return <Redirect to="/onboarding" />;
+  return (
+    <>
+      <Show when="signed-in">
+        <Component />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
 function AdminRoute({ component: Component }: { component: React.ComponentType }) {
   const { isSuperAdmin, isLoading } = useIsSuperAdmin();
   return (
@@ -249,37 +270,47 @@ function ClerkProviderWithRoutes() {
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
 
-            <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
+            {/* Onboarding — first-time setup (no AppLayout) */}
+            <Route path="/onboarding">
+              <ProtectedRoute component={Onboarding} />
+            </Route>
+            <Route path="/onboarding/filiales">
+              <ProtectedRoute component={OnboardingFiliales} />
+            </Route>
+
+            {/* Workspace module pages — redirect to onboarding if no org */}
+            <Route path="/dashboard"><WorkspaceGuard component={Dashboard} /></Route>
+            <Route path="/enjeux"><WorkspaceGuard component={Materialite} /></Route>
+            <Route path="/parties-prenantes"><WorkspaceGuard component={PartiesPrenantes} /></Route>
+            <Route path="/biodiversite"><WorkspaceGuard component={Biodiversite} /></Route>
+            <Route path="/achats-responsables"><WorkspaceGuard component={AchatsResponsables} /></Route>
+            <Route path="/diagnostic"><WorkspaceGuard component={DiagnosticRse} /></Route>
+            <Route path="/diagnostic/:categoryId/:subcategoryId"><WorkspaceGuard component={DiagnosticQuestionnaire} /></Route>
+            <Route path="/bilan-carbone"><WorkspaceGuard component={BilanCarbone} /></Route>
+            <Route path="/numerique-responsable"><WorkspaceGuard component={NumeriqueResponsable} /></Route>
+            <Route path="/impact-score"><WorkspaceGuard component={ImpactScore} /></Route>
+            <Route path="/rapport-rse"><WorkspaceGuard component={RapportRse} /></Route>
+            <Route path="/mes-documents"><WorkspaceGuard component={MesDocuments} /></Route>
+            <Route path="/mes-labels"><WorkspaceGuard component={MesLabels} /></Route>
+            <Route path="/barometre-social"><WorkspaceGuard component={BarometreSocial} /></Route>
+            <Route path="/capital-humain"><WorkspaceGuard component={CapitalHumain} /></Route>
+            <Route path="/guide-rse"><WorkspaceGuard component={GuideRSE} /></Route>
+            <Route path="/mes-actions"><WorkspaceGuard component={MesActions} /></Route>
+            <Route path="/resources"><WorkspaceGuard component={Resources} /></Route>
+            <Route path="/settings"><ProtectedRoute component={UserSettings} /></Route>
+
+            {/* Org management (settings, members) */}
             <Route path="/organizations"><ProtectedRoute component={OrganizationsList} /></Route>
             <Route path="/organizations/new"><ProtectedRoute component={OrganizationNew} /></Route>
             <Route path="/organizations/:id"><ProtectedRoute component={OrganizationDetail} /></Route>
             <Route path="/organizations/:id/settings"><ProtectedRoute component={OrganizationSettings} /></Route>
             <Route path="/organizations/:id/members"><ProtectedRoute component={OrganizationMembers} /></Route>
-            <Route path="/settings"><ProtectedRoute component={UserSettings} /></Route>
 
+            {/* Admin */}
             <Route path="/admin"><AdminRoute component={AdminDashboard} /></Route>
             <Route path="/admin/organizations"><AdminRoute component={AdminOrganizations} /></Route>
             <Route path="/admin/organizations/:id"><AdminRoute component={AdminOrganizationDetail} /></Route>
             <Route path="/admin/users"><AdminRoute component={AdminUsers} /></Route>
-
-            <Route path="/resources"><ProtectedRoute component={Resources} /></Route>
-
-            <Route path="/enjeux"><ProtectedRoute component={Materialite} /></Route>
-            <Route path="/parties-prenantes"><ProtectedRoute component={PartiesPrenantes} /></Route>
-            <Route path="/biodiversite"><ProtectedRoute component={Biodiversite} /></Route>
-            <Route path="/achats-responsables"><ProtectedRoute component={AchatsResponsables} /></Route>
-            <Route path="/diagnostic"><ProtectedRoute component={DiagnosticRse} /></Route>
-            <Route path="/diagnostic/:categoryId/:subcategoryId"><ProtectedRoute component={DiagnosticQuestionnaire} /></Route>
-            <Route path="/bilan-carbone"><ProtectedRoute component={BilanCarbone} /></Route>
-            <Route path="/numerique-responsable"><ProtectedRoute component={NumeriqueResponsable} /></Route>
-            <Route path="/impact-score"><ProtectedRoute component={ImpactScore} /></Route>
-            <Route path="/rapport-rse"><ProtectedRoute component={RapportRse} /></Route>
-            <Route path="/mes-documents"><ProtectedRoute component={MesDocuments} /></Route>
-            <Route path="/mes-labels"><ProtectedRoute component={MesLabels} /></Route>
-            <Route path="/barometre-social"><ProtectedRoute component={BarometreSocial} /></Route>
-            <Route path="/capital-humain"><ProtectedRoute component={CapitalHumain} /></Route>
-            <Route path="/guide-rse"><ProtectedRoute component={GuideRSE} /></Route>
-            <Route path="/mes-actions"><ProtectedRoute component={MesActions} /></Route>
 
             <Route component={NotFound} />
           </Switch>

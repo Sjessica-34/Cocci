@@ -32,10 +32,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Loader2, Save } from "lucide-react";
+import { Building2, Loader2, Save, Network, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useLocation } from "wouter";
 
 const SECTORS = [
   "Agriculture & Agro-alimentaire",
@@ -91,6 +103,7 @@ export function OrganizationSettings() {
   const orgId = Number(id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (orgId > 0) setCurrentOrg(orgId);
@@ -154,6 +167,25 @@ export function OrganizationSettings() {
     );
   }
 
+  function handleTransformToGroup() {
+    updateOrg.mutate(
+      { id: orgId, data: { type: "groupe" } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
+          setLocation("/onboarding/filiales");
+        },
+        onError: () => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "La transformation a échoué. Réessayez.",
+          });
+        },
+      },
+    );
+  }
+
   return (
     <AppLayout>
       <div className="space-y-1 max-w-2xl">
@@ -170,6 +202,7 @@ export function OrganizationSettings() {
         {isLoading ? (
           <Skeleton className="h-[480px] w-full rounded-xl" />
         ) : (
+          <>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -355,6 +388,60 @@ export function OrganizationSettings() {
               </Form>
             </CardContent>
           </Card>
+
+          {/* Transformer en groupe — affiché seulement pour les entreprises simples */}
+          {org && org.type === "entreprise" && !org.parentId && (
+            <Card className="border-destructive/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Network className="h-5 w-5 text-destructive/70" />
+                  Zone avancée
+                </CardTitle>
+                <CardDescription>
+                  Ces actions modifient la structure de votre compte.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start justify-between gap-4 p-4 rounded-lg bg-muted/40 border border-border">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Transformer cette entreprise en groupe</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Votre compte deviendra un groupe. Vous pourrez ensuite créer des filiales.
+                        Cette action est irréversible.
+                      </p>
+                    </div>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="shrink-0">
+                        <Network className="mr-1.5 h-3.5 w-3.5" />
+                        Transformer
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Transformer en groupe ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          <strong>{org.name}</strong> deviendra un groupe. Vous serez redirigé vers
+                          le wizard pour créer vos premières filiales. Cette action est irréversible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleTransformToGroup} disabled={updateOrg.isPending}>
+                          {updateOrg.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Transformer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          </>
         )}
       </div>
     </AppLayout>

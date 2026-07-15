@@ -10,3 +10,4 @@
 - [Employment module conventions](employment-module-conventions.md) — readOnly/exercise-closed pattern, guided formula-KPI builder approach, and query-key gotcha for generated hooks.
 - [OpenAPI spec edit pattern](openapi-append-pattern.md) — insert paths BEFORE `components:` and schemas INSIDE components/schemas; never raw-append to EOF (breaks YAML nesting).
 - [Orval mutation hook shapes](orval-hook-shapes.md) — generated mutations take flat `{ orgId, actionId?, data }`, NOT `{ params: {...}, data }`.
+- [1-compte-1-org model](one-account-one-org.md) — rootOrg = org sans parentId; filiales = orgs où parentId === rootOrg.id; WorkspaceGuard redirige vers /onboarding si aucune org.

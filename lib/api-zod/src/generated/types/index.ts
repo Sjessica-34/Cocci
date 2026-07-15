@@ -120,6 +120,7 @@ export * from './organizationType';
 export * from './organizationUpdate';
 export * from './organizationUpdateGroupMode';
 export * from './organizationUpdateSize';
+export * from './organizationUpdateType';
 export * from './planAchievement';
 export * from './planSlot';
 export * from './planSlotUpdate';

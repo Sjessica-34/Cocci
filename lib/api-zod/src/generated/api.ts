@@ -171,6 +171,7 @@ export const UpdateOrganizationBody = zod.object({
   "siret": zod.string().optional(),
   "sector": zod.string().optional(),
   "size": zod.enum(['TPE', 'PME', 'ETI', 'GE']).optional(),
+  "type": zod.enum(['entreprise', 'groupe']).optional().describe('Entity type. Use to promote an entreprise to groupe.'),
   "groupMode": zod.enum(['manual', 'auto']).optional().describe('Set the group calculation mode. Only for type=\'groupe\'.'),
   "exerciseOpeningMonth": zod.number().min(1).max(updateOrganizationBodyExerciseOpeningMonthMax).optional()
 })

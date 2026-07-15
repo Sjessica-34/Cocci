@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { useListOrganizations, useListExercises } from "@workspace/api-client-react";
+import { useListExercises } from "@workspace/api-client-react";
 import {
   LayoutDashboard,
   Settings,
@@ -10,7 +10,6 @@ import {
   ChevronDown,
   User as UserIcon,
   Leaf,
-  ChevronsUpDown,
   Wrench,
   BookOpen,
   Target,
@@ -38,11 +37,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { ExerciseSelector } from "@/components/ExerciseSelector";
-import { EntitySelector } from "@/components/EntitySelector";
+import { GroupSwitcher } from "@/components/GroupSwitcher";
 import { ClosedExerciseBanner } from "@/components/ClosedExerciseBanner";
 import { cn } from "@/lib/utils";
 
@@ -98,19 +97,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useClerk();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   const { currentOrgId } = useCurrentOrganization();
-  const { data: orgs } = useListOrganizations();
-  const currentOrg = orgs?.find((o) => o.id === currentOrgId) ?? null;
 
-  const insideOrg = location.startsWith("/organizations/") && location !== "/organizations/new";
-
-  // The exercise selector and its read-only enforcement apply to every
-  // workspace/module page (dashboard + all RSE modules), not just the
-  // /organizations/:id/* org-management screens. Only exclude the
-  // org-picker screens and the admin area, where there is no single
-  // active organization/exercise context yet.
   const isAdminRoute = location.startsWith("/admin");
-  const isOrgPickerRoute = location === "/organizations" || location === "/organizations/new";
-  const showExerciseUi = !isAdminRoute && !isOrgPickerRoute && currentOrgId != null;
+  const isOnboardingRoute = location.startsWith("/onboarding");
+  const showExerciseUi = !isAdminRoute && !isOnboardingRoute && currentOrgId != null;
 
   const { currentExerciseId } = useCurrentExercise();
   const { data: exercises } = useListExercises(currentOrgId ?? 0, {
@@ -137,65 +127,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </div>
 
       <div className="flex-1 py-3 px-3 flex flex-col overflow-y-auto">
-        {/* Org switcher — visible when navigating inside an org */}
-        {insideOrg && orgs && orgs.length > 0 && (
-          <div className="mb-2">
-            {orgs.length === 1 ? (
-              <div className="flex items-center gap-2 px-2 py-2 rounded-md bg-sidebar-accent/60">
-                <div className="h-6 w-6 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                  {(currentOrg ?? orgs[0]).name.charAt(0)}
-                </div>
-                <span className="text-sm font-medium text-sidebar-foreground truncate flex-1">
-                  {(currentOrg ?? orgs[0]).name}
-                </span>
-              </div>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start px-2 h-9 hover:bg-sidebar-accent/60 text-sidebar-foreground"
-                  >
-                    <div className="h-6 w-6 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0 mr-2">
-                      {(currentOrg ?? orgs[0]).name.charAt(0)}
-                    </div>
-                    <span className="text-sm font-medium truncate flex-1 text-left">
-                      {currentOrg?.name ?? orgs[0].name}
-                    </span>
-                    <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground/40 shrink-0" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Changer d'entreprise</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {orgs.map((org) => (
-                    <Link key={org.id} href={`/organizations/${org.id}`}>
-                      <DropdownMenuItem
-                        className="cursor-pointer"
-                        onClick={() => setCurrentOrg(org.id)}
-                      >
-                        <div className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px] shrink-0 mr-2">
-                          {org.name.charAt(0)}
-                        </div>
-                        <span className="truncate">{org.name}</span>
-                      </DropdownMenuItem>
-                    </Link>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <div className="my-2.5 h-px bg-sidebar-border/40 mx-1" />
-          </div>
-        )}
-
-        {/* Entity selector — workspace module pages */}
-        {showExerciseUi && (
+        {/* Entreprise / Groupe + sélecteur de filiale */}
+        {!isAdminRoute && (
           <div className="mb-1">
-            <EntitySelector />
+            <GroupSwitcher />
           </div>
         )}
 
-        {/* Exercise switcher */}
+        {/* Sélecteur d'exercice */}
         {showExerciseUi && currentOrgId && (
           <div className="mb-2">
             <ExerciseSelector orgId={currentOrgId} />

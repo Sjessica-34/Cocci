@@ -2699,6 +2699,10 @@ components:
         size:
           type: string
           enum: [TPE, PME, ETI, GE]
+        type:
+          type: string
+          enum: [entreprise, groupe]
+          description: "Entity type. Use to promote an entreprise to groupe."
         groupMode:
           type: string
           enum: [manual, auto]

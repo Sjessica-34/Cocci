@@ -145,6 +145,17 @@ export const OrganizationUpdateSize = {
 } as const;
 
 /**
+ * Entity type. Use to promote an entreprise to groupe.
+ */
+export type OrganizationUpdateType = typeof OrganizationUpdateType[keyof typeof OrganizationUpdateType];
+
+
+export const OrganizationUpdateType = {
+  entreprise: 'entreprise',
+  groupe: 'groupe',
+} as const;
+
+/**
  * Set the group calculation mode. Only for type='groupe'.
  */
 export type OrganizationUpdateGroupMode = typeof OrganizationUpdateGroupMode[keyof typeof OrganizationUpdateGroupMode];
@@ -162,6 +173,8 @@ export interface OrganizationUpdate {
   siret?: string;
   sector?: string;
   size?: OrganizationUpdateSize;
+  /** Entity type. Use to promote an entreprise to groupe. */
+  type?: OrganizationUpdateType;
   /** Set the group calculation mode. Only for type='groupe'. */
   groupMode?: OrganizationUpdateGroupMode;
   /**
