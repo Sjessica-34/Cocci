@@ -11,6 +11,7 @@ import {
   requireExerciseScope,
   requireWritableExerciseScope,
 } from "../middlewares/exerciseScope";
+import { getSubsidiaryExercises } from "../lib/consolidation";
 
 const router = Router();
 
@@ -33,6 +34,28 @@ router.get(
 );
 
 // ─── PLAN D'ACTIONS ───────────────────────────────────────────────────────────
+const ACTION_PLAN_SELECT = {
+  id: organizationActionPlansTable.id,
+  organizationId: organizationActionPlansTable.organizationId,
+  exerciseId: organizationActionPlansTable.exerciseId,
+  libraryActionId: organizationActionPlansTable.libraryActionId,
+  customName: organizationActionPlansTable.customName,
+  source: organizationActionPlansTable.source,
+  isChecked: organizationActionPlansTable.isChecked,
+  completedAt: organizationActionPlansTable.completedAt,
+  comment: organizationActionPlansTable.comment,
+  justificationUrl: organizationActionPlansTable.justificationUrl,
+  createdAt: organizationActionPlansTable.createdAt,
+  updatedAt: organizationActionPlansTable.updatedAt,
+  actionName: actionLibraryTable.name,
+  actionDescription: actionLibraryTable.description,
+  actionCategory: actionLibraryTable.category,
+  actionSubcategory: actionLibraryTable.subcategory,
+  actionEsgPillar: actionLibraryTable.esgPillar,
+  actionOdd: actionLibraryTable.odd,
+  actionLevel: actionLibraryTable.level,
+};
+
 // GET /organizations/:orgId/actions/plan
 // Retourne les items du plan pour l'exercice actif, enrichis des infos bibliothèque.
 router.get(
@@ -41,29 +64,27 @@ router.get(
   requireOrgMembership,
   requireExerciseScope,
   async (req, res) => {
+    // Consolidation: group with subsidiaries → LIST all subsidiary action plans
+    const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+    if (subExercises.length > 0) {
+      const allItems = (
+        await Promise.all(
+          subExercises.map(({ orgId, exerciseId }) =>
+            db
+              .select(ACTION_PLAN_SELECT)
+              .from(organizationActionPlansTable)
+              .leftJoin(actionLibraryTable, eq(organizationActionPlansTable.libraryActionId, actionLibraryTable.id))
+              .where(and(eq(organizationActionPlansTable.organizationId, orgId), eq(organizationActionPlansTable.exerciseId, exerciseId)))
+              .orderBy(organizationActionPlansTable.createdAt),
+          ),
+        )
+      ).flat();
+      res.json(allItems);
+      return;
+    }
+
     const items = await db
-      .select({
-        id: organizationActionPlansTable.id,
-        organizationId: organizationActionPlansTable.organizationId,
-        exerciseId: organizationActionPlansTable.exerciseId,
-        libraryActionId: organizationActionPlansTable.libraryActionId,
-        customName: organizationActionPlansTable.customName,
-        source: organizationActionPlansTable.source,
-        isChecked: organizationActionPlansTable.isChecked,
-        completedAt: organizationActionPlansTable.completedAt,
-        comment: organizationActionPlansTable.comment,
-        justificationUrl: organizationActionPlansTable.justificationUrl,
-        createdAt: organizationActionPlansTable.createdAt,
-        updatedAt: organizationActionPlansTable.updatedAt,
-        // Library fields (null for manual actions)
-        actionName: actionLibraryTable.name,
-        actionDescription: actionLibraryTable.description,
-        actionCategory: actionLibraryTable.category,
-        actionSubcategory: actionLibraryTable.subcategory,
-        actionEsgPillar: actionLibraryTable.esgPillar,
-        actionOdd: actionLibraryTable.odd,
-        actionLevel: actionLibraryTable.level,
-      })
+      .select(ACTION_PLAN_SELECT)
       .from(organizationActionPlansTable)
       .leftJoin(
         actionLibraryTable,

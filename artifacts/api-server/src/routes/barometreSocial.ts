@@ -15,6 +15,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { scopeToExercise, withExerciseValues } from "../lib/exercise";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { getSubsidiaryExercises } from "../lib/consolidation";
 
 const router: IRouter = Router();
 
@@ -58,6 +59,25 @@ router.get(
   requireOrgMembership,
   requireExerciseScope,
   async (req, res): Promise<void> => {
+    // Consolidation: group with subsidiaries → LIST all subsidiary campaigns
+    const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+    if (subExercises.length > 0) {
+      const allRows = (
+        await Promise.all(
+          subExercises.map(({ orgId, exerciseId }) =>
+            db
+              .select()
+              .from(barometreCampaignsTable)
+              .where(and(eq(barometreCampaignsTable.organizationId, orgId), eq(barometreCampaignsTable.exerciseId, exerciseId)))
+              .orderBy(desc(barometreCampaignsTable.createdAt)),
+          ),
+        )
+      ).flat();
+      const items = await Promise.all(allRows.map(async (row) => mapCampaign(row, await computeParticipation(row.id))));
+      res.json({ items });
+      return;
+    }
+
     const rows = await db
       .select()
       .from(barometreCampaignsTable)

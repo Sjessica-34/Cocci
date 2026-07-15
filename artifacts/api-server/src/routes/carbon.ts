@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db, carbonBilansTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { scopeToExercise, withExerciseValues } from "../lib/exercise";
+import { getSubsidiaryExercises, sumNullable } from "../lib/consolidation";
 
 const router = Router();
 
@@ -13,8 +14,137 @@ function numOrNull(v: unknown): string | null {
   return isNaN(n) ? null : String(n);
 }
 
+function serialize(b: typeof carbonBilansTable.$inferSelect) {
+  const toNum = (v: string | null | undefined) => (v != null ? Number(v) : null);
+  return {
+    id: b.id,
+    organizationId: b.organizationId,
+    year: b.year,
+    mode: b.mode,
+    status: b.status,
+    methodology: b.methodology,
+    scope: b.scope,
+    energie1: toNum(b.energie1),
+    energie2: toNum(b.energie2),
+    horsEnergie1: toNum(b.horsEnergie1),
+    horsEnergie2: toNum(b.horsEnergie2),
+    intrantsBiens: toNum(b.intrantsBiens),
+    intrantsServices: toNum(b.intrantsServices),
+    futursEmballages: toNum(b.futursEmballages),
+    fret: toNum(b.fret),
+    deplacements: toNum(b.deplacements),
+    dechetsDirects: toNum(b.dechetsDirects),
+    immobilisations: toNum(b.immobilisations),
+    utilisation: toNum(b.utilisation),
+    finDeVie: toNum(b.finDeVie),
+    estEmployeeCount: b.estEmployeeCount,
+    estOfficeSqm: b.estOfficeSqm,
+    estSubsidiaryCount: b.estSubsidiaryCount,
+    estHeatingType: b.estHeatingType,
+    estElecKwhYear: toNum(b.estElecKwhYear),
+    estVehicleCount: b.estVehicleCount,
+    estVehicleFuelType: b.estVehicleFuelType,
+    estTrainKmYear: toNum(b.estTrainKmYear),
+    estPlaneKmYear: toNum(b.estPlaneKmYear),
+    estBuysGoodsKeur: toNum(b.estBuysGoodsKeur),
+    estBuysServicesKeur: toNum(b.estBuysServicesKeur),
+    estWasteTons: toNum(b.estWasteTons),
+    estFreightTkm: toNum(b.estFreightTkm),
+    utilProductType: b.utilProductType,
+    utilUnitsSold: b.utilUnitsSold,
+    utilLifespanYears: toNum(b.utilLifespanYears),
+    utilConsumptionPerYear: toNum(b.utilConsumptionPerYear),
+    utilUnit: b.utilUnit,
+    utilCountry: b.utilCountry,
+    utilCustomFactor: toNum(b.utilCustomFactor),
+    createdAt: b.createdAt.toISOString(),
+    updatedAt: b.updatedAt.toISOString(),
+  };
+}
+
+type SerializedBilan = ReturnType<typeof serialize>;
+
+// SUM strategy: add all numeric fields across subsidiaries.
+function consolidateBilans(bilans: SerializedBilan[]): SerializedBilan {
+  const s = (f: keyof SerializedBilan) =>
+    sumNullable(bilans.map((b) => b[f] as number | null));
+  const first = bilans[0]!;
+  return {
+    id: first.id,
+    organizationId: first.organizationId,
+    year: first.year,
+    mode: "saisie",
+    status: "consolidated",
+    methodology: null,
+    scope: null,
+    energie1: s("energie1"),
+    energie2: s("energie2"),
+    horsEnergie1: s("horsEnergie1"),
+    horsEnergie2: s("horsEnergie2"),
+    intrantsBiens: s("intrantsBiens"),
+    intrantsServices: s("intrantsServices"),
+    futursEmballages: s("futursEmballages"),
+    fret: s("fret"),
+    deplacements: s("deplacements"),
+    dechetsDirects: s("dechetsDirects"),
+    immobilisations: s("immobilisations"),
+    utilisation: s("utilisation"),
+    finDeVie: s("finDeVie"),
+    estEmployeeCount: s("estEmployeeCount"),
+    estOfficeSqm: s("estOfficeSqm"),
+    estSubsidiaryCount: s("estSubsidiaryCount"),
+    estHeatingType: null,
+    estElecKwhYear: s("estElecKwhYear"),
+    estVehicleCount: s("estVehicleCount"),
+    estVehicleFuelType: null,
+    estTrainKmYear: s("estTrainKmYear"),
+    estPlaneKmYear: s("estPlaneKmYear"),
+    estBuysGoodsKeur: s("estBuysGoodsKeur"),
+    estBuysServicesKeur: s("estBuysServicesKeur"),
+    estWasteTons: s("estWasteTons"),
+    estFreightTkm: s("estFreightTkm"),
+    utilProductType: null,
+    utilUnitsSold: s("utilUnitsSold"),
+    utilLifespanYears: s("utilLifespanYears"),
+    utilConsumptionPerYear: s("utilConsumptionPerYear"),
+    utilUnit: null,
+    utilCountry: null,
+    utilCustomFactor: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 // GET /organizations/:orgId/carbon
 router.get("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const orgId = req.orgId!;
+  const exercise = req.exercise!;
+
+  // Consolidation: group with subsidiaries → SUM of all subsidiary bilans
+  const subExercises = await getSubsidiaryExercises(orgId, exercise.year);
+  if (subExercises.length > 0) {
+    const bilans = (
+      await Promise.all(
+        subExercises.map(({ orgId: subId, exerciseId }) =>
+          db
+            .select()
+            .from(carbonBilansTable)
+            .where(and(eq(carbonBilansTable.organizationId, subId), eq(carbonBilansTable.exerciseId, exerciseId)))
+            .limit(1)
+            .then((rows) => (rows[0] ? serialize(rows[0]) : null)),
+        ),
+      )
+    ).filter((b): b is SerializedBilan => b !== null);
+
+    if (bilans.length === 0) {
+      res.status(404).json({ error: "No bilan yet" });
+      return;
+    }
+    res.json(consolidateBilans(bilans));
+    return;
+  }
+
+  // Normal single-org path
   const [bilan] = await db
     .select()
     .from(carbonBilansTable)
@@ -23,7 +153,6 @@ router.get("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, re
     .limit(1);
 
   if (!bilan) { res.status(404).json({ error: "No bilan yet" }); return; }
-
   res.json(serialize(bilan));
 });
 
@@ -103,53 +232,5 @@ router.delete("/organizations/:orgId/carbon", requireAuth, requireOrgMembership,
   if (!deleted.length) { res.status(404).json({ error: "Not found" }); return; }
   res.status(204).end();
 });
-
-function serialize(b: typeof carbonBilansTable.$inferSelect) {
-  const toNum = (v: string | null | undefined) => (v != null ? Number(v) : null);
-  return {
-    id: b.id,
-    organizationId: b.organizationId,
-    year: b.year,
-    mode: b.mode,
-    status: b.status,
-    methodology: b.methodology,
-    scope: b.scope,
-    energie1: toNum(b.energie1),
-    energie2: toNum(b.energie2),
-    horsEnergie1: toNum(b.horsEnergie1),
-    horsEnergie2: toNum(b.horsEnergie2),
-    intrantsBiens: toNum(b.intrantsBiens),
-    intrantsServices: toNum(b.intrantsServices),
-    futursEmballages: toNum(b.futursEmballages),
-    fret: toNum(b.fret),
-    deplacements: toNum(b.deplacements),
-    dechetsDirects: toNum(b.dechetsDirects),
-    immobilisations: toNum(b.immobilisations),
-    utilisation: toNum(b.utilisation),
-    finDeVie: toNum(b.finDeVie),
-    estEmployeeCount: b.estEmployeeCount,
-    estOfficeSqm: b.estOfficeSqm,
-    estSubsidiaryCount: b.estSubsidiaryCount,
-    estHeatingType: b.estHeatingType,
-    estElecKwhYear: toNum(b.estElecKwhYear),
-    estVehicleCount: b.estVehicleCount,
-    estVehicleFuelType: b.estVehicleFuelType,
-    estTrainKmYear: toNum(b.estTrainKmYear),
-    estPlaneKmYear: toNum(b.estPlaneKmYear),
-    estBuysGoodsKeur: toNum(b.estBuysGoodsKeur),
-    estBuysServicesKeur: toNum(b.estBuysServicesKeur),
-    estWasteTons: toNum(b.estWasteTons),
-    estFreightTkm: toNum(b.estFreightTkm),
-    utilProductType: b.utilProductType,
-    utilUnitsSold: b.utilUnitsSold,
-    utilLifespanYears: toNum(b.utilLifespanYears),
-    utilConsumptionPerYear: toNum(b.utilConsumptionPerYear),
-    utilUnit: b.utilUnit,
-    utilCountry: b.utilCountry,
-    utilCustomFactor: toNum(b.utilCustomFactor),
-    createdAt: b.createdAt.toISOString(),
-    updatedAt: b.updatedAt.toISOString(),
-  };
-}
 
 export default router;

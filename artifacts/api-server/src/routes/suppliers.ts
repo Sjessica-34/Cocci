@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db, suppliersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { scopeToExercise, withExerciseValues } from "../lib/exercise";
+import { getSubsidiaryExercises } from "../lib/consolidation";
 
 const router = Router();
 
@@ -45,6 +46,23 @@ function mapRow(row: typeof suppliersTable.$inferSelect) {
 
 // GET /organizations/:orgId/suppliers
 router.get("/organizations/:orgId/suppliers", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  // Consolidation: group with subsidiaries → LIST all subsidiary suppliers
+  const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+  if (subExercises.length > 0) {
+    const allRows = (
+      await Promise.all(
+        subExercises.map(({ orgId, exerciseId }) =>
+          db
+            .select()
+            .from(suppliersTable)
+            .where(and(eq(suppliersTable.organizationId, orgId), eq(suppliersTable.exerciseId, exerciseId))),
+        ),
+      )
+    ).flat();
+    res.json({ items: allRows.map(mapRow) });
+    return;
+  }
+
   const rows = await db.select().from(suppliersTable).where(scopeToExercise(suppliersTable, req));
   res.json({ items: rows.map(mapRow) });
 });

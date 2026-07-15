@@ -25,8 +25,11 @@ import {
   computeStandardIndicators,
   FormulaEvaluationError,
 } from "../lib/employmentIndicators";
+import { getSubsidiaryExercises, sumNullable, anyTrue } from "../lib/consolidation";
 
 const router = Router();
+
+// ─── Helpers: load by req scope ──────────────────────────────────────────────
 
 async function loadWorkforce(req: Parameters<typeof scopeToExercise>[1]): Promise<EmploymentWorkforce | null> {
   const [row] = await db.select().from(employmentWorkforceTable).where(scopeToExercise(employmentWorkforceTable, req)).limit(1);
@@ -38,6 +41,27 @@ async function loadDiversity(req: Parameters<typeof scopeToExercise>[1]): Promis
 }
 async function loadTraining(req: Parameters<typeof scopeToExercise>[1]): Promise<EmploymentTraining | null> {
   const [row] = await db.select().from(employmentTrainingTable).where(scopeToExercise(employmentTrainingTable, req)).limit(1);
+  return row ?? null;
+}
+
+// ─── Helpers: load by explicit (orgId, exerciseId) ───────────────────────────
+
+async function loadWorkforceByIds(orgId: number, exerciseId: number): Promise<EmploymentWorkforce | null> {
+  const [row] = await db.select().from(employmentWorkforceTable)
+    .where(and(eq(employmentWorkforceTable.organizationId, orgId), eq(employmentWorkforceTable.exerciseId, exerciseId)))
+    .limit(1);
+  return row ?? null;
+}
+async function loadDiversityByIds(orgId: number, exerciseId: number): Promise<EmploymentDiversity | null> {
+  const [row] = await db.select().from(employmentDiversityTable)
+    .where(and(eq(employmentDiversityTable.organizationId, orgId), eq(employmentDiversityTable.exerciseId, exerciseId)))
+    .limit(1);
+  return row ?? null;
+}
+async function loadTrainingByIds(orgId: number, exerciseId: number): Promise<EmploymentTraining | null> {
+  const [row] = await db.select().from(employmentTrainingTable)
+    .where(and(eq(employmentTrainingTable.organizationId, orgId), eq(employmentTrainingTable.exerciseId, exerciseId)))
+    .limit(1);
   return row ?? null;
 }
 
@@ -69,10 +93,104 @@ async function loadCustomKpisWithComputedValue(orgId: number, exerciseId: number
   return kpis.map((k) => ({ ...k, computedValue: computeKpiValue(k, variables) }));
 }
 
+// ─── Consolidation helpers ────────────────────────────────────────────────────
+
+function sumWorkforces(rows: EmploymentWorkforce[]): EmploymentWorkforce {
+  const n = (vals: (number | null | undefined)[]): number | null => sumNullable(vals);
+  const wAvg = (field: "avgAge" | "avgSeniority"): number | null => {
+    const pairs = rows
+      .filter((r) => r[field] != null && r.totalHeadcount != null)
+      .map((r) => ({ v: r[field] as number, c: r.totalHeadcount as number }));
+    if (!pairs.length) return null;
+    const total = pairs.reduce((a, p) => a + p.c, 0);
+    return total > 0 ? pairs.reduce((a, p) => a + p.v * p.c, 0) / total : null;
+  };
+  return {
+    id: rows[0]!.id,
+    organizationId: rows[0]!.organizationId,
+    exerciseId: rows[0]!.exerciseId,
+    updatedAt: new Date(),
+    totalHeadcount: n(rows.map((r) => r.totalHeadcount)),
+    nbCdi: n(rows.map((r) => r.nbCdi)),
+    nbCdd: n(rows.map((r) => r.nbCdd)),
+    nbAlternants: n(rows.map((r) => r.nbAlternants)),
+    nbApprentis: n(rows.map((r) => r.nbApprentis)),
+    nbStagiaires: n(rows.map((r) => r.nbStagiaires)),
+    nbInterimaires: n(rows.map((r) => r.nbInterimaires)),
+    nbTempsPlein: n(rows.map((r) => r.nbTempsPlein)),
+    nbTempsPartiel: n(rows.map((r) => r.nbTempsPartiel)),
+    nbRecrutements: n(rows.map((r) => r.nbRecrutements)),
+    nbDeparts: n(rows.map((r) => r.nbDeparts)),
+    avgAge: wAvg("avgAge"),
+    ageUnder25: n(rows.map((r) => r.ageUnder25)),
+    age25to34: n(rows.map((r) => r.age25to34)),
+    age35to44: n(rows.map((r) => r.age35to44)),
+    age45to54: n(rows.map((r) => r.age45to54)),
+    age55plus: n(rows.map((r) => r.age55plus)),
+    avgSeniority: wAvg("avgSeniority"),
+    seniorityUnder2: n(rows.map((r) => r.seniorityUnder2)),
+    seniority2to5: n(rows.map((r) => r.seniority2to5)),
+    seniority5to10: n(rows.map((r) => r.seniority5to10)),
+    seniorityOver10: n(rows.map((r) => r.seniorityOver10)),
+  };
+}
+
+function sumDiversities(rows: EmploymentDiversity[]): EmploymentDiversity {
+  const n = (vals: (number | null | undefined)[]): number | null => sumNullable(vals);
+  const b = (vals: (boolean | null | undefined)[]): boolean | null => anyTrue(vals);
+  return {
+    id: rows[0]!.id,
+    organizationId: rows[0]!.organizationId,
+    exerciseId: rows[0]!.exerciseId,
+    updatedAt: new Date(),
+    nbHommes: n(rows.map((r) => r.nbHommes)),
+    nbFemmes: n(rows.map((r) => r.nbFemmes)),
+    nbNonBinaire: n(rows.map((r) => r.nbNonBinaire)),
+    nbAutreGenre: n(rows.map((r) => r.nbAutreGenre)),
+    nbPrefereNePasRepondreGenre: n(rows.map((r) => r.nbPrefereNePasRepondreGenre)),
+    nbHandicap: n(rows.map((r) => r.nbHandicap)),
+    nbNationaliteFrancaise: n(rows.map((r) => r.nbNationaliteFrancaise)),
+    nbNationaliteUe: n(rows.map((r) => r.nbNationaliteUe)),
+    nbNationaliteHorsUe: n(rows.map((r) => r.nbNationaliteHorsUe)),
+    nbDoubleNationalite: n(rows.map((r) => r.nbDoubleNationalite)),
+    nbPrefereNePasRepondreNationalite: n(rows.map((r) => r.nbPrefereNePasRepondreNationalite)),
+    politiqueDiversite: b(rows.map((r) => r.politiqueDiversite)),
+    referentHandicap: b(rows.map((r) => r.referentHandicap)),
+    sensibilisationDiversite: b(rows.map((r) => r.sensibilisationDiversite)),
+    politiqueContreDiscriminations: b(rows.map((r) => r.politiqueContreDiscriminations)),
+    politiqueEgaliteProfessionnelle: b(rows.map((r) => r.politiqueEgaliteProfessionnelle)),
+    teletravailAutorise: b(rows.map((r) => r.teletravailAutorise)),
+    charteDiversite: b(rows.map((r) => r.charteDiversite)),
+  };
+}
+
+function sumTrainings(rows: EmploymentTraining[]): EmploymentTraining {
+  const n = (vals: (number | null | undefined)[]): number | null => sumNullable(vals);
+  return {
+    id: rows[0]!.id,
+    organizationId: rows[0]!.organizationId,
+    exerciseId: rows[0]!.exerciseId,
+    updatedAt: new Date(),
+    nbHeuresFormation: n(rows.map((r) => r.nbHeuresFormation)),
+    budgetFormation: n(rows.map((r) => r.budgetFormation)),
+    nbCollaborateursFormes: n(rows.map((r) => r.nbCollaborateursFormes)),
+    nbEntretiensAnnuels: n(rows.map((r) => r.nbEntretiensAnnuels)),
+    nbEntretiensProfessionnels: n(rows.map((r) => r.nbEntretiensProfessionnels)),
+    nbCertifications: n(rows.map((r) => r.nbCertifications)),
+    nbEvolutionsInternes: n(rows.map((r) => r.nbEvolutionsInternes)),
+  };
+}
+
 // ─── EFFECTIFS ────────────────────────────────────────────────────────────
 router.get("/organizations/:orgId/employment/workforce", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res) => {
-  const data = await loadWorkforce(req);
-  res.json({ data });
+  const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+  if (subExercises.length > 0) {
+    const rows = (await Promise.all(subExercises.map(({ orgId, exerciseId }) => loadWorkforceByIds(orgId, exerciseId))))
+      .filter((r): r is EmploymentWorkforce => r !== null);
+    res.json({ data: rows.length > 0 ? sumWorkforces(rows) : null });
+    return;
+  }
+  res.json({ data: await loadWorkforce(req) });
 });
 
 router.put("/organizations/:orgId/employment/workforce", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
@@ -93,8 +211,14 @@ router.put("/organizations/:orgId/employment/workforce", requireAuth, requireOrg
 
 // ─── DIVERSITÉ & INCLUSION ────────────────────────────────────────────────
 router.get("/organizations/:orgId/employment/diversity", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res) => {
-  const data = await loadDiversity(req);
-  res.json({ data });
+  const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+  if (subExercises.length > 0) {
+    const rows = (await Promise.all(subExercises.map(({ orgId, exerciseId }) => loadDiversityByIds(orgId, exerciseId))))
+      .filter((r): r is EmploymentDiversity => r !== null);
+    res.json({ data: rows.length > 0 ? sumDiversities(rows) : null });
+    return;
+  }
+  res.json({ data: await loadDiversity(req) });
 });
 
 router.put("/organizations/:orgId/employment/diversity", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
@@ -115,8 +239,14 @@ router.put("/organizations/:orgId/employment/diversity", requireAuth, requireOrg
 
 // ─── FORMATION & DÉVELOPPEMENT ────────────────────────────────────────────
 router.get("/organizations/:orgId/employment/training", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res) => {
-  const data = await loadTraining(req);
-  res.json({ data });
+  const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+  if (subExercises.length > 0) {
+    const rows = (await Promise.all(subExercises.map(({ orgId, exerciseId }) => loadTrainingByIds(orgId, exerciseId))))
+      .filter((r): r is EmploymentTraining => r !== null);
+    res.json({ data: rows.length > 0 ? sumTrainings(rows) : null });
+    return;
+  }
+  res.json({ data: await loadTraining(req) });
 });
 
 router.put("/organizations/:orgId/employment/training", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
@@ -137,8 +267,13 @@ router.put("/organizations/:orgId/employment/training", requireAuth, requireOrgM
 
 // ─── KPI PERSONNALISÉS ────────────────────────────────────────────────────
 router.get("/organizations/:orgId/employment/kpis", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res) => {
-  const items = await loadCustomKpisWithComputedValue(req.orgId!, req.exercise!.id);
-  res.json({ items });
+  const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+  if (subExercises.length > 0) {
+    const all = await Promise.all(subExercises.map(({ orgId, exerciseId }) => loadCustomKpisWithComputedValue(orgId, exerciseId)));
+    res.json({ items: all.flat() });
+    return;
+  }
+  res.json({ items: await loadCustomKpisWithComputedValue(req.orgId!, req.exercise!.id) });
 });
 
 router.post("/organizations/:orgId/employment/kpis", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
@@ -217,6 +352,38 @@ router.get("/organizations/:orgId/employment/results", requireAuth, requireOrgMe
   const orgId = req.orgId!;
   const exercise = req.exercise!;
 
+  // Consolidation: group with subsidiaries → RECALCULATE from summed data
+  const subExercises = await getSubsidiaryExercises(orgId, exercise.year);
+  if (subExercises.length > 0) {
+    const [workforceRows, diversityRows, trainingRows, kpiArrays] = await Promise.all([
+      Promise.all(subExercises.map(({ orgId: s, exerciseId: e }) => loadWorkforceByIds(s, e))),
+      Promise.all(subExercises.map(({ orgId: s, exerciseId: e }) => loadDiversityByIds(s, e))),
+      Promise.all(subExercises.map(({ orgId: s, exerciseId: e }) => loadTrainingByIds(s, e))),
+      Promise.all(subExercises.map(({ orgId: s, exerciseId: e }) => loadCustomKpisWithComputedValue(s, e))),
+    ]);
+
+    const validWorkforces = workforceRows.filter((r): r is EmploymentWorkforce => r !== null);
+    const validDiversities = diversityRows.filter((r): r is EmploymentDiversity => r !== null);
+    const validTrainings = trainingRows.filter((r): r is EmploymentTraining => r !== null);
+
+    const workforce = validWorkforces.length > 0 ? sumWorkforces(validWorkforces) : null;
+    const diversity = validDiversities.length > 0 ? sumDiversities(validDiversities) : null;
+    const training = validTrainings.length > 0 ? sumTrainings(validTrainings) : null;
+    const customKpis = kpiArrays.flat();
+
+    // No previous-year comparison in consolidated view (would require aggregating N subsidiary prev years)
+    const indicators = computeStandardIndicators({ workforce, diversity, training }, null);
+    const strengths = indicators.filter((i) => i.trend === "up" && !["nb_departs"].includes(i.code));
+    const watchpoints = indicators.filter((i) => (i.trend === "down" && !["nb_departs"].includes(i.code)) || (i.code === "nb_departs" && i.trend === "up"));
+    const increasing = indicators.filter((i) => i.trend === "up");
+    const decreasing = indicators.filter((i) => i.trend === "down");
+    const isNew = indicators.filter((i) => i.trend === "new");
+
+    res.json({ workforce, diversity, training, customKpis, indicators, strengths, watchpoints, increasing, decreasing, isNew });
+    return;
+  }
+
+  // Normal single-org path
   const [workforce, diversity, training, customKpis] = await Promise.all([
     loadWorkforce(req),
     loadDiversity(req),
@@ -242,7 +409,6 @@ router.get("/organizations/:orgId/employment/results", requireAuth, requireOrgMe
   }
 
   const indicators = computeStandardIndicators({ workforce, diversity, training }, previousData);
-
   const strengths = indicators.filter((i) => i.trend === "up" && !["nb_departs"].includes(i.code));
   const watchpoints = indicators.filter((i) => (i.trend === "down" && !["nb_departs"].includes(i.code)) || (i.code === "nb_departs" && i.trend === "up"));
   const increasing = indicators.filter((i) => i.trend === "up");
