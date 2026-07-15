@@ -1,5 +1,5 @@
 import "@xyflow/react/dist/style.css";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow, Background, Controls, MiniMap,
   useNodesState, useEdgesState,
@@ -18,7 +18,6 @@ import {
   listBioDependencies,
   listBioConnections,
   type BioConnection,
-  type BioDependency,
   type Organization,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Building2, Network, Plus } from "lucide-react";
+import { ArrowRight, Network, Plus } from "lucide-react";
 import {
   RELATION_TYPES, elementLabel, familyIcon, familyColor, familyBg, defaultElementPosition,
 } from "../data";
@@ -96,221 +95,6 @@ const BioElementNode = memo(function BioElementNode({ data }: NodeProps<BioNode>
 
 const nodeTypes: NodeTypes = { bioElement: BioElementNode };
 
-// ─── Vue groupe — constantes ──────────────────────────────────────────────────
-
-const MAISON_MERE_NAME = "Maison mère / Siège social";
-
-// Approximations de taille d'un nœud bio-élément (px)
-const NODE_W   = 200;
-const NODE_H   = 65;
-const ORG_PAD  = 80;   // padding autour de la carto de chaque org
-const H_GAP    = 140;  // espace horizontal entre deux orgs sur la même ligne
-const V_GAP    = 160;  // espace vertical entre les lignes
-
-// ─── Vue groupe — étiquette d'organisation ────────────────────────────────────
-
-type OrgLabelData = { orgName: string; isCenter: boolean; elemCount: number };
-type OrgLabelNode = Node<OrgLabelData, "orgLabel">;
-
-const OrgLabelNodeComp = memo(function OrgLabelNodeComp({ data }: NodeProps<OrgLabelNode>) {
-  return (
-    <div
-      className="px-4 py-2 rounded-xl shadow border-2 select-none text-center"
-      style={{
-        minWidth: 180,
-        backgroundColor: data.isCenter ? "#ecfdf5" : "#f0f9ff",
-        borderColor:     data.isCenter ? "#34d399" : "#7dd3fc",
-      }}
-    >
-      <Handle type="target" position={Position.Bottom}
-        style={{ background: data.isCenter ? "#34d399" : "#7dd3fc", width: 9, height: 9, border: "2px solid white" }} />
-      <Handle type="source" position={Position.Top}
-        style={{ background: data.isCenter ? "#34d399" : "#7dd3fc", width: 9, height: 9, border: "2px solid white" }} />
-      <Handle type="target" id="right-t" position={Position.Right}
-        style={{ background: data.isCenter ? "#34d399" : "#7dd3fc", width: 9, height: 9, border: "2px solid white" }} />
-      <Handle type="source" id="left-s"  position={Position.Left}
-        style={{ background: data.isCenter ? "#34d399" : "#7dd3fc", width: 9, height: 9, border: "2px solid white" }} />
-      <Building2 className="h-4 w-4 mx-auto mb-0.5"
-        style={{ color: data.isCenter ? "#059669" : "#0284c7" }} />
-      <p className="text-xs font-bold leading-tight"
-        style={{ color: data.isCenter ? "#065f46" : "#0c4a6e" }}>
-        {data.orgName}
-      </p>
-      {data.elemCount === 0 ? (
-        <p className="text-[10px] mt-0.5 opacity-60"
-          style={{ color: data.isCenter ? "#059669" : "#0284c7" }}>
-          Aucun élément
-        </p>
-      ) : (
-        <p className="text-[10px] mt-0.5 opacity-70"
-          style={{ color: data.isCenter ? "#059669" : "#0284c7" }}>
-          {data.elemCount} élément{data.elemCount !== 1 ? "s" : ""}
-        </p>
-      )}
-    </div>
-  );
-});
-
-// bioElement + orgLabel sur le même canvas
-const groupAllNodeTypes: NodeTypes = { bioElement: BioElementNode, orgLabel: OrgLabelNodeComp };
-
-// ─── Vue groupe — calcul des positions ───────────────────────────────────────
-
-/** Retourne les positions effectives (stockées ou par défaut) de chaque élément. */
-function resolvePositions(elements: BioDependency[]): { x: number; y: number }[] {
-  const zoneCounts: Record<string, number> = {};
-  return elements.map((el) => {
-    const zone = el.chainPosition ?? "amont";
-    const idx  = zoneCounts[zone] ?? 0;
-    zoneCounts[zone] = idx + 1;
-    const def = defaultElementPosition(zone, idx);
-    return { x: el.x ?? def.x, y: el.y ?? def.y };
-  });
-}
-
-/** Bounding-box d'une cartographie (positions réelles + padding). */
-function computeBounds(elements: BioDependency[], positions: { x: number; y: number }[]) {
-  if (elements.length === 0) {
-    return { minX: 0, minY: 0, width: 420, height: 280 };
-  }
-  const minX = Math.min(...positions.map((p) => p.x)) - ORG_PAD;
-  const minY = Math.min(...positions.map((p) => p.y)) - ORG_PAD;
-  const maxX = Math.max(...positions.map((p) => p.x)) + NODE_W + ORG_PAD;
-  const maxY = Math.max(...positions.map((p) => p.y)) + NODE_H + ORG_PAD;
-  return { minX, minY, width: maxX - minX, height: maxY - minY };
-}
-
-type OrgData = { org: Organization; elements: BioDependency[]; connections: BioConnection[] };
-
-/**
- * Assemble tous les nœuds et arêtes pour la vue groupe.
- * - Chaque cartographie est décalée pour ne pas chevaucher les autres.
- * - La Maison mère est au centre.
- * - Les filiales sont réparties au-dessus et en dessous.
- * - Seules les connexions inter-orgs (filiale → Maison mère) sont ajoutées.
- */
-function buildGroupCartoLayout(orgsData: OrgData[]): {
-  nodes: (BioNode | OrgLabelNode)[];
-  edges: Edge[];
-} {
-  const center  = orgsData.find((o) => o.org.name === MAISON_MERE_NAME) ?? orgsData[0];
-  const others  = orgsData.filter((o) => o.org.id !== center.org.id);
-  const half    = Math.ceil(others.length / 2);
-  const above   = others.slice(0, half);
-  const below   = others.slice(half);
-
-  // Positions et bornes pré-calculées par org
-  const posMap    = new Map<number, { x: number; y: number }[]>();
-  const boundsMap = new Map<number, { minX: number; minY: number; width: number; height: number }>();
-  for (const od of orgsData) {
-    const positions = resolvePositions(od.elements);
-    posMap.set(od.org.id, positions);
-    boundsMap.set(od.org.id, computeBounds(od.elements, positions));
-  }
-
-  const cb = boundsMap.get(center.org.id)!;
-
-  // Hauteur max de chaque rangée
-  const aboveH = above.length > 0 ? Math.max(...above.map((o) => boundsMap.get(o.org.id)!.height)) : 0;
-  const belowH = below.length > 0 ? Math.max(...below.map((o) => boundsMap.get(o.org.id)!.height)) : 0;
-
-  // Ordonnées (bord supérieur de chaque rangée)
-  const centerTop = aboveH > 0 ? aboveH + V_GAP : 0;
-  const aboveTop  = aboveH > 0 ? centerTop - aboveH - V_GAP : 0;
-  const belowTop  = centerTop + cb.height + V_GAP;
-
-  // Abscisse pivot pour centrer horizontalement
-  const pivot = cb.width / 2; // aligné sur le centre de la Maison mère
-
-  function layoutRow(
-    row: OrgData[],
-    rowTop: number,
-  ): { orgId: number; layoutX: number; layoutY: number }[] {
-    const totalW = row.reduce((s, o) => s + boundsMap.get(o.org.id)!.width, 0)
-                 + (row.length - 1) * H_GAP;
-    let curX = pivot - totalW / 2;
-    return row.map((o) => {
-      const b = boundsMap.get(o.org.id)!;
-      const pos = { orgId: o.org.id, layoutX: curX, layoutY: rowTop };
-      curX += b.width + H_GAP;
-      return pos;
-    });
-  }
-
-  const layouts = [
-    { orgId: center.org.id, layoutX: 0, layoutY: centerTop },
-    ...layoutRow(above, aboveTop),
-    ...layoutRow(below, belowTop),
-  ];
-
-  const allNodes: (BioNode | OrgLabelNode)[] = [];
-  const allEdges: Edge[] = [];
-  const labelCenterById = new Map<number, { x: number; y: number }>();
-
-  for (const layout of layouts) {
-    const od      = orgsData.find((o) => o.org.id === layout.orgId)!;
-    const bounds  = boundsMap.get(layout.orgId)!;
-    const positions = posMap.get(layout.orgId)!;
-    const offset  = { x: layout.layoutX - bounds.minX, y: layout.layoutY - bounds.minY };
-    const isCenter = od.org.id === center.org.id;
-
-    // Nœuds bio-éléments décalés
-    od.elements.forEach((el, idx) => {
-      const pos = positions[idx];
-      allNodes.push({
-        id:       `g-${layout.orgId}-el-${el.id}`,
-        type:     "bioElement" as const,
-        position: { x: pos.x + offset.x, y: pos.y + offset.y },
-        data:     { name: el.name ?? null, category: el.category ?? null, subCategory: el.subCategory ?? null },
-      } as BioNode);
-    });
-
-    // Arêtes internes (connexions de la filiale, positions namespaced)
-    od.connections.forEach((conn) => {
-      allEdges.push({
-        id:     `g-${layout.orgId}-conn-${conn.id}`,
-        source: `g-${layout.orgId}-el-${conn.fromElementId}`,
-        target: `g-${layout.orgId}-el-${conn.toElementId}`,
-        type:   "smoothstep",
-        label:  conn.relationType ?? undefined,
-        labelStyle:          { fontSize: 10, fill: "#475569", fontWeight: 600 },
-        labelBgStyle:        { fill: "#f8fafc", stroke: "#e2e8f0", strokeWidth: 1 },
-        labelBgPadding:      [6, 3] as [number, number],
-        labelBgBorderRadius: 4,
-        markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
-        style:     { stroke: "#94a3b8", strokeWidth: 1.5 },
-      });
-    });
-
-    // Étiquette d'organisation — positionnée au-dessus de la carto
-    const labelX = layout.layoutX + bounds.width / 2 - 90; // largeur étiquette ~180px
-    const labelY = layout.layoutY - 56;
-    const labelCenter = { x: labelX + 90, y: labelY + 28 };
-    labelCenterById.set(layout.orgId, labelCenter);
-
-    allNodes.push({
-      id:       `g-${layout.orgId}-label`,
-      type:     "orgLabel" as const,
-      position: { x: labelX, y: labelY },
-      data:     { orgName: od.org.name, isCenter, elemCount: od.elements.length },
-    } as OrgLabelNode);
-  }
-
-  // Connexions inter-orgs : chaque filiale → Maison mère
-  for (const od of others) {
-    allEdges.push({
-      id:        `interorg-${od.org.id}-${center.org.id}`,
-      source:    `g-${od.org.id}-label`,
-      target:    `g-${center.org.id}-label`,
-      type:      "smoothstep",
-      markerEnd: { type: MarkerType.ArrowClosed, color: "#6366f1" },
-      style:     { stroke: "#6366f1", strokeWidth: 1.5, strokeDasharray: "6,4" },
-    });
-  }
-
-  return { nodes: allNodes, edges: allEdges };
-}
-
 // ─── Edge helper ──────────────────────────────────────────────────────────────
 
 function connToEdge(conn: BioConnection): Edge {
@@ -338,12 +122,13 @@ interface Props {
   subsidiaries?: Organization[];
 }
 
-// ─── Vue groupe — récupération et rendu ──────────────────────────────────────
+// ─── Vue groupe consolidée ────────────────────────────────────────────────────
+// Agrège les éléments et connexions de toutes les filiales et les affiche
+// dans le même format qu'IndividualCarto (lecture seule).
 
 function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
   const orgIds = subsidiaries.map((s) => s.id);
 
-  // Récupération parallèle des dépendances et connexions de chaque entité
   const depsResults = useQueries({
     queries: orgIds.map((id) => ({
       queryKey: getListBioDependenciesQueryKey(id),
@@ -362,53 +147,125 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
 
   const isLoading = depsResults.some((q) => q.isLoading) || connResults.some((q) => q.isLoading);
 
-  const orgsData: OrgData[] = subsidiaries.map((org, i) => ({
-    org,
-    elements:    depsResults[i]?.data?.items ?? [],
-    connections: connResults[i]?.data?.items ?? [],
-  }));
+  // ── Agrégation des nœuds : IDs namespaced, positions recalculées par zone ──
+  const allNodes = useMemo<BioNode[]>(() => {
+    const zoneCounts: Record<string, number> = {};
+    const nodes: BioNode[] = [];
+    subsidiaries.forEach((org, i) => {
+      const items = depsResults[i]?.data?.items ?? [];
+      items.forEach((el) => {
+        const zone = el.chainPosition ?? "amont";
+        const idx  = zoneCounts[zone] ?? 0;
+        zoneCounts[zone] = idx + 1;
+        const pos  = defaultElementPosition(zone, idx);
+        nodes.push({
+          id:       `${org.id}-${el.id}`,
+          type:     "bioElement" as const,
+          position: pos,
+          data: {
+            name:        el.name        ?? null,
+            category:    el.category    ?? null,
+            subCategory: el.subCategory ?? null,
+          },
+        });
+      });
+    });
+    return nodes;
+  }, [depsResults, subsidiaries]);
 
-  const { nodes: gNodes, edges: gEdges } = buildGroupCartoLayout(orgsData);
+  // ── Agrégation des arêtes : IDs namespaced ─────────────────────────────────
+  const allEdges = useMemo<Edge[]>(() => {
+    const edges: Edge[] = [];
+    subsidiaries.forEach((org, i) => {
+      const conns = connResults[i]?.data?.items ?? [];
+      conns.forEach((conn) => {
+        edges.push({
+          id:     `${org.id}-conn-${conn.id}`,
+          source: `${org.id}-${conn.fromElementId}`,
+          target: `${org.id}-${conn.toElementId}`,
+          type:   "smoothstep",
+          label:  conn.relationType ?? undefined,
+          labelStyle:          { fontSize: 10, fill: "#475569", fontWeight: 600 },
+          labelBgStyle:        { fill: "#f8fafc", stroke: "#e2e8f0", strokeWidth: 1 },
+          labelBgPadding:      [6, 3] as [number, number],
+          labelBgBorderRadius: 4,
+          markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
+          style:     { stroke: "#94a3b8", strokeWidth: 1.5 },
+        });
+      });
+    });
+    return edges;
+  }, [connResults, subsidiaries]);
 
-  const totalElements = orgsData.reduce((s, o) => s + o.elements.length, 0);
+  const totalConnections = allEdges.length;
 
   if (isLoading) {
-    return <Skeleton className="h-[640px] w-full rounded-xl" />;
+    return <Skeleton className="h-[620px] w-full rounded-xl" />;
+  }
+
+  if (allNodes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
+        <Network className="h-10 w-10 opacity-30" />
+        <p className="text-sm max-w-xs">
+          Aucun élément à cartographier dans les filiales. Ajoutez-en depuis chaque filiale dans l'onglet "Saisie".
+        </p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {subsidiaries.length} entité{subsidiaries.length !== 1 ? "s" : ""}
-          &ensp;·&ensp;{totalElements} élément{totalElements !== 1 ? "s" : ""}
-          &ensp;·&ensp;Vue consolidée du groupe
+          {allNodes.length} élément{allNodes.length !== 1 ? "s" : ""}&ensp;·&ensp;
+          {totalConnections} connexion{totalConnections !== 1 ? "s" : ""}
+          {totalConnections > 0 && (
+            <span className="text-xs"> — consolidés depuis {subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""}</span>
+          )}
+          {totalConnections === 0 && (
+            <span className="text-xs"> — consolidés depuis {subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""}</span>
+          )}
         </p>
         <span className="text-xs text-muted-foreground bg-slate-100 border rounded px-2 py-1">
-          Lecture seule — modifiez chaque filiale séparément
+          Lecture seule — modifiez depuis chaque filiale
         </span>
       </div>
-      <div
-        className="flex flex-col overflow-hidden rounded-xl border shadow-sm"
-        style={{ height: 640 }}
-      >
-        <ReactFlow
-          nodes={gNodes}
-          edges={gEdges}
-          nodeTypes={groupAllNodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.12 }}
-          minZoom={0.05}
-          maxZoom={2}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          style={{ background: "#f8fafc" }}
-        >
-          <Background gap={24} size={1} color="#e2e8f0" />
-          <Controls position="bottom-left" />
-          <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
-        </ReactFlow>
+
+      <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 620 }}>
+        <div className="grid grid-cols-3 border-b shrink-0">
+          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">
+            Amont
+          </div>
+          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">
+            In situ
+          </div>
+          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">
+            Aval
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <ReactFlow
+            nodes={allNodes}
+            edges={allEdges}
+            nodeTypes={nodeTypes}
+            fitView
+            fitViewOptions={{ padding: 0.15 }}
+            minZoom={0.25}
+            maxZoom={2.5}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            style={{
+              background:
+                "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
+            }}
+          >
+            <Background gap={20} size={1} color="#cbd5e1" />
+            <Controls position="bottom-left" />
+            <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
+          </ReactFlow>
+        </div>
       </div>
     </div>
   );

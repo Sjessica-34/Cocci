@@ -15,9 +15,10 @@ export function Biodiversite() {
 
   const rootOrg = orgs.find((o) => !o.parentId) ?? null;
   const subsidiaries = orgs.filter((o) => rootOrg && o.parentId === rootOrg.id);
-  // Group view = l'utilisateur a sélectionné l'org racine de type "groupe" qui a des filiales
+  // Group view = groupe en mode auto (résultats agrégés depuis filiales)
   const isGroupView =
     rootOrg?.type === "groupe" &&
+    rootOrg?.groupMode === "auto" &&
     subsidiaries.length > 0 &&
     currentOrgId === rootOrg.id;
 
