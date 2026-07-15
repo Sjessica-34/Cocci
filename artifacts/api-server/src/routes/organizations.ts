@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, organizationsTable, membersTable } from "@workspace/db";
+import { db, organizationsTable, membersTable, exercisesTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
 import { getOrCreateUser } from "../lib/auth";
@@ -69,6 +69,14 @@ router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
         status: "active",
       });
     }
+  } else {
+    // Root org (no parent): auto-create an exercise for the current year so
+    // the workspace is immediately usable without a manual setup step.
+    await db.insert(exercisesTable).values({
+      organizationId: org.id,
+      year: new Date().getFullYear(),
+      status: "active",
+    });
   }
 
   res.status(201).json(CreateOrganizationResponse.parse(org));
