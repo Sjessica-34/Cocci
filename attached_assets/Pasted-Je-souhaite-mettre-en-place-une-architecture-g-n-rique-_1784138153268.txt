@@ -1,0 +1,195 @@
+Je souhaite mettre en place une architecture générique pour la gestion Groupe / Filiales.
+
+## 1. Cohérence de l'interface
+
+⚠️ C'est un point très important.
+
+La vue Groupe doit être STRICTEMENT IDENTIQUE à la vue Filiale.
+
+Je ne veux pas deux interfaces différentes.
+
+Je ne veux pas deux pages différentes.
+
+Je ne veux pas deux expériences utilisateur différentes.
+
+Le changement de contexte (Groupe / Filiale) ne doit modifier QUE les données affichées.
+
+Il ne doit jamais modifier :
+
+- la structure de la page ;
+- les composants ;
+- les cartes ;
+- les graphiques ;
+- les donuts ;
+- les tableaux ;
+- les indicateurs ;
+- les boutons ;
+- la navigation ;
+- la disposition des éléments.
+
+La vue Groupe et la vue Filiale doivent utiliser exactement le même composant.
+
+La seule différence est la source des données :
+
+- Vue Filiale → données de la filiale sélectionnée.
+- Vue Groupe → données Groupe ou données consolidées selon le type du module.
+
+Exemple :
+
+Le module "Mon diagnostic RSE" a été modifié et la vue Groupe n'utilise plus la même interface que la vue Filiale.
+
+Ce n'est pas le comportement attendu.
+
+Je souhaite retrouver exactement les mêmes donuts, les mêmes cartes, les mêmes graphiques, les mêmes tableaux et la même navigation.
+
+Merci d'appliquer cette règle à tous les modules existants et futurs.
+
+---
+
+## 2. Règles de consolidation
+
+Je souhaite définir des règles de calcul génériques pour les modules Groupe / Filiales.
+
+L'objectif est qu'il n'y ait plus de logique spécifique dans chaque page.
+
+Chaque module doit simplement définir sa stratégie de consolidation.
+
+### Règle générale
+
+Les données des filiales restent indépendantes.
+
+Lorsque le contexte sélectionné est "Groupe", les indicateurs sont calculés automatiquement selon leur stratégie.
+
+Une consolidation ne doit jamais être réalisée en faisant une moyenne de pourcentages.
+
+Les indicateurs Groupe doivent toujours être recalculés à partir des données brutes consolidées.
+
+### Mon bilan carbone
+
+Stratégie : **SUM**
+
+Additionner toutes les émissions des filiales.
+
+Le Groupe affiche automatiquement le bilan consolidé.
+
+Toutes les catégories d'émissions sont additionnées.
+
+Les graphiques sont recalculés.
+
+### Capital humain
+
+Stratégie : **RECALCULATE**
+
+Additionner :
+
+- Effectifs
+- ETP
+- CDI
+- CDD
+- Alternants
+- Apprentis
+- Heures de formation
+- Arrivées
+- Départs
+- Jours d'absence
+- Accidents
+
+Puis recalculer automatiquement :
+
+- turnover
+- absentéisme
+- taux de formation
+- tous les autres indicateurs
+
+Ne jamais faire une moyenne des taux des filiales.
+
+### Baromètre social
+
+Stratégie : **RECALCULATE**
+
+Additionner :
+
+- nombre total de salariés
+- nombre de répondants
+
+Puis recalculer :
+
+- taux de participation
+- moyenne des réponses
+- score global
+
+Ne jamais faire une moyenne des résultats des filiales.
+
+### Achats & Fournisseurs
+
+Stratégie : **RECALCULATE**
+
+Additionner :
+
+- dépenses
+- fournisseurs
+- fournisseurs évalués
+- achats responsables
+
+Puis recalculer automatiquement les indicateurs.
+
+### Mon diagnostic RSE
+
+Chaque filiale conserve son propre diagnostic.
+
+Le Groupe affichera plus tard une vue consolidée.
+
+Ne pas développer ce calcul maintenant, mais prévoir une architecture permettant de calculer un score Groupe.
+
+### Mes actions RSE
+
+Stratégie : **LIST**
+
+Chaque filiale conserve son propre plan d'actions.
+
+Le Groupe affiche simplement l'ensemble des actions avec des filtres par filiale.
+
+Prévoir les indicateurs :
+
+- nombre total d'actions
+- actions en cours
+- actions terminées
+- actions en retard
+
+### Modules Groupe
+
+Les modules suivants sont uniques et ne sont jamais consolidés :
+
+- Parties prenantes
+- Matrice de matérialité
+- Démarche Numérique Responsable
+- Administration
+- Mes labels
+- Mon Impact Score
+- Ma captation carbone
+
+Ils existent une seule fois pour tout le Groupe.
+
+Depuis une filiale, ils restent consultables mais non modifiables.
+
+### Architecture
+
+Chaque module doit définir sa stratégie de consolidation.
+
+Exemple :
+
+- NONE
+- SUM
+- RECALCULATE
+- LIST
+
+Exemples :
+
+- Mon bilan carbone → SUM
+- Capital humain → RECALCULATE
+- Baromètre social → RECALCULATE
+- Achats & Fournisseurs → RECALCULATE
+- Mes actions RSE → LIST
+- Modules Groupe → NONE
+
+L'objectif est qu'à l'avenir, lorsqu'un nouveau module sera créé, il suffise de lui attribuer une stratégie de consolidation sans avoir à modifier le moteur de calcul ni l'interface.
