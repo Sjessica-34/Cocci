@@ -59,6 +59,7 @@ export const UpdateMeResponse = zod.object({
  * Returns all organizations the authenticated user belongs to
  * @summary List organizations for current user
  */
+export const listOrganizationsResponseTypeDefault = `entreprise`;
 export const listOrganizationsResponseExerciseOpeningMonthMax = 12;
 
 
@@ -71,6 +72,9 @@ export const ListOrganizationsResponseItem = zod.object({
   "sector": zod.string().nullish(),
   "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
   "logoUrl": zod.string().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']).default(listOrganizationsResponseTypeDefault).describe('Entity type: \'entreprise\' or \'groupe\''),
+  "parentId": zod.number().nullish().describe('FK to parent group organization (null if standalone or group)'),
+  "groupMode": zod.union([zod.literal('manual'),zod.literal('auto'),zod.literal(null)]).nullish().describe('How group results are calculated: \'manual\' or \'auto\'. Only for type=\'groupe\' with subsidiaries.'),
   "exerciseOpeningMonth": zod.number().min(1).max(listOrganizationsResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
@@ -92,9 +96,13 @@ export const CreateOrganizationBody = zod.object({
   "siret": zod.string().optional(),
   "sector": zod.string().optional(),
   "size": zod.enum(['TPE', 'PME', 'ETI', 'GE']).optional(),
+  "type": zod.enum(['entreprise', 'groupe']).optional(),
+  "parentId": zod.number().optional().describe('ID of the parent group. Only valid when type=\'entreprise\'.'),
+  "groupMode": zod.enum(['manual', 'auto']).optional(),
   "exerciseOpeningMonth": zod.number().min(1).max(createOrganizationBodyExerciseOpeningMonthMax).optional()
 })
 
+export const createOrganizationResponseTypeDefault = `entreprise`;
 export const createOrganizationResponseExerciseOpeningMonthMax = 12;
 
 
@@ -107,6 +115,9 @@ export const CreateOrganizationResponse = zod.object({
   "sector": zod.string().nullish(),
   "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
   "logoUrl": zod.string().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']).default(createOrganizationResponseTypeDefault).describe('Entity type: \'entreprise\' or \'groupe\''),
+  "parentId": zod.number().nullish().describe('FK to parent group organization (null if standalone or group)'),
+  "groupMode": zod.union([zod.literal('manual'),zod.literal('auto'),zod.literal(null)]).nullish().describe('How group results are calculated: \'manual\' or \'auto\'. Only for type=\'groupe\' with subsidiaries.'),
   "exerciseOpeningMonth": zod.number().min(1).max(createOrganizationResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
@@ -120,6 +131,7 @@ export const GetOrganizationParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getOrganizationResponseTypeDefault = `entreprise`;
 export const getOrganizationResponseExerciseOpeningMonthMax = 12;
 
 
@@ -132,6 +144,9 @@ export const GetOrganizationResponse = zod.object({
   "sector": zod.string().nullish(),
   "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
   "logoUrl": zod.string().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']).default(getOrganizationResponseTypeDefault).describe('Entity type: \'entreprise\' or \'groupe\''),
+  "parentId": zod.number().nullish().describe('FK to parent group organization (null if standalone or group)'),
+  "groupMode": zod.union([zod.literal('manual'),zod.literal('auto'),zod.literal(null)]).nullish().describe('How group results are calculated: \'manual\' or \'auto\'. Only for type=\'groupe\' with subsidiaries.'),
   "exerciseOpeningMonth": zod.number().min(1).max(getOrganizationResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
@@ -156,9 +171,11 @@ export const UpdateOrganizationBody = zod.object({
   "siret": zod.string().optional(),
   "sector": zod.string().optional(),
   "size": zod.enum(['TPE', 'PME', 'ETI', 'GE']).optional(),
+  "groupMode": zod.enum(['manual', 'auto']).optional().describe('Set the group calculation mode. Only for type=\'groupe\'.'),
   "exerciseOpeningMonth": zod.number().min(1).max(updateOrganizationBodyExerciseOpeningMonthMax).optional()
 })
 
+export const updateOrganizationResponseTypeDefault = `entreprise`;
 export const updateOrganizationResponseExerciseOpeningMonthMax = 12;
 
 
@@ -171,10 +188,43 @@ export const UpdateOrganizationResponse = zod.object({
   "sector": zod.string().nullish(),
   "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
   "logoUrl": zod.string().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']).default(updateOrganizationResponseTypeDefault).describe('Entity type: \'entreprise\' or \'groupe\''),
+  "parentId": zod.number().nullish().describe('FK to parent group organization (null if standalone or group)'),
+  "groupMode": zod.union([zod.literal('manual'),zod.literal('auto'),zod.literal(null)]).nullish().describe('How group results are calculated: \'manual\' or \'auto\'. Only for type=\'groupe\' with subsidiaries.'),
   "exerciseOpeningMonth": zod.number().min(1).max(updateOrganizationResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
+
+
+/**
+ * @summary List subsidiaries of a group organization
+ */
+export const ListSubsidiariesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const listSubsidiariesResponseTypeDefault = `entreprise`;
+export const listSubsidiariesResponseExerciseOpeningMonthMax = 12;
+
+
+
+export const ListSubsidiariesResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "legalName": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "sector": zod.string().nullish(),
+  "size": zod.string().nullish().describe('TPE \/ PME \/ ETI \/ GE'),
+  "logoUrl": zod.string().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']).default(listSubsidiariesResponseTypeDefault).describe('Entity type: \'entreprise\' or \'groupe\''),
+  "parentId": zod.number().nullish().describe('FK to parent group organization (null if standalone or group)'),
+  "groupMode": zod.union([zod.literal('manual'),zod.literal('auto'),zod.literal(null)]).nullish().describe('How group results are calculated: \'manual\' or \'auto\'. Only for type=\'groupe\' with subsidiaries.'),
+  "exerciseOpeningMonth": zod.number().min(1).max(listSubsidiariesResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+export const ListSubsidiariesResponse = zod.array(ListSubsidiariesResponseItem)
 
 
 /**

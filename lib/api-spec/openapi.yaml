@@ -180,6 +180,33 @@ paths:
         "404":
           description: Not found
 
+  /organizations/{id}/subsidiaries:
+    get:
+      operationId: listSubsidiaries
+      tags: [organizations]
+      summary: List subsidiaries of a group organization
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of subsidiary organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Organization"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
   # ─── MEMBERS ─────────────────────────────────────────────────────────────────
   /organizations/{id}/members:
     get:
@@ -2584,7 +2611,7 @@ components:
     # ─── ORGANIZATION ──────────────────────────────────────────────────────────
     Organization:
       type: object
-      required: [id, name, createdAt]
+      required: [id, name, type, createdAt]
       properties:
         id:
           type: integer
@@ -2601,6 +2628,18 @@ components:
           description: "TPE / PME / ETI / GE"
         logoUrl:
           type: ["string", "null"]
+        type:
+          type: string
+          enum: [entreprise, groupe]
+          default: entreprise
+          description: "Entity type: 'entreprise' or 'groupe'"
+        parentId:
+          type: ["integer", "null"]
+          description: "FK to parent group organization (null if standalone or group)"
+        groupMode:
+          type: ["string", "null"]
+          enum: [manual, auto, null]
+          description: "How group results are calculated: 'manual' or 'auto'. Only for type='groupe' with subsidiaries."
         exerciseOpeningMonth:
           type: integer
           minimum: 1
@@ -2631,6 +2670,15 @@ components:
         size:
           type: string
           enum: [TPE, PME, ETI, GE]
+        type:
+          type: string
+          enum: [entreprise, groupe]
+        parentId:
+          type: integer
+          description: "ID of the parent group. Only valid when type='entreprise'."
+        groupMode:
+          type: string
+          enum: [manual, auto]
         exerciseOpeningMonth:
           type: integer
           minimum: 1
@@ -2651,6 +2699,10 @@ components:
         size:
           type: string
           enum: [TPE, PME, ETI, GE]
+        groupMode:
+          type: string
+          enum: [manual, auto]
+          description: "Set the group calculation mode. Only for type='groupe'."
         exerciseOpeningMonth:
           type: integer
           minimum: 1

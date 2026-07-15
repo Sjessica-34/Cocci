@@ -51,6 +51,26 @@ router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
     status: "active",
   });
 
+  // If this organization has a parentId (it's a subsidiary), also ensure the
+  // current user is a member of the parent group so they can navigate to it.
+  // (The user creating the subsidiary is implicitly a member of the group.)
+  if (parsed.data.parentId) {
+    const [existingMembership] = await db
+      .select({ id: membersTable.id })
+      .from(membersTable)
+      .where(and(eq(membersTable.userId, user.id), eq(membersTable.organizationId, parsed.data.parentId)))
+      .limit(1);
+
+    if (!existingMembership) {
+      await db.insert(membersTable).values({
+        userId: user.id,
+        organizationId: parsed.data.parentId,
+        role: "owner",
+        status: "active",
+      });
+    }
+  }
+
   res.status(201).json(CreateOrganizationResponse.parse(org));
 });
 
@@ -113,6 +133,27 @@ router.patch(
     }
 
     res.json(UpdateOrganizationResponse.parse(updated));
+  },
+);
+
+// GET /organizations/:id/subsidiaries — list all direct subsidiaries of a group
+router.get(
+  "/organizations/:id/subsidiaries",
+  requireAuth,
+  requireMembership(["owner", "admin", "member", "viewer"]),
+  async (req, res): Promise<void> => {
+    const id = Number(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
+    if (!id || isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+
+    const subsidiaries = await db
+      .select()
+      .from(organizationsTable)
+      .where(eq(organizationsTable.parentId, id));
+
+    res.json(subsidiaries);
   },
 );
 

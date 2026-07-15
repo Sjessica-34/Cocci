@@ -660,6 +660,83 @@ export const useUpdateOrganization = <TError = ErrorType<void>,
       return useMutation(getUpdateOrganizationMutationOptions(options));
     }
 
+export const getListSubsidiariesUrl = (id: number,) => {
+
+
+
+
+  return `/api/organizations/${id}/subsidiaries`
+}
+
+/**
+ * @summary List subsidiaries of a group organization
+ */
+export const listSubsidiaries = async (id: number, options?: RequestInit): Promise<Organization[]> => {
+
+  return customFetch<Organization[]>(getListSubsidiariesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSubsidiariesQueryKey = (id: number,) => {
+    return [
+    `/api/organizations/${id}/subsidiaries`
+    ] as const;
+    }
+
+
+export const getListSubsidiariesQueryOptions = <TData = Awaited<ReturnType<typeof listSubsidiaries>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSubsidiaries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSubsidiariesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSubsidiaries>>> = ({ signal }) => listSubsidiaries(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSubsidiaries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSubsidiariesQueryResult = NonNullable<Awaited<ReturnType<typeof listSubsidiaries>>>
+export type ListSubsidiariesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List subsidiaries of a group organization
+ */
+
+export function useListSubsidiaries<TData = Awaited<ReturnType<typeof listSubsidiaries>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSubsidiaries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSubsidiariesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getListMembersUrl = (id: number,) => {
 
 

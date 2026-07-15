@@ -29,6 +29,29 @@ export interface UserUpdate {
   lastName?: string;
 }
 
+/**
+ * Entity type: 'entreprise' or 'groupe'
+ */
+export type OrganizationType = typeof OrganizationType[keyof typeof OrganizationType];
+
+
+export const OrganizationType = {
+  entreprise: 'entreprise',
+  groupe: 'groupe',
+} as const;
+
+/**
+ * How group results are calculated: 'manual' or 'auto'. Only for type='groupe' with subsidiaries.
+ * @nullable
+ */
+export type OrganizationGroupMode = typeof OrganizationGroupMode[keyof typeof OrganizationGroupMode] | null;
+
+
+export const OrganizationGroupMode = {
+  manual: 'manual',
+  auto: 'auto',
+} as const;
+
 export interface Organization {
   id: number;
   name: string;
@@ -45,6 +68,18 @@ export interface Organization {
   size?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  /** Entity type: 'entreprise' or 'groupe' */
+  type: OrganizationType;
+  /**
+     * FK to parent group organization (null if standalone or group)
+     * @nullable
+     */
+  parentId?: number | null;
+  /**
+     * How group results are calculated: 'manual' or 'auto'. Only for type='groupe' with subsidiaries.
+     * @nullable
+     */
+  groupMode?: OrganizationGroupMode;
   /**
      * Month (1-12) from which "Clôturer et créer l'exercice suivant" becomes available. Defaults to 12 (Décembre).
      * @minimum 1
@@ -65,6 +100,22 @@ export const OrganizationInputSize = {
   GE: 'GE',
 } as const;
 
+export type OrganizationInputType = typeof OrganizationInputType[keyof typeof OrganizationInputType];
+
+
+export const OrganizationInputType = {
+  entreprise: 'entreprise',
+  groupe: 'groupe',
+} as const;
+
+export type OrganizationInputGroupMode = typeof OrganizationInputGroupMode[keyof typeof OrganizationInputGroupMode];
+
+
+export const OrganizationInputGroupMode = {
+  manual: 'manual',
+  auto: 'auto',
+} as const;
+
 export interface OrganizationInput {
   /** @minLength 1 */
   name: string;
@@ -72,6 +123,10 @@ export interface OrganizationInput {
   siret?: string;
   sector?: string;
   size?: OrganizationInputSize;
+  type?: OrganizationInputType;
+  /** ID of the parent group. Only valid when type='entreprise'. */
+  parentId?: number;
+  groupMode?: OrganizationInputGroupMode;
   /**
      * @minimum 1
      * @maximum 12
@@ -89,6 +144,17 @@ export const OrganizationUpdateSize = {
   GE: 'GE',
 } as const;
 
+/**
+ * Set the group calculation mode. Only for type='groupe'.
+ */
+export type OrganizationUpdateGroupMode = typeof OrganizationUpdateGroupMode[keyof typeof OrganizationUpdateGroupMode];
+
+
+export const OrganizationUpdateGroupMode = {
+  manual: 'manual',
+  auto: 'auto',
+} as const;
+
 export interface OrganizationUpdate {
   /** @minLength 1 */
   name?: string;
@@ -96,6 +162,8 @@ export interface OrganizationUpdate {
   siret?: string;
   sector?: string;
   size?: OrganizationUpdateSize;
+  /** Set the group calculation mode. Only for type='groupe'. */
+  groupMode?: OrganizationUpdateGroupMode;
   /**
      * @minimum 1
      * @maximum 12

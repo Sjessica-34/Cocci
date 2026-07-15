@@ -5,6 +5,7 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { OrganizationUpdateGroupMode } from './organizationUpdateGroupMode';
 import type { OrganizationUpdateSize } from './organizationUpdateSize';
 
 export interface OrganizationUpdate {
@@ -14,6 +15,8 @@ export interface OrganizationUpdate {
   siret?: string;
   sector?: string;
   size?: OrganizationUpdateSize;
+  /** Set the group calculation mode. Only for type='groupe'. */
+  groupMode?: OrganizationUpdateGroupMode;
   /**
      * @minimum 1
      * @maximum 12

@@ -5,7 +5,9 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { OrganizationInputGroupMode } from './organizationInputGroupMode';
 import type { OrganizationInputSize } from './organizationInputSize';
+import type { OrganizationInputType } from './organizationInputType';
 
 export interface OrganizationInput {
   /** @minLength 1 */
@@ -14,6 +16,10 @@ export interface OrganizationInput {
   siret?: string;
   sector?: string;
   size?: OrganizationInputSize;
+  type?: OrganizationInputType;
+  /** ID of the parent group. Only valid when type='entreprise'. */
+  parentId?: number;
+  groupMode?: OrganizationInputGroupMode;
   /**
      * @minimum 1
      * @maximum 12

@@ -42,6 +42,7 @@ import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganiz
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { ExerciseSelector } from "@/components/ExerciseSelector";
+import { EntitySelector } from "@/components/EntitySelector";
 import { ClosedExerciseBanner } from "@/components/ClosedExerciseBanner";
 import { cn } from "@/lib/utils";
 
@@ -184,6 +185,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </DropdownMenu>
             )}
             <div className="my-2.5 h-px bg-sidebar-border/40 mx-1" />
+          </div>
+        )}
+
+        {/* Entity selector — workspace module pages */}
+        {showExerciseUi && (
+          <div className="mb-1">
+            <EntitySelector />
           </div>
         )}
 

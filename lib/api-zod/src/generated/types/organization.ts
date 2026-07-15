@@ -5,6 +5,8 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { OrganizationGroupMode } from './organizationGroupMode';
+import type { OrganizationType } from './organizationType';
 
 export interface Organization {
   id: number;
@@ -22,6 +24,18 @@ export interface Organization {
   size?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  /** Entity type: 'entreprise' or 'groupe' */
+  type: OrganizationType;
+  /**
+     * FK to parent group organization (null if standalone or group)
+     * @nullable
+     */
+  parentId?: number | null;
+  /**
+     * How group results are calculated: 'manual' or 'auto'. Only for type='groupe' with subsidiaries.
+     * @nullable
+     */
+  groupMode?: OrganizationGroupMode;
   /**
      * Month (1-12) from which "Clôturer et créer l'exercice suivant" becomes available. Defaults to 12 (Décembre).
      * @minimum 1
