@@ -13,7 +13,46 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { NumberField } from "@/components/employment/NumberField";
 import { ConsistencyAlert } from "@/components/employment/ConsistencyAlert";
 import { checkNotExceeding, sumFields } from "../utils/consistency";
-import { Save, Check } from "lucide-react";
+import { Save, Check, AlertTriangle, CheckCircle2 } from "lucide-react";
+
+/** Affiche la somme des tranches vs l'effectif total avec un indicateur coloré. */
+function BracketControl({ sum, total, label }: { sum: number | null; total: number | null | undefined; label: string }) {
+  if (sum == null && total == null) return null;
+
+  const hasTotal = total != null;
+  const hasSum = sum != null;
+
+  if (!hasSum && !hasTotal) return null;
+
+  const isExact = hasTotal && hasSum && sum === total;
+  const isOver  = hasTotal && hasSum && sum > total;
+  const isUnder = hasTotal && hasSum && sum < total;
+
+  return (
+    <div className={`flex items-center gap-1.5 text-xs mt-1 ${
+      isExact ? "text-emerald-700" :
+      isOver  ? "text-red-600" :
+      isUnder ? "text-amber-600" :
+      "text-muted-foreground"
+    }`}>
+      {isExact && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+      {isOver  && <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+      {isUnder && <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+      <span>
+        {label} :{" "}
+        <strong>{hasSum ? sum : "—"}</strong>
+        {hasTotal && (
+          <>
+            {" "}/ {total}
+            {isExact && " — correspond à l'effectif total ✓"}
+            {isOver  && ` — dépasse l'effectif total de ${sum - total}`}
+            {isUnder && ` — il manque ${total - sum!} collaborateur${total - sum! > 1 ? "s" : ""}`}
+          </>
+        )}
+      </span>
+    </div>
+  );
+}
 
 interface Props {
   orgId: number;
@@ -58,6 +97,9 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
   const set = <K extends keyof FormState>(key: K, val: FormState[K]) => setForm((f) => ({ ...f, [key]: val }));
 
   const total = form.totalHeadcount;
+  const ageSum = sumFields([form.ageUnder25, form.age25to34, form.age35to44, form.age45to54, form.age55plus]);
+  const senioritySum = sumFields([form.seniorityUnder2, form.seniority2to5, form.seniority5to10, form.seniorityOver10]);
+
   const warnings = [
     checkNotExceeding({
       sum: sumFields([form.nbCdi, form.nbCdd, form.nbAlternants, form.nbApprentis, form.nbInterimaires]),
@@ -69,16 +111,8 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
       total,
       label: "La somme des temps pleins et temps partiels",
     }),
-    checkNotExceeding({
-      sum: sumFields([form.ageUnder25, form.age25to34, form.age35to44, form.age45to54, form.age55plus]),
-      total,
-      label: "La somme des tranches d'âge",
-    }),
-    checkNotExceeding({
-      sum: sumFields([form.seniorityUnder2, form.seniority2to5, form.seniority5to10, form.seniorityOver10]),
-      total,
-      label: "La somme des tranches d'ancienneté",
-    }),
+    checkNotExceeding({ sum: ageSum, total, label: "La somme des tranches d'âge" }),
+    checkNotExceeding({ sum: senioritySum, total, label: "La somme des tranches d'ancienneté" }),
   ];
 
   if (isLoading) {
@@ -214,6 +248,7 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
               <NumberField id="age45to54" label="45 à 54 ans" help="Nombre de collaborateurs âgés de 45 à 54 ans." value={form.age45to54} onChange={(v) => set("age45to54", v)} disabled={readOnly} />
               <NumberField id="age55plus" label="55 ans et plus" help="Nombre de collaborateurs âgés de 55 ans et plus." value={form.age55plus} onChange={(v) => set("age55plus", v)} disabled={readOnly} />
             </div>
+            <BracketControl sum={ageSum} total={total} label="Somme des tranches d'âge" />
           </div>
         </CardContent>
       </Card>
@@ -233,6 +268,7 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
               <NumberField id="seniority5to10" label="5 à 10 ans" help="Nombre de collaborateurs ayant entre 5 et 10 ans d'ancienneté." value={form.seniority5to10} onChange={(v) => set("seniority5to10", v)} disabled={readOnly} />
               <NumberField id="seniorityOver10" label="Plus de 10 ans" help="Nombre de collaborateurs ayant plus de 10 ans d'ancienneté." value={form.seniorityOver10} onChange={(v) => set("seniorityOver10", v)} disabled={readOnly} />
             </div>
+            <BracketControl sum={senioritySum} total={total} label="Somme des tranches d'ancienneté" />
           </div>
         </CardContent>
       </Card>
