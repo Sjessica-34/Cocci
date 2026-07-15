@@ -8,8 +8,11 @@ import type { ModuleScope } from "@/config/moduleScopes";
  * - `effectiveOrgId`  : l'orgId à utiliser pour les requêtes API.
  * - `isReadOnly`      : true quand une filiale consulte un module Groupe.
  * - `showGroupBanner` : true quand le bandeau "géré au niveau Groupe" doit s'afficher.
- * - `isConsolidated`  : true quand "Vue Groupe" consulte un module Filiale
- *                       (vue agrégée, à implémenter module par module).
+ * - `isConsolidated`  : true quand "Vue Groupe" consulte un module Filiale.
+ *                       Utiliser UNIQUEMENT pour les gardes d'écriture (désactiver
+ *                       formulaires, boutons "Enregistrer", actions de saisie).
+ *                       NE PAS brancher l'interface sur cette valeur — la vue Groupe
+ *                       et la vue Filiale doivent utiliser exactement le même composant.
  * - `isGroup`         : true si l'org racine est de type "groupe".
  * - `rootOrgId`       : id de l'organisation racine.
  */

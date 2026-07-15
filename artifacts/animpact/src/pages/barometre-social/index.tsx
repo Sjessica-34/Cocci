@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { useListBarometreCampaigns, getListBarometreCampaignsQueryKey } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
-import { ConsolidatedPlaceholder } from "@/components/ConsolidatedPlaceholder";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, ClipboardList, FileQuestion, BarChart2, Sparkles } from "lucide-react";
 import { TabCampagnes } from "./tabs/TabCampagnes";
@@ -18,13 +18,13 @@ const TABS = [
 ];
 
 export function BarometreSocial() {
-  const { effectiveOrgId, isConsolidated } = useModuleContext("subsidiary");
+  const { effectiveOrgId } = useModuleContext("subsidiary");
   const [activeTab, setActiveTab] = useState("campagnes");
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
 
   const { data: campaignsData, isLoading } = useListBarometreCampaigns(effectiveOrgId ?? 0, {
     query: {
-      enabled: !!effectiveOrgId && !isConsolidated,
+      enabled: !!effectiveOrgId,
       queryKey: getListBarometreCampaignsQueryKey(effectiveOrgId ?? 0),
     },
   });
@@ -50,11 +50,8 @@ export function BarometreSocial() {
           </p>
         </div>
 
-        {isConsolidated ? (
-          <ConsolidatedPlaceholder moduleName="Baromètre Social" />
-        ) : (
-          <>
-            {!effectiveOrgId && (
+        <>
+          {!effectiveOrgId && (
               <div className="flex items-center gap-3 p-5 rounded-xl border border-amber-200 bg-amber-50">
                 <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
                 <div>
@@ -107,8 +104,7 @@ export function BarometreSocial() {
                 </TabsContent>
               </Tabs>
             )}
-          </>
-        )}
+        </>
       </div>
     </AppLayout>
   );

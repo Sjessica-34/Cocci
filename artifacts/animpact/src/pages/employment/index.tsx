@@ -4,7 +4,7 @@ import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import { useListExercises } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { ClosedExerciseBanner } from "@/components/ClosedExerciseBanner";
-import { ConsolidatedPlaceholder } from "@/components/ConsolidatedPlaceholder";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertCircle,
@@ -37,7 +37,7 @@ export function CapitalHumain() {
   const { data: exercises } = useListExercises(effectiveOrgId ?? 0, {
     query: {
       queryKey: ["/api/organizations", effectiveOrgId, "exercises"],
-      enabled: effectiveOrgId != null && !isConsolidated,
+      enabled: effectiveOrgId != null,
     },
   });
   const [activeTab, setActiveTab] = useState("guide");
@@ -57,11 +57,8 @@ export function CapitalHumain() {
 
         <ClosedExerciseBanner />
 
-        {isConsolidated ? (
-          <ConsolidatedPlaceholder moduleName="Capital Humain" />
-        ) : (
-          <>
-            {!effectiveOrgId && (
+        <>
+          {!effectiveOrgId && (
               <div className="flex items-center gap-3 p-5 rounded-xl border border-amber-200 bg-amber-50">
                 <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
                 <div>
@@ -124,8 +121,7 @@ export function CapitalHumain() {
                 </TabsContent>
               </Tabs>
             )}
-          </>
-        )}
+        </>
       </div>
     </AppLayout>
   );

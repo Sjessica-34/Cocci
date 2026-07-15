@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { useGetCarbonBilan, useUpsertCarbonBilan } from "@workspace/api-client-react";
-import { ConsolidatedPlaceholder } from "@/components/ConsolidatedPlaceholder";
+
 import type { CarbonBilan, CarbonBilanInput } from "@workspace/api-client-react";
 import { UtilisationCalculator, computeUtilisation } from "./UtilisationCalculator";
 import { AppLayout } from "@/components/layout";
@@ -270,7 +270,7 @@ export function BilanCarbone() {
 
   const { data: existing, isLoading } = useGetCarbonBilan(effectiveOrgId ?? 0, {
     query: {
-      enabled: !!effectiveOrgId && !isConsolidated,
+      enabled: !!effectiveOrgId,
       retry: false,
       queryKey: [`/api/organizations/${effectiveOrgId}/carbon`],
     },
@@ -293,7 +293,7 @@ export function BilanCarbone() {
     setForm((f) => ({ ...f, [key]: val }));
 
   const handleSave = () => {
-    if (!effectiveOrgId) return;
+    if (!effectiveOrgId || isConsolidated) return;
     save({ orgId: effectiveOrgId, data: form as CarbonBilanInput });
   };
 
@@ -315,24 +315,6 @@ export function BilanCarbone() {
 
   const YEARS = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  if (isConsolidated) {
-    return (
-      <AppLayout>
-        <div className="space-y-6 pb-16 max-w-4xl">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Globe className="h-6 w-6 text-emerald-600" />
-              Bilan Carbone®
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Renseignez vos données ou obtenez une estimation rapide.
-            </p>
-          </div>
-          <ConsolidatedPlaceholder moduleName="Bilan Carbone" />
-        </div>
-      </AppLayout>
-    );
-  }
 
   return (
     <AppLayout>

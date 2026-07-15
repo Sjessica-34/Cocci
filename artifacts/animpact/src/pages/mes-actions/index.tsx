@@ -1,7 +1,7 @@
 import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useModuleContext } from "@/hooks/useModuleContext";
-import { ConsolidatedPlaceholder } from "@/components/ConsolidatedPlaceholder";
+
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import { AlertCircle, ListChecks, BookOpen, ClipboardCheck, Trophy } from "lucide-react";
 import { TabGuideContent } from "./TabGuideContent";
@@ -10,7 +10,7 @@ import { ActionChecklist } from "./ActionChecklist";
 import { TabRealisations } from "./TabRealisations";
 
 export function MesActions() {
-  const { effectiveOrgId: currentOrgId, isConsolidated } = useModuleContext("subsidiary");
+  const { effectiveOrgId: currentOrgId } = useModuleContext("subsidiary");
   const { currentExerciseId } = useCurrentExercise();
 
   return (
@@ -25,8 +25,6 @@ export function MesActions() {
             Suivez vos engagements RSE tout au long de l'exercice grâce au référentiel Cocci.
           </p>
         </div>
-
-        {isConsolidated && <ConsolidatedPlaceholder moduleName="Mes actions RSE" />}
 
         <Tabs defaultValue="guide" className="w-full">
           <TabsList className="mb-4">
