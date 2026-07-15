@@ -1,0 +1,143 @@
+e fonctionnement de la **Vue Groupe** n'est pas correct.
+
+Lorsque le groupe est configuré sur :
+
+✅ "Les résultats du groupe sont calculés automatiquement à partir des filiales"
+
+le groupe ne doit plus utiliser sa propre base de données.
+
+Il devient une **vue consolidée**.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRINCIPE GÉNÉRAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dans tous les modules de Cocci, lorsque l'utilisateur sélectionne "Vue Groupe", les données affichées doivent être automatiquement récupérées à partir de l'ensemble des filiales.
+
+Le groupe ne possède plus de données propres.
+
+Il affiche uniquement une consolidation des données des filiales.
+
+Cette règle doit s'appliquer à tous les modules actuels et futurs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE DÉPENDANCES À LA BIODIVERSITÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Aujourd'hui, lorsqu'une filiale possède :
+
+• Clients
+• Pollinisation
+
+La Vue Groupe reste vide.
+
+Ce comportement est incorrect.
+
+La Vue Groupe doit afficher exactement les mêmes éléments que les filiales.
+
+Exemple :
+
+Martin Industrie
+
+• Clients
+• Pollinisation
+
+Martin Transport
+
+• Eau
+• Fournisseurs
+
+La Vue Groupe doit afficher :
+
+• Clients
+• Pollinisation
+• Eau
+• Fournisseurs
+
+Les compteurs doivent être recalculés automatiquement.
+
+Exemple :
+
+Éléments de la chaîne de valeur
+
+4 éléments
+
+Tous (4)
+
+Ressources (2)
+
+Activités (...)
+
+Acteurs (2)
+
+Lieux (...)
+
+Les connexions doivent également être consolidées.
+
+L'interface graphique doit rester strictement identique à celle d'une filiale.
+
+La seule différence est la source des données.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ORIGINE DES DONNÉES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chaque élément consolidé doit conserver l'information de sa filiale d'origine.
+
+Ajouter discrètement sur chaque carte un badge ou une information du type :
+
+📍 Martin Industrie
+
+Si plusieurs filiales possèdent exactement le même élément :
+
+Exemple :
+
+Pollinisation
+
+présente dans
+
+Martin Industrie
+
+Martin Transport
+
+Ne pas créer deux cartes.
+
+Créer une seule carte.
+
+Afficher :
+
+📍 2 filiales
+
+Au clic sur ce badge, afficher la liste des filiales concernées.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RÈGLE DE CONSOLIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pour tous les modules de Cocci :
+
+Si l'utilisateur consulte une filiale :
+
+→ afficher uniquement les données de cette filiale.
+
+Si l'utilisateur consulte la Vue Groupe :
+
+→ afficher automatiquement la consolidation de toutes les filiales.
+
+Aucune donnée ne doit être ressaisie au niveau du groupe.
+
+Toutes les modifications sont réalisées uniquement dans les filiales.
+
+Le groupe est une vue dynamique.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBJECTIF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+L'utilisateur doit avoir exactement la même expérience visuelle entre une filiale et la Vue Groupe.
+
+Les cartes, tableaux, graphiques, onglets, compteurs et synthèses doivent être identiques.
+
+Seule la source des données change.
+
+L'architecture doit être pensée pour que cette règle soit automatiquement applicable à tous les modules de Cocci (Diagnostic RSE, Parties prenantes, Dépendances, Matrice de matérialité, Achats & Fournisseurs, Bilan carbone, Capital humain, Plan d'action, etc.) sans avoir à redévelopper chaque module individuellement.

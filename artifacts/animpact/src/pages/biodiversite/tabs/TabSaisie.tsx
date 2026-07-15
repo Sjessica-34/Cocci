@@ -13,7 +13,12 @@ import {
   type BioDependency,
   type BioDependencyInput,
   type BioConnection,
+  type Organization,
 } from "@workspace/api-client-react";
+import {
+  useConsolidatedBio,
+  type ConsolidatedElement,
+} from "../useConsolidatedBio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,14 +44,21 @@ import {
   elementLabel, familyIcon, familyColor, familyBg, chainLabel,
 } from "../data";
 
-interface Props { orgId: number; }
+interface Props { orgId: number; subsidiaries?: Organization[]; }
 
 const EMPTY: BioDependencyInput = {
   name: null, category: null, subCategory: null, chainPosition: null,
   dependencyLevel: null, masteryLevel: null, comments: null, documentIds: [],
 };
 
-export function TabSaisie({ orgId }: Props) {
+export function TabSaisie({ orgId, subsidiaries }: Props) {
+  if (subsidiaries && subsidiaries.length > 0) {
+    return <GroupSaisie subsidiaries={subsidiaries} />;
+  }
+  return <IndividualSaisie orgId={orgId} />;
+}
+
+function IndividualSaisie({ orgId }: { orgId: number }) {
   const queryClient = useQueryClient();
 
   const { data: depsData, isLoading } = useListBioDependencies(orgId);
@@ -526,6 +538,191 @@ export function TabSaisie({ orgId }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+// ─── Vue groupe consolidée (Saisie) ──────────────────────────────────────────
+
+function GroupSaisie({ subsidiaries }: { subsidiaries: Organization[] }) {
+  const { elements, connections, isLoading } = useConsolidatedBio(subsidiaries);
+  const [filterFamily, setFilterFamily] = useState<ElementFamily | "all">("all");
+
+  const filtered = filterFamily === "all"
+    ? elements
+    : elements.filter(e => e.category === filterFamily);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+        <span>📊</span>
+        <span>Vue consolidée — {subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""} · Lecture seule. Modifiez les données depuis chaque filiale.</span>
+      </div>
+
+      {/* ── Éléments ─────────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold text-slate-700">
+          Éléments de la chaîne de valeur
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            {elements.length} élément{elements.length !== 1 ? "s" : ""}
+          </span>
+        </h2>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilterFamily("all")}
+            className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+              filterFamily === "all"
+                ? "bg-slate-800 text-white border-slate-800"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            Tous ({elements.length})
+          </button>
+          {FAMILIES.map(f => {
+            const count  = elements.filter(e => e.category === f.value).length;
+            const active = filterFamily === f.value;
+            return (
+              <button
+                key={f.value}
+                onClick={() => setFilterFamily(active ? "all" : f.value)}
+                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors flex items-center gap-1 ${
+                  active ? "text-white border-transparent" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                }`}
+                style={active ? { backgroundColor: f.color, borderColor: f.color } : {}}
+              >
+                <span>{f.icon}</span>
+                {f.value} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-3">
+            <Leaf className="h-10 w-10 opacity-25" />
+            <p className="text-sm max-w-xs">
+              {elements.length === 0
+                ? "Aucun élément dans les filiales."
+                : "Aucun élément dans cette famille."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {filtered.map(el => (
+              <GroupElementCard key={el.virtualId} element={el} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── Connexions ───────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-slate-700">
+          Connexions
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            {connections.length} connexion{connections.length !== 1 ? "s" : ""}
+          </span>
+        </h2>
+
+        {connections.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">Aucune connexion dans les filiales.</p>
+        ) : (
+          <div className="space-y-2">
+            {connections.map(conn => {
+              const fromEl    = elements.find(e => e.virtualId === conn.fromVirtualId);
+              const toEl      = elements.find(e => e.virtualId === conn.toVirtualId);
+              const fromLabel = elementLabel(fromEl?.name, fromEl?.category, fromEl?.subCategory) || "?";
+              const toLabel   = elementLabel(toEl?.name, toEl?.category, toEl?.subCategory) || "?";
+              return (
+                <div
+                  key={conn.virtualId}
+                  className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border text-sm"
+                >
+                  <span className="font-medium text-slate-700 truncate max-w-[8rem]">{fromLabel}</span>
+                  {conn.relationType && (
+                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shrink-0">
+                      {conn.relationType}
+                    </span>
+                  )}
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <span className="font-medium text-slate-700 truncate max-w-[8rem] flex-1">{toLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ─── Carte élément groupe ─────────────────────────────────────────────────────
+
+function GroupElementCard({ element }: { element: ConsolidatedElement }) {
+  const label = elementLabel(element.name, element.category, element.subCategory);
+  const icon  = familyIcon(element.category);
+  const color = familyColor(element.category);
+  const bg    = familyBg(element.category);
+
+  const originsText =
+    element.origins.length === 1
+      ? element.origins[0].orgName
+      : `${element.origins.length} filiales`;
+  const originsTitle =
+    element.origins.length > 1
+      ? element.origins.map(o => o.orgName).join(", ")
+      : undefined;
+
+  return (
+    <div
+      className="bg-white rounded-xl border-2 shadow-sm p-3 flex flex-col gap-2.5"
+      style={{ borderColor: color }}
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className="text-2xl leading-none mt-0.5 shrink-0 rounded-lg flex items-center justify-center"
+          style={{ width: 36, height: 36, backgroundColor: bg }}
+        >
+          {icon}
+        </span>
+        <div className="flex-1 min-w-0">
+          {label ? (
+            <p className="font-semibold text-sm leading-tight text-slate-800 truncate">{label}</p>
+          ) : (
+            <p className="text-sm text-slate-400 italic leading-tight">—</p>
+          )}
+          {element.name && element.subCategory && (
+            <p className="text-[10px] text-slate-500 mt-0.5">{element.subCategory}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span
+          className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+          style={{ backgroundColor: bg, color }}
+        >
+          {element.category}
+        </span>
+        {element.chainPosition && (
+          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+            {chainLabel(element.chainPosition)}
+          </span>
+        )}
+      </div>
+
+      <p className="text-[10px] text-slate-400 leading-tight" title={originsTitle}>
+        📍 {originsText}
+      </p>
     </div>
   );
 }

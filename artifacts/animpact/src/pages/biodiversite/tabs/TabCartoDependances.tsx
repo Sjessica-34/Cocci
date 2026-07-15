@@ -6,7 +6,7 @@ import {
   Handle, Position, MarkerType,
   type Node, type Edge, type Connection, type NodeProps, type NodeTypes,
 } from "@xyflow/react";
-import { useQueryClient, useQueries } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useListBioDependencies,
   useUpdateBioDependency,
@@ -15,11 +15,12 @@ import {
   useDeleteBioConnection,
   getListBioConnectionsQueryKey,
   getListBioDependenciesQueryKey,
-  listBioDependencies,
-  listBioConnections,
   type BioConnection,
   type Organization,
 } from "@workspace/api-client-react";
+import {
+  useConsolidatedBio,
+} from "../useConsolidatedBio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,7 @@ type BioNodeData = {
   name: string | null;
   category: string | null;    // famille
   subCategory: string | null; // type spécifique
+  origins?: Array<{ orgName: string }> | null; // vue groupe uniquement
 };
 type BioNode = Node<BioNodeData, "bioElement">;
 
@@ -55,6 +57,14 @@ const BioElementNode = memo(function BioElementNode({ data }: NodeProps<BioNode>
   const icon  = familyIcon(data.category);
   const color = familyColor(data.category);
   const bg    = familyBg(data.category);
+
+  const origins = data.origins;
+  const originsText = origins && origins.length > 0
+    ? (origins.length === 1 ? origins[0].orgName : `${origins.length} filiales`)
+    : null;
+  const originsTitle = origins && origins.length > 1
+    ? origins.map(o => o.orgName).join(", ")
+    : undefined;
 
   return (
     <div className="relative">
@@ -83,6 +93,15 @@ const BioElementNode = memo(function BioElementNode({ data }: NodeProps<BioNode>
             </p>
           </div>
         </div>
+        {originsText && (
+          <p
+            className="text-[9px] mt-1.5 opacity-60 leading-tight truncate"
+            style={{ color }}
+            title={originsTitle}
+          >
+            📍 {originsText}
+          </p>
+        )}
       </div>
       <Handle
         type="source"
@@ -127,75 +146,46 @@ interface Props {
 // dans le même format qu'IndividualCarto (lecture seule).
 
 function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
-  const orgIds = subsidiaries.map((s) => s.id);
+  const { elements, connections, isLoading } = useConsolidatedBio(subsidiaries);
 
-  const depsResults = useQueries({
-    queries: orgIds.map((id) => ({
-      queryKey: getListBioDependenciesQueryKey(id),
-      queryFn:  () => listBioDependencies(id),
-      staleTime: 60_000,
-    })),
-  });
-
-  const connResults = useQueries({
-    queries: orgIds.map((id) => ({
-      queryKey: getListBioConnectionsQueryKey(id),
-      queryFn:  () => listBioConnections(id),
-      staleTime: 60_000,
-    })),
-  });
-
-  const isLoading = depsResults.some((q) => q.isLoading) || connResults.some((q) => q.isLoading);
-
-  // ── Agrégation des nœuds : IDs namespaced, positions recalculées par zone ──
+  // ── Nœuds consolidés : virtualId comme ID, déduplication déjà faite ────────
   const allNodes = useMemo<BioNode[]>(() => {
     const zoneCounts: Record<string, number> = {};
-    const nodes: BioNode[] = [];
-    subsidiaries.forEach((org, i) => {
-      const items = depsResults[i]?.data?.items ?? [];
-      items.forEach((el) => {
-        const zone = el.chainPosition ?? "amont";
-        const idx  = zoneCounts[zone] ?? 0;
-        zoneCounts[zone] = idx + 1;
-        const pos  = defaultElementPosition(zone, idx);
-        nodes.push({
-          id:       `${org.id}-${el.id}`,
-          type:     "bioElement" as const,
-          position: pos,
-          data: {
-            name:        el.name        ?? null,
-            category:    el.category    ?? null,
-            subCategory: el.subCategory ?? null,
-          },
-        });
-      });
+    return elements.map((el) => {
+      const zone = el.chainPosition ?? "amont";
+      const idx  = zoneCounts[zone] ?? 0;
+      zoneCounts[zone] = idx + 1;
+      const pos  = defaultElementPosition(zone, idx);
+      return {
+        id:       el.virtualId,
+        type:     "bioElement" as const,
+        position: pos,
+        data: {
+          name:        el.name,
+          category:    el.category,
+          subCategory: el.subCategory,
+          origins:     el.origins.map(o => ({ orgName: o.orgName })),
+        },
+      };
     });
-    return nodes;
-  }, [depsResults, subsidiaries]);
+  }, [elements]);
 
-  // ── Agrégation des arêtes : IDs namespaced ─────────────────────────────────
+  // ── Arêtes consolidées : fromVirtualId → toVirtualId ───────────────────────
   const allEdges = useMemo<Edge[]>(() => {
-    const edges: Edge[] = [];
-    subsidiaries.forEach((org, i) => {
-      const conns = connResults[i]?.data?.items ?? [];
-      conns.forEach((conn) => {
-        edges.push({
-          id:     `${org.id}-conn-${conn.id}`,
-          source: `${org.id}-${conn.fromElementId}`,
-          target: `${org.id}-${conn.toElementId}`,
-          type:   "smoothstep",
-          label:  conn.relationType ?? undefined,
-          labelStyle:          { fontSize: 10, fill: "#475569", fontWeight: 600 },
-          labelBgStyle:        { fill: "#f8fafc", stroke: "#e2e8f0", strokeWidth: 1 },
-          labelBgPadding:      [6, 3] as [number, number],
-          labelBgBorderRadius: 4,
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
-          style:     { stroke: "#94a3b8", strokeWidth: 1.5 },
-        });
-      });
-    });
-    return edges;
-  }, [connResults, subsidiaries]);
+    return connections.map((conn) => ({
+      id:     conn.virtualId,
+      source: conn.fromVirtualId,
+      target: conn.toVirtualId,
+      type:   "smoothstep",
+      label:  conn.relationType ?? undefined,
+      labelStyle:          { fontSize: 10, fill: "#475569", fontWeight: 600 },
+      labelBgStyle:        { fill: "#f8fafc", stroke: "#e2e8f0", strokeWidth: 1 },
+      labelBgPadding:      [6, 3] as [number, number],
+      labelBgBorderRadius: 4,
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
+      style:     { stroke: "#94a3b8", strokeWidth: 1.5 },
+    }));
+  }, [connections]);
 
   const totalConnections = allEdges.length;
 

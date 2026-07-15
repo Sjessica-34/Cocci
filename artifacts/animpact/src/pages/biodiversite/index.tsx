@@ -55,7 +55,10 @@ export function Biodiversite() {
 
         <TabsContent value="saisie">
           {currentOrgId
-            ? <TabSaisie orgId={currentOrgId} />
+            ? <TabSaisie
+                orgId={currentOrgId}
+                subsidiaries={isGroupView ? subsidiaries : undefined}
+              />
             : <p className="text-sm text-muted-foreground">Sélectionnez une organisation.</p>}
         </TabsContent>
 
@@ -76,7 +79,10 @@ export function Biodiversite() {
 
         <TabsContent value="synthese">
           {currentOrgId
-            ? <TabSynthese orgId={currentOrgId} />
+            ? <TabSynthese
+                orgId={currentOrgId}
+                subsidiaries={isGroupView ? subsidiaries : undefined}
+              />
             : <p className="text-sm text-muted-foreground">Sélectionnez une organisation.</p>}
         </TabsContent>
       </Tabs>
