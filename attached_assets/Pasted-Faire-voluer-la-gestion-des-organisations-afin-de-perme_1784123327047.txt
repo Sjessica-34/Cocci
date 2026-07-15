@@ -1,0 +1,149 @@
+Faire évoluer la gestion des organisations afin de permettre la gestion des groupes d'entreprises et de leurs filiales.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRÉATION D'UNE ENTITÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Lors de la création d'une nouvelle entité, demander :
+
+• Nom de l'entité
+• Type d'entité
+
+○ Entreprise
+○ Groupe
+
+Si le type est "Entreprise", proposer également :
+
+□ Cette entreprise appartient à un groupe
+
+Si cette case est cochée :
+
+• Sélectionner un groupe existant
+
+ou
+
+• Créer un nouveau groupe
+
+L'entreprise est alors automatiquement rattachée à ce groupe.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Un groupe peut contenir une ou plusieurs entreprises (filiales).
+
+Exemple :
+
+Groupe Martin
+├── Martin Industrie
+├── Martin Transport
+├── Martin Énergie
+
+Chaque entreprise possède ses propres :
+
+• Diagnostic RSE
+• Impact Score
+• Bilan carbone
+• Plan d'action
+• Rapport RSE
+• Modules
+• Documents
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SÉLECTEUR D'ENTITÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+En haut de toutes les pages de Cocci, afficher deux menus déroulants :
+
+📅 Exercice
+▼ 2026
+
+🏢 Entité
+▼ Groupe Martin
+
+Lorsque le menu "Entité" est ouvert :
+
+🏢 Groupe Martin
+
+────────────────────
+
+🏭 Martin Industrie
+
+🚛 Martin Transport
+
+⚡ Martin Énergie
+
+Le premier élément correspond toujours au groupe.
+
+Les autres correspondent aux entreprises rattachées.
+
+Le changement d'entité doit mettre automatiquement à jour l'ensemble de l'application (tableau de bord, diagnostic, rapport RSE, Impact Score, bilan carbone, plan d'action, etc.).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FONCTIONNEMENT DU GROUPE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Lorsqu'un groupe ne possède aucune filiale :
+
+Le groupe fonctionne comme une entreprise classique.
+
+Toutes les données sont saisies manuellement.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AJOUT D'UNE PREMIÈRE FILIALE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dès qu'au moins une entreprise est rattachée au groupe, afficher automatiquement le message suivant :
+
+"Votre groupe possède désormais des filiales.
+
+Comment souhaitez-vous calculer les résultats du groupe ?"
+
+○ Je renseigne les résultats du groupe manuellement.
+
+○ Les résultats du groupe sont calculés automatiquement à partir des filiales.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPTION 1
+Saisie manuelle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le groupe continue à fonctionner comme aujourd'hui.
+
+Toutes les données sont renseignées directement au niveau du groupe.
+
+Les données des filiales restent totalement indépendantes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPTION 2
+Calcul automatique
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Les résultats du groupe sont calculés automatiquement à partir des données de toutes les entreprises rattachées.
+
+Le tableau de bord du groupe devient une vue consolidée.
+
+Les indicateurs du groupe sont mis à jour automatiquement dès qu'une filiale est modifiée.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RÈGLES DE CALCUL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Les indicateurs numériques (effectif, émissions carbone, consommation d'eau, déchets, etc.) sont calculés automatiquement à partir des données des filiales.
+
+Les pourcentages sont recalculés à partir des données consolidées et ne doivent jamais être additionnés.
+
+Les scores (Diagnostic RSE, Impact Score...) sont recalculés à partir des données consolidées lorsque cela est possible.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ÉVOLUTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prévoir dès maintenant une architecture permettant d'ajouter facilement :
+
+• plusieurs niveaux de filiales ;
+• plusieurs groupes ;
+• des consolidations plus avancées ;
+• des comparaisons entre entreprises.
+
+L'objectif est que cette évolution ne nécessite aucune modification de la structure actuelle de la base de données.
