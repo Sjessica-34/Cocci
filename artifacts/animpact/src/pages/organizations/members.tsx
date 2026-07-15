@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout";
 import { OrgSubNav } from "@/components/shared/OrgSubNav";
+import { GroupModuleBanner } from "@/components/GroupModuleBanner";
 import {
   useListMembers,
+  useListOrganizations,
   useInviteMember,
   useUpdateMember,
   useRemoveMember,
   getListMembersQueryKey,
 } from "@workspace/api-client-react";
+import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { useUser } from "@clerk/react";
@@ -87,6 +90,15 @@ export function OrganizationMembers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: clerkUser } = useUser();
+
+  // Capture the navigation context BEFORE setCurrentOrg fires in the effect below.
+  const { currentOrgId: navOrgId } = useCurrentOrganization();
+  const navOrgAtMountRef = useRef(navOrgId);
+  const { data: allOrgs = [] } = useListOrganizations();
+  const rootOrg = allOrgs.find((o) => !o.parentId);
+  const isAdminReadOnly = allOrgs.some(
+    (o) => o.parentId === rootOrg?.id && o.id === navOrgAtMountRef.current,
+  );
 
   useEffect(() => {
     if (orgId > 0) setCurrentOrg(orgId);
@@ -172,7 +184,12 @@ export function OrganizationMembers() {
           </p>
         </div>
 
+        {isAdminReadOnly && <GroupModuleBanner />}
+
         <OrgSubNav orgId={orgId} />
+
+        {/* @ts-expect-error -- `inert` est un attribut HTML5 valide, pas encore dans les types JSX React */}
+        <div inert={isAdminReadOnly ? "" : undefined} className={isAdminReadOnly ? "opacity-70" : ""}>
 
         {/* Invite form — visible only for owners/admins */}
         {canManage && (
@@ -389,6 +406,7 @@ export function OrganizationMembers() {
             )}
           </CardContent>
         </Card>
+        </div>{/* /inert */}
       </div>
     </AppLayout>
   );

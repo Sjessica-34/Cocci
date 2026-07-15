@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useModuleContext } from "@/hooks/useModuleContext";
 import {
   useListOrganizations,
   useGetNrData,
@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import type { NrDataInput, NrMeta } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
+import { GroupModuleBanner } from "@/components/GroupModuleBanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, BookOpen, ClipboardList, BarChart2, Calculator } from "lucide-react";
@@ -22,13 +23,12 @@ import { TabCalculateur } from "./tabs/TabCalculateur";
 import { computeScores } from "./data";
 
 const TABS = [
-  { value: "decouvrir",   label: "Découvrir",    icon: <BookOpen      className="h-3.5 w-3.5" /> },
-  { value: "evaluation",  label: "Évaluation",   icon: <ClipboardList className="h-3.5 w-3.5" /> },
-  { value: "resultats",   label: "Résultats",    icon: <BarChart2     className="h-3.5 w-3.5" /> },
-  { value: "calculateur", label: "Calculateur",  icon: <Calculator    className="h-3.5 w-3.5" /> },
+  { value: "decouvrir",   label: "Découvrir",   icon: <BookOpen      className="h-3.5 w-3.5" /> },
+  { value: "evaluation",  label: "Évaluation",  icon: <ClipboardList className="h-3.5 w-3.5" /> },
+  { value: "resultats",   label: "Résultats",   icon: <BarChart2     className="h-3.5 w-3.5" /> },
+  { value: "calculateur", label: "Calculateur", icon: <Calculator    className="h-3.5 w-3.5" /> },
 ];
 
-// Mapping certif NR → entrée Mes Labels (labels prédéfinis uniquement)
 const CERT_TO_LABEL: Record<string, { name: string; holder: string }> = {
   inr: { name: "Label Numérique Responsable (INR)", holder: "Institut du Numérique Responsable" },
   nr1: { name: "NR Niveau 1",                       holder: "Institut du Numérique Responsable" },
@@ -36,26 +36,23 @@ const CERT_TO_LABEL: Record<string, { name: string; holder: string }> = {
 };
 
 export function NumeriqueResponsable() {
-  const { currentOrgId } = useCurrentOrganization();
-  const { data: orgs }   = useListOrganizations();
-  const currentOrg       = orgs?.find((o) => o.id === currentOrgId);
-  const queryClient      = useQueryClient();
+  const { effectiveOrgId, isReadOnly, showGroupBanner } = useModuleContext("group");
+  const { data: orgs }  = useListOrganizations();
+  const currentOrg      = orgs?.find((o) => o.id === effectiveOrgId);
+  const queryClient     = useQueryClient();
 
   const [activeTab, setActiveTab] = useState("decouvrir");
 
-  // ── Server state ────────────────────────────────────────────────────────────
-  const { data: nrData, isLoading } = useGetNrData(currentOrgId ?? 0, {
+  const { data: nrData, isLoading } = useGetNrData(effectiveOrgId ?? 0, {
     query: {
-      enabled: !!currentOrgId,
-      queryKey: [`/api/organizations/${currentOrgId}/numerique-responsable`],
+      enabled: !!effectiveOrgId,
+      queryKey: [`/api/organizations/${effectiveOrgId}/numerique-responsable`],
     },
   });
 
-  // ── Local state (source of truth for the form) ──────────────────────────────
   const [responses, setResponses] = useState<Record<string, boolean>>({});
   const [comments,  setComments]  = useState<Record<string, string>>({});
 
-  // Sync local state whenever server data arrives (initial load or after navigation)
   useEffect(() => {
     if (!nrData) return;
     const r: Record<string, boolean> = {};
@@ -68,50 +65,51 @@ export function NumeriqueResponsable() {
     setComments(c);
   }, [nrData]);
 
-  // ── Labels (pour la sync automatique) ──────────────────────────────────────
-  const { data: labelsData } = useListLabels(currentOrgId ?? 0, {
-    query: { enabled: !!currentOrgId, queryKey: getListLabelsQueryKey(currentOrgId ?? 0) },
+  const { data: labelsData } = useListLabels(effectiveOrgId ?? 0, {
+    query: {
+      enabled: !!effectiveOrgId,
+      queryKey: getListLabelsQueryKey(effectiveOrgId ?? 0),
+    },
   });
   const { mutateAsync: createLabelAsync } = useCreateLabel();
 
-  // ── Mutation ────────────────────────────────────────────────────────────────
   const { mutate: upsertNr } = useUpsertNrData({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: getGetNrDataQueryKey(currentOrgId ?? 0),
+          queryKey: getGetNrDataQueryKey(effectiveOrgId ?? 0),
         });
       },
     },
   });
 
-  // Synchronise la certification NR vers Mes Labels (labels prédéfinis uniquement)
-  const syncCertToLabel = useCallback(async (cert: string) => {
-    if (!currentOrgId || !cert || cert === "none" || cert === "other") return;
-    const mapping = CERT_TO_LABEL[cert];
-    if (!mapping) return;
-    const existing = labelsData?.items ?? [];
-    if (existing.some((l) => l.name === mapping.name)) return; // déjà présent
-    await createLabelAsync({
-      orgId: currentOrgId,
-      data: { name: mapping.name, holder: mapping.holder, logoUrl: null, year: null, score: null, documentIds: [] },
-    });
-    queryClient.invalidateQueries({ queryKey: getListLabelsQueryKey(currentOrgId) });
-  }, [currentOrgId, labelsData, createLabelAsync, queryClient]);
+  const syncCertToLabel = useCallback(
+    async (cert: string) => {
+      if (!effectiveOrgId || !cert || cert === "none" || cert === "other") return;
+      const mapping = CERT_TO_LABEL[cert];
+      if (!mapping) return;
+      const existing = labelsData?.items ?? [];
+      if (existing.some((l) => l.name === mapping.name)) return;
+      await createLabelAsync({
+        orgId: effectiveOrgId,
+        data: { name: mapping.name, holder: mapping.holder, logoUrl: null, year: null, score: null, documentIds: [] },
+      });
+      queryClient.invalidateQueries({ queryKey: getListLabelsQueryKey(effectiveOrgId) });
+    },
+    [effectiveOrgId, labelsData, createLabelAsync, queryClient],
+  );
 
   const handleSave = useCallback(
     (input: NrDataInput) => {
-      if (!currentOrgId) return;
-      upsertNr({ orgId: currentOrgId, data: input });
-      // Sync certification → Mes Labels si un label prédéfini est sélectionné
+      if (!effectiveOrgId) return;
+      upsertNr({ orgId: effectiveOrgId, data: input });
       if (input.meta?.certificationLabel) {
         syncCertToLabel(input.meta.certificationLabel);
       }
     },
-    [currentOrgId, upsertNr, syncCertToLabel],
+    [effectiveOrgId, upsertNr, syncCertToLabel],
   );
 
-  // Handlers exposés aux enfants
   const handleResponseChange = useCallback((criterionId: string, checked: boolean) => {
     setResponses((prev) => ({ ...prev, [criterionId]: checked }));
   }, []);
@@ -129,7 +127,6 @@ export function NumeriqueResponsable() {
     handleSave({ responses: items });
   }, [responses, comments, handleSave]);
 
-  // ── Scores (dérivés des réponses locales) ────────────────────────────────────
   const scores = computeScores(responses);
 
   const meta: NrMeta = nrData?.meta ?? {
@@ -141,6 +138,8 @@ export function NumeriqueResponsable() {
   return (
     <AppLayout>
       <div className="space-y-6 pb-12">
+        {showGroupBanner && <GroupModuleBanner />}
+
         {/* En-tête */}
         <div className="flex items-start justify-between">
           <div>
@@ -149,7 +148,7 @@ export function NumeriqueResponsable() {
               <p className="text-sm text-muted-foreground mt-1">{currentOrg.name}</p>
             )}
           </div>
-          {!isLoading && !!currentOrgId && scores.totalPossible > 0 && (
+          {!isLoading && !!effectiveOrgId && scores.totalPossible > 0 && (
             <div className="text-right">
               <span className="text-2xl font-bold text-foreground">{scores.globalScore}</span>
               <span className="text-sm text-muted-foreground font-medium">/500</span>
@@ -161,7 +160,7 @@ export function NumeriqueResponsable() {
         </div>
 
         {/* Aucune organisation */}
-        {!currentOrgId && (
+        {!effectiveOrgId && (
           <div className="flex items-center gap-3 p-5 rounded-xl border border-amber-200 bg-amber-50">
             <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
             <div>
@@ -174,7 +173,7 @@ export function NumeriqueResponsable() {
         )}
 
         {/* Chargement */}
-        {isLoading && currentOrgId && (
+        {isLoading && effectiveOrgId && (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
               <Skeleton key={i} className="h-12 w-full rounded-lg" />
@@ -183,7 +182,7 @@ export function NumeriqueResponsable() {
         )}
 
         {/* Onglets */}
-        {!isLoading && !!currentOrgId && (
+        {!isLoading && !!effectiveOrgId && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="flex flex-wrap gap-1 h-auto p-1 w-full sm:w-auto">
               {TABS.map((tab) => (
@@ -198,33 +197,36 @@ export function NumeriqueResponsable() {
               ))}
             </TabsList>
 
-            <TabsContent value="decouvrir" className="mt-0">
-              <TabDecouvrir
-                orgId={currentOrgId}
-                meta={meta}
-                onSave={(m) => handleSave({ meta: m })}
-                onStart={() => setActiveTab("evaluation")}
-              />
-            </TabsContent>
+            {/* @ts-expect-error -- `inert` est un attribut HTML5 valide, pas encore dans les types JSX React */}
+            <div inert={isReadOnly ? "" : undefined} className={isReadOnly ? "opacity-70" : ""}>
+              <TabsContent value="decouvrir" className="mt-0">
+                <TabDecouvrir
+                  orgId={effectiveOrgId}
+                  meta={meta}
+                  onSave={(m) => handleSave({ meta: m })}
+                  onStart={() => setActiveTab("evaluation")}
+                />
+              </TabsContent>
 
-            <TabsContent value="evaluation" className="mt-0">
-              <TabEvaluation
-                orgId={currentOrgId}
-                responses={responses}
-                comments={comments}
-                onResponseChange={handleResponseChange}
-                onCommentChange={handleCommentChange}
-                onSave={handleSaveEvaluation}
-              />
-            </TabsContent>
+              <TabsContent value="evaluation" className="mt-0">
+                <TabEvaluation
+                  orgId={effectiveOrgId}
+                  responses={responses}
+                  comments={comments}
+                  onResponseChange={handleResponseChange}
+                  onCommentChange={handleCommentChange}
+                  onSave={handleSaveEvaluation}
+                />
+              </TabsContent>
 
-            <TabsContent value="resultats" className="mt-0">
-              <TabResultats scores={scores} responsesMap={responses} />
-            </TabsContent>
+              <TabsContent value="resultats" className="mt-0">
+                <TabResultats scores={scores} responsesMap={responses} />
+              </TabsContent>
 
-            <TabsContent value="calculateur" className="mt-0">
-              <TabCalculateur />
-            </TabsContent>
+              <TabsContent value="calculateur" className="mt-0">
+                <TabCalculateur />
+              </TabsContent>
+            </div>
           </Tabs>
         )}
       </div>

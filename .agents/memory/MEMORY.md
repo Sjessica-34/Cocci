@@ -11,3 +11,4 @@
 - [OpenAPI spec edit pattern](openapi-append-pattern.md) — insert paths BEFORE `components:` and schemas INSIDE components/schemas; never raw-append to EOF (breaks YAML nesting).
 - [Orval mutation hook shapes](orval-hook-shapes.md) — generated mutations take flat `{ orgId, actionId?, data }`, NOT `{ params: {...}, data }`.
 - [1-compte-1-org model](one-account-one-org.md) — rootOrg = org sans parentId; filiales = orgs où parentId === rootOrg.id; WorkspaceGuard redirige vers /onboarding si aucune org.
+- [Module scope architecture](module-scope-architecture.md) — registre central + useModuleContext pour piloter groupe/filiale sans toucher nav/router. Inert HTML5 pour read-only générique.

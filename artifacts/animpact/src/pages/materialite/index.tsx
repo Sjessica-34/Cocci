@@ -1,7 +1,8 @@
-import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useModuleContext } from "@/hooks/useModuleContext";
 import { useListOrganizations, useGetIssues } from "@workspace/api-client-react";
 import type { IssueRatedItem } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
+import { GroupModuleBanner } from "@/components/GroupModuleBanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, BookOpen, Library, BarChart2, FileText } from "lucide-react";
@@ -12,10 +13,10 @@ import { TabMatriceViz } from "./tabs/TabMatrice";
 import { TabSynthese } from "./tabs/TabSynthese";
 
 const TABS = [
-  { value: "guide", label: "Guide", icon: <BookOpen className="h-3.5 w-3.5" /> },
-  { value: "bibliotheque", label: "Bibliothèque", icon: <Library className="h-3.5 w-3.5" /> },
-  { value: "matrice", label: "Matrice", icon: <BarChart2 className="h-3.5 w-3.5" /> },
-  { value: "synthese", label: "Synthèse", icon: <FileText className="h-3.5 w-3.5" /> },
+  { value: "guide",       label: "Guide",      icon: <BookOpen  className="h-3.5 w-3.5" /> },
+  { value: "bibliotheque",label: "Bibliothèque",icon: <Library   className="h-3.5 w-3.5" /> },
+  { value: "matrice",     label: "Matrice",     icon: <BarChart2 className="h-3.5 w-3.5" /> },
+  { value: "synthese",    label: "Synthèse",    icon: <FileText  className="h-3.5 w-3.5" /> },
 ];
 
 function computeTop12(items: IssueRatedItem[]): Set<string> {
@@ -33,24 +34,28 @@ function computeTop12(items: IssueRatedItem[]): Set<string> {
 }
 
 export function Materialite() {
-  const { currentOrgId } = useCurrentOrganization();
+  const { effectiveOrgId, isReadOnly, showGroupBanner } = useModuleContext("group");
   const { data: orgs } = useListOrganizations();
-  const currentOrg = orgs?.find((o) => o.id === currentOrgId);
+  const currentOrg = orgs?.find((o) => o.id === effectiveOrgId);
 
-  const { data, isLoading } = useGetIssues(currentOrgId ?? 0, {
+  const { data, isLoading } = useGetIssues(effectiveOrgId ?? 0, {
     query: {
-      enabled: !!currentOrgId,
-      queryKey: [`/api/organizations/${currentOrgId}/issues`],
+      enabled: !!effectiveOrgId,
+      queryKey: [`/api/organizations/${effectiveOrgId}/issues`],
     },
   });
 
   const items = data?.items ?? [];
-  const ratedCount = items.filter((i) => i.stakeholderScore != null && i.companyScore != null).length;
+  const ratedCount = items.filter(
+    (i) => i.stakeholderScore != null && i.companyScore != null,
+  ).length;
   const top12Keys = computeTop12(items);
 
   return (
     <AppLayout>
       <div className="space-y-6 pb-12">
+        {showGroupBanner && <GroupModuleBanner />}
+
         {/* Page header */}
         <div className="flex items-start justify-between">
           <div>
@@ -59,16 +64,18 @@ export function Materialite() {
               <p className="text-sm text-muted-foreground mt-1">{currentOrg.name}</p>
             )}
           </div>
-          {!isLoading && !!currentOrgId && ratedCount > 0 && (
+          {!isLoading && !!effectiveOrgId && ratedCount > 0 && (
             <div className="text-right">
               <span className="text-2xl font-bold text-foreground">{ratedCount}</span>
-              <p className="text-xs text-muted-foreground">enjeu{ratedCount !== 1 ? "x" : ""} noté{ratedCount !== 1 ? "s" : ""}</p>
+              <p className="text-xs text-muted-foreground">
+                enjeu{ratedCount !== 1 ? "x" : ""} noté{ratedCount !== 1 ? "s" : ""}
+              </p>
             </div>
           )}
         </div>
 
         {/* No org */}
-        {!currentOrgId && (
+        {!effectiveOrgId && (
           <div className="flex items-center gap-3 p-5 rounded-xl border border-amber-200 bg-amber-50">
             <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
             <div>
@@ -81,7 +88,7 @@ export function Materialite() {
         )}
 
         {/* Loading */}
-        {isLoading && currentOrgId && (
+        {isLoading && effectiveOrgId && (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
               <Skeleton key={i} className="h-12 w-full rounded-lg" />
@@ -90,16 +97,16 @@ export function Materialite() {
         )}
 
         {/* Document import */}
-        {!isLoading && !!currentOrgId && (
+        {!isLoading && !!effectiveOrgId && (
           <DocumentUploader
-            orgId={currentOrgId}
+            orgId={effectiveOrgId}
             category="materialite"
             question="Avez-vous déjà une matrice de matérialité existante à importer ?"
           />
         )}
 
         {/* Main content */}
-        {!isLoading && !!currentOrgId && (
+        {!isLoading && !!effectiveOrgId && (
           <Tabs defaultValue="guide" className="space-y-6">
             <TabsList className="flex flex-wrap gap-1 h-auto p-1 w-full sm:w-auto">
               {TABS.map((tab) => (
@@ -114,21 +121,21 @@ export function Materialite() {
               ))}
             </TabsList>
 
-            <TabsContent value="guide" className="mt-0">
-              <TabGuide />
-            </TabsContent>
-
-            <TabsContent value="bibliotheque" className="mt-0">
-              <TabBibliotheque orgId={currentOrgId} />
-            </TabsContent>
-
-            <TabsContent value="matrice" className="mt-0">
-              <TabMatriceViz items={items} top12Keys={top12Keys} orgId={currentOrgId} />
-            </TabsContent>
-
-            <TabsContent value="synthese" className="mt-0">
-              <TabSynthese items={items} />
-            </TabsContent>
+            {/* @ts-expect-error -- `inert` est un attribut HTML5 valide, pas encore dans les types JSX React */}
+            <div inert={isReadOnly ? "" : undefined} className={isReadOnly ? "opacity-70" : ""}>
+              <TabsContent value="guide" className="mt-0">
+                <TabGuide />
+              </TabsContent>
+              <TabsContent value="bibliotheque" className="mt-0">
+                <TabBibliotheque orgId={effectiveOrgId} />
+              </TabsContent>
+              <TabsContent value="matrice" className="mt-0">
+                <TabMatriceViz items={items} top12Keys={top12Keys} orgId={effectiveOrgId} />
+              </TabsContent>
+              <TabsContent value="synthese" className="mt-0">
+                <TabSynthese items={items} />
+              </TabsContent>
+            </div>
           </Tabs>
         )}
       </div>

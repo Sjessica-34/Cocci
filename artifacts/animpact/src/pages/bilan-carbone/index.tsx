@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useModuleContext } from "@/hooks/useModuleContext";
 import { useGetCarbonBilan, useUpsertCarbonBilan } from "@workspace/api-client-react";
+import { ConsolidatedPlaceholder } from "@/components/ConsolidatedPlaceholder";
 import type { CarbonBilan, CarbonBilanInput } from "@workspace/api-client-react";
 import { UtilisationCalculator, computeUtilisation } from "./UtilisationCalculator";
 import { AppLayout } from "@/components/layout";
@@ -263,15 +264,15 @@ function fromBilan(b: CarbonBilan): FormState {
 }
 
 export function BilanCarbone() {
-  const { currentOrgId } = useCurrentOrganization();
+  const { effectiveOrgId, isConsolidated } = useModuleContext("subsidiary");
   const [form, setForm] = useState<FormState>(defaultForm());
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  const { data: existing, isLoading } = useGetCarbonBilan(currentOrgId ?? 0, {
+  const { data: existing, isLoading } = useGetCarbonBilan(effectiveOrgId ?? 0, {
     query: {
-      enabled: !!currentOrgId,
+      enabled: !!effectiveOrgId && !isConsolidated,
       retry: false,
-      queryKey: [`/api/organizations/${currentOrgId}/carbon`],
+      queryKey: [`/api/organizations/${effectiveOrgId}/carbon`],
     },
   });
 
@@ -292,8 +293,8 @@ export function BilanCarbone() {
     setForm((f) => ({ ...f, [key]: val }));
 
   const handleSave = () => {
-    if (!currentOrgId) return;
-    save({ orgId: currentOrgId, data: form as CarbonBilanInput });
+    if (!effectiveOrgId) return;
+    save({ orgId: effectiveOrgId, data: form as CarbonBilanInput });
   };
 
   const isSaisie = form.mode === "saisie";
@@ -313,6 +314,25 @@ export function BilanCarbone() {
   const estTotal = estTotalBase + (utilResult?.tCO2e ?? 0);
 
   const YEARS = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+
+  if (isConsolidated) {
+    return (
+      <AppLayout>
+        <div className="space-y-6 pb-16 max-w-4xl">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Globe className="h-6 w-6 text-emerald-600" />
+              Bilan Carbone®
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Renseignez vos données ou obtenez une estimation rapide.
+            </p>
+          </div>
+          <ConsolidatedPlaceholder moduleName="Bilan Carbone" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -336,18 +356,18 @@ export function BilanCarbone() {
           )}
         </div>
 
-        {!currentOrgId && (
+        {!effectiveOrgId && (
           <div className="flex items-center gap-3 p-5 rounded-xl border border-amber-200 bg-amber-50">
             <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
             <p className="text-sm text-amber-800">Sélectionnez une organisation dans la barre latérale.</p>
           </div>
         )}
 
-        {isLoading && currentOrgId && (
+        {isLoading && effectiveOrgId && (
           <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
         )}
 
-        {!isLoading && !!currentOrgId && (
+        {!isLoading && !!effectiveOrgId && (
           <div className="space-y-6">
             {/* Mode selector */}
             <div className="rounded-xl border border-border bg-white dark:bg-muted/10 p-5 space-y-3">
@@ -615,9 +635,9 @@ export function BilanCarbone() {
             )}
 
             {/* Document import */}
-            {!!currentOrgId && (
+            {!!effectiveOrgId && (
               <DocumentUploader
-                orgId={currentOrgId}
+                orgId={effectiveOrgId}
                 category="bilan-carbone"
                 question="Avez-vous déjà un Bilan Carbone® existant à importer ?"
               />

@@ -1,12 +1,15 @@
 import { useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout";
 import { OrgSubNav } from "@/components/shared/OrgSubNav";
+import { GroupModuleBanner } from "@/components/GroupModuleBanner";
 import {
   useGetOrganization,
   useUpdateOrganization,
+  useListOrganizations,
   getGetOrganizationQueryKey,
   getListOrganizationsQueryKey,
 } from "@workspace/api-client-react";
+import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { useForm } from "react-hook-form";
@@ -105,6 +108,17 @@ export function OrganizationSettings() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
+  // Capture the navigation context BEFORE setCurrentOrg fires in the effect below.
+  // This lets us detect when the user arrived here from a subsidiary context,
+  // making the admin page read-only (groupe-scope module).
+  const { currentOrgId: navOrgId } = useCurrentOrganization();
+  const navOrgAtMountRef = useRef(navOrgId);
+  const { data: allOrgs = [] } = useListOrganizations();
+  const rootOrg = allOrgs.find((o) => !o.parentId);
+  const isAdminReadOnly = allOrgs.some(
+    (o) => o.parentId === rootOrg?.id && o.id === navOrgAtMountRef.current,
+  );
+
   useEffect(() => {
     if (orgId > 0) setCurrentOrg(orgId);
     return () => setCurrentOrg(null);
@@ -197,8 +211,12 @@ export function OrganizationSettings() {
           </p>
         </div>
 
+        {isAdminReadOnly && <GroupModuleBanner />}
+
         <OrgSubNav orgId={orgId} />
 
+        {/* @ts-expect-error -- `inert` est un attribut HTML5 valide, pas encore dans les types JSX React */}
+        <div inert={isAdminReadOnly ? "" : undefined} className={isAdminReadOnly ? "opacity-70" : ""}>
         {isLoading ? (
           <Skeleton className="h-[480px] w-full rounded-xl" />
         ) : (
@@ -443,6 +461,7 @@ export function OrganizationSettings() {
           )}
           </>
         )}
+        </div>{/* /inert */}
       </div>
     </AppLayout>
   );
