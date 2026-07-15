@@ -269,6 +269,12 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
   const [nodes, setNodes, onNodesChange] = useNodesState<BioNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
+  // Refs stables pour comparer les données de useQueries sans créer de boucle infinie.
+  // useQueries retourne un NOUVEAU tableau à chaque render → ne jamais le mettre
+  // directement en dep d'un useEffect qui appelle setNodes/setEdges.
+  const prevDepsData = useRef<object[]>([]);
+  const prevConnData = useRef<object[]>([]);
+
   const nodePositions = useRef(new Map<string, { x: number; y: number }>());
 
   // Ordonnancement : Maison mère au milieu
@@ -303,9 +309,28 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
 
   const updatePos = useUpdateBioDependency();
 
-  // Sync données → nœuds RF (mêmes nœuds de fond ZONE_NODES qu'IndividualCarto)
+  // Sync données → nœuds RF.
+  // PAS de tableau de deps : l'effet tourne à chaque render MAIS sort immédiatement
+  // si les références data de React Query n'ont pas changé.
+  // Raison : useQueries renvoie un NOUVEAU tableau à chaque render (référence instable),
+  // donc le mettre en dep causerait une boucle infinie. Les objets result.data, eux,
+  // sont stables entre deux renders tant qu'aucun refetch ne se produit.
   useEffect(() => {
     if (isLoading) return;
+
+    const curDeps = depsResults.map(r => r.data as object);
+    const curConn = connResults.map(r => r.data as object);
+
+    const same =
+      curDeps.length === prevDepsData.current.length &&
+      curConn.length === prevConnData.current.length &&
+      curDeps.every((d, i) => d === prevDepsData.current[i]) &&
+      curConn.every((d, i) => d === prevConnData.current[i]);
+
+    if (same) return; // rien n'a changé → pas de setState → pas de boucle
+
+    prevDepsData.current = curDeps;
+    prevConnData.current = curConn;
 
     const allNodes: BioNode[] = [];
     const allEdges: Edge[]    = [];
@@ -317,7 +342,6 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
       const conns    = connResults[orgIdx]?.data?.items ?? [];
       const isMM     = isMaisonMere(org);
 
-      // Nœuds des éléments (positions sauvegardées dans nodePositions ou DB, + offset)
       const zoneCounts: Record<string, number> = {};
       elements.forEach(el => {
         const nodeId = `${org.id}-${el.id}`;
@@ -343,13 +367,13 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
             subCategory: el.subCategory ?? null,
           },
         });
-
-        // Représentant pour la chaîne automatique
-        const chainElId = findChainElement(elements, isMM);
-        if (chainElId !== null && !chainNodeIds.includes(`${org.id}-${chainElId}`)) {
-          chainNodeIds.push(`${org.id}-${chainElId}`);
-        }
       });
+
+      // Représentant pour la chaîne automatique (calculé par org, hors boucle éléments)
+      const chainElId = findChainElement(elements, isMM);
+      if (chainElId !== null && !chainNodeIds.includes(`${org.id}-${chainElId}`)) {
+        chainNodeIds.push(`${org.id}-${chainElId}`);
+      }
 
       // Connexions intra-filiale
       conns.forEach(conn => {
@@ -383,8 +407,7 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
 
     setNodes([...ZONE_NODES, ...allNodes] as BioNode[]);
     setEdges(allEdges);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [depsResults, connResults, isLoading]);
+  }); // pas de tableau de deps — intentionnel, voir commentaire ci-dessus
 
   // Drag → sauvegarde position dans la DB de l'org correspondante
   const onNodeDragStop = useCallback((_: MouseEvent | TouchEvent, node: Node) => {
