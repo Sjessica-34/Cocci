@@ -276,6 +276,13 @@ export function BilanCarbone() {
     },
   });
 
+  // Réinitialiser le formulaire à chaque changement d'organisation
+  useEffect(() => {
+    setForm(defaultForm());
+    setSavedAt(null);
+  }, [effectiveOrgId]);
+
+  // Peupler le formulaire quand les données existantes arrivent
   useEffect(() => {
     if (existing) {
       setForm(fromBilan(existing));
