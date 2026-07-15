@@ -1,0 +1,119 @@
+Le fonctionnement de la Vue Groupe n'est pas celui attendu.
+
+Je ne souhaite absolument pas fusionner les cartographies des filiales.
+
+Je souhaite conserver EXACTEMENT la cartographie de chaque entreprise.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFFICHAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+La Vue Groupe doit simplement juxtaposer verticalement les cartographies.
+
+Exemple :
+
+──────────────────────
+Filiale A
+(cartographie complète)
+──────────────────────
+
+Filiale B
+(cartographie complète)
+──────────────────────
+
+Maison mère
+(cartographie complète)
+──────────────────────
+
+Filiale C
+(cartographie complète)
+──────────────────────
+
+Filiale D
+(cartographie complète)
+──────────────────────
+
+Chaque cartographie conserve :
+
+• ses éléments
+• leur position
+• leurs couleurs
+• leurs colonnes AMONT / IN SITU / AVAL
+• toutes les connexions déjà créées
+
+Aucun repositionnement automatique.
+
+Aucune fusion des cartes.
+
+Aucune réorganisation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LIAISONS AUTOMATIQUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+La seule action réalisée automatiquement est la création des liaisons entre la Maison mère et les filiales.
+
+Exemple :
+
+Si la Maison mère possède :
+
+• Siège social
+
+et qu'une filiale possède :
+
+• Agence
+
+Créer automatiquement une liaison :
+
+Siège social
+↓
+Agence
+
+Même principe pour tout élément équivalent défini comme point de rattachement.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONNEXIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Toutes les autres connexions restent entièrement manuelles.
+
+L'utilisateur crée lui-même les liens métier entre :
+
+• ressources
+• acteurs
+• lieux
+• activités
+
+comme aujourd'hui.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Je souhaite uniquement empiler les cartographies existantes.
+
+Je ne souhaite pas reconstruire une nouvelle cartographie.
+
+Je ne souhaite pas déplacer les cartes.
+
+Je ne souhaite pas modifier leur disposition.
+
+L'objectif est simplement de visualiser toutes les filiales sur une même page tout en conservant leur cartographie d'origine.
+
+La Maison mère est positionnée au milieu de la pile.
+
+Les filiales sont réparties automatiquement au-dessus et en dessous de la Maison mère.
+
+Exemple :
+
+Filiale A
+
+Filiale B
+
+Maison mère
+
+Filiale C
+
+Filiale D
+
+Le nombre de filiales affichées au-dessus et au-dessous de la Maison mère doit être équilibré automatiquement.

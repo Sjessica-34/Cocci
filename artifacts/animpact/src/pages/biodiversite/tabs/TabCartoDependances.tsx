@@ -18,9 +18,6 @@ import {
   type BioConnection,
   type Organization,
 } from "@workspace/api-client-react";
-import {
-  useConsolidatedBio,
-} from "../useConsolidatedBio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +32,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Network, Plus } from "lucide-react";
+import { ArrowRight, Building2, Network, Plus } from "lucide-react";
 import {
   RELATION_TYPES, elementLabel, familyIcon, familyColor, familyBg, defaultElementPosition,
 } from "../data";
@@ -141,41 +138,98 @@ interface Props {
   subsidiaries?: Organization[];
 }
 
-// ─── Vue groupe consolidée ────────────────────────────────────────────────────
-// Agrège les éléments et connexions de toutes les filiales et les affiche
-// dans le même format qu'IndividualCarto (lecture seule).
+// ─── Vue groupe : cartographies empilées ──────────────────────────────────────
+// Chaque filiale conserve sa propre cartographie (positions, connexions, couleurs).
+// La Maison mère est placée au milieu. Les autres filiales sont réparties
+// équitablement au-dessus et en dessous.
+
+function isMaisonMere(org: Organization): boolean {
+  return /m[eè]re/i.test(org.name) || /si[eè]ge/i.test(org.name);
+}
 
 function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
-  const { elements, connections, isLoading } = useConsolidatedBio(subsidiaries);
+  // Tri : Maison mère au milieu, autres réparties équitablement
+  const maisonMereIdx = subsidiaries.findIndex(isMaisonMere);
+  let ordered: Organization[];
 
-  // ── Nœuds consolidés : virtualId comme ID, déduplication déjà faite ────────
-  const allNodes = useMemo<BioNode[]>(() => {
+  if (maisonMereIdx >= 0) {
+    const maisonMere = subsidiaries[maisonMereIdx];
+    const others     = subsidiaries.filter((_, i) => i !== maisonMereIdx);
+    const half       = Math.ceil(others.length / 2);
+    ordered = [...others.slice(0, half), maisonMere, ...others.slice(half)];
+  } else {
+    ordered = subsidiaries;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 px-1 pb-3 border-b text-xs text-muted-foreground">
+        <span>📊</span>
+        <span>
+          Vue groupe — {subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""} · Lecture seule · Modifiez depuis chaque filiale
+        </span>
+      </div>
+
+      {ordered.map((org, idx) => {
+        const isMM = isMaisonMere(org);
+        const isCenter = maisonMereIdx >= 0 && isMM;
+        return (
+          <div key={org.id}>
+            <SubCartoBlock org={org} highlight={isCenter} />
+            {isCenter && idx < ordered.length - 1 && (
+              <div className="flex items-center gap-2 py-2 px-1 mt-4">
+                <div className="flex-1 h-px bg-slate-200" />
+                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Filiales rattachées</span>
+                <div className="flex-1 h-px bg-slate-200" />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Bloc cartographie d'une filiale (lecture seule) ──────────────────────────
+
+function SubCartoBlock({ org, highlight }: { org: Organization; highlight?: boolean }) {
+  const { data: depsData, isLoading: loadingDeps } = useListBioDependencies(org.id);
+  const { data: connData, isLoading: loadingConns } = useListBioConnections(org.id);
+
+  const elements    = depsData?.items ?? [];
+  const connections = connData?.items ?? [];
+  const isLoading   = loadingDeps || loadingConns;
+
+  const nodes = useMemo<BioNode[]>(() => {
     const zoneCounts: Record<string, number> = {};
     return elements.map((el) => {
       const zone = el.chainPosition ?? "amont";
-      const idx  = zoneCounts[zone] ?? 0;
-      zoneCounts[zone] = idx + 1;
-      const pos  = defaultElementPosition(zone, idx);
+      // Utilise la position sauvegardée si elle existe, sinon position par défaut
+      let pos: { x: number; y: number };
+      if (el.x != null && el.y != null) {
+        pos = { x: el.x, y: el.y };
+      } else {
+        const idx = (zoneCounts[zone] = (zoneCounts[zone] ?? -1) + 1);
+        pos = defaultElementPosition(zone, idx);
+      }
       return {
-        id:       el.virtualId,
+        id:       String(el.id),
         type:     "bioElement" as const,
         position: pos,
         data: {
-          name:        el.name,
-          category:    el.category,
-          subCategory: el.subCategory,
-          origins:     el.origins.map(o => ({ orgName: o.orgName })),
+          name:        el.name        ?? null,
+          category:    el.category    ?? null,
+          subCategory: el.subCategory ?? null,
         },
       };
     });
   }, [elements]);
 
-  // ── Arêtes consolidées : fromVirtualId → toVirtualId ───────────────────────
-  const allEdges = useMemo<Edge[]>(() => {
+  const edges = useMemo<Edge[]>(() => {
     return connections.map((conn) => ({
-      id:     conn.virtualId,
-      source: conn.fromVirtualId,
-      target: conn.toVirtualId,
+      id:     `e${conn.id}`,
+      source: String(conn.fromElementId),
+      target: String(conn.toElementId),
       type:   "smoothstep",
       label:  conn.relationType ?? undefined,
       labelStyle:          { fontSize: 10, fill: "#475569", fontWeight: 600 },
@@ -187,76 +241,64 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
     }));
   }, [connections]);
 
-  const totalConnections = allEdges.length;
-
-  if (isLoading) {
-    return <Skeleton className="h-[620px] w-full rounded-xl" />;
-  }
-
-  if (allNodes.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
-        <Network className="h-10 w-10 opacity-30" />
-        <p className="text-sm max-w-xs">
-          Aucun élément à cartographier dans les filiales. Ajoutez-en depuis chaque filiale dans l'onglet "Saisie".
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {allNodes.length} élément{allNodes.length !== 1 ? "s" : ""}&ensp;·&ensp;
-          {totalConnections} connexion{totalConnections !== 1 ? "s" : ""}
-          {totalConnections > 0 && (
-            <span className="text-xs"> — consolidés depuis {subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""}</span>
-          )}
-          {totalConnections === 0 && (
-            <span className="text-xs"> — consolidés depuis {subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""}</span>
-          )}
-        </p>
-        <span className="text-xs text-muted-foreground bg-slate-100 border rounded px-2 py-1">
-          Lecture seule — modifiez depuis chaque filiale
-        </span>
+    <div className={`rounded-xl border shadow-sm overflow-hidden ${highlight ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"}`}>
+      {/* En-tête filiale */}
+      <div className={`flex items-center gap-2 px-4 py-2.5 border-b ${highlight ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200"}`}>
+        <Building2 className={`h-4 w-4 shrink-0 ${highlight ? "text-amber-600" : "text-slate-500"}`} />
+        <span className={`text-sm font-semibold ${highlight ? "text-amber-800" : "text-slate-700"}`}>{org.name}</span>
+        {highlight && (
+          <span className="text-[10px] bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 font-medium">
+            Maison mère
+          </span>
+        )}
+        {!isLoading && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {elements.length} élément{elements.length !== 1 ? "s" : ""} · {connections.length} connexion{connections.length !== 1 ? "s" : ""}
+          </span>
+        )}
       </div>
 
-      <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 620 }}>
-        <div className="grid grid-cols-3 border-b shrink-0">
-          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">
-            Amont
+      {isLoading ? (
+        <Skeleton className="h-64 w-full rounded-none" />
+      ) : elements.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-24 gap-2 text-muted-foreground">
+          <Network className="h-5 w-5 opacity-30" />
+          <p className="text-xs">Aucun élément dans cette filiale</p>
+        </div>
+      ) : (
+        <div className="flex flex-col" style={{ height: 380 }}>
+          {/* En-têtes de zone */}
+          <div className="grid grid-cols-3 border-b shrink-0">
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">Amont</div>
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">In situ</div>
+            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">Aval</div>
           </div>
-          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">
-            In situ
-          </div>
-          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">
-            Aval
+          {/* ReactFlow */}
+          <div style={{ flex: 1 }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
+              minZoom={0.2}
+              maxZoom={2.5}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              style={{
+                background:
+                  "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
+              }}
+            >
+              <Background gap={20} size={1} color="#cbd5e1" />
+              <Controls position="bottom-left" />
+              <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
+            </ReactFlow>
           </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <ReactFlow
-            nodes={allNodes}
-            edges={allEdges}
-            nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.15 }}
-            minZoom={0.25}
-            maxZoom={2.5}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            style={{
-              background:
-                "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
-            }}
-          >
-            <Background gap={20} size={1} color="#cbd5e1" />
-            <Controls position="bottom-left" />
-            <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
-          </ReactFlow>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
