@@ -241,8 +241,8 @@ interface Props {
 // • Pas d'étiquettes de filiale
 // • Chaîne automatique : agences + siège social reliés verticalement
 
-const SECTION_H  = 500; // hauteur réservée par filiale (px)
 const CANVAS_PAD = 40;  // padding en haut / bas du canvas global
+const NODE_H     = 82;  // hauteur approximative d'une carte BioElementNode (px)
 
 function isMaisonMere(org: Organization): boolean {
   return /m[eè]re/i.test(org.name) || /si[eè]ge/i.test(org.name);
@@ -268,6 +268,7 @@ function findChainElement(
 function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
   const [nodes, setNodes, onNodesChange] = useNodesState<BioNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [canvasHeight, setCanvasHeight]  = useState(350);
 
   // Refs stables pour comparer les données de useQueries sans créer de boucle infinie.
   // useQueries retourne un NOUVEAU tableau à chaque render → ne jamais le mettre
@@ -332,12 +333,47 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
     prevDepsData.current = curDeps;
     prevConnData.current = curConn;
 
-    const allNodes: BioNode[] = [];
-    const allEdges: Edge[]    = [];
+    // ── Hauteur de chaque section proportionnelle au nb d'éléments ──────────
+    const sectionHeights = ordered.map((_, orgIdx) => {
+      const elements = depsResults[orgIdx]?.data?.items ?? [];
+      const rowCount  = Math.max(1, Math.ceil(elements.length / 2));
+      return Math.max(190, 70 + rowCount * 130 + 60);
+    });
+
+    // ── Offsets Y cumulatifs (remplacent l'ancien SECTION_H fixe) ────────────
+    const yOffsets: number[] = [];
+    let cumY = 0;
+    for (const h of sectionHeights) {
+      yOffsets.push(cumY);
+      cumY += h;
+    }
+    const totalSectionsH = cumY;
+
+    // ── Panneaux de zone (hauteur exacte = contenu + padding) ────────────────
+    const panelH = totalSectionsH + CANVAS_PAD * 2;
+    const dynamicZoneNodes: Node[] = [
+      { id: "bg-amont",  type: "zonePanel", position: { x: 0,                 y: -CANVAS_PAD }, zIndex: -10, selectable: false, draggable: false, connectable: false, data: { label: "Amont",   bgColor: "#EFF6FF", borderColor: "#BFDBFE", textColor: "#1D4ED8", height: panelH } },
+      { id: "bg-insitu", type: "zonePanel", position: { x: CANVAS_ZONE_W,     y: -CANVAS_PAD }, zIndex: -10, selectable: false, draggable: false, connectable: false, data: { label: "In situ", bgColor: "#ECFDF5", borderColor: "#A7F3D0", textColor: "#065F46", height: panelH } },
+      { id: "bg-aval",   type: "zonePanel", position: { x: CANVAS_ZONE_W * 2, y: -CANVAS_PAD }, zIndex: -10, selectable: false, draggable: false, connectable: false, data: { label: "Aval",    bgColor: "#F5F3FF", borderColor: "#DDD6FE", textColor: "#6D28D9", height: panelH } },
+    ];
+
+    const allNodes: Node[] = [];
+    const allEdges: Edge[] = [];
     const chainNodeIds: string[] = [];
 
+    // ── Séparateurs entre sections ────────────────────────────────────────────
+    const sepW = CANVAS_ZONE_W * 3;
+    for (let i = 1; i < ordered.length; i++) {
+      allNodes.push({
+        id: `sep-${i}`, type: "separator",
+        position: { x: 0, y: yOffsets[i] - 1 },
+        data: { totalWidth: sepW } satisfies SeparatorData,
+        zIndex: -5, selectable: false, draggable: false, connectable: false,
+      });
+    }
+
     ordered.forEach((org, orgIdx) => {
-      const yOffset  = orgIdx * SECTION_H;
+      const yOffset  = yOffsets[orgIdx];
       const elements = depsResults[orgIdx]?.data?.items ?? [];
       const conns    = connResults[orgIdx]?.data?.items ?? [];
       const isMM     = isMaisonMere(org);
@@ -358,18 +394,12 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
         );
 
         allNodes.push({
-          id:       nodeId,
-          type:     "bioElement" as const,
-          position: pos,
-          data: {
-            name:        el.name        ?? null,
-            category:    el.category    ?? null,
-            subCategory: el.subCategory ?? null,
-          },
+          id: nodeId, type: "bioElement" as const, position: pos,
+          data: { name: el.name ?? null, category: el.category ?? null, subCategory: el.subCategory ?? null },
         });
       });
 
-      // Représentant pour la chaîne automatique (calculé par org, hors boucle éléments)
+      // Représentant pour la chaîne automatique
       const chainElId = findChainElement(elements, isMM);
       if (chainElId !== null && !chainNodeIds.includes(`${org.id}-${chainElId}`)) {
         chainNodeIds.push(`${org.id}-${chainElId}`);
@@ -396,17 +426,23 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
     // Liaisons automatiques (chaîne siège social ↔ agences)
     for (let i = 0; i < chainNodeIds.length - 1; i++) {
       allEdges.push({
-        id:        `auto-chain-${i}`,
-        source:    chainNodeIds[i],
-        target:    chainNodeIds[i + 1],
-        type:      "straight",
+        id: `auto-chain-${i}`, source: chainNodeIds[i], target: chainNodeIds[i + 1],
+        type: "straight",
         markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
         style:     { stroke: "#64748b", strokeWidth: 2, strokeDasharray: "6 4" },
       });
     }
 
-    setNodes([...ZONE_NODES, ...allNodes] as BioNode[]);
+    // ── Hauteur canvas = max Y des éléments + marge ───────────────────────────
+    const elemNodes = allNodes.filter(n => n.type === "bioElement");
+    const maxElemY  = elemNodes.length > 0
+      ? Math.max(...elemNodes.map(n => n.position.y)) + NODE_H
+      : 200;
+    const newCanvasH = Math.max(350, maxElemY + 80);
+
+    setNodes([...dynamicZoneNodes, ...allNodes] as BioNode[]);
     setEdges(allEdges);
+    setCanvasHeight(newCanvasH);
   }); // pas de tableau de deps — intentionnel, voir commentaire ci-dessus
 
   // Drag → sauvegarde position dans la DB de l'org correspondante
@@ -443,7 +479,7 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: 620 }}>
+      <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: canvasHeight }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -452,7 +488,7 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ padding: 0.15 }}
+          fitViewOptions={{ padding: 0.12 }}
           minZoom={0.08}
           maxZoom={2.5}
         >
@@ -489,6 +525,7 @@ function IndividualCarto({ orgId }: { orgId: number }) {
   const [relationType,      setRelationType]      = useState("");
   const [customRelationType,setCustomRelationType]= useState("");
   const [deleteConnId,      setDeleteConnId]      = useState<number | null>(null);
+  const [canvasHeight,      setCanvasHeight]      = useState(280);
 
   const nodePositions = useRef(new Map<number, { x: number; y: number }>());
 
@@ -521,6 +558,11 @@ function IndividualCarto({ orgId }: { orgId: number }) {
         },
       };
     });
+    // Hauteur canvas = max Y des cartes + marge (évite les grands espaces vides)
+    const maxY = newNodes.length > 0
+      ? Math.max(...newNodes.map(n => n.position.y)) + NODE_H
+      : 160;
+    setCanvasHeight(Math.max(280, maxY + 70));
     setNodes([...ZONE_NODES, ...newNodes] as BioNode[]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsData]);
@@ -620,9 +662,9 @@ function IndividualCarto({ orgId }: { orgId: number }) {
 
       {/* Canvas — fond AMONT/IN SITU/AVAL intégré comme nœuds ReactFlow */}
       {isLoading ? (
-        <Skeleton className="h-[620px] w-full rounded-xl" />
+        <Skeleton className="w-full rounded-xl" style={{ height: canvasHeight }} />
       ) : (
-        <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: 620 }}>
+        <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: canvasHeight }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}

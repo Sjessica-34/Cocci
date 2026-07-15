@@ -139,14 +139,26 @@ export function defaultElementPosition(
   chainPosition: string | null | undefined,
   indexInZone: number,
 ): { x: number; y: number } {
-  const ZONE_W = 380;
-  const baseX =
-    chainPosition === "in-situ" ? ZONE_W + 20
-    : chainPosition === "aval"  ? ZONE_W * 2 + 20
-    : 20;
+  // ZONE_W doit correspondre à CANVAS_ZONE_W dans TabCartoDependances.tsx
+  const ZONE_W  = 390;
+  // Largeur approximative d'une carte (entre minWidth:140 et maxWidth:190)
+  const CARD_W  = 160;
+  const COL_GAP = 20; // espace entre les 2 colonnes
+  // Marge gauche pour centrer la grille (2 cartes) dans la zone
+  const MARGIN  = Math.round((ZONE_W - 2 * CARD_W - COL_GAP) / 2); // = 25 px
+
+  const zoneStart =
+    chainPosition === "in-situ" ? ZONE_W
+    : chainPosition === "aval"  ? ZONE_W * 2
+    : 0;
+
   const col = indexInZone % 2;
   const row = Math.floor(indexInZone / 2);
-  return { x: baseX + col * 170, y: 40 + row * 130 };
+
+  return {
+    x: zoneStart + MARGIN + col * (CARD_W + COL_GAP),
+    y: 60 + row * 130,
+  };
 }
 
 export function defaultIssuePosition(
