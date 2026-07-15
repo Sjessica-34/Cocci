@@ -179,6 +179,13 @@ export function OnboardingFiliales() {
     setLocation("/dashboard");
   }
 
+  // Redirect outside of render
+  useEffect(() => {
+    if (!isLoading && !rootOrg) {
+      setLocation("/onboarding");
+    }
+  }, [isLoading, rootOrg, setLocation]);
+
   if (isLoading) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center">
@@ -188,7 +195,6 @@ export function OnboardingFiliales() {
   }
 
   if (!rootOrg) {
-    setLocation("/onboarding");
     return null;
   }
 

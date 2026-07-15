@@ -39,6 +39,21 @@ router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  // "1 compte = 1 org principale" — block creation of a second root org.
+  if (!parsed.data.parentId) {
+    const memberships = await db
+      .select({ org: organizationsTable })
+      .from(membersTable)
+      .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
+      .where(and(eq(membersTable.userId, user.id), eq(membersTable.status, "active")));
+
+    const hasRootOrg = memberships.some((m) => m.org.parentId === null);
+    if (hasRootOrg) {
+      res.status(409).json({ error: "Un compte ne peut avoir qu'une seule organisation principale." });
+      return;
+    }
+  }
+
   const [org] = await db
     .insert(organizationsTable)
     .values(parsed.data)
