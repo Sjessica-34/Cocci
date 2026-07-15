@@ -63,12 +63,15 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
 
   // Default to the most recent exercise when none is selected yet (or the
   // stored one no longer belongs to this organization).
+  // Also invalidates all queries so data is refetched with the corrected
+  // exercise ID (avoids "Exercise not found" 400s from stale localStorage).
   useEffect(() => {
     if (!exercises || exercises.length === 0) return;
     if (!exercises.some((e) => e.id === currentExerciseId)) {
       setCurrentExercise(exercises[0].id);
+      qc.invalidateQueries();
     }
-  }, [exercises, currentExerciseId, setCurrentExercise]);
+  }, [exercises, currentExerciseId, setCurrentExercise, qc]);
 
   function switchExercise(id: number) {
     if (id === currentExerciseId) return;

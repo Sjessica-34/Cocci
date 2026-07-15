@@ -40,11 +40,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Info } from "lucide-react";
 import { SUPPLIER_CATEGORIES, computeCompletion, getDeptFromPostalCode, getRegionFromDept } from "../data";
 
 interface Props {
   orgId: number;
+  isReadOnly?: boolean;
 }
 
 type FormData = Omit<SupplierInput, never>;
@@ -148,7 +149,7 @@ function InputField({
   );
 }
 
-export function TabFournisseurs({ orgId }: Props) {
+export function TabFournisseurs({ orgId, isReadOnly = false }: Props) {
   const queryClient = useQueryClient();
   const { data, isLoading } = useListSuppliers(orgId);
   const createMutation  = useCreateSupplier();
@@ -238,16 +239,28 @@ export function TabFournisseurs({ orgId }: Props) {
 
   return (
     <div className="space-y-4">
+      {isReadOnly && (
+        <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <Info className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
+          <div>
+            <span className="font-semibold">Vue consolidée — données en lecture seule.</span>
+            {" "}Sélectionnez une filiale dans le menu pour saisir ou modifier ses fournisseurs.
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-muted-foreground">
             {suppliers.length} fournisseur{suppliers.length !== 1 ? "s" : ""} enregistré{suppliers.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter un fournisseur
-        </Button>
+        {!isReadOnly && (
+          <Button onClick={openCreate} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter un fournisseur
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -256,11 +269,17 @@ export function TabFournisseurs({ orgId }: Props) {
         <div className="border-2 border-dashed rounded-lg py-16 flex flex-col items-center gap-3 text-muted-foreground">
           <Building2 className="h-10 w-10 opacity-30" />
           <p className="font-medium">Aucun fournisseur enregistré</p>
-          <p className="text-sm">Commencez par ajouter votre premier fournisseur.</p>
-          <Button onClick={openCreate} variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un fournisseur
-          </Button>
+          {isReadOnly ? (
+            <p className="text-sm">Aucune filiale n'a encore saisi de fournisseurs pour cet exercice.</p>
+          ) : (
+            <>
+              <p className="text-sm">Commencez par ajouter votre premier fournisseur.</p>
+              <Button onClick={openCreate} variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter un fournisseur
+              </Button>
+            </>
+          )}
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
@@ -273,14 +292,18 @@ export function TabFournisseurs({ orgId }: Props) {
                 <TableHead className="text-center">Criticité</TableHead>
                 <TableHead className="text-center">Risque</TableHead>
                 <TableHead>Complétude</TableHead>
-                <TableHead className="w-20" />
+                {!isReadOnly && <TableHead className="w-20" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {suppliers.map((s) => {
                 const completion = computeCompletion(s as unknown as Record<string, unknown>);
                 return (
-                  <TableRow key={s.id} className="cursor-pointer hover:bg-slate-50" onClick={() => openEdit(s)}>
+                  <TableRow
+                    key={s.id}
+                    className={isReadOnly ? "hover:bg-slate-50" : "cursor-pointer hover:bg-slate-50"}
+                    onClick={isReadOnly ? undefined : () => openEdit(s)}
+                  >
                     <TableCell className="font-medium">{s.name ?? <span className="text-muted-foreground italic">Sans nom</span>}</TableCell>
                     <TableCell>{s.category ?? <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{s.city ?? <span className="text-muted-foreground">—</span>}</TableCell>
@@ -304,14 +327,16 @@ export function TabFournisseurs({ orgId }: Props) {
                         <span className="text-xs text-muted-foreground w-8">{completion}%</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDeleteId(s.id); }}
-                        className="text-muted-foreground hover:text-destructive p-1"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </TableCell>
+                    {!isReadOnly && (
+                      <TableCell>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteId(s.id); }}
+                          className="text-muted-foreground hover:text-destructive p-1"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}

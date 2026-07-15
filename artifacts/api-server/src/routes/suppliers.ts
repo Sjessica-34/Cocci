@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { scopeToExercise, withExerciseValues } from "../lib/exercise";
-import { getSubsidiaryExercises } from "../lib/consolidation";
+import { getSubsidiaryExercises, getSubsidiaryIds } from "../lib/consolidation";
 
 const router = Router();
 
@@ -69,6 +69,11 @@ router.get("/organizations/:orgId/suppliers", requireAuth, requireOrgMembership,
 
 // POST /organizations/:orgId/suppliers
 router.post("/organizations/:orgId/suppliers", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+  const subIds = await getSubsidiaryIds(req.orgId!);
+  if (subIds.length > 0) {
+    res.status(403).json({ error: "Cette organisation est un groupe. Gérez les données directement au niveau de chaque filiale." });
+    return;
+  }
   const body = req.body as Record<string, unknown>;
   const [row] = await db.insert(suppliersTable).values(
     withExerciseValues(req, {
@@ -117,6 +122,12 @@ router.put("/organizations/:orgId/suppliers/:id", requireAuth, requireOrgMembers
   const id = parseId(req.params.id);
   if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
+  const subIds = await getSubsidiaryIds(req.orgId!);
+  if (subIds.length > 0) {
+    res.status(403).json({ error: "Cette organisation est un groupe. Gérez les données directement au niveau de chaque filiale." });
+    return;
+  }
+
   const body = req.body as Record<string, unknown>;
   const [row] = await db.update(suppliersTable).set({
     name:                  (body.name as string | null | undefined) ?? null,
@@ -152,6 +163,12 @@ router.put("/organizations/:orgId/suppliers/:id", requireAuth, requireOrgMembers
 router.delete("/organizations/:orgId/suppliers/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const subIds = await getSubsidiaryIds(req.orgId!);
+  if (subIds.length > 0) {
+    res.status(403).json({ error: "Cette organisation est un groupe. Gérez les données directement au niveau de chaque filiale." });
+    return;
+  }
 
   await db.delete(suppliersTable).where(scopeToExercise(suppliersTable, req, eq(suppliersTable.id, id)));
   res.status(204).send();

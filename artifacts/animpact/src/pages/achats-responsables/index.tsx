@@ -8,7 +8,7 @@ import { TabFournisseurs } from "./tabs/TabFournisseurs";
 import { TabDashboard } from "./tabs/TabDashboard";
 
 export function AchatsResponsables() {
-  const { effectiveOrgId } = useModuleContext("subsidiary");
+  const { effectiveOrgId, isConsolidated } = useModuleContext("subsidiary");
 
   return (
     <AppLayout>
@@ -36,7 +36,7 @@ export function AchatsResponsables() {
 
           <TabsContent value="fournisseurs">
             {effectiveOrgId ? (
-              <TabFournisseurs orgId={effectiveOrgId} />
+              <TabFournisseurs orgId={effectiveOrgId} isReadOnly={isConsolidated} />
             ) : (
               <p className="text-muted-foreground text-sm">
                 Sélectionnez une organisation pour accéder à vos fournisseurs.
