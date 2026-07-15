@@ -21,7 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Award, Plus, Pencil, Trash2, FileText, ExternalLink, FolderOpen } from "lucide-react";
 import { DocumentUploader } from "@/components/DocumentUploader";
-import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useModuleContext } from "@/hooks/useModuleContext";
+import { GroupModuleBanner } from "@/components/GroupModuleBanner";
 import { CATEGORY_LABELS } from "@/components/DocumentUploader";
 import { cn } from "@/lib/utils";
 
@@ -154,7 +155,7 @@ function LabelCard({ label, index, docs, onEdit, onDelete }: { label: Label; ind
 }
 
 export function MesLabels() {
-  const { currentOrgId } = useCurrentOrganization();
+  const { effectiveOrgId: currentOrgId, showGroupBanner, isReadOnly } = useModuleContext("group");
   const queryClient = useQueryClient();
 
   const { data: labelsData, isLoading } = useListLabels(currentOrgId ?? 0, { query: { enabled: !!currentOrgId, queryKey: getListLabelsQueryKey(currentOrgId ?? 0) } });
@@ -222,6 +223,8 @@ export function MesLabels() {
   return (
     <AppLayout>
       <div className="space-y-6 max-w-4xl">
+        {showGroupBanner && <GroupModuleBanner />}
+        <div inert={isReadOnly || undefined} className={isReadOnly ? "opacity-70" : ""}>
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -291,6 +294,7 @@ export function MesLabels() {
             />
           </div>
         )}
+        </div>{/* end inert */}
       </div>
 
       {/* Add / Edit Sheet */}

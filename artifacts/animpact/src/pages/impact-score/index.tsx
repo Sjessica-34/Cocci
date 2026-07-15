@@ -2,17 +2,19 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Trophy } from "lucide-react";
-import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useModuleContext } from "@/hooks/useModuleContext";
+import { GroupModuleBanner } from "@/components/GroupModuleBanner";
 import { TabDecouvrir } from "./tabs/TabDecouvrir";
 import { TabResultat } from "./tabs/TabResultat";
 
 export function ImpactScore() {
-  const { currentOrgId } = useCurrentOrganization();
+  const { effectiveOrgId, showGroupBanner } = useModuleContext("group");
   const [tab, setTab] = useState<"decouvrir" | "resultat">("decouvrir");
 
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {showGroupBanner && <GroupModuleBanner />}
 
         {/* Header */}
         <div>
@@ -43,8 +45,8 @@ export function ImpactScore() {
           </TabsContent>
 
           <TabsContent value="resultat" className="mt-5">
-            {currentOrgId ? (
-              <TabResultat orgId={currentOrgId} />
+            {effectiveOrgId ? (
+              <TabResultat orgId={effectiveOrgId} />
             ) : (
               <div className="rounded-xl border border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
                 Sélectionnez une organisation pour accéder à votre résultat.

@@ -1,14 +1,2 @@
-- [Clerk multi-tenancy](clerk-multitenant.md) — Replit-managed Clerk ne supporte pas les Organizations Clerk → gérer le multi-tenant en DB.
-- [OpenAPI body naming](openapi-body-naming.md) — Nommer les body schemas avec des noms d'entité (jamais operation-shaped) pour éviter TS2308.
-- [Module order](module-order.md) — Ordre de développement convenu avec le client pour A-NIM-PACT.
-- [Frontend type imports](frontend-type-imports.md) — Importer les types Zod (Stakeholder…) depuis `@workspace/api-client-react`, jamais `@workspace/api-zod` (non installé dans animpact). AppLayout → `@/components/layout`.
-- [Drizzle numeric → string](drizzle-numeric-string.md) — Drizzle `numeric()` columns map to `string` in TypeScript; always call `String(value)` before insert/update, never pass a `number` directly.
-- [Biodiversité module](biodiversite.md) — CRUD deps + issues + IA Anthropic haiku generate, JSON.stringify pour dependencyIds (text column), `?? null` obligatoire sur champs optional du schema Zod généré.
-- [Exercise (fiscal year) scoping](exercise-scoping.md) — X-Exercise-Id header injected app-wide via api-client-react getter; pages need zero per-page changes; must invalidateQueries() on switch since exercise isn't in query keys.
-- [Drizzle push interactive prompt false positive](drizzle-push-quirk.md) — `drizzle-kit push` can hang on a phantom truncate-confirmation for an unrelated table even in a plain non-TTY shell; apply the real diff manually via psql instead of forcing through it.
-- [Router auth leak](router-mounting-auth-leak.md) — an unscoped `router.use(requireAuth,...)` in one sub-router can 401 every route in the API, including public ones mounted later; scope it to its path prefix.
-- [Employment module conventions](employment-module-conventions.md) — readOnly/exercise-closed pattern, guided formula-KPI builder approach, and query-key gotcha for generated hooks.
-- [OpenAPI spec edit pattern](openapi-append-pattern.md) — insert paths BEFORE `components:` and schemas INSIDE components/schemas; never raw-append to EOF (breaks YAML nesting).
-- [Orval mutation hook shapes](orval-hook-shapes.md) — generated mutations take flat `{ orgId, actionId?, data }`, NOT `{ params: {...}, data }`.
-- [1-compte-1-org model](one-account-one-org.md) — rootOrg = org sans parentId; filiales = orgs où parentId === rootOrg.id; WorkspaceGuard redirige vers /onboarding si aucune org.
-- [Module scope architecture](module-scope-architecture.md) — registre central + useModuleContext pour piloter groupe/filiale sans toucher nav/router. Inert HTML5 pour read-only générique.
+- [inert-boolean-attr](inert-boolean-attr.md) — React exige boolean pour `inert`, jamais string vide ; utiliser `inert={isReadOnly || undefined}`
+- [exercise-subsidiary-pattern](exercise-subsidiary-pattern.md) — Les exercices n'existent que sur la root org ; les filiales héritent via fallback serveur dans resolveExercise

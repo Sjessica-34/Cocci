@@ -1,8 +1,18 @@
 import { eq, and, desc, type SQL } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { Request, Response } from "express";
-import { db, exercisesTable } from "@workspace/db";
+import { db, exercisesTable, organizationsTable } from "@workspace/db";
 import type { Exercise } from "@workspace/db";
+
+/** Returns the parentId of an org, or null if it is a root org. */
+async function getParentOrgId(orgId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ parentId: organizationsTable.parentId })
+    .from(organizationsTable)
+    .where(eq(organizationsTable.id, orgId))
+    .limit(1);
+  return row?.parentId ?? null;
+}
 
 /**
  * Resolves the active exercise for a given organization + request.
@@ -10,6 +20,10 @@ import type { Exercise } from "@workspace/db";
  * The frontend transmits the active exercise via the `X-Exercise-Id` header.
  * When absent (or invalid), falls back to the most recent exercise for the
  * organization so legacy/non-migrated clients keep working.
+ *
+ * Subsidiary orgs inherit the parent org's exercise: when no exercise is found
+ * for `orgId` (or the header exercise doesn't match), the parent org is tried.
+ * This allows subsidiary-scoped modules to work with the group's exercise.
  *
  * This is the single source of truth for exercise resolution — route
  * handlers should never read organizationId-only data without also scoping
@@ -25,16 +39,42 @@ export async function resolveExercise(orgId: number, req: Request): Promise<Exer
       .from(exercisesTable)
       .where(and(eq(exercisesTable.id, exId), eq(exercisesTable.organizationId, orgId)))
       .limit(1);
-    return ex ?? null;
+    if (ex) return ex;
+    // Header exercise doesn't belong to orgId — try parent org (subsidiary inherits group's exercise)
+    const parentId = await getParentOrgId(orgId);
+    if (parentId) {
+      const [parentEx] = await db
+        .select()
+        .from(exercisesTable)
+        .where(and(eq(exercisesTable.id, exId), eq(exercisesTable.organizationId, parentId)))
+        .limit(1);
+      if (parentEx) return parentEx;
+    }
+    return null;
   }
 
+  // No header: find latest exercise for orgId
   const [ex] = await db
     .select()
     .from(exercisesTable)
     .where(eq(exercisesTable.organizationId, orgId))
     .orderBy(desc(exercisesTable.year))
     .limit(1);
-  return ex ?? null;
+  if (ex) return ex;
+
+  // No exercise for orgId — try parent org (subsidiary inherits group's exercise)
+  const parentId = await getParentOrgId(orgId);
+  if (parentId) {
+    const [parentEx] = await db
+      .select()
+      .from(exercisesTable)
+      .where(eq(exercisesTable.organizationId, parentId))
+      .orderBy(desc(exercisesTable.year))
+      .limit(1);
+    return parentEx ?? null;
+  }
+
+  return null;
 }
 
 /** An exercise is writable only while its status is "active" ("En cours"). */

@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { useListExercises } from "@workspace/api-client-react";
+import { useListExercises, useListOrganizations } from "@workspace/api-client-react";
 import {
   LayoutDashboard,
   Settings,
@@ -99,14 +99,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useClerk();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   const { currentOrgId } = useCurrentOrganization();
+  const { data: allOrgs = [] } = useListOrganizations();
+  const rootOrg = allOrgs.find((o) => !o.parentId) ?? null;
+  // Exercise selector always shows the root org's exercises so subsidiaries
+  // (which have no exercises of their own) can still see and select an exercise.
+  const exerciseOrgId = rootOrg?.id ?? currentOrgId;
 
   const isAdminRoute = location.startsWith("/admin");
   const isOnboardingRoute = location.startsWith("/onboarding");
-  const showExerciseUi = !isAdminRoute && !isOnboardingRoute && currentOrgId != null;
+  const showExerciseUi = !isAdminRoute && !isOnboardingRoute && exerciseOrgId != null;
 
   const { currentExerciseId } = useCurrentExercise();
-  const { data: exercises } = useListExercises(currentOrgId ?? 0, {
-    query: { queryKey: ["/api/organizations", currentOrgId, "exercises"], enabled: showExerciseUi },
+  const { data: exercises } = useListExercises(exerciseOrgId ?? 0, {
+    query: { queryKey: ["/api/organizations", exerciseOrgId, "exercises"], enabled: showExerciseUi },
   });
   const currentExercise = exercises?.find((e) => e.id === currentExerciseId);
   // When the active exercise is closed, the whole workspace becomes
@@ -137,9 +142,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
         )}
 
         {/* Sélecteur d'exercice */}
-        {showExerciseUi && currentOrgId && (
+        {showExerciseUi && exerciseOrgId && (
           <div className="mb-2">
-            <ExerciseSelector orgId={currentOrgId} />
+            <ExerciseSelector orgId={exerciseOrgId} />
             <div className="my-2.5 h-px bg-sidebar-border/40 mx-1" />
           </div>
         )}

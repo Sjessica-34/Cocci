@@ -24,7 +24,7 @@ function computeCaptationKg(body: Record<string, unknown>): string | null {
   if (mode === "estimation") {
     const trees = Number(body.treeCount);
     if (isNaN(trees) || !trees) return null;
-    const ARNAUD_DE_GRAVE_KG_PER_TREE = 10;
+    const ARNAUD_DE_GRAVE_KG_PER_TREE = 25;
     return String(trees * ARNAUD_DE_GRAVE_KG_PER_TREE);
   }
   return null;

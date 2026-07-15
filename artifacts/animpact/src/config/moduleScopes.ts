@@ -20,10 +20,14 @@ export const MODULE_SCOPES = {
   "numerique-responsable": "group",
   "administration":        "group",   // Paramètres, membres, filiales
   "captation-carbone":     "group",
+  "impact-score":          "group",
+  "mes-labels":            "group",
 
   // ── Modules Filiale ─────────────────────────────────────────────────────────
   "bilan-carbone":         "subsidiary",
   "barometre-social":      "subsidiary",
   "capital-humain":        "subsidiary",
   "achats-responsables":   "subsidiary",
+  "diagnostic":            "subsidiary",
+  "mes-actions":           "subsidiary",
 } satisfies Record<string, ModuleScope>;

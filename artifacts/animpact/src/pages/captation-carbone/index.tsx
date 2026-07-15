@@ -28,7 +28,7 @@ import {
 
 // ─── Méthode Arnaud De Grave ─────────────────────────────────────────────────
 // Facteur centralisé — modifier ici uniquement pour mettre à jour le calcul.
-const ARNAUD_DE_GRAVE_KG_PER_TREE = 10;
+const ARNAUD_DE_GRAVE_KG_PER_TREE = 25;
 
 // ─── Architecture multi-méthodes (extensible sans modifier le composant) ──────
 interface EstimationMethod {

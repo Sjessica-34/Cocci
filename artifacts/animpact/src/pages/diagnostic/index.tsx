@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout";
-import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useModuleContext } from "@/hooks/useModuleContext";
+import { ConsolidatedPlaceholder } from "@/components/ConsolidatedPlaceholder";
 import {
   useGetDiagnosticScores,
   getGetDiagnosticScoresQueryKey,
@@ -228,12 +229,12 @@ type DiagnosticTab = "tableau-de-bord" | "documents-cles";
 // ── Page principale ────────────────────────────────────────────────────────
 export function DiagnosticRse() {
   const [, navigate] = useLocation();
-  const { currentOrgId } = useCurrentOrganization();
+  const { effectiveOrgId, isConsolidated } = useModuleContext("subsidiary");
   const [activeTab, setActiveTab] = useState<DiagnosticTab>("tableau-de-bord");
 
-  const orgId = currentOrgId ?? 0;
+  const orgId = effectiveOrgId ?? 0;
   const { data: scores, isLoading, error } = useGetDiagnosticScores(orgId, {
-    query: { enabled: !!currentOrgId, queryKey: getGetDiagnosticScoresQueryKey(orgId) },
+    query: { enabled: !!effectiveOrgId && !isConsolidated, queryKey: getGetDiagnosticScoresQueryKey(orgId) },
   });
 
   const totalQuestions  = scores ? scores.reduce((a, s) => a + s.totalQuestions, 0) : 0;
@@ -286,20 +287,23 @@ export function DiagnosticRse() {
           </button>
         </div>
 
+        {/* Vue consolidée (groupe avec filiales) */}
+        {isConsolidated && <ConsolidatedPlaceholder moduleName="Diagnostic RSE" />}
+
         {/* Onglet Documents clés */}
-        {activeTab === "documents-cles" && currentOrgId && (
-          <TabDocumentsCles orgId={currentOrgId} />
+        {!isConsolidated && activeTab === "documents-cles" && effectiveOrgId && (
+          <TabDocumentsCles orgId={effectiveOrgId} />
         )}
 
-        {activeTab === "documents-cles" && !currentOrgId && (
+        {!isConsolidated && activeTab === "documents-cles" && !effectiveOrgId && (
           <div className="rounded-xl border border-border bg-muted/20 p-10 text-center text-sm text-muted-foreground">
             Sélectionnez une organisation pour accéder aux documents clés.
           </div>
         )}
 
         {/* Onglet Tableau de bord */}
-        {activeTab === "tableau-de-bord" && (
-          !currentOrgId ? (
+        {!isConsolidated && activeTab === "tableau-de-bord" && (
+          !effectiveOrgId ? (
             <div className="rounded-xl border border-border bg-muted/20 p-10 text-center text-sm text-muted-foreground">
               Sélectionnez une organisation pour accéder au diagnostic.
             </div>
