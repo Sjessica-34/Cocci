@@ -1,0 +1,221 @@
+Repenser entièrement la gestion des entreprises et des groupes.
+
+L'objectif est le suivant :
+
+➡️ 1 compte = 1 entreprise OU 1 groupe.
+
+Je ne souhaite plus gérer plusieurs entreprises indépendantes depuis un même compte.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRÉATION DU COMPTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Lors de la création du compte, demander :
+
+Nom
+
+Type
+
+○ Entreprise
+
+○ Groupe
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CAS 1 : ENTREPRISE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si l'utilisateur choisit "Entreprise" :
+
+L'entreprise fonctionne comme aujourd'hui.
+
+Tous les modules sont renseignés directement :
+
+• Diagnostic RSE
+• Impact Score
+• Bilan carbone
+• Rapport RSE
+• Plan d'action
+• etc.
+
+Il n'existe aucun menu de changement d'entreprise.
+
+Supprimer complètement la notion d'Entité.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CAS 2 : GROUPE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si l'utilisateur choisit "Groupe" :
+
+Ne pas ouvrir directement le tableau de bord.
+
+Afficher un assistant de création.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ÉTAPE 1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Afficher :
+
+"Votre groupe est vide.
+
+Commençons par créer vos filiales."
+
+Bouton :
+
+➕ Ajouter une filiale
+
+L'utilisateur peut créer autant de filiales qu'il le souhaite.
+
+Chaque filiale possède ensuite ses propres données :
+
+• Diagnostic RSE
+• Impact Score
+• Bilan carbone
+• Plan d'action
+• Rapport RSE
+• Documents
+• etc.
+
+Lorsque toutes les filiales sont créées :
+
+Bouton :
+
+Continuer
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MENU LATÉRAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Supprimer totalement :
+
+• Changer d'entité
+• Nouvelle entité
+
+À la place, afficher uniquement :
+
+▼ Groupe Martin
+
+En cliquant dessus :
+
+📊 Vue Groupe
+
+──────────────
+
+🏭 Martin Industrie
+
+🚛 Martin Transport
+
+⚡ Martin Énergie
+
+➕ Ajouter une filiale
+
+Le premier élément correspond toujours à la vue consolidée du groupe.
+
+Les autres correspondent aux filiales.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TABLEAU DE BORD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Lorsque l'utilisateur sélectionne :
+
+📊 Vue Groupe
+
+Afficher les résultats consolidés.
+
+Lorsque l'utilisateur sélectionne une filiale,
+
+Afficher uniquement les données de cette filiale.
+
+Le changement de vue doit automatiquement mettre à jour :
+
+• Tableau de bord
+• Diagnostic RSE
+• Impact Score
+• Rapport RSE
+• Plan d'action
+• Modules
+• Bilan carbone
+• etc.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXERCICE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le sélecteur d'exercice doit rester visible juste sous le nom du groupe ou de l'entreprise.
+
+Exemple :
+
+▼ Groupe Martin
+
+▼ Exercice 2026
+
+Ces deux sélecteurs doivent toujours rester visibles dans le menu latéral.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TRANSFORMATION D'UNE ENTREPRISE EN GROUPE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dans les paramètres de l'entreprise, ajouter un bouton :
+
+Transformer cette entreprise en groupe
+
+Lors du clic, afficher :
+
+"Votre entreprise va devenir un groupe.
+
+Vos données actuelles seront conservées.
+
+Vous pourrez ensuite créer une ou plusieurs filiales."
+
+Bouton :
+
+Continuer
+
+Puis ouvrir directement l'assistant de création des filiales.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODE DE CALCUL DU GROUPE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dès que la première filiale est créée, afficher automatiquement :
+
+"Votre groupe possède désormais des filiales.
+
+Comment souhaitez-vous calculer les résultats du groupe ?"
+
+○ Je renseigne les résultats du groupe manuellement.
+
+○ Les résultats du groupe sont calculés automatiquement à partir des filiales.
+
+Si l'utilisateur choisit :
+
+"Je renseigne les résultats du groupe manuellement"
+
+Le groupe fonctionne comme une entreprise indépendante.
+
+Si l'utilisateur choisit :
+
+"Les résultats du groupe sont calculés automatiquement à partir des filiales"
+
+Le groupe devient une vue consolidée.
+
+Les résultats sont calculés automatiquement à partir des données de toutes les filiales.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le terme "Entité" ne doit plus apparaître dans l'application.
+
+Le terme "Organisation" ne doit plus être utilisé.
+
+Les seuls termes visibles par l'utilisateur sont :
+
+• Entreprise
+• Groupe
+• Filiale
+• Vue Groupe
+
+L'expérience utilisateur doit être pensée pour être simple et compréhensible, sans vocabulaire technique.
