@@ -179,6 +179,34 @@ const nodeTypes: NodeTypes = {
   separator:  SeparatorNodeComp as NodeTypes[string],
 };
 
+// ─── Nœuds de fond partagés (zone AMONT / IN SITU / AVAL) ────────────────────
+// Module-level : mêmes nœuds réutilisés dans IndividualCarto et GroupCarto.
+// Ils font partie du canvas ReactFlow → zooment et panent avec les éléments.
+
+const ZONE_H       = 5000;  // hauteur large (couvre tout pan vertical)
+const ZONE_Y_START = -100;  // commence au-dessus de l'origine
+
+const ZONE_NODES: Node[] = [
+  {
+    id: "bg-amont", type: "zonePanel",
+    position: { x: 0, y: ZONE_Y_START },
+    data: { label: "Amont", bgColor: "#EFF6FF", borderColor: "#BFDBFE", textColor: "#1D4ED8", height: ZONE_H } satisfies ZonePanelData,
+    zIndex: -10, selectable: false, draggable: false, connectable: false,
+  },
+  {
+    id: "bg-insitu", type: "zonePanel",
+    position: { x: CANVAS_ZONE_W, y: ZONE_Y_START },
+    data: { label: "In situ", bgColor: "#ECFDF5", borderColor: "#A7F3D0", textColor: "#065F46", height: ZONE_H } satisfies ZonePanelData,
+    zIndex: -10, selectable: false, draggable: false, connectable: false,
+  },
+  {
+    id: "bg-aval", type: "zonePanel",
+    position: { x: CANVAS_ZONE_W * 2, y: ZONE_Y_START },
+    data: { label: "Aval", bgColor: "#F5F3FF", borderColor: "#DDD6FE", textColor: "#6D28D9", height: ZONE_H } satisfies ZonePanelData,
+    zIndex: -10, selectable: false, draggable: false, connectable: false,
+  },
+];
+
 // ─── Edge helper ──────────────────────────────────────────────────────────────
 
 function connToEdge(conn: BioConnection): Edge {
@@ -234,7 +262,15 @@ function findChainElement(
   return agence?.id ?? null;
 }
 
+// GroupCarto : même structure qu'IndividualCarto, source de données = toutes filiales.
+// Drag & drop → sauvegarde la position dans la DB de l'org correspondante.
+
 function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
+  const [nodes, setNodes, onNodesChange] = useNodesState<BioNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  const nodePositions = useRef(new Map<string, { x: number; y: number }>());
+
   // Ordonnancement : Maison mère au milieu
   const ordered = useMemo<Organization[]>(() => {
     const mmIdx = subsidiaries.findIndex(isMaisonMere);
@@ -265,49 +301,15 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
 
   const isLoading = depsResults.some(q => q.isLoading) || connResults.some(q => q.isLoading);
 
-  const { nodes, edges } = useMemo(() => {
-    const allNodes: Node[] = [];
-    const allEdges: Edge[] = [];
+  const updatePos = useUpdateBioDependency();
 
-    const totalH    = ordered.length * SECTION_H + CANVAS_PAD * 2;
-    const totalW    = CANVAS_ZONE_W * 3;
-    const startY    = -CANVAS_PAD;
+  // Sync données → nœuds RF (mêmes nœuds de fond ZONE_NODES qu'IndividualCarto)
+  useEffect(() => {
+    if (isLoading) return;
 
-    // ── Panneaux de zone (fond, zIndex négatif) ────────────────────────────
-    const zones = [
-      { id: "zone-amont",   x: 0,               label: "Amont",   bgColor: "#EFF6FF", borderColor: "#BFDBFE", textColor: "#1D4ED8" },
-      { id: "zone-insitu",  x: CANVAS_ZONE_W,    label: "In situ", bgColor: "#ECFDF5", borderColor: "#A7F3D0", textColor: "#065F46" },
-      { id: "zone-aval",    x: CANVAS_ZONE_W * 2, label: "Aval",   bgColor: "#F5F3FF", borderColor: "#DDD6FE", textColor: "#6D28D9" },
-    ];
-    zones.forEach(z => {
-      allNodes.push({
-        id:       z.id,
-        type:     "zonePanel",
-        position: { x: z.x, y: startY },
-        data:     { label: z.label, bgColor: z.bgColor, borderColor: z.borderColor, textColor: z.textColor, height: totalH } satisfies ZonePanelData,
-        zIndex:   -10,
-        selectable:  false,
-        draggable:   false,
-        connectable: false,
-      });
-    });
-
-    // ── Séparateurs entre filiales ─────────────────────────────────────────
-    for (let i = 1; i < ordered.length; i++) {
-      allNodes.push({
-        id:       `sep-${i}`,
-        type:     "separator",
-        position: { x: 0, y: i * SECTION_H - 12 },
-        data:     { totalWidth: totalW } satisfies SeparatorData,
-        zIndex:   -5,
-        selectable:  false,
-        draggable:   false,
-        connectable: false,
-      });
-    }
-
-    // ── Éléments et connexions par filiale ─────────────────────────────────
-    const chainNodeIds: string[] = []; // pour la liaison automatique
+    const allNodes: BioNode[] = [];
+    const allEdges: Edge[]    = [];
+    const chainNodeIds: string[] = [];
 
     ordered.forEach((org, orgIdx) => {
       const yOffset  = orgIdx * SECTION_H;
@@ -315,36 +317,42 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
       const conns    = connResults[orgIdx]?.data?.items ?? [];
       const isMM     = isMaisonMere(org);
 
-      // Nœuds des éléments (positions sauvegardées + offset vertical)
+      // Nœuds des éléments (positions sauvegardées dans nodePositions ou DB, + offset)
       const zoneCounts: Record<string, number> = {};
-      elements.forEach((el) => {
-        const zone = el.chainPosition ?? "amont";
-        let pos: { x: number; y: number };
-        if (el.x != null && el.y != null) {
-          pos = { x: el.x, y: el.y + yOffset };
-        } else {
-          const idx = (zoneCounts[zone] = (zoneCounts[zone] ?? -1) + 1);
-          const def  = defaultElementPosition(zone, idx);
-          pos = { x: def.x, y: def.y + yOffset };
-        }
+      elements.forEach(el => {
+        const nodeId = `${org.id}-${el.id}`;
+        const zone   = el.chainPosition ?? "amont";
+        const zIdx   = zoneCounts[zone] ?? 0;
+        zoneCounts[zone] = zIdx + 1;
+        const def = defaultElementPosition(zone, zIdx);
+
+        const saved = nodePositions.current.get(nodeId);
+        const pos   = saved ?? (
+          el.x != null && el.y != null
+            ? { x: el.x, y: el.y + yOffset }
+            : { x: def.x, y: def.y + yOffset }
+        );
+
         allNodes.push({
-          id:       `${org.id}-${el.id}`,
-          type:     "bioElement",
+          id:       nodeId,
+          type:     "bioElement" as const,
           position: pos,
           data: {
             name:        el.name        ?? null,
             category:    el.category    ?? null,
             subCategory: el.subCategory ?? null,
-          } satisfies BioNodeData,
-          zIndex:      0,
-          draggable:   false,
-          selectable:  false,
-          connectable: false,
+          },
         });
+
+        // Représentant pour la chaîne automatique
+        const chainElId = findChainElement(elements, isMM);
+        if (chainElId !== null && !chainNodeIds.includes(`${org.id}-${chainElId}`)) {
+          chainNodeIds.push(`${org.id}-${chainElId}`);
+        }
       });
 
       // Connexions intra-filiale
-      conns.forEach((conn) => {
+      conns.forEach(conn => {
         allEdges.push({
           id:     `${org.id}-conn-${conn.id}`,
           source: `${org.id}-${conn.fromElementId}`,
@@ -359,15 +367,9 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
           style:      { stroke: "#94a3b8", strokeWidth: 1.5 },
         });
       });
-
-      // Collecte du nœud représentant pour la chaîne automatique
-      const chainElId = findChainElement(elements, isMM);
-      if (chainElId !== null) {
-        chainNodeIds.push(`${org.id}-${chainElId}`);
-      }
     });
 
-    // ── Liaisons automatiques (chaîne verticale agences ↔ siège social) ───
+    // Liaisons automatiques (chaîne siège social ↔ agences)
     for (let i = 0; i < chainNodeIds.length - 1; i++) {
       allEdges.push({
         id:        `auto-chain-${i}`,
@@ -379,11 +381,25 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
       });
     }
 
-    return { nodes: allNodes, edges: allEdges };
-  }, [ordered, depsResults, connResults]);
+    setNodes([...ZONE_NODES, ...allNodes] as BioNode[]);
+    setEdges(allEdges);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depsResults, connResults, isLoading]);
+
+  // Drag → sauvegarde position dans la DB de l'org correspondante
+  const onNodeDragStop = useCallback((_: MouseEvent | TouchEvent, node: Node) => {
+    // IDs zone panels (bg-*) et separateurs → ignorés
+    if (!node.id.match(/^\d+-\d+$/)) return;
+    const [rawOrgId, rawElId] = node.id.split("-");
+    const orgId = Number(rawOrgId);
+    const elId  = Number(rawElId);
+    if (isNaN(orgId) || isNaN(elId)) return;
+    nodePositions.current.set(node.id, node.position);
+    updatePos.mutate({ orgId, id: elId, data: { x: node.position.x, y: node.position.y } });
+  }, [updatePos]);
 
   if (isLoading) {
-    return <Skeleton className="h-[700px] w-full rounded-xl" />;
+    return <Skeleton className="h-[620px] w-full rounded-xl" />;
   }
 
   const totalElements = nodes.filter(n => n.type === "bioElement").length;
@@ -395,27 +411,29 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
         <p className="text-sm text-muted-foreground">
           {totalElements} élément{totalElements !== 1 ? "s" : ""}
           &ensp;·&ensp;{subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""}
-          {autoChains > 0 && <span> &ensp;·&ensp; {autoChains} liaison{autoChains !== 1 ? "s" : ""} automatique{autoChains !== 1 ? "s" : ""}</span>}
+          {autoChains > 0 && (
+            <span> &ensp;·&ensp; {autoChains} liaison{autoChains !== 1 ? "s" : ""} automatique{autoChains !== 1 ? "s" : ""}</span>
+          )}
         </p>
         <span className="text-xs text-muted-foreground bg-slate-100 border rounded px-2 py-1">
-          Lecture seule — modifiez depuis chaque filiale
+          Vue groupe — déplacez les éléments pour réorganiser
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: 700 }}>
+      <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: 620 }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ padding: 0.08 }}
-          minZoom={0.06}
+          fitViewOptions={{ padding: 0.15 }}
+          minZoom={0.08}
           maxZoom={2.5}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
         >
-          <Background gap={24} size={1} color="#cbd5e1" />
+          <Background gap={20} size={1} color="#cbd5e1" />
           <Controls position="bottom-left" />
           <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
         </ReactFlow>
@@ -460,7 +478,7 @@ function IndividualCarto({ orgId }: { orgId: number }) {
   const createConn = useCreateBioConnection();
   const deleteConn = useDeleteBioConnection();
 
-  // Sync elements → nœuds RF
+  // Sync elements → nœuds RF (zone-panels toujours en tête pour rester en fond)
   useEffect(() => {
     if (!depsData) return;
     const zoneCounts: Record<string, number> = {};
@@ -480,7 +498,7 @@ function IndividualCarto({ orgId }: { orgId: number }) {
         },
       };
     });
-    setNodes(newNodes);
+    setNodes([...ZONE_NODES, ...newNodes] as BioNode[]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsData]);
 
@@ -491,11 +509,13 @@ function IndividualCarto({ orgId }: { orgId: number }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connData]);
 
-  // Sauvegarde position (fire-and-forget)
+  // Sauvegarde position (fire-and-forget) — ignore les nœuds de fond
   const onNodeDragStop = useCallback(
     (_: MouseEvent | TouchEvent, node: Node) => {
-      nodePositions.current.set(Number(node.id), { x: node.position.x, y: node.position.y });
-      updatePos.mutate({ orgId, id: Number(node.id), data: { x: node.position.x, y: node.position.y } });
+      const id = Number(node.id);
+      if (isNaN(id)) return; // zone-panel nodes ont des IDs non-numériques
+      nodePositions.current.set(id, { x: node.position.x, y: node.position.y });
+      updatePos.mutate({ orgId, id, data: { x: node.position.x, y: node.position.y } });
     },
     [orgId, updatePos],
   );
@@ -575,48 +595,29 @@ function IndividualCarto({ orgId }: { orgId: number }) {
         </Button>
       </div>
 
-      {/* Canvas */}
+      {/* Canvas — fond AMONT/IN SITU/AVAL intégré comme nœuds ReactFlow */}
       {isLoading ? (
         <Skeleton className="h-[620px] w-full rounded-xl" />
       ) : (
-        <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 620 }}>
-          {/* En-têtes de zone */}
-          <div className="grid grid-cols-3 border-b shrink-0">
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">
-              Amont
-            </div>
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">
-              In situ
-            </div>
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">
-              Aval
-            </div>
-          </div>
-          {/* ReactFlow */}
-          <div style={{ flex: 1 }}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onNodeDragStop={onNodeDragStop}
-              onConnect={onConnect}
-              onEdgeClick={onEdgeClick}
-              nodeTypes={nodeTypes}
-              fitView
-              fitViewOptions={{ padding: 0.15 }}
-              minZoom={0.25}
-              maxZoom={2.5}
-              style={{
-                background:
-                  "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
-              }}
-            >
-              <Background gap={20} size={1} color="#cbd5e1" />
-              <Controls position="bottom-left" />
-              <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
-            </ReactFlow>
-          </div>
+        <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: 620 }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeDragStop={onNodeDragStop}
+            onConnect={onConnect}
+            onEdgeClick={onEdgeClick}
+            nodeTypes={nodeTypes}
+            fitView
+            fitViewOptions={{ padding: 0.15 }}
+            minZoom={0.25}
+            maxZoom={2.5}
+          >
+            <Background gap={20} size={1} color="#cbd5e1" />
+            <Controls position="bottom-left" />
+            <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
+          </ReactFlow>
         </div>
       )}
 
