@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useModuleContext } from "@/hooks/useModuleContext";
+import { useListOrganizations } from "@workspace/api-client-react";
 
 import { BookOpen, Building2, BarChart3 } from "lucide-react";
 import { TabDecouvrir } from "./tabs/TabDecouvrir";
@@ -8,7 +9,15 @@ import { TabFournisseurs } from "./tabs/TabFournisseurs";
 import { TabDashboard } from "./tabs/TabDashboard";
 
 export function AchatsResponsables() {
-  const { effectiveOrgId, isConsolidated } = useModuleContext("subsidiary");
+  const { effectiveOrgId, isConsolidated, rootOrgId } = useModuleContext("subsidiary");
+  const { data: orgs = [] } = useListOrganizations();
+
+  // Map orgId → nom de la filiale, utilisé pour la colonne "Filiale" dans la vue groupe
+  const subsidiaryNames: Record<number, string> = Object.fromEntries(
+    orgs
+      .filter((o) => rootOrgId !== null && o.parentId === rootOrgId)
+      .map((o) => [o.id, o.name]),
+  );
 
   return (
     <AppLayout>
@@ -36,7 +45,11 @@ export function AchatsResponsables() {
 
           <TabsContent value="fournisseurs">
             {effectiveOrgId ? (
-              <TabFournisseurs orgId={effectiveOrgId} isReadOnly={isConsolidated} />
+              <TabFournisseurs
+                orgId={effectiveOrgId}
+                isReadOnly={isConsolidated}
+                subsidiaryNames={isConsolidated ? subsidiaryNames : undefined}
+              />
             ) : (
               <p className="text-muted-foreground text-sm">
                 Sélectionnez une organisation pour accéder à vos fournisseurs.

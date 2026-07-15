@@ -46,6 +46,8 @@ import { SUPPLIER_CATEGORIES, computeCompletion, getDeptFromPostalCode, getRegio
 interface Props {
   orgId: number;
   isReadOnly?: boolean;
+  /** Map orgId → nom filiale, passé uniquement en vue groupe consolidée. */
+  subsidiaryNames?: Record<number, string>;
 }
 
 type FormData = Omit<SupplierInput, never>;
@@ -149,7 +151,8 @@ function InputField({
   );
 }
 
-export function TabFournisseurs({ orgId, isReadOnly = false }: Props) {
+export function TabFournisseurs({ orgId, isReadOnly = false, subsidiaryNames }: Props) {
+  const showFiliale = isReadOnly && subsidiaryNames && Object.keys(subsidiaryNames).length > 0;
   const queryClient = useQueryClient();
   const { data, isLoading } = useListSuppliers(orgId);
   const createMutation  = useCreateSupplier();
@@ -288,6 +291,7 @@ export function TabFournisseurs({ orgId, isReadOnly = false }: Props) {
               <TableRow className="bg-slate-50">
                 <TableHead>Nom</TableHead>
                 <TableHead>Catégorie</TableHead>
+                {showFiliale && <TableHead>Filiale</TableHead>}
                 <TableHead>Ville</TableHead>
                 <TableHead className="text-center">Criticité</TableHead>
                 <TableHead className="text-center">Risque</TableHead>
@@ -306,6 +310,14 @@ export function TabFournisseurs({ orgId, isReadOnly = false }: Props) {
                   >
                     <TableCell className="font-medium">{s.name ?? <span className="text-muted-foreground italic">Sans nom</span>}</TableCell>
                     <TableCell>{s.category ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                    {showFiliale && (
+                      <TableCell>
+                        {subsidiaryNames?.[s.organizationId]
+                          ? <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">{subsidiaryNames[s.organizationId]}</span>
+                          : <span className="text-muted-foreground">—</span>
+                        }
+                      </TableCell>
+                    )}
                     <TableCell>{s.city ?? <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell className="text-center">
                       {s.criticality ? (
