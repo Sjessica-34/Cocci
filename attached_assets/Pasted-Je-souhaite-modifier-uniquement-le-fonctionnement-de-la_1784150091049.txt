@@ -1,0 +1,64 @@
+Je souhaite modifier uniquement le fonctionnement de la vue Groupe du module **Dépendances à la biodiversité**.
+
+⚠️ Je ne souhaite pas créer une nouvelle cartographie Groupe.
+
+Je ne souhaite pas fusionner les cartographies.
+
+Je ne souhaite pas recalculer ou reconstruire les cartographies.
+
+Je souhaite simplement afficher, sur un même canvas, les cartographies existantes de la Maison mère et de toutes les filiales.
+
+Le principe est le suivant :
+
+- La Maison mère / Siège social possède sa propre cartographie.
+- Chaque filiale possède également sa propre cartographie.
+- Chaque cartographie est créée indépendamment par l'utilisateur.
+
+En vue Groupe, je souhaite uniquement afficher simultanément toutes ces cartographies.
+
+La cartographie de la **Maison mère / Siège social** doit toujours être placée au centre.
+
+Les cartographies des filiales doivent être réparties automatiquement autour de celle-ci afin de conserver une bonne lisibilité.
+
+L'objectif est d'avoir autant de cartographies au-dessus qu'en dessous de la Maison mère lorsque cela est possible.
+
+Exemple :
+
+Filiale A
+Filiale B
+Filiale C
+
+══════════════════════
+
+Maison mère / Siège social
+
+══════════════════════
+
+Filiale D
+Filiale E
+Filiale F
+
+Chaque cartographie doit être copiée telle qu'elle existe dans la filiale.
+
+Je souhaite conserver intégralement :
+
+- tous les éléments ;
+- leurs positions ;
+- leurs connexions ;
+- leur disposition.
+
+Aucune cartographie ne doit être reconstruite.
+
+Aucun élément ne doit être déplacé.
+
+Aucune connexion interne ne doit être modifiée.
+
+Je souhaite simplement juxtaposer plusieurs cartographies sur un même canvas.
+
+Les seules connexions ajoutées automatiquement sont les connexions entre la Maison mère / Siège social et le point central de chaque cartographie de filiale afin de représenter l'appartenance au groupe.
+
+Toutes les autres connexions restent exclusivement celles créées manuellement par l'utilisateur.
+
+Prévoir un espacement automatique entre les cartographies afin qu'elles ne puissent jamais se chevaucher, quelle que soit leur taille.
+
+Le résultat attendu est une vue Groupe composée de plusieurs cartographies indépendantes affichées simultanément, avec la Maison mère / Siège social au centre, et non une cartographie fusionnée ou recalculée.
