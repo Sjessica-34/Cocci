@@ -1,0 +1,108 @@
+Corriger le fonctionnement de la cartographie Groupe.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. PROBLÈME DE ZOOM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Lorsque l'utilisateur zoome ou dézoome, les colonnes de fond (AMONT / IN SITU / AVAL) restent fixes alors que les éléments React Flow se déplacent.
+
+Le fond, les séparateurs et les zones colorées doivent faire partie du même canvas que les nœuds.
+
+Le zoom et le déplacement doivent donc agir simultanément sur :
+
+• les éléments
+• les connexions
+• les colonnes AMONT
+• la colonne IN SITU
+• la colonne AVAL
+• les séparateurs
+
+L'ensemble doit rester parfaitement aligné à tous les niveaux de zoom.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. SUPPRIMER LES ÉTIQUETTES DES FILIALES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Supprimer complètement les encarts :
+
+"Martin Industrie"
+
+"Martin Transport"
+
+etc.
+
+Ils alourdissent énormément la lecture.
+
+Les cartographies doivent être différenciées uniquement par leur position verticale.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. LIAISON AUTOMATIQUE DES AGENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Créer automatiquement une liaison verticale entre :
+
+Maison mère / Siège social
+
+↓
+
+Toutes les agences des filiales.
+
+Exemple :
+
+Agence Montpellier
+
+│
+
+Agence Lyon
+
+│
+
+Siège social
+
+│
+
+Agence Marseille
+
+│
+
+Agence Toulouse
+
+Cette liaison est uniquement structurelle.
+
+Toutes les autres connexions restent créées manuellement par l'utilisateur.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. CONSERVER LES CARTOGRAPHIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ne jamais recalculer les positions des éléments.
+
+Chaque filiale conserve exactement sa cartographie.
+
+La Vue Groupe juxtapose simplement les cartographies.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. IMPORTANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ne pas modifier :
+
+• les couleurs AMONT / IN SITU / AVAL
+
+• les positions des cartes
+
+• les connexions existantes
+
+Je souhaite uniquement corriger :
+
+✓ le problème de zoom
+
+✓ supprimer les étiquettes des filiales
+
+✓ relier automatiquement toutes les agences au Siège social de la Maison mère.
+
+Je rajouterais même un dernier point, parce que je vois un autre souci sur ta capture :
+
+Les séparations horizontales entre chaque cartographie (filiale / maison mère / filiale) doivent également appartenir au canvas.
+
+Elles doivent se déplacer et se zoomer exactement comme les éléments React Flow afin que l'ensemble reste parfaitement cohérent visuellement.

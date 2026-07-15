@@ -34,7 +34,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Building2, Network, Plus } from "lucide-react";
+import { ArrowRight, Network, Plus } from "lucide-react";
 import {
   RELATION_TYPES, elementLabel, familyIcon, familyColor, familyBg, defaultElementPosition,
 } from "../data";
@@ -111,39 +111,72 @@ const BioElementNode = memo(function BioElementNode({ data }: NodeProps<BioNode>
   );
 });
 
-// ─── Nœud en-tête d'organisation (vue groupe) ────────────────────────────────
+// ─── Nœud panneau de zone (arrière-plan AMONT / IN SITU / AVAL) ──────────────
+// Fait partie du canvas ReactFlow : zoom et pan restent synchronisés.
 
-type OrgHeaderData = { name: string; isMaisonMere: boolean; count: number };
+const CANVAS_ZONE_W = 390; // largeur de chaque colonne de zone
 
-const OrgHeaderNodeComp = memo(function OrgHeaderNodeComp({
+type ZonePanelData = {
+  label: string; bgColor: string; borderColor: string; textColor: string; height: number;
+};
+
+const ZonePanelNodeComp = memo(function ZonePanelNodeComp({
   data,
-}: NodeProps<Node<OrgHeaderData>>) {
+}: NodeProps<Node<ZonePanelData>>) {
   return (
     <div
-      className={`px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow border select-none pointer-events-none whitespace-nowrap ${
-        data.isMaisonMere
-          ? "bg-amber-50 border-amber-300 text-amber-800"
-          : "bg-white border-slate-300 text-slate-700"
-      }`}
-      style={{ minWidth: 260 }}
+      style={{
+        width:           CANVAS_ZONE_W,
+        height:          data.height,
+        backgroundColor: data.bgColor,
+        borderRight:     `1px dashed ${data.borderColor}`,
+        pointerEvents:   "none",
+        userSelect:      "none",
+        position:        "relative",
+      }}
     >
-      <Building2 className="h-4 w-4 shrink-0" />
-      <span>{data.name}</span>
-      {data.isMaisonMere && (
-        <span className="ml-1 text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-medium">
-          Maison mère
-        </span>
-      )}
-      <span className="ml-auto text-xs opacity-50 pl-4">
-        {data.count} élément{data.count !== 1 ? "s" : ""}
-      </span>
+      <div style={{
+        position:      "absolute",
+        top:           12,
+        left:          0,
+        right:         0,
+        textAlign:     "center",
+        color:         data.textColor,
+        fontSize:      11,
+        fontWeight:    700,
+        textTransform: "uppercase",
+        letterSpacing: "0.07em",
+        opacity:       0.7,
+      }}>
+        {data.label}
+      </div>
     </div>
+  );
+});
+
+// ─── Nœud séparateur horizontal (entre filiales, dans le canvas) ──────────────
+
+type SeparatorData = { totalWidth: number };
+
+const SeparatorNodeComp = memo(function SeparatorNodeComp({
+  data,
+}: NodeProps<Node<SeparatorData>>) {
+  return (
+    <div
+      style={{
+        width:         data.totalWidth,
+        height:        2,
+        background:    "#e2e8f0",
+        pointerEvents: "none",
+      }}
+    />
   );
 });
 
 const nodeTypes: NodeTypes = {
   bioElement: BioElementNode,
-  orgHeader:  OrgHeaderNodeComp as NodeTypes[string],
+  zonePanel:  ZonePanelNodeComp as NodeTypes[string],
+  separator:  SeparatorNodeComp as NodeTypes[string],
 };
 
 // ─── Edge helper ──────────────────────────────────────────────────────────────
@@ -174,15 +207,31 @@ interface Props {
 }
 
 // ─── Vue groupe : carte unique, toutes filiales ───────────────────────────────
-// Tous les éléments de toutes les filiales sont affichés dans un seul ReactFlow.
-// Chaque filiale a un nœud en-tête + ses éléments décalés verticalement.
-// La Maison mère est placée au milieu de l'empilement vertical.
+// Un seul ReactFlow canvas.
+// • Colonnes AMONT / IN SITU / AVAL = nœuds de fond (bougent avec le canvas)
+// • Séparateurs horizontaux entre filiales = nœuds canvas
+// • Pas d'étiquettes de filiale
+// • Chaîne automatique : agences + siège social reliés verticalement
 
-const SECTION_H = 520; // hauteur réservée par filiale (px)
-const HEADER_H  = 54;  // hauteur du nœud en-tête d'org
+const SECTION_H  = 500; // hauteur réservée par filiale (px)
+const CANVAS_PAD = 40;  // padding en haut / bas du canvas global
 
 function isMaisonMere(org: Organization): boolean {
   return /m[eè]re/i.test(org.name) || /si[eè]ge/i.test(org.name);
+}
+
+// Trouve l'élément "représentant" d'une org pour la chaîne automatique :
+// pour la maison mère → siège social, pour les filiales → agence
+function findChainElement(
+  elements: { id: number; name?: string | null }[],
+  orgIsMM: boolean,
+): number | null {
+  if (orgIsMM) {
+    const siege = elements.find(el => /si[eè]ge/i.test(el.name ?? ""));
+    if (siege) return siege.id;
+  }
+  const agence = elements.find(el => /agence/i.test(el.name ?? ""));
+  return agence?.id ?? null;
 }
 
 function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
@@ -220,22 +269,51 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
     const allNodes: Node[] = [];
     const allEdges: Edge[] = [];
 
+    const totalH    = ordered.length * SECTION_H + CANVAS_PAD * 2;
+    const totalW    = CANVAS_ZONE_W * 3;
+    const startY    = -CANVAS_PAD;
+
+    // ── Panneaux de zone (fond, zIndex négatif) ────────────────────────────
+    const zones = [
+      { id: "zone-amont",   x: 0,               label: "Amont",   bgColor: "#EFF6FF", borderColor: "#BFDBFE", textColor: "#1D4ED8" },
+      { id: "zone-insitu",  x: CANVAS_ZONE_W,    label: "In situ", bgColor: "#ECFDF5", borderColor: "#A7F3D0", textColor: "#065F46" },
+      { id: "zone-aval",    x: CANVAS_ZONE_W * 2, label: "Aval",   bgColor: "#F5F3FF", borderColor: "#DDD6FE", textColor: "#6D28D9" },
+    ];
+    zones.forEach(z => {
+      allNodes.push({
+        id:       z.id,
+        type:     "zonePanel",
+        position: { x: z.x, y: startY },
+        data:     { label: z.label, bgColor: z.bgColor, borderColor: z.borderColor, textColor: z.textColor, height: totalH } satisfies ZonePanelData,
+        zIndex:   -10,
+        selectable:  false,
+        draggable:   false,
+        connectable: false,
+      });
+    });
+
+    // ── Séparateurs entre filiales ─────────────────────────────────────────
+    for (let i = 1; i < ordered.length; i++) {
+      allNodes.push({
+        id:       `sep-${i}`,
+        type:     "separator",
+        position: { x: 0, y: i * SECTION_H - 12 },
+        data:     { totalWidth: totalW } satisfies SeparatorData,
+        zIndex:   -5,
+        selectable:  false,
+        draggable:   false,
+        connectable: false,
+      });
+    }
+
+    // ── Éléments et connexions par filiale ─────────────────────────────────
+    const chainNodeIds: string[] = []; // pour la liaison automatique
+
     ordered.forEach((org, orgIdx) => {
       const yOffset  = orgIdx * SECTION_H;
       const elements = depsResults[orgIdx]?.data?.items ?? [];
       const conns    = connResults[orgIdx]?.data?.items ?? [];
       const isMM     = isMaisonMere(org);
-
-      // Nœud en-tête de l'organisation
-      allNodes.push({
-        id:       `header-${org.id}`,
-        type:     "orgHeader",
-        position: { x: 0, y: yOffset },
-        data:     { name: org.name, isMaisonMere: isMM, count: elements.length } satisfies OrgHeaderData,
-        selectable:  false,
-        draggable:   false,
-        connectable: false,
-      });
 
       // Nœuds des éléments (positions sauvegardées + offset vertical)
       const zoneCounts: Record<string, number> = {};
@@ -243,11 +321,11 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
         const zone = el.chainPosition ?? "amont";
         let pos: { x: number; y: number };
         if (el.x != null && el.y != null) {
-          pos = { x: el.x, y: el.y + yOffset + HEADER_H };
+          pos = { x: el.x, y: el.y + yOffset };
         } else {
           const idx = (zoneCounts[zone] = (zoneCounts[zone] ?? -1) + 1);
           const def  = defaultElementPosition(zone, idx);
-          pos = { x: def.x, y: def.y + yOffset + HEADER_H };
+          pos = { x: def.x, y: def.y + yOffset };
         }
         allNodes.push({
           id:       `${org.id}-${el.id}`,
@@ -258,13 +336,14 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
             category:    el.category    ?? null,
             subCategory: el.subCategory ?? null,
           } satisfies BioNodeData,
+          zIndex:      0,
           draggable:   false,
           selectable:  false,
           connectable: false,
         });
       });
 
-      // Connexions de la filiale (IDs préfixés pour éviter les collisions)
+      // Connexions intra-filiale
       conns.forEach((conn) => {
         allEdges.push({
           id:     `${org.id}-conn-${conn.id}`,
@@ -280,7 +359,25 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
           style:      { stroke: "#94a3b8", strokeWidth: 1.5 },
         });
       });
+
+      // Collecte du nœud représentant pour la chaîne automatique
+      const chainElId = findChainElement(elements, isMM);
+      if (chainElId !== null) {
+        chainNodeIds.push(`${org.id}-${chainElId}`);
+      }
     });
+
+    // ── Liaisons automatiques (chaîne verticale agences ↔ siège social) ───
+    for (let i = 0; i < chainNodeIds.length - 1; i++) {
+      allEdges.push({
+        id:        `auto-chain-${i}`,
+        source:    chainNodeIds[i],
+        target:    chainNodeIds[i + 1],
+        type:      "straight",
+        markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
+        style:     { stroke: "#64748b", strokeWidth: 2, strokeDasharray: "6 4" },
+      });
+    }
 
     return { nodes: allNodes, edges: allEdges };
   }, [ordered, depsResults, connResults]);
@@ -290,50 +387,38 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
   }
 
   const totalElements = nodes.filter(n => n.type === "bioElement").length;
+  const autoChains    = edges.filter(e => String(e.id).startsWith("auto-chain")).length;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {totalElements} élément{totalElements !== 1 ? "s" : ""}
-          &ensp;·&ensp;{edges.length} connexion{edges.length !== 1 ? "s" : ""}
           &ensp;·&ensp;{subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""}
+          {autoChains > 0 && <span> &ensp;·&ensp; {autoChains} liaison{autoChains !== 1 ? "s" : ""} automatique{autoChains !== 1 ? "s" : ""}</span>}
         </p>
         <span className="text-xs text-muted-foreground bg-slate-100 border rounded px-2 py-1">
           Lecture seule — modifiez depuis chaque filiale
         </span>
       </div>
 
-      <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 700 }}>
-        {/* En-têtes de zones (partagés pour toutes les filiales) */}
-        <div className="grid grid-cols-3 border-b shrink-0">
-          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">Amont</div>
-          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">In situ</div>
-          <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">Aval</div>
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.1 }}
-            minZoom={0.08}
-            maxZoom={2.5}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            style={{
-              background:
-                "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
-            }}
-          >
-            <Background gap={20} size={1} color="#cbd5e1" />
-            <Controls position="bottom-left" />
-            <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
-          </ReactFlow>
-        </div>
+      <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: 700 }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.08 }}
+          minZoom={0.06}
+          maxZoom={2.5}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+        >
+          <Background gap={24} size={1} color="#cbd5e1" />
+          <Controls position="bottom-left" />
+          <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
+        </ReactFlow>
       </div>
     </div>
   );
