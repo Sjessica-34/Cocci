@@ -15,6 +15,7 @@ import {
   useDeleteBioConnection,
   getListBioConnectionsQueryKey,
   type BioConnection,
+  type Organization,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Network, Plus } from "lucide-react";
+import { ArrowRight, Building2, Network, Plus } from "lucide-react";
 import {
   RELATION_TYPES, elementLabel, familyIcon, familyColor, familyBg, defaultElementPosition,
 } from "../data";
@@ -91,6 +92,111 @@ const BioElementNode = memo(function BioElementNode({ data }: NodeProps<BioNode>
 
 const nodeTypes: NodeTypes = { bioElement: BioElementNode };
 
+// ─── Vue groupe — nœud filiale ────────────────────────────────────────────────
+
+const MAISON_MERE_NAME = "Maison mère / Siège social";
+
+type SubsidiaryNodeData = {
+  name: string;
+  isCenter: boolean;
+};
+type SubsidiaryNode = Node<SubsidiaryNodeData, "subsidiary">;
+
+const SubsidiaryNodeComp = memo(function SubsidiaryNodeComp({
+  data,
+}: NodeProps<SubsidiaryNode>) {
+  return (
+    <div
+      className="rounded-xl shadow-md border-2 p-4 select-none"
+      style={{
+        minWidth: 180,
+        backgroundColor: data.isCenter ? "#ecfdf5" : "#f8fafc",
+        borderColor:     data.isCenter ? "#34d399" : "#cbd5e1",
+      }}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: data.isCenter ? "#34d399" : "#94a3b8", width: 10, height: 10, border: "2px solid white" }}
+      />
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <Building2
+          className="h-5 w-5"
+          style={{ color: data.isCenter ? "#059669" : "#64748b" }}
+        />
+        <p
+          className="text-xs font-semibold leading-tight"
+          style={{ color: data.isCenter ? "#065f46" : "#334155" }}
+        >
+          {data.name}
+        </p>
+        {data.isCenter && (
+          <span className="text-[10px] font-medium text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+            Siège social
+          </span>
+        )}
+      </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ background: data.isCenter ? "#34d399" : "#94a3b8", width: 10, height: 10, border: "2px solid white" }}
+      />
+    </div>
+  );
+});
+
+const groupNodeTypes: NodeTypes = { subsidiary: SubsidiaryNodeComp };
+
+// ─── Vue groupe — layout automatique ─────────────────────────────────────────
+
+function buildGroupLayout(subsidiaries: Organization[]): {
+  nodes: SubsidiaryNode[];
+  edges: Edge[];
+} {
+  const CENTER = { x: 380, y: 260 };
+  const Y_OFFSET = 190;
+  const X_SPACING = 240;
+
+  const center = subsidiaries.find((s) => s.name === MAISON_MERE_NAME) ?? subsidiaries[0];
+  const others = subsidiaries.filter((s) => s.id !== center.id);
+
+  const half  = Math.ceil(others.length / 2);
+  const above = others.slice(0, half);
+  const below  = others.slice(half);
+
+  function makeRow(orgs: Organization[], y: number): SubsidiaryNode[] {
+    const totalWidth = (orgs.length - 1) * X_SPACING;
+    return orgs.map((org, i) => ({
+      id:       String(org.id),
+      type:     "subsidiary" as const,
+      position: { x: CENTER.x - totalWidth / 2 + i * X_SPACING, y },
+      data:     { name: org.name, isCenter: false },
+    }));
+  }
+
+  const nodes: SubsidiaryNode[] = [
+    {
+      id:       String(center.id),
+      type:     "subsidiary" as const,
+      position: CENTER,
+      data:     { name: center.name, isCenter: true },
+    },
+    ...makeRow(above, CENTER.y - Y_OFFSET),
+    ...makeRow(below,  CENTER.y + Y_OFFSET),
+  ];
+
+  const edges: Edge[] = others.map((org) => ({
+    id:        `eg-${org.id}-${center.id}`,
+    source:    String(org.id),
+    target:    String(center.id),
+    type:      "smoothstep",
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
+    style:     { stroke: "#94a3b8", strokeWidth: 1.5 },
+  }));
+
+  return { nodes, edges };
+}
+
 // ─── Edge helper ──────────────────────────────────────────────────────────────
 
 function connToEdge(conn: BioConnection): Edge {
@@ -112,9 +218,65 @@ function connToEdge(conn: BioConnection): Edge {
 
 // ─── Composant ────────────────────────────────────────────────────────────────
 
-interface Props { orgId: number; }
+interface Props {
+  orgId: number;
+  /** Quand fourni, affiche la vue groupe (filiales comme nœuds, Maison mère au centre). */
+  subsidiaries?: Organization[];
+}
 
-export function TabCartoDependances({ orgId }: Props) {
+// ─── Vue groupe (composant sans hooks) ───────────────────────────────────────
+
+function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
+  const { nodes: groupNodes, edges: groupEdges } = buildGroupLayout(subsidiaries);
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {subsidiaries.length} entité{subsidiaries.length !== 1 ? "s" : ""}&ensp;·&ensp;
+          Vue consolidée du groupe
+        </p>
+        <span className="text-xs text-muted-foreground bg-slate-100 border rounded px-2 py-1">
+          Lecture seule — les connexions manuelles se gèrent par filiale
+        </span>
+      </div>
+      <div
+        className="flex flex-col overflow-hidden rounded-xl border shadow-sm"
+        style={{ height: 620 }}
+      >
+        <ReactFlow
+          nodes={groupNodes}
+          edges={groupEdges}
+          nodeTypes={groupNodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          minZoom={0.25}
+          maxZoom={2.5}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+          style={{ background: "#f8fafc" }}
+        >
+          <Background gap={20} size={1} color="#e2e8f0" />
+          <Controls position="bottom-left" />
+          <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
+        </ReactFlow>
+      </div>
+    </div>
+  );
+}
+
+// ─── Dispatcher principal ─────────────────────────────────────────────────────
+
+export function TabCartoDependances({ orgId, subsidiaries }: Props) {
+  if (subsidiaries && subsidiaries.length > 0) {
+    return <GroupCarto subsidiaries={subsidiaries} />;
+  }
+  return <IndividualCarto orgId={orgId} />;
+}
+
+// ─── Vue individuelle (filiale ou org autonome) ───────────────────────────────
+
+function IndividualCarto({ orgId }: { orgId: number }) {
   const queryClient = useQueryClient();
   const [nodes, setNodes, onNodesChange] = useNodesState<BioNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);

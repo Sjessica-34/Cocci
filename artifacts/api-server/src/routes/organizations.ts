@@ -94,6 +94,33 @@ router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
     status: "active",
   });
 
+  // When creating a Groupe, automatically create a "Maison mère / Siège social"
+  // subsidiary. It is treated exactly like any other subsidiary (same table, same
+  // modules, same exercise logic) — no special type or business logic.
+  if (!parsed.data.parentId && parsed.data.type === "groupe") {
+    const [maisonMere] = await db
+      .insert(organizationsTable)
+      .values({
+        name: "Maison mère / Siège social",
+        type: "entreprise",
+        parentId: org.id,
+      })
+      .returning();
+
+    await db.insert(membersTable).values({
+      userId: user.id,
+      organizationId: maisonMere.id,
+      role: "owner",
+      status: "active",
+    });
+
+    await db.insert(exercisesTable).values({
+      organizationId: maisonMere.id,
+      year: new Date().getFullYear(),
+      status: "active",
+    });
+  }
+
   res.status(201).json(CreateOrganizationResponse.parse(org));
 });
 

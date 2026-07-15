@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useListOrganizations } from "@workspace/api-client-react";
 import { BarChart3, BookOpen, Layers, Leaf, Network } from "lucide-react";
 import { TabDecouvrir } from "./tabs/TabDecouvrir";
 import { TabSaisie } from "./tabs/TabSaisie";
@@ -10,6 +11,15 @@ import { TabSynthese } from "./tabs/TabSynthese";
 
 export function Biodiversite() {
   const { currentOrgId } = useCurrentOrganization();
+  const { data: orgs = [] } = useListOrganizations();
+
+  const rootOrg = orgs.find((o) => !o.parentId) ?? null;
+  const subsidiaries = orgs.filter((o) => rootOrg && o.parentId === rootOrg.id);
+  // Group view = l'utilisateur a sélectionné l'org racine de type "groupe" qui a des filiales
+  const isGroupView =
+    rootOrg?.type === "groupe" &&
+    subsidiaries.length > 0 &&
+    currentOrgId === rootOrg.id;
 
   return (
     <AppLayout>
@@ -50,7 +60,10 @@ export function Biodiversite() {
 
         <TabsContent value="cartographie">
           {currentOrgId
-            ? <TabCartoDependances orgId={currentOrgId} />
+            ? <TabCartoDependances
+                orgId={currentOrgId}
+                subsidiaries={isGroupView ? subsidiaries : undefined}
+              />
             : <p className="text-sm text-muted-foreground">Sélectionnez une organisation.</p>}
         </TabsContent>
 

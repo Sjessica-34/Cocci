@@ -144,6 +144,17 @@ export function TabDecouvrir() {
           Vous n'avez pas besoin de tout remplir d'un coup. Commencez par vos dépendances les plus
           évidentes et complétez progressivement.
         </p>
+        <div className="mt-3 flex gap-3 bg-emerald-50 border border-emerald-200 rounded-md p-3">
+          <span className="text-emerald-500 text-lg leading-none mt-0.5">🏢</span>
+          <div className="text-emerald-900 text-xs">
+            <p className="font-semibold mb-0.5">Groupes — Maison mère / Siège social</p>
+            <p>
+              Lors de la création d'un groupe, une <strong>Maison mère / Siège social</strong> est
+              créée automatiquement. Pensez à la renseigner avant de construire les cartographies des
+              filiales, car elle constitue le <strong>point central de la cartographie du groupe</strong>.
+            </p>
+          </div>
+        </div>
       </Section>
 
       <Section number="6" title="Comment interpréter les résultats ?">

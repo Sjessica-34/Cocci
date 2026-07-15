@@ -1,0 +1,57 @@
+Je souhaite faire évoluer la création d'un Groupe afin de simplifier l'utilisation de l'application, sans modifier l'architecture actuelle ni le fonctionnement des modules.
+
+⚠️ Il ne s'agit pas d'une refonte.
+
+Je souhaite uniquement ajouter un comportement automatique.
+
+## Création automatique de la Maison mère / Siège social
+
+Lorsqu'un utilisateur crée un Groupe, une entreprise nommée **"Maison mère / Siège social"** doit être créée automatiquement.
+
+Cette entreprise devient l'entreprise principale du groupe.
+
+Elle apparaîtra dans la liste des entreprises exactement comme une filiale.
+
+D'un point de vue technique, je souhaite qu'elle soit traitée exactement comme une filiale afin de ne pas avoir à créer une logique spécifique.
+
+Autrement dit :
+
+- même structure de données ;
+- mêmes traitements ;
+- mêmes modules ;
+- même comportement dans les calculs ;
+- même gestion des exercices.
+
+La seule différence est qu'elle est créée automatiquement lors de la création du groupe et qu'elle représente la société mère du groupe.
+
+Je ne souhaite surtout pas créer un nouveau type d'entreprise ou une nouvelle logique métier.
+
+Je souhaite simplement une entreprise créée automatiquement au démarrage.
+
+## Cartographie Biodiversité
+
+Dans la cartographie Biodiversité du Groupe :
+
+- la "Maison mère / Siège social" devient automatiquement le point central de la cartographie ;
+- toutes les cartographies des filiales sont affichées autour d'elle ;
+- afin d'améliorer la lisibilité, les filiales doivent être réparties automatiquement au-dessus et au-dessous de la Maison mère / Siège social ;
+- chaque filiale est automatiquement reliée à la Maison mère / Siège social.
+
+Aucune autre connexion ne doit être créée automatiquement.
+
+Si des liens existent entre deux filiales, ils seront ajoutés manuellement par l'utilisateur.
+
+## Guide
+
+Ajouter une information dans le guide de la cartographie :
+
+"Lors de la création d'un groupe, une Maison mère / Siège social est créée automatiquement. Pensez à la renseigner avant de construire les cartographies des filiales, car elle constitue le point central de la cartographie du groupe."
+
+## Important
+
+Je ne souhaite pas modifier le fonctionnement actuel de l'application.
+
+Je souhaite uniquement :
+
+- créer automatiquement la Maison mère / Siège social lors de la création du groupe ;
+- la considérer techniquement comme une entreprise/filiale classique afin de réutiliser toute la logique existante ;
