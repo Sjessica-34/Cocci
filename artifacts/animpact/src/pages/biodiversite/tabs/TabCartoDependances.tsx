@@ -333,29 +333,25 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
     prevDepsData.current = curDeps;
     prevConnData.current = curConn;
 
-    // ── Hauteur de chaque section proportionnelle au nb d'éléments ──────────
+    // ── Offsets Y cumulatifs basés sur la grille réelle de chaque section ──────
+    // On calcule d'abord la hauteur réelle de chaque section à partir du nombre
+    // de lignes de cartes (même formule que defaultElementPosition).
     const sectionHeights = ordered.map((_, orgIdx) => {
       const elements = depsResults[orgIdx]?.data?.items ?? [];
       const rowCount  = Math.max(1, Math.ceil(elements.length / 2));
-      return Math.max(190, 70 + rowCount * 130 + 60);
+      // row 0..rowCount-1, chaque rang = 130px, marge haut 70px, marge bas 60px
+      return 70 + rowCount * 130 + 60;
     });
 
-    // ── Offsets Y cumulatifs (remplacent l'ancien SECTION_H fixe) ────────────
     const yOffsets: number[] = [];
     let cumY = 0;
     for (const h of sectionHeights) {
       yOffsets.push(cumY);
       cumY += h;
     }
-    const totalSectionsH = cumY;
 
-    // ── Panneaux de zone (hauteur exacte = contenu + padding) ────────────────
-    const panelH = totalSectionsH + CANVAS_PAD * 2;
-    const dynamicZoneNodes: Node[] = [
-      { id: "bg-amont",  type: "zonePanel", position: { x: 0,                 y: -CANVAS_PAD }, zIndex: -10, selectable: false, draggable: false, connectable: false, data: { label: "Amont",   bgColor: "#EFF6FF", borderColor: "#BFDBFE", textColor: "#1D4ED8", height: panelH } },
-      { id: "bg-insitu", type: "zonePanel", position: { x: CANVAS_ZONE_W,     y: -CANVAS_PAD }, zIndex: -10, selectable: false, draggable: false, connectable: false, data: { label: "In situ", bgColor: "#ECFDF5", borderColor: "#A7F3D0", textColor: "#065F46", height: panelH } },
-      { id: "bg-aval",   type: "zonePanel", position: { x: CANVAS_ZONE_W * 2, y: -CANVAS_PAD }, zIndex: -10, selectable: false, draggable: false, connectable: false, data: { label: "Aval",    bgColor: "#F5F3FF", borderColor: "#DDD6FE", textColor: "#6D28D9", height: panelH } },
-    ];
+    // Les panneaux de zone seront recalculés après le placement des nœuds,
+    // depuis les bornes réelles des cartes (voir plus bas).
 
     const allNodes: Node[] = [];
     const allEdges: Edge[] = [];
@@ -433,16 +429,21 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
       });
     }
 
-    // ── Hauteur canvas = max Y des éléments + marge ───────────────────────────
+    // ── Zone panels calculés depuis les bornes réelles des cartes ────────────
     const elemNodes = allNodes.filter(n => n.type === "bioElement");
-    const maxElemY  = elemNodes.length > 0
-      ? Math.max(...elemNodes.map(n => n.position.y)) + NODE_H
-      : 200;
-    const newCanvasH = Math.max(350, maxElemY + 80);
+    const minElemY  = elemNodes.length > 0 ? Math.min(...elemNodes.map(n => n.position.y)) : 0;
+    const maxElemY  = elemNodes.length > 0 ? Math.max(...elemNodes.map(n => n.position.y)) + NODE_H : NODE_H;
+    const panelH    = (maxElemY - minElemY) + CANVAS_PAD * 2;
+    const panelY    = minElemY - CANVAS_PAD;
+    const zoneNodes: Node[] = [
+      { id: "bg-amont",  type: "zonePanel", position: { x: 0,                 y: panelY }, data: { label: "Amont",   bgColor: "#EFF6FF", borderColor: "#BFDBFE", textColor: "#1D4ED8", height: panelH } satisfies ZonePanelData, zIndex: -10, selectable: false, draggable: false, connectable: false },
+      { id: "bg-insitu", type: "zonePanel", position: { x: CANVAS_ZONE_W,     y: panelY }, data: { label: "In situ", bgColor: "#ECFDF5", borderColor: "#A7F3D0", textColor: "#065F46", height: panelH } satisfies ZonePanelData, zIndex: -10, selectable: false, draggable: false, connectable: false },
+      { id: "bg-aval",   type: "zonePanel", position: { x: CANVAS_ZONE_W * 2, y: panelY }, data: { label: "Aval",    bgColor: "#F5F3FF", borderColor: "#DDD6FE", textColor: "#6D28D9", height: panelH } satisfies ZonePanelData, zIndex: -10, selectable: false, draggable: false, connectable: false },
+    ];
 
-    setNodes([...dynamicZoneNodes, ...allNodes] as BioNode[]);
+    setNodes([...zoneNodes, ...allNodes] as BioNode[]);
     setEdges(allEdges);
-    setCanvasHeight(newCanvasH);
+    setCanvasHeight(panelH);
   }); // pas de tableau de deps — intentionnel, voir commentaire ci-dessus
 
   // Drag → sauvegarde position dans la DB de l'org correspondante
@@ -458,7 +459,7 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
   }, [updatePos]);
 
   if (isLoading) {
-    return <Skeleton className="h-[620px] w-full rounded-xl" />;
+    return <Skeleton className="w-full rounded-xl" style={{ height: canvasHeight }} />;
   }
 
   const totalElements = nodes.filter(n => n.type === "bioElement").length;
@@ -558,12 +559,18 @@ function IndividualCarto({ orgId }: { orgId: number }) {
         },
       };
     });
-    // Hauteur canvas = max Y des cartes + marge (évite les grands espaces vides)
-    const maxY = newNodes.length > 0
-      ? Math.max(...newNodes.map(n => n.position.y)) + NODE_H
-      : 160;
-    setCanvasHeight(Math.max(280, maxY + 70));
-    setNodes([...ZONE_NODES, ...newNodes] as BioNode[]);
+    // Bornes réelles des cartes → zone panels et canvas dimensionnés exactement au contenu
+    const minY = newNodes.length > 0 ? Math.min(...newNodes.map(n => n.position.y)) : 0;
+    const maxY = newNodes.length > 0 ? Math.max(...newNodes.map(n => n.position.y)) + NODE_H : NODE_H;
+    const panelH = (maxY - minY) + CANVAS_PAD * 2;
+    const panelY = minY - CANVAS_PAD;
+    const zoneNodes: Node[] = [
+      { id: "bg-amont",  type: "zonePanel", position: { x: 0,                 y: panelY }, data: { label: "Amont",   bgColor: "#EFF6FF", borderColor: "#BFDBFE", textColor: "#1D4ED8", height: panelH } satisfies ZonePanelData, zIndex: -10, selectable: false, draggable: false, connectable: false },
+      { id: "bg-insitu", type: "zonePanel", position: { x: CANVAS_ZONE_W,     y: panelY }, data: { label: "In situ", bgColor: "#ECFDF5", borderColor: "#A7F3D0", textColor: "#065F46", height: panelH } satisfies ZonePanelData, zIndex: -10, selectable: false, draggable: false, connectable: false },
+      { id: "bg-aval",   type: "zonePanel", position: { x: CANVAS_ZONE_W * 2, y: panelY }, data: { label: "Aval",    bgColor: "#F5F3FF", borderColor: "#DDD6FE", textColor: "#6D28D9", height: panelH } satisfies ZonePanelData, zIndex: -10, selectable: false, draggable: false, connectable: false },
+    ];
+    setCanvasHeight(panelH);
+    setNodes([...zoneNodes, ...newNodes] as BioNode[]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsData]);
 
