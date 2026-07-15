@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { eq, and, sql } from "drizzle-orm";
-import { db, diagnosticResponsesTable } from "@workspace/db";
+import { db, diagnosticResponsesTable, organizationsTable } from "@workspace/db";
 import {
   ALL_SUBCATEGORIES,
   ALL_QUESTIONS,
@@ -13,6 +13,7 @@ import {
   requireExerciseScope,
   requireWritableExerciseScope,
 } from "../middlewares/exerciseScope";
+import { resolveExercise } from "../lib/exercise";
 import { UpsertDiagnosticResponsesBody } from "@workspace/api-zod";
 import { computePrefillSuggestions } from "./diagnosticPrefill";
 
@@ -164,6 +165,77 @@ router.get(
       req.exercise!.id,
     );
     res.json(suggestions);
+  },
+);
+
+// ─── GET CONSOLIDATED SCORES (group / root org) ────────────────────────────
+router.get(
+  "/organizations/:orgId/diagnostic/consolidated",
+  requireAuth,
+  requireOrgMembership,
+  async (req, res) => {
+    // Find all subsidiaries of this org
+    const subsidiaries = await db
+      .select({ id: organizationsTable.id, name: organizationsTable.name })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.parentId, req.orgId!));
+
+    if (subsidiaries.length === 0) {
+      res.status(400).json({ error: "Not a group org or no subsidiaries found" });
+      return;
+    }
+
+    // Resolve the exercise for the root org
+    const exercise = await resolveExercise(req.orgId!, req);
+    if (!exercise) {
+      res.status(400).json({ error: "Exercise not found" });
+      return;
+    }
+
+    // Compute scores for each subsidiary
+    const result = await Promise.all(
+      subsidiaries.map(async (sub) => {
+        const responses = await db
+          .select()
+          .from(diagnosticResponsesTable)
+          .where(
+            and(
+              eq(diagnosticResponsesTable.organizationId, sub.id),
+              eq(diagnosticResponsesTable.exerciseId, exercise.id),
+            ),
+          );
+
+        const responseMap = new Map<string, number>();
+        for (const r of responses) {
+          responseMap.set(r.questionId, r.level);
+        }
+
+        const scores = ALL_SUBCATEGORIES.map((subcat) => {
+          const totalQuestions = subcat.questions.length;
+          const answered = subcat.questions.filter((q) => responseMap.has(q.id)).length;
+          const sumLevels = subcat.questions.reduce((acc, q) => acc + (responseMap.get(q.id) ?? 0), 0);
+          const completeness = totalQuestions > 0 ? answered / totalQuestions : 0;
+          const hasEnoughData = completeness >= COMPLETENESS_THRESHOLD;
+          const scorePercent = hasEnoughData
+            ? Math.round((sumLevels / (answered * 3)) * 100)
+            : null;
+          return {
+            subcategoryId: subcat.id,
+            categoryId: subcat.categoryId,
+            label: subcat.label,
+            totalQuestions,
+            answered,
+            completeness: Math.round(completeness * 100),
+            scorePercent,
+            maturityLabel: getMaturityLabel(scorePercent),
+          };
+        });
+
+        return { org: { id: sub.id, name: sub.name }, scores };
+      }),
+    );
+
+    res.json(result);
   },
 );
 

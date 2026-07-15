@@ -2,14 +2,15 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout";
 import { useModuleContext } from "@/hooks/useModuleContext";
-import { ConsolidatedPlaceholder } from "@/components/ConsolidatedPlaceholder";
 import {
   useGetDiagnosticScores,
   getGetDiagnosticScoresQueryKey,
+  useGetDiagnosticConsolidated,
+  getGetDiagnosticConsolidatedQueryKey,
 } from "@workspace/api-client-react";
-import type { DiagnosticSubcategoryScore } from "@workspace/api-client-react";
+import type { DiagnosticSubcategoryScore, DiagnosticConsolidatedEntry } from "@workspace/api-client-react";
 import { DIAGNOSTIC_CATEGORIES } from "@workspace/rse-referentials";
-import { BarChart3, ChevronRight, Loader2, AlertCircle, TrendingUp, CheckCircle2, FolderOpen } from "lucide-react";
+import { BarChart3, ChevronRight, Loader2, AlertCircle, TrendingUp, CheckCircle2, FolderOpen, Building2 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 import { TabDocumentsCles } from "./TabDocumentsCles";
@@ -224,6 +225,106 @@ function ScoreLegend() {
   );
 }
 
+// ── Vue consolidée (groupe) ─────────────────────────────────────────────────
+function ConsolidatedDiagnosticView({ orgId }: { orgId: number }) {
+  const { data: entries, isLoading, error } = useGetDiagnosticConsolidated(orgId, {
+    query: { enabled: !!orgId, queryKey: getGetDiagnosticConsolidatedQueryKey(orgId) },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !entries) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <AlertCircle className="h-4 w-4 shrink-0" />
+        Impossible de charger les scores consolidés. Veuillez réessayer.
+      </div>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center text-sm text-muted-foreground">
+        Aucune filiale trouvée pour cette organisation.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {(entries as DiagnosticConsolidatedEntry[]).map(({ org, scores }) => {
+        const totalQ = scores.reduce((a, s) => a + s.totalQuestions, 0);
+        const totalA = scores.reduce((a, s) => a + s.answered, 0);
+        const globalPct = totalQ > 0 ? Math.round((totalA / totalQ) * 100) : 0;
+
+        return (
+          <div key={org.id} className="rounded-xl border border-border bg-card p-5 space-y-4">
+            {/* En-tête filiale */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-semibold text-foreground">{org.name}</span>
+              </div>
+              <span className="text-xl font-bold text-foreground">{globalPct}%</span>
+            </div>
+
+            {/* Barre de progression */}
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${globalPct}%`,
+                  backgroundColor: globalPct >= 80 ? "#10b981" : globalPct >= 60 ? "#eab308" : globalPct >= 40 ? "#f97316" : "#ef4444",
+                }}
+              />
+            </div>
+
+            {/* Scores par axe ENV / SOC / GOV */}
+            <div className="grid grid-cols-3 gap-3">
+              {DIAGNOSTIC_CATEGORIES.map((cat) => {
+                const cfg = CATEGORY_CONFIG[cat.id];
+                const catScores = scores.filter((s) => s.categoryId === cat.id);
+                const evaluated = catScores.filter((s) => s.scorePercent !== null);
+                const avg =
+                  evaluated.length > 0
+                    ? Math.round(
+                        evaluated.reduce((a, s) => a + (s.scorePercent ?? 0), 0) / evaluated.length,
+                      )
+                    : null;
+                const answered = catScores.filter((s) => s.answered > 0).length;
+                return (
+                  <div
+                    key={cat.id}
+                    className="rounded-lg border border-border p-3 text-center"
+                    style={{ borderLeftColor: cfg.primary, borderLeftWidth: "3px" }}
+                  >
+                    <p className="text-xs font-medium text-muted-foreground mb-1">{cfg.label}</p>
+                    <p
+                      className="text-lg font-bold"
+                      style={{ color: avg !== null ? cfg.primary : "#cbd5e1" }}
+                    >
+                      {avg !== null ? `${avg}%` : "—"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {answered}/{catScores.length} éval.
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 type DiagnosticTab = "tableau-de-bord" | "documents-cles";
 
 // ── Page principale ────────────────────────────────────────────────────────
@@ -288,7 +389,7 @@ export function DiagnosticRse() {
         </div>
 
         {/* Vue consolidée (groupe avec filiales) */}
-        {isConsolidated && <ConsolidatedPlaceholder moduleName="Diagnostic RSE" />}
+        {isConsolidated && <ConsolidatedDiagnosticView orgId={orgId} />}
 
         {/* Onglet Documents clés */}
         {!isConsolidated && activeTab === "documents-cles" && effectiveOrgId && (

@@ -3185,6 +3185,32 @@ export const GetDiagnosticPrefillResponse = zod.array(GetDiagnosticPrefillRespon
 
 
 /**
+ * @summary Get consolidated diagnostic scores for all subsidiaries (group orgs only)
+ */
+export const GetDiagnosticConsolidatedParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetDiagnosticConsolidatedResponseItem = zod.object({
+  "org": zod.object({
+  "id": zod.number(),
+  "name": zod.string()
+}),
+  "scores": zod.array(zod.object({
+  "subcategoryId": zod.string(),
+  "categoryId": zod.string(),
+  "label": zod.string(),
+  "totalQuestions": zod.number(),
+  "answered": zod.number(),
+  "completeness": zod.number(),
+  "scorePercent": zod.number().nullish(),
+  "maturityLabel": zod.string()
+}))
+})
+export const GetDiagnosticConsolidatedResponse = zod.array(GetDiagnosticConsolidatedResponseItem)
+
+
+/**
  * @summary Get the captation carbone for an organization
  */
 export const GetCaptationCarboneParams = zod.object({

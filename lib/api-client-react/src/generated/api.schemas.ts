@@ -1902,3 +1902,13 @@ export interface CaptationCarbone {
   updatedAt: string;
 }
 
+export type DiagnosticConsolidatedEntryOrg = {
+  id: number;
+  name: string;
+};
+
+export interface DiagnosticConsolidatedEntry {
+  org: DiagnosticConsolidatedEntryOrg;
+  scores: DiagnosticSubcategoryScore[];
+}
+

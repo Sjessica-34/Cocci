@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
-import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useModuleContext } from "@/hooks/useModuleContext";
 import {
   useGetDiagnosticResponses,
   useGetDiagnosticPrefill,
@@ -332,9 +332,14 @@ function QuestionCard({
 export function DiagnosticQuestionnaire() {
   const params = useParams<{ categoryId: string; subcategoryId: string }>();
   const [, navigate] = useLocation();
-  const { currentOrgId } = useCurrentOrganization();
+  const { effectiveOrgId: currentOrgId, isConsolidated } = useModuleContext("subsidiary");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Redirect to diagnostic dashboard if root org is selected (consolidated mode)
+  useEffect(() => {
+    if (isConsolidated) navigate("/diagnostic");
+  }, [isConsolidated, navigate]);
 
   const subcategory = getSubcategoryById(params.subcategoryId ?? "");
   const category = getCategoryById(params.categoryId ?? "");

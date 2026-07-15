@@ -53,6 +53,7 @@ import type {
   CustomIssue,
   CustomIssueInput,
   DashboardSummary,
+  DiagnosticConsolidatedEntry,
   DiagnosticPrefillSuggestion,
   DiagnosticResponse,
   DiagnosticResponsesInput,
@@ -7778,6 +7779,83 @@ export function useGetDiagnosticPrefill<TData = Awaited<ReturnType<typeof getDia
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDiagnosticPrefillQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDiagnosticConsolidatedUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/diagnostic/consolidated`
+}
+
+/**
+ * @summary Get consolidated diagnostic scores for all subsidiaries (group orgs only)
+ */
+export const getDiagnosticConsolidated = async (orgId: number, options?: RequestInit): Promise<DiagnosticConsolidatedEntry[]> => {
+
+  return customFetch<DiagnosticConsolidatedEntry[]>(getGetDiagnosticConsolidatedUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDiagnosticConsolidatedQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/diagnostic/consolidated`
+    ] as const;
+    }
+
+
+export const getGetDiagnosticConsolidatedQueryOptions = <TData = Awaited<ReturnType<typeof getDiagnosticConsolidated>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticConsolidated>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDiagnosticConsolidatedQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDiagnosticConsolidated>>> = ({ signal }) => getDiagnosticConsolidated(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticConsolidated>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDiagnosticConsolidatedQueryResult = NonNullable<Awaited<ReturnType<typeof getDiagnosticConsolidated>>>
+export type GetDiagnosticConsolidatedQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get consolidated diagnostic scores for all subsidiaries (group orgs only)
+ */
+
+export function useGetDiagnosticConsolidated<TData = Awaited<ReturnType<typeof getDiagnosticConsolidated>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiagnosticConsolidated>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDiagnosticConsolidatedQueryOptions(orgId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

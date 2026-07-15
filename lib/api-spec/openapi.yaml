@@ -2563,6 +2563,33 @@ paths:
         "403":
           description: Forbidden
 
+  /organizations/{orgId}/diagnostic/consolidated:
+    get:
+      operationId: getDiagnosticConsolidated
+      tags: [diagnostic]
+      summary: Get consolidated diagnostic scores for all subsidiaries (group orgs only)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Consolidated diagnostic scores per subsidiary
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiagnosticConsolidatedEntry"
+        "400":
+          description: Not a group org or no exercise found
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
   # ─── CAPTATION CARBONE ───────────────────────────────────────────────────────
   /organizations/{orgId}/captation-carbone:
     get:
@@ -4733,3 +4760,20 @@ components:
           type: string
         updatedAt:
           type: string
+
+    DiagnosticConsolidatedEntry:
+      type: object
+      required: [org, scores]
+      properties:
+        org:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        scores:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagnosticSubcategoryScore"
