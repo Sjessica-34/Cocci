@@ -29,11 +29,22 @@ function notifyListeners() {
  * Sets the active organization for exercise resolution. Called by
  * useCurrentOrganization's setCurrentOrg to keep the exercise in sync
  * whenever the organization changes.
+ *
+ * We deliberately do NOT read the stored exercise from localStorage here.
+ * Stored values can be stale (e.g. a subsidiary that previously inherited the
+ * group's exerciseId before it had its own exercise). Instead we reset to null
+ * and let ExerciseSelector auto-select the correct exercise once the exercises
+ * list loads. The no-header path in resolveExercise returns the org's latest
+ * exercise automatically, so requests fired before the selection resolves are
+ * handled gracefully on the backend.
  */
 export function setExerciseOrgContext(orgId: number | null) {
   if (orgId === currentOrgId) return;
   currentOrgId = orgId;
-  currentExerciseId = orgId !== null ? readFromStorage(orgId) : null;
+  // Reset to null — ExerciseSelector will auto-select the right exercise
+  // once useListExercises resolves. Do NOT read from localStorage: the stored
+  // value may belong to a different org (stale after a migration or org switch).
+  currentExerciseId = null;
   notifyListeners();
 }
 

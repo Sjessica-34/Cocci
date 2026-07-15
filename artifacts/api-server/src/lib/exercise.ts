@@ -34,17 +34,22 @@ export async function resolveExercise(orgId: number, req: Request): Promise<Exer
   const headerVal = req.header("x-exercise-id");
   if (headerVal) {
     const exId = Number(headerVal);
-    if (!Number.isFinite(exId) || exId <= 0) return null;
-    const [ex] = await db
-      .select()
-      .from(exercisesTable)
-      .where(and(eq(exercisesTable.id, exId), eq(exercisesTable.organizationId, orgId)))
-      .limit(1);
-    return ex ?? null;
+    if (Number.isFinite(exId) && exId > 0) {
+      const [ex] = await db
+        .select()
+        .from(exercisesTable)
+        .where(and(eq(exercisesTable.id, exId), eq(exercisesTable.organizationId, orgId)))
+        .limit(1);
+      // Header exercise belongs to this org → use it.
+      if (ex) return ex;
+      // Header is stale (e.g. from a previous org context stored in localStorage) —
+      // fall through to the latest-exercise fallback below rather than returning null.
+      // This avoids spurious "Exercise not found" 400s during org switches.
+    }
   }
 
-  // No header: find latest exercise owned by this org (no parent fallback —
-  // every org has its own exercise).
+  // No header (or stale header): find latest exercise owned by this org.
+  // Every org has its own exercise — no parent fallback needed.
   const [ex] = await db
     .select()
     .from(exercisesTable)
