@@ -1,0 +1,191 @@
+Créer un nouveau module intitulé :
+
+🌳 Ma captation carbone
+
+Ce module est un module **GROUPE**.
+
+Il ne doit exister qu'une seule fois pour l'ensemble du groupe.
+
+Lorsqu'une filiale est sélectionnée, ce module reste accessible mais en lecture seule, conformément à la logique Groupe / Filiales déjà mise en place.
+
+Je souhaite reprendre exactement la même expérience utilisateur que le module **Mon bilan carbone** :
+
+- une seule page ;
+- un guide pédagogique ;
+- une zone de saisie ;
+- une synthèse des résultats ;
+- aucun changement de page.
+
+L'interface doit rester simple, claire et cohérente avec le reste de l'application.
+
+---
+
+# Guide
+
+Créer un encart pédagogique expliquant :
+
+## À quoi sert ce module ?
+
+Ce module permet de renseigner ou d'estimer la quantité de CO₂ captée chaque année par les arbres appartenant à votre organisation ou présents sur les terrains que vous gérez.
+
+Cette information vient compléter votre démarche climat et votre bilan carbone.
+
+Elle constitue une estimation ou une donnée déclarative selon le mode choisi.
+
+---
+
+## Deux possibilités
+
+L'utilisateur peut :
+
+• renseigner une captation carbone déjà calculée.
+
+ou
+
+• réaliser une estimation simplifiée.
+
+---
+
+## Méthode d'estimation
+
+L'estimation repose sur la méthode simplifiée d'Arnaud De Grave.
+
+Cette méthode applique une moyenne annuelle de captation par arbre afin d'obtenir un ordre de grandeur.
+
+Cette estimation reste approximative.
+
+La captation réelle dépend notamment :
+
+- des essences,
+- de l'âge des arbres,
+- des conditions climatiques,
+- du type de sol,
+- de la densité,
+- de la croissance,
+- de l'état sanitaire des arbres.
+
+Les résultats doivent être considérés comme une estimation et non comme une valeur scientifique.
+
+---
+
+## Important
+
+La captation carbone ne remplace jamais la réduction des émissions.
+
+Elle est affichée à titre informatif afin d'aider les organisations à suivre leur contribution environnementale.
+
+---
+
+# Mode de fonctionnement
+
+Ajouter un choix :
+
+○ J'ai déjà calculé ma captation carbone
+
+○ Je souhaite l'estimer
+
+---
+
+# Si l'utilisateur choisit :
+
+## J'ai déjà calculé ma captation carbone
+
+Afficher :
+
+Captation annuelle
+
+Champ numérique
+
+Sélecteur d'unité :
+
+○ kg CO₂e/an
+
+○ t CO₂e/an
+
+Le logiciel convertit automatiquement les unités si nécessaire.
+
+---
+
+# Si l'utilisateur choisit :
+
+## Je souhaite l'estimer
+
+Afficher :
+
+Nombre d'arbres
+
+Champ numérique entier.
+
+Le calcul est réalisé automatiquement selon la méthode simplifiée d'Arnaud De Grave.
+
+Le facteur de calcul doit être centralisé dans une constante afin de pouvoir être modifié facilement ultérieurement.
+
+Ne pas dupliquer cette valeur dans le code.
+
+---
+
+# Synthèse
+
+La synthèse est affichée directement sur la même page.
+
+Peu importe le mode utilisé.
+
+Afficher :
+
+🌳 Captation annuelle
+
+XX kgCO₂e/an
+
+Lorsque le résultat dépasse 1 000 kg, afficher également automatiquement :
+
+≈ X,XX tCO₂e/an
+
+---
+
+Si un Bilan Carbone Groupe existe déjà dans l'application, afficher également :
+
+Émissions annuelles
+
+Captation annuelle
+
+Émissions nettes (Émissions - Captation)
+
+Ajouter une mention sous ce calcul :
+
+"Cet indicateur est fourni à titre informatif et ne constitue pas une compensation automatique des émissions."
+
+---
+
+# Source de la donnée
+
+Afficher dans la synthèse :
+
+Origine de la donnée
+
+• Valeur déclarée par l'entreprise
+
+ou
+
+• Estimation simplifiée (méthode Arnaud De Grave)
+
+selon le mode choisi.
+
+---
+
+# Architecture
+
+Prévoir dès maintenant une architecture permettant d'ajouter ultérieurement d'autres méthodes d'estimation (surface forestière, haies, vergers, etc.) sans modifier le fonctionnement du module.
+
+Ne pas développer ces méthodes maintenant.
+
+---
+
+# Intégration
+
+Ajouter ce module dans le menu principal sous :
+
+Mon bilan carbone
+
+→ Ma captation carbone
+
+Le design, les composants, les cartes, les couleurs et l'expérience utilisateur doivent être identiques au module "Mon bilan carbone" afin de conserver une cohérence graphique dans toute l'application.

@@ -19,6 +19,7 @@ export const MODULE_SCOPES = {
   "enjeux":                "group",   // Matrice de matérialité
   "numerique-responsable": "group",
   "administration":        "group",   // Paramètres, membres, filiales
+  "captation-carbone":     "group",
 
   // ── Modules Filiale ─────────────────────────────────────────────────────────
   "bilan-carbone":         "subsidiary",

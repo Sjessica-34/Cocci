@@ -46,6 +46,8 @@ import type {
   BioIssue,
   BioIssueInput,
   BioIssueListResponse,
+  CaptationCarbone,
+  CaptationCarboneInput,
   CarbonBilan,
   CarbonBilanInput,
   CustomIssue,
@@ -7787,4 +7789,222 @@ export function useGetDiagnosticPrefill<TData = Awaited<ReturnType<typeof getDia
 
 
 
+
+export const getGetCaptationCarboneUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/captation-carbone`
+}
+
+/**
+ * @summary Get the captation carbone for an organization
+ */
+export const getCaptationCarbone = async (orgId: number, options?: RequestInit): Promise<CaptationCarbone> => {
+
+  return customFetch<CaptationCarbone>(getGetCaptationCarboneUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCaptationCarboneQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/captation-carbone`
+    ] as const;
+    }
+
+
+export const getGetCaptationCarboneQueryOptions = <TData = Awaited<ReturnType<typeof getCaptationCarbone>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCaptationCarbone>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCaptationCarboneQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCaptationCarbone>>> = ({ signal }) => getCaptationCarbone(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCaptationCarbone>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCaptationCarboneQueryResult = NonNullable<Awaited<ReturnType<typeof getCaptationCarbone>>>
+export type GetCaptationCarboneQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the captation carbone for an organization
+ */
+
+export function useGetCaptationCarbone<TData = Awaited<ReturnType<typeof getCaptationCarbone>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCaptationCarbone>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCaptationCarboneQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertCaptationCarboneUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/captation-carbone`
+}
+
+/**
+ * @summary Create or update the captation carbone for an organization
+ */
+export const upsertCaptationCarbone = async (orgId: number,
+    captationCarboneInput: CaptationCarboneInput, options?: RequestInit): Promise<CaptationCarbone> => {
+
+  return customFetch<CaptationCarbone>(getUpsertCaptationCarboneUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(captationCarboneInput)
+  }
+);}
+
+
+
+
+export const getUpsertCaptationCarboneMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertCaptationCarbone>>, TError,{orgId: number;data: BodyType<CaptationCarboneInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertCaptationCarbone>>, TError,{orgId: number;data: BodyType<CaptationCarboneInput>}, TContext> => {
+
+const mutationKey = ['upsertCaptationCarbone'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertCaptationCarbone>>, {orgId: number;data: BodyType<CaptationCarboneInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  upsertCaptationCarbone(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertCaptationCarboneMutationResult = NonNullable<Awaited<ReturnType<typeof upsertCaptationCarbone>>>
+    export type UpsertCaptationCarboneMutationBody = BodyType<CaptationCarboneInput>
+    export type UpsertCaptationCarboneMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or update the captation carbone for an organization
+ */
+export const useUpsertCaptationCarbone = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertCaptationCarbone>>, TError,{orgId: number;data: BodyType<CaptationCarboneInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertCaptationCarbone>>,
+        TError,
+        {orgId: number;data: BodyType<CaptationCarboneInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertCaptationCarboneMutationOptions(options));
+    }
+
+export const getDeleteCaptationCarboneUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/captation-carbone`
+}
+
+/**
+ * @summary Delete the captation carbone for an organization
+ */
+export const deleteCaptationCarbone = async (orgId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteCaptationCarboneUrl(orgId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteCaptationCarboneMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCaptationCarbone>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCaptationCarbone>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['deleteCaptationCarbone'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCaptationCarbone>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  deleteCaptationCarbone(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCaptationCarboneMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCaptationCarbone>>>
+
+    export type DeleteCaptationCarboneMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete the captation carbone for an organization
+ */
+export const useDeleteCaptationCarbone = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCaptationCarbone>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCaptationCarbone>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCaptationCarboneMutationOptions(options));
+    }
 

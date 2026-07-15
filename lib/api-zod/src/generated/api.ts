@@ -3184,3 +3184,63 @@ export const GetDiagnosticPrefillResponseItem = zod.object({
 export const GetDiagnosticPrefillResponse = zod.array(GetDiagnosticPrefillResponseItem)
 
 
+/**
+ * @summary Get the captation carbone for an organization
+ */
+export const GetCaptationCarboneParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetCaptationCarboneResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "year": zod.number(),
+  "mode": zod.enum(['saisie', 'estimation']),
+  "captationValue": zod.number().nullish(),
+  "captationUnit": zod.string().nullish(),
+  "treeCount": zod.number().nullish(),
+  "captationKgPerYear": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Create or update the captation carbone for an organization
+ */
+export const UpsertCaptationCarboneParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const UpsertCaptationCarboneBody = zod.object({
+  "year": zod.number().optional(),
+  "mode": zod.enum(['saisie', 'estimation']),
+  "captationValue": zod.number().nullish(),
+  "captationUnit": zod.enum(['kg', 't']).nullish(),
+  "treeCount": zod.number().nullish()
+})
+
+export const UpsertCaptationCarboneResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "year": zod.number(),
+  "mode": zod.enum(['saisie', 'estimation']),
+  "captationValue": zod.number().nullish(),
+  "captationUnit": zod.string().nullish(),
+  "treeCount": zod.number().nullish(),
+  "captationKgPerYear": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete the captation carbone for an organization
+ */
+export const DeleteCaptationCarboneParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const DeleteCaptationCarboneResponse = zod.void()
+
+

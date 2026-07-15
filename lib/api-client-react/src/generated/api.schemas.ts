@@ -1857,3 +1857,48 @@ export interface DiagnosticPrefillSuggestion {
   confidence: DiagnosticPrefillSuggestionConfidence;
 }
 
+export type CaptationCarboneInputMode = typeof CaptationCarboneInputMode[keyof typeof CaptationCarboneInputMode];
+
+
+export const CaptationCarboneInputMode = {
+  saisie: 'saisie',
+  estimation: 'estimation',
+} as const;
+
+export type CaptationCarboneInputCaptationUnit = typeof CaptationCarboneInputCaptationUnit[keyof typeof CaptationCarboneInputCaptationUnit] | null;
+
+
+export const CaptationCarboneInputCaptationUnit = {
+  kg: 'kg',
+  t: 't',
+} as const;
+
+export interface CaptationCarboneInput {
+  year?: number;
+  mode: CaptationCarboneInputMode;
+  captationValue?: number | null;
+  captationUnit?: CaptationCarboneInputCaptationUnit;
+  treeCount?: number | null;
+}
+
+export type CaptationCarboneMode = typeof CaptationCarboneMode[keyof typeof CaptationCarboneMode];
+
+
+export const CaptationCarboneMode = {
+  saisie: 'saisie',
+  estimation: 'estimation',
+} as const;
+
+export interface CaptationCarbone {
+  id: number;
+  organizationId: number;
+  year: number;
+  mode: CaptationCarboneMode;
+  captationValue?: number | null;
+  captationUnit?: string | null;
+  treeCount?: number | null;
+  captationKgPerYear?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+

@@ -34,6 +34,7 @@ import { PartiesPrenantes } from "@/pages/parties-prenantes";
 import { Materialite } from "@/pages/materialite";
 import { MesDocuments } from "@/pages/mes-documents";
 import { MesLabels } from "@/pages/mes-labels";
+import { CaptationCarbone } from "@/pages/captation-carbone";
 import { BarometreSocial } from "@/pages/barometre-social";
 import { BarometreSocialPublic } from "@/pages/barometre-social/public";
 import { CapitalHumain } from "@/pages/employment";
@@ -292,6 +293,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/rapport-rse"><WorkspaceGuard component={RapportRse} /></Route>
             <Route path="/mes-documents"><WorkspaceGuard component={MesDocuments} /></Route>
             <Route path="/mes-labels"><WorkspaceGuard component={MesLabels} /></Route>
+            <Route path="/captation-carbone"><WorkspaceGuard component={CaptationCarbone} /></Route>
             <Route path="/barometre-social"><WorkspaceGuard component={BarometreSocial} /></Route>
             <Route path="/capital-humain"><WorkspaceGuard component={CapitalHumain} /></Route>
             <Route path="/guide-rse"><WorkspaceGuard component={GuideRSE} /></Route>

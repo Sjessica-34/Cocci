@@ -8,6 +8,7 @@ export * from "./issueRatings";
 export * from "./customIssues";
 export * from "./issueAnalyses";
 export * from "./carbonBilans";
+export * from "./captationCarbone";
 export * from "./documents";
 export * from "./numeriqueResponsable";
 export * from "./impactScoreResult";

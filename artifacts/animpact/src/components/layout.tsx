@@ -26,6 +26,7 @@ import {
   Smile,
   GraduationCap,
   ListChecks,
+  TreePine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,6 +76,7 @@ const navGroups: NavItem[][] = [
   [
     { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },
     { href: "/mes-labels", label: "Mes labels", icon: Award },
+    { href: "/captation-carbone", label: "Ma captation carbone", icon: TreePine },
   ],
   [
     { href: "/diagnostic", label: "Mon diagnostic RSE", icon: BarChart3 },

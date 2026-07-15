@@ -2563,6 +2563,78 @@ paths:
         "403":
           description: Forbidden
 
+  # ─── CAPTATION CARBONE ───────────────────────────────────────────────────────
+  /organizations/{orgId}/captation-carbone:
+    get:
+      operationId: getCaptationCarbone
+      tags: [captation-carbone]
+      summary: Get the captation carbone for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Captation carbone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptationCarbone"
+        "404":
+          description: No captation yet
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    put:
+      operationId: upsertCaptationCarbone
+      tags: [captation-carbone]
+      summary: Create or update the captation carbone for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaptationCarboneInput"
+      responses:
+        "200":
+          description: Saved captation carbone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptationCarbone"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    delete:
+      operationId: deleteCaptationCarbone
+      tags: [captation-carbone]
+      summary: Delete the captation carbone for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
 components:
   schemas:
     HealthStatus:
@@ -4611,3 +4683,53 @@ components:
           type: string
           enum: [auto, suggested]
           description: "'auto' = certainement déduit des données, 'suggested' = inféré, nécessite validation"
+
+    CaptationCarboneInput:
+      type: object
+      required: [mode]
+      properties:
+        year:
+          type: integer
+        mode:
+          type: string
+          enum: [saisie, estimation]
+        captationValue:
+          type: number
+          nullable: true
+        captationUnit:
+          type: string
+          enum: [kg, t]
+          nullable: true
+        treeCount:
+          type: integer
+          nullable: true
+
+    CaptationCarbone:
+      type: object
+      required: [id, organizationId, year, mode, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        year:
+          type: integer
+        mode:
+          type: string
+          enum: [saisie, estimation]
+        captationValue:
+          type: number
+          nullable: true
+        captationUnit:
+          type: string
+          nullable: true
+        treeCount:
+          type: integer
+          nullable: true
+        captationKgPerYear:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
