@@ -84,15 +84,15 @@ router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
         status: "active",
       });
     }
-  } else {
-    // Root org (no parent): auto-create an exercise for the current year so
-    // the workspace is immediately usable without a manual setup step.
-    await db.insert(exercisesTable).values({
-      organizationId: org.id,
-      year: new Date().getFullYear(),
-      status: "active",
-    });
   }
+
+  // Auto-create an exercise for the current year — both root orgs AND subsidiaries
+  // get their own exercise so data is always scoped independently.
+  await db.insert(exercisesTable).values({
+    organizationId: org.id,
+    year: new Date().getFullYear(),
+    status: "active",
+  });
 
   res.status(201).json(CreateOrganizationResponse.parse(org));
 });

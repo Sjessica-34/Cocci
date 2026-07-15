@@ -1,2 +1,2 @@
 - [inert-boolean-attr](inert-boolean-attr.md) — React exige boolean pour `inert`, jamais string vide ; utiliser `inert={isReadOnly || undefined}`
-- [exercise-subsidiary-pattern](exercise-subsidiary-pattern.md) — Les exercices n'existent que sur la root org ; les filiales héritent via fallback serveur dans resolveExercise
+- [subsidiary-exercise-isolation](subsidiary-exercise-isolation.md) — chaque org (racine ET filiale) doit avoir son propre exercice ; pas de fallback parent dans resolveExercise.

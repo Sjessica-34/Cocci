@@ -21,9 +21,10 @@ async function getParentOrgId(orgId: number): Promise<number | null> {
  * When absent (or invalid), falls back to the most recent exercise for the
  * organization so legacy/non-migrated clients keep working.
  *
- * Subsidiary orgs inherit the parent org's exercise: when no exercise is found
- * for `orgId` (or the header exercise doesn't match), the parent org is tried.
- * This allows subsidiary-scoped modules to work with the group's exercise.
+ * Every org — root or subsidiary — must have its own exercise. Subsidiaries
+ * are created with their own exercise (see organizations route). There is NO
+ * inheritance from a parent org: each org's data is always scoped to its own
+ * exercise, which guarantees full data isolation between subsidiaries.
  *
  * This is the single source of truth for exercise resolution — route
  * handlers should never read organizationId-only data without also scoping
@@ -39,42 +40,18 @@ export async function resolveExercise(orgId: number, req: Request): Promise<Exer
       .from(exercisesTable)
       .where(and(eq(exercisesTable.id, exId), eq(exercisesTable.organizationId, orgId)))
       .limit(1);
-    if (ex) return ex;
-    // Header exercise doesn't belong to orgId — try parent org (subsidiary inherits group's exercise)
-    const parentId = await getParentOrgId(orgId);
-    if (parentId) {
-      const [parentEx] = await db
-        .select()
-        .from(exercisesTable)
-        .where(and(eq(exercisesTable.id, exId), eq(exercisesTable.organizationId, parentId)))
-        .limit(1);
-      if (parentEx) return parentEx;
-    }
-    return null;
+    return ex ?? null;
   }
 
-  // No header: find latest exercise for orgId
+  // No header: find latest exercise owned by this org (no parent fallback —
+  // every org has its own exercise).
   const [ex] = await db
     .select()
     .from(exercisesTable)
     .where(eq(exercisesTable.organizationId, orgId))
     .orderBy(desc(exercisesTable.year))
     .limit(1);
-  if (ex) return ex;
-
-  // No exercise for orgId — try parent org (subsidiary inherits group's exercise)
-  const parentId = await getParentOrgId(orgId);
-  if (parentId) {
-    const [parentEx] = await db
-      .select()
-      .from(exercisesTable)
-      .where(eq(exercisesTable.organizationId, parentId))
-      .orderBy(desc(exercisesTable.year))
-      .limit(1);
-    return parentEx ?? null;
-  }
-
-  return null;
+  return ex ?? null;
 }
 
 /** An exercise is writable only while its status is "active" ("En cours"). */
