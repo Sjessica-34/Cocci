@@ -22,6 +22,7 @@ import {
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
 import { resolveExercise } from "../lib/exercise";
+import { getSubsidiaryExercises, sumNullable } from "../lib/consolidation";
 import {
   GetOrganizationDashboardParams,
   GetOrganizationDashboardResponse,
@@ -371,6 +372,72 @@ function buildSummaryResponse(
   };
 }
 
+// ─── Group KPI aggregation ────────────────────────────────────────────────────
+
+function avgNullable(values: (number | null)[]): number | null {
+  const defined = values.filter((v): v is number => v != null);
+  return defined.length > 0
+    ? Math.round(defined.reduce((a, b) => a + b, 0) / defined.length)
+    : null;
+}
+
+/**
+ * Merges KpiValues from multiple subsidiaries into a single consolidated view.
+ * - Counts and absolute values: SUM across subsidiaries.
+ * - Percentage scores (diagnostic, NR): average of non-null subsidiary values.
+ * - Derived percentages (certifiedPct, actionsRate): recomputed from summed numerators/denominators.
+ */
+function mergeGroupKpis(list: KpiValues[]): KpiValues {
+  if (list.length === 0) {
+    return {
+      carbon: null, diagEnv: null, diagSoc: null, diagGov: null,
+      diagEnvProg: null, diagSocProg: null, diagGovProg: null,
+      stakeholders: null, suppliersTotal: null, suppliersCertified: null,
+      suppliersCertifiedPct: null, bioCount: null, actionsTotal: null,
+      actionsDone: null, actionsRate: null, labelsObtained: null,
+      nrScore: null, headcount: null,
+    };
+  }
+
+  const s = (fn: (k: KpiValues) => number | null) => sumNullable(list.map(fn));
+  const a = (fn: (k: KpiValues) => number | null) => avgNullable(list.map(fn));
+
+  const suppliersTotal = s((k) => k.suppliersTotal);
+  const suppliersCertified = s((k) => k.suppliersCertified);
+  const suppliersCertifiedPct =
+    suppliersTotal != null && suppliersTotal > 0
+      ? Math.round(((suppliersCertified ?? 0) / suppliersTotal) * 100)
+      : null;
+
+  const actionsTotal = s((k) => k.actionsTotal);
+  const actionsDone = s((k) => k.actionsDone);
+  const actionsRate =
+    actionsTotal != null && actionsTotal > 0
+      ? Math.round(((actionsDone ?? 0) / actionsTotal) * 100)
+      : null;
+
+  return {
+    carbon: s((k) => k.carbon),
+    diagEnv: a((k) => k.diagEnv),
+    diagSoc: a((k) => k.diagSoc),
+    diagGov: a((k) => k.diagGov),
+    diagEnvProg: a((k) => k.diagEnvProg),
+    diagSocProg: a((k) => k.diagSocProg),
+    diagGovProg: a((k) => k.diagGovProg),
+    stakeholders: s((k) => k.stakeholders),
+    suppliersTotal,
+    suppliersCertified,
+    suppliersCertifiedPct,
+    bioCount: s((k) => k.bioCount),
+    actionsTotal,
+    actionsDone,
+    actionsRate,
+    labelsObtained: s((k) => k.labelsObtained),
+    nrScore: a((k) => k.nrScore),
+    headcount: s((k) => k.headcount),
+  };
+}
+
 // ─── GET /organizations/:id/dashboard/summary ─────────────────────────────────
 
 router.get(
@@ -392,32 +459,66 @@ router.get(
       return;
     }
 
-    // Trouver l'exercice N-1 : le plus récent avec year < currentYear, même org
-    const [prevExercise] = await db
-      .select()
-      .from(exercisesTable)
-      .where(
-        and(
-          eq(exercisesTable.organizationId, orgId),
-          eq(exercisesTable.year, currentExercise.year - 1),
-        ),
-      )
-      .limit(1);
+    const currentYear = currentExercise.year;
+    const prevYear = currentYear - 1;
 
-    // Calculer les KPIs courants + N-1 en parallèle
-    const [currKpis, prevKpis] = await Promise.all([
-      computeKpis(orgId, currentExercise.id),
-      prevExercise ? computeKpis(orgId, prevExercise.id) : Promise.resolve(null),
+    // Vérifier si c'est un groupe (a des filiales pour l'année courante)
+    const [subCurrentExercises, subPrevExercises] = await Promise.all([
+      getSubsidiaryExercises(orgId, currentYear),
+      getSubsidiaryExercises(orgId, prevYear),
     ]);
 
-    const response = buildSummaryResponse(
-      currentExercise.year,
-      prevExercise?.year ?? null,
-      currKpis,
-      prevKpis,
-    );
+    const isGroup = subCurrentExercises.length > 0;
 
-    res.json(response);
+    let currKpis: KpiValues;
+    let prevKpis: KpiValues | null = null;
+    let resolvedPrevYear: number | null = null;
+
+    if (isGroup) {
+      // Groupe : agréger les données de chaque filiale
+      const [subCurrKpisList, subPrevKpisList] = await Promise.all([
+        Promise.all(
+          subCurrentExercises.map(({ orgId: subId, exerciseId }) =>
+            computeKpis(subId, exerciseId),
+          ),
+        ),
+        subPrevExercises.length > 0
+          ? Promise.all(
+              subPrevExercises.map(({ orgId: subId, exerciseId }) =>
+                computeKpis(subId, exerciseId),
+              ),
+            )
+          : Promise.resolve(null),
+      ]);
+
+      currKpis = mergeGroupKpis(subCurrKpisList);
+
+      if (subPrevKpisList) {
+        prevKpis = mergeGroupKpis(subPrevKpisList);
+        resolvedPrevYear = prevYear;
+      }
+    } else {
+      // Org standalone ou filiale : données propres uniquement
+      const [prevExercise] = await db
+        .select()
+        .from(exercisesTable)
+        .where(
+          and(
+            eq(exercisesTable.organizationId, orgId),
+            eq(exercisesTable.year, prevYear),
+          ),
+        )
+        .limit(1);
+
+      [currKpis, prevKpis] = await Promise.all([
+        computeKpis(orgId, currentExercise.id),
+        prevExercise ? computeKpis(orgId, prevExercise.id) : Promise.resolve(null),
+      ]);
+
+      resolvedPrevYear = prevExercise?.year ?? null;
+    }
+
+    res.json(buildSummaryResponse(currentYear, resolvedPrevYear, currKpis, prevKpis));
   },
 );
 
