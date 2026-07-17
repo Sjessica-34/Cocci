@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useAuth } from "@clerk/react";
 import { useModuleContext } from "@/hooks/useModuleContext";
+import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import {
   useGetReportDraft, useUpdateReportDraft, useGenerateReportAiSection,
 } from "@workspace/api-client-react";
@@ -216,6 +218,7 @@ function SaveStatus({ status }: { status: "idle" | "saving" | "saved" | "error" 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function RapportRse() {
+  const { getToken } = useAuth();
   const { effectiveOrgId, isReadOnly } = useModuleContext("group");
   const orgId = effectiveOrgId;
 
@@ -330,7 +333,12 @@ export function RapportRse() {
     if (!orgId) return;
     setDownloading(true);
     try {
-      const res = await fetch(`/api/organizations/${orgId}/report/generate`, { credentials: "include" });
+      const token = await getToken();
+      const exerciseId = getCurrentExerciseId();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      if (exerciseId != null) headers["X-Exercise-Id"] = String(exerciseId);
+      const res = await fetch(`/api/organizations/${orgId}/report/generate`, { credentials: "include", headers });
       if (!res.ok) throw new Error("Failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
