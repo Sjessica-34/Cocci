@@ -1,0 +1,138 @@
+
+Je souhaite conserver la structure actuelle mais enrichir les informations affichées.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. COMPARAISON N / N-1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dès qu'un exercice précédent existe, afficher automatiquement l'évolution par rapport à N-1.
+
+Exemples :
+
+🌍 Impact Score
+
+72 /100
+
+▲ +4 points vs 2025
+
+━━━━━━━━━━━━━━
+
+🌱 Maturité RSE
+
+68 %
+
+▲ +7 %
+
+━━━━━━━━━━━━━━
+
+🌍 Bilan carbone
+
+18 tCO₂e
+
+▼ -12 %
+
+━━━━━━━━━━━━━━
+
+🤝 Achats responsables
+
+72 %
+
+▲ +9 %
+
+Si aucun exercice précédent n'existe, ne rien afficher.
+
+Ne jamais afficher "0 %".
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. DONUTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Je souhaite conserver les trois donuts :
+
+🌿 Environnement
+
+👥 Social
+
+🏛 Gouvernance
+
+Mais ils doivent être plus informatifs.
+
+Sous chaque donut afficher :
+
+• le score obtenu
+• l'évolution N/N-1 si disponible
+
+Exemple :
+
+76 %
+
+▲ +8 %
+
+Diagnostic terminé à 85 %
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. CARTES DES MODULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chaque module doit afficher au minimum :
+
+• l'indicateur principal ;
+• l'évolution N/N-1 si disponible.
+
+Exemples :
+
+🌿 Dépendances biodiversité
+
+26 dépendances
+
+▲ +5 dépendances
+
+━━━━━━━━━━━━━━
+
+👥 Parties prenantes
+
+18 parties prenantes
+
+▲ +3
+
+━━━━━━━━━━━━━━
+
+👤 Capital humain
+
+24 salariés
+
+▲ +2
+
+━━━━━━━━━━━━━━
+
+📋 Plan d'action
+
+18 / 25 actions
+
+72 %
+
+▲ +14 %
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. DONNÉES AUTOMATIQUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Les indicateurs affichés doivent être récupérés automatiquement depuis les modules.
+
+Le tableau de bord ne doit contenir aucune donnée saisie manuellement.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. INTERFACE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Je souhaite que le tableau de bord permette de connaître en quelques secondes :
+
+• où en est l'entreprise ;
+• ce qui progresse ;
+• ce qui régresse.
+
+Je ne souhaite pas ajouter de graphiques complexes.
+
+L'information doit rester simple, synthétique et immédiatement lisible.
+
+Toutes les cartes restent cliquables et ouvrent directement le module correspondant.
