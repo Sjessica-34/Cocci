@@ -14,8 +14,21 @@ import {
   requireWritableExerciseScope,
 } from "../middlewares/exerciseScope";
 import { resolveExercise } from "../lib/exercise";
+import { getSubsidiaryExercises } from "../lib/consolidation";
 import { UpsertDiagnosticResponsesBody } from "@workspace/api-zod";
 import { computePrefillSuggestions } from "./diagnosticPrefill";
+
+function computeSubcategoryScores(responseMap: Map<string, number>) {
+  return ALL_SUBCATEGORIES.map((sub) => {
+    const totalQuestions = sub.questions.length;
+    const answered = sub.questions.filter((q) => responseMap.has(q.id)).length;
+    const sumLevels = sub.questions.reduce((acc, q) => acc + (responseMap.get(q.id) ?? 0), 0);
+    const completeness = totalQuestions > 0 ? answered / totalQuestions : 0;
+    const hasEnoughData = completeness >= COMPLETENESS_THRESHOLD;
+    const scorePercent = hasEnoughData ? Math.round((sumLevels / (answered * 3)) * 100) : null;
+    return { subcategoryId: sub.id, categoryId: sub.categoryId, label: sub.label, totalQuestions, answered, completeness: Math.round(completeness * 100), scorePercent, maturityLabel: getMaturityLabel(scorePercent) };
+  });
+}
 
 const router = Router();
 
@@ -108,48 +121,59 @@ router.get(
   requireOrgMembership,
   requireExerciseScope,
   async (req, res) => {
+    const orgId = req.orgId!;
+    const exercise = req.exercise!;
+
+    // Group consolidation: aggregate subsidiary scores
+    const subExercises = await getSubsidiaryExercises(orgId, exercise.year);
+    if (subExercises.length > 0) {
+      const allResponsesPerSub = await Promise.all(
+        subExercises.map(({ orgId: subOrgId, exerciseId }) =>
+          db.select().from(diagnosticResponsesTable).where(
+            and(
+              eq(diagnosticResponsesTable.organizationId, subOrgId),
+              eq(diagnosticResponsesTable.exerciseId, exerciseId),
+            ),
+          ),
+        ),
+      );
+
+      const numSubs = subExercises.length;
+      const perSubScores = allResponsesPerSub.map((rows) => {
+        const map = new Map<string, number>();
+        for (const r of rows) map.set(r.questionId, r.level);
+        return computeSubcategoryScores(map);
+      });
+
+      const merged = ALL_SUBCATEGORIES.map((sub, i) => {
+        const subScores = perSubScores.map((s) => s[i]);
+        const nonNull = subScores.map((s) => s.scorePercent).filter((v): v is number => v !== null);
+        const scorePercent = nonNull.length > 0 ? Math.round(nonNull.reduce((a, b) => a + b, 0) / nonNull.length) : null;
+        const totalAnswered = subScores.reduce((a, s) => a + s.answered, 0);
+        const totalQuestions = sub.questions.length * numSubs;
+        const completeness = totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0;
+        return { subcategoryId: sub.id, categoryId: sub.categoryId, label: sub.label, totalQuestions, answered: totalAnswered, completeness, scorePercent, maturityLabel: getMaturityLabel(scorePercent) };
+      });
+
+      res.json(merged);
+      return;
+    }
+
+    // Single org path
     const responses = await db
       .select()
       .from(diagnosticResponsesTable)
       .where(
         and(
-          eq(diagnosticResponsesTable.organizationId, req.orgId!),
-          eq(diagnosticResponsesTable.exerciseId, req.exercise!.id),
+          eq(diagnosticResponsesTable.organizationId, orgId),
+          eq(diagnosticResponsesTable.exerciseId, exercise.id),
         ),
       );
 
     const responseMap = new Map<string, number>();
-    for (const r of responses) {
-      responseMap.set(r.questionId, r.level);
-    }
+    for (const r of responses) responseMap.set(r.questionId, r.level);
 
-    const scores = ALL_SUBCATEGORIES.map((sub) => {
-      const totalQuestions = sub.questions.length;
-      const answered = sub.questions.filter((q) => responseMap.has(q.id)).length;
-      const sumLevels = sub.questions.reduce((acc, q) => {
-        const level = responseMap.get(q.id);
-        return acc + (level ?? 0);
-      }, 0);
-
-      const completeness = totalQuestions > 0 ? answered / totalQuestions : 0;
-      const hasEnoughData = completeness >= COMPLETENESS_THRESHOLD;
-      const scorePercent = hasEnoughData
-        ? Math.round((sumLevels / (answered * 3)) * 100)
-        : null;
-
-      return {
-        subcategoryId: sub.id,
-        categoryId: sub.categoryId,
-        label: sub.label,
-        totalQuestions,
-        answered,
-        completeness: Math.round(completeness * 100),
-        scorePercent,
-        maturityLabel: getMaturityLabel(scorePercent),
-      };
-    });
-
-    res.json(scores);
+    res.json(computeSubcategoryScores(responseMap));
   },
 );
 
