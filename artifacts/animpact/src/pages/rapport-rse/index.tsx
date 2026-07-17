@@ -3,7 +3,7 @@ import { useModuleContext } from "@/hooks/useModuleContext";
 import {
   useGetReportDraft, useUpdateReportDraft, useGenerateReportAiSection,
 } from "@workspace/api-client-react";
-import type { ReportDraft, ReportDraftUpdate } from "@workspace/api-client-react";
+import type { ReportDraftUpdate, ReportHighlight } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,24 +12,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  AlertCircle, FileBarChart2, Save, CheckCircle2, Loader2, Sparkles,
+  AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles,
   Plus, Trash2, Download, ChevronDown, ChevronRight, FileText,
   Building2, Users2, Leaf, Award, LayoutList, BookOpen, Target,
+  PenLine, Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getGetReportDraftQueryKey } from "@workspace/api-client-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type TimelineEvent = { id: string; date: string; title: string; description: string; photoUrl?: string };
-type Highlight = { id: string; date: string; title: string; category: string; description: string; photos: string[] };
-type InstitutionalPhoto = { url: string; caption?: string };
+type TimelineEvent = { id: string; date: string; title: string; description: string };
+type Highlight = ReportHighlight;
 type LocalDraft = Partial<ReportDraftUpdate> & {
   timeline?: TimelineEvent[];
-  institutionalPhotos?: InstitutionalPhoto[];
   highlights?: Highlight[];
 };
 
@@ -72,26 +70,13 @@ function FieldGroup({ label, hint, children }: { label: string; hint?: string; c
   );
 }
 
-// ─── AI button ────────────────────────────────────────────────────────────────
-
-function AiButton({ onClick, loading, label = "Générer avec l'IA" }: {
-  onClick: () => void; loading?: boolean; label?: string;
-}) {
-  return (
-    <Button type="button" variant="outline" size="sm" onClick={onClick} disabled={loading} className="gap-1.5 border-primary/40 text-primary hover:bg-primary/5">
-      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-      {label}
-    </Button>
-  );
-}
-
 // ─── Timeline events editor ───────────────────────────────────────────────────
 
 function TimelineEditor({ events, onChange }: { events: TimelineEvent[]; onChange: (evts: TimelineEvent[]) => void }) {
   const newId = () => `evt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const add = () => onChange([...events, { id: newId(), date: "", title: "", description: "" }]);
   const remove = (id: string) => onChange(events.filter((e) => e.id !== id));
-  const update = (id: string, field: keyof TimelineEvent, value: string) =>
+  const upd = (id: string, field: keyof TimelineEvent, value: string) =>
     onChange(events.map((e) => e.id === id ? { ...e, [field]: value } : e));
 
   return (
@@ -107,16 +92,16 @@ function TimelineEditor({ events, onChange }: { events: TimelineEvent[]; onChang
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Date / Année</Label>
-              <Input value={evt.date} onChange={(e) => update(evt.id, "date", e.target.value)} placeholder="ex : 2018" className="h-8 text-xs" />
+              <Input value={evt.date} onChange={(e) => upd(evt.id, "date", e.target.value)} placeholder="ex : 2018" className="h-8 text-xs" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Titre</Label>
-              <Input value={evt.title} onChange={(e) => update(evt.id, "title", e.target.value)} placeholder="Création de l'entreprise" className="h-8 text-xs" />
+              <Input value={evt.title} onChange={(e) => upd(evt.id, "title", e.target.value)} placeholder="Création de l'entreprise" className="h-8 text-xs" />
             </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Description</Label>
-            <Textarea value={evt.description} onChange={(e) => update(evt.id, "description", e.target.value)} placeholder="Quelques mots..." rows={2} className="text-xs resize-none" />
+            <Textarea value={evt.description} onChange={(e) => upd(evt.id, "description", e.target.value)} placeholder="Quelques mots..." rows={2} className="text-xs resize-none" />
           </div>
         </div>
       ))}
@@ -129,21 +114,35 @@ function TimelineEditor({ events, onChange }: { events: TimelineEvent[]; onChang
 
 // ─── Highlights editor ────────────────────────────────────────────────────────
 
-const HIGHLIGHT_CATEGORIES = ["Environnement", "Social", "Gouvernance", "Innovation", "Partenariat", "Certifications", "Autre"];
+const HIGHLIGHT_CATEGORIES = [
+  "RSE & Environnement", "Social & RH", "Innovation", "Certifications & Labels",
+  "Team building", "Vie d'équipe", "Célébration", "Partenariat", "Gouvernance", "Autre",
+];
 
-function HighlightEditor({ items, onChange }: { items: Highlight[]; onChange: (items: Highlight[]) => void }) {
+function HighlightEditor({ items, onChange, orgId }: {
+  items: Highlight[];
+  onChange: (items: Highlight[]) => void;
+  orgId: number;
+}) {
   const newId = () => `hl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const add = () => onChange([...items, { id: newId(), date: "", title: "", category: "Autre", description: "", photos: [] }]);
   const remove = (id: string) => onChange(items.filter((h) => h.id !== id));
-  const update = (id: string, field: keyof Highlight, value: string) =>
+  const upd = (id: string, field: keyof Highlight, value: string) =>
     onChange(items.map((h) => h.id === id ? { ...h, [field]: value } : h));
+  const updPhoto = (id: string, url: string) =>
+    onChange(items.map((h) => h.id === id ? { ...h, photos: url ? [url] : [] } : h));
 
   return (
     <div className="space-y-3">
+      {items.length === 0 && (
+        <p className="text-xs text-muted-foreground italic py-2">
+          Aucun moment ajouté. Cela peut être un label obtenu, un événement team building, une naissance, un anniversaire d'entreprise…
+        </p>
+      )}
       {items.map((hl, i) => (
         <div key={hl.id} className="rounded-lg border bg-muted/20 p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Temps fort {i + 1}</span>
+            <span className="text-xs font-medium text-muted-foreground">Moment {i + 1}</span>
             <button onClick={() => remove(hl.id)} className="text-muted-foreground hover:text-destructive transition-colors">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -151,13 +150,13 @@ function HighlightEditor({ items, onChange }: { items: Highlight[]; onChange: (i
           <div className="grid grid-cols-3 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Date</Label>
-              <Input value={hl.date} onChange={(e) => update(hl.id, "date", e.target.value)} placeholder="ex : Mars 2024" className="h-8 text-xs" />
+              <Input value={hl.date} onChange={(e) => upd(hl.id, "date", e.target.value)} placeholder="ex : Mars 2024" className="h-8 text-xs" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Catégorie</Label>
               <select
                 value={hl.category}
-                onChange={(e) => update(hl.id, "category", e.target.value)}
+                onChange={(e) => upd(hl.id, "category", e.target.value)}
                 className="h-8 w-full text-xs rounded-md border bg-background px-2"
               >
                 {HIGHLIGHT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -165,17 +164,33 @@ function HighlightEditor({ items, onChange }: { items: Highlight[]; onChange: (i
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Titre</Label>
-              <Input value={hl.title} onChange={(e) => update(hl.id, "title", e.target.value)} placeholder="Label zéro plastique" className="h-8 text-xs" />
+              <Input value={hl.title} onChange={(e) => upd(hl.id, "title", e.target.value)} placeholder="ex : Journée cohésion" className="h-8 text-xs" />
             </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Description</Label>
-            <Textarea value={hl.description} onChange={(e) => update(hl.id, "description", e.target.value)} rows={2} className="text-xs resize-none" />
+            <Textarea value={hl.description} onChange={(e) => upd(hl.id, "description", e.target.value)} rows={2} className="text-xs resize-none" placeholder="Quelques mots sur ce moment…" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Photo (URL)</Label>
+            <Input
+              value={hl.photos[0] ?? ""}
+              onChange={(e) => updPhoto(hl.id, e.target.value)}
+              placeholder="https://..."
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="pt-0.5">
+            <DocumentUploader
+              orgId={orgId}
+              category="temps-forts"
+              question={`Photo — ${hl.title || `Moment ${i + 1}`}`}
+            />
           </div>
         </div>
       ))}
       <Button type="button" variant="outline" size="sm" onClick={add} className="gap-1.5 w-full">
-        <Plus className="h-3.5 w-3.5" /> Ajouter un temps fort
+        <Plus className="h-3.5 w-3.5" /> Ajouter un moment
       </Button>
     </div>
   );
@@ -204,7 +219,9 @@ export function RapportRse() {
   const { effectiveOrgId, isReadOnly } = useModuleContext("group");
   const orgId = effectiveOrgId;
 
-  const { data: draft, isLoading } = useGetReportDraft(orgId ?? 0, { query: { enabled: orgId != null, queryKey: getGetReportDraftQueryKey(orgId ?? 0) } });
+  const { data: draft, isLoading } = useGetReportDraft(orgId ?? 0, {
+    query: { enabled: orgId != null, queryKey: getGetReportDraftQueryKey(orgId ?? 0) },
+  });
   const { mutateAsync: saveDraft } = useUpdateReportDraft();
   const { mutateAsync: generateAiSection } = useGenerateReportAiSection();
 
@@ -214,7 +231,6 @@ export function RapportRse() {
   const [downloading, setDownloading] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Init local state from server
   useEffect(() => {
     if (draft && Object.keys(local).length === 0) {
       setLocal({
@@ -238,12 +254,9 @@ export function RapportRse() {
         companyKeyFigures: draft.companyKeyFigures ?? "",
         timeline: (draft.timeline as TimelineEvent[]) ?? [],
         orgChartUrl: draft.orgChartUrl ?? "",
-        institutionalPhotos: (draft.institutionalPhotos as InstitutionalPhoto[]) ?? [],
         highlights: (draft.highlights as Highlight[]) ?? [],
         perspectivesMode: draft.perspectivesMode ?? "manual",
         perspectivesContent: draft.perspectivesContent ?? "",
-        reportScope: draft.reportScope ?? "",
-        reportMethodology: draft.reportMethodology ?? "",
       });
     }
   }, [draft]);
@@ -344,6 +357,8 @@ export function RapportRse() {
     { value: "detaillee", label: "Détaillée (200–250 mots)" },
   ];
 
+  const editorialMode = local.editorialMode ?? "manual";
+
   if (!orgId) {
     return (
       <AppLayout>
@@ -425,6 +440,8 @@ export function RapportRse() {
 
                 {/* ── Section 2 : Éditorial ── */}
                 <SectionCard icon={BookOpen} title="Éditorial" subtitle="Message de la direction">
+
+                  {/* Auteur */}
                   <div className="grid grid-cols-2 gap-4">
                     <FieldGroup label="Auteur">
                       <Input value={local.editorialAuthor ?? ""} onChange={(e) => update("editorialAuthor", e.target.value)} placeholder="Prénom Nom" disabled={isReadOnly} />
@@ -434,89 +451,150 @@ export function RapportRse() {
                     </FieldGroup>
                   </div>
 
-                  <FieldGroup label="Ton de l'éditorial">
-                    <div className="flex flex-wrap gap-1.5">
-                      {TONES.map((t) => (
+                  {/* Mode selector */}
+                  {!isReadOnly && (
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">Comment souhaitez-vous rédiger l'éditorial ?</Label>
+                      <div className="grid grid-cols-2 gap-2">
                         <button
-                          key={t}
                           type="button"
-                          onClick={() => !isReadOnly && update("editorialTone", t)}
+                          onClick={() => update("editorialMode", "manual")}
                           className={cn(
-                            "px-2.5 py-1 rounded-full text-xs border transition-colors capitalize",
-                            local.editorialTone === t
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "hover:border-primary/50",
-                          )}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </FieldGroup>
-
-                  <FieldGroup label="Longueur souhaitée">
-                    <div className="flex gap-2 flex-wrap">
-                      {LENGTHS.map((l) => (
-                        <button
-                          key={l.value}
-                          type="button"
-                          onClick={() => !isReadOnly && update("editorialLength", l.value)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-lg text-xs border transition-colors",
-                            local.editorialLength === l.value
-                              ? "bg-primary/10 border-primary text-primary"
+                            "flex items-start gap-3 p-3 rounded-lg border text-left transition-colors",
+                            editorialMode === "manual"
+                              ? "bg-primary/5 border-primary"
                               : "hover:border-muted-foreground/40",
                           )}
                         >
-                          {l.label}
+                          <PenLine className={cn("h-4 w-4 mt-0.5 shrink-0", editorialMode === "manual" ? "text-primary" : "text-muted-foreground")} />
+                          <div>
+                            <p className={cn("text-xs font-semibold", editorialMode === "manual" ? "text-primary" : "")}>Rédiger moi-même</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Saisissez directement votre texte</p>
+                          </div>
                         </button>
-                      ))}
-                    </div>
-                  </FieldGroup>
-
-                  <FieldGroup label="Thématiques à mettre en avant">
-                    <div className="flex flex-wrap gap-1.5">
-                      {EDITORIAL_THEMES.map((t) => (
                         <button
-                          key={t}
                           type="button"
-                          onClick={() => !isReadOnly && toggleTheme(t)}
+                          onClick={() => update("editorialMode", "ai")}
                           className={cn(
-                            "px-2.5 py-1 rounded-full text-xs border transition-colors",
-                            (local.editorialThemes ?? []).includes(t)
-                              ? "bg-green-100 border-green-500 text-green-800"
-                              : "hover:border-primary/50",
+                            "flex items-start gap-3 p-3 rounded-lg border text-left transition-colors",
+                            editorialMode === "ai"
+                              ? "bg-primary/5 border-primary"
+                              : "hover:border-muted-foreground/40",
                           )}
                         >
-                          {t}
+                          <Sparkles className={cn("h-4 w-4 mt-0.5 shrink-0", editorialMode === "ai" ? "text-primary" : "text-muted-foreground")} />
+                          <div>
+                            <p className={cn("text-xs font-semibold", editorialMode === "ai" ? "text-primary" : "")}>Générer avec l'IA</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Paramétrez puis laissez l'IA rédiger</p>
+                          </div>
                         </button>
-                      ))}
+                      </div>
                     </div>
-                  </FieldGroup>
+                  )}
 
-                  <FieldGroup label="Contexte additionnel" hint="Événements clés de l'année, projet phare, message spécifique (optionnel, aide l'IA)">
-                    <Textarea
-                      value={local.editorialContext ?? ""}
-                      onChange={(e) => update("editorialContext", e.target.value)}
-                      rows={2}
-                      placeholder="ex : Cette année a été marquée par l'obtention de notre certification ISO 14001…"
-                      disabled={isReadOnly}
-                      className="resize-none"
-                    />
-                  </FieldGroup>
+                  {/* Options IA — visibles uniquement en mode IA */}
+                  {editorialMode === "ai" && (
+                    <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+                      <FieldGroup label="Ton de l'éditorial">
+                        <div className="flex flex-wrap gap-1.5">
+                          {TONES.map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => !isReadOnly && update("editorialTone", t)}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-xs border transition-colors capitalize",
+                                local.editorialTone === t
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "hover:border-primary/50",
+                              )}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </FieldGroup>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium">Contenu de l'éditorial</Label>
-                      {!isReadOnly && (
-                        <AiButton onClick={handleAiEditorial} loading={aiLoading.editorial} label="Générer avec l'IA" />
-                      )}
+                      <FieldGroup label="Longueur souhaitée">
+                        <div className="flex gap-2 flex-wrap">
+                          {LENGTHS.map((l) => (
+                            <button
+                              key={l.value}
+                              type="button"
+                              onClick={() => !isReadOnly && update("editorialLength", l.value)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-xs border transition-colors",
+                                local.editorialLength === l.value
+                                  ? "bg-primary/10 border-primary text-primary"
+                                  : "hover:border-muted-foreground/40",
+                              )}
+                            >
+                              {l.label}
+                            </button>
+                          ))}
+                        </div>
+                      </FieldGroup>
+
+                      <FieldGroup label="Thématiques à mettre en avant">
+                        <div className="flex flex-wrap gap-1.5">
+                          {EDITORIAL_THEMES.map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => !isReadOnly && toggleTheme(t)}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-xs border transition-colors",
+                                (local.editorialThemes ?? []).includes(t)
+                                  ? "bg-green-100 border-green-500 text-green-800"
+                                  : "hover:border-primary/50",
+                              )}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </FieldGroup>
+
+                      <FieldGroup label="Contexte additionnel" hint="Événements clés de l'année, message spécifique (optionnel)">
+                        <Textarea
+                          value={local.editorialContext ?? ""}
+                          onChange={(e) => update("editorialContext", e.target.value)}
+                          rows={2}
+                          placeholder="ex : Cette année a été marquée par l'obtention de notre certification ISO 14001…"
+                          disabled={isReadOnly}
+                          className="resize-none"
+                        />
+                      </FieldGroup>
+
+                      <Button
+                        type="button"
+                        onClick={handleAiEditorial}
+                        disabled={aiLoading.editorial || isReadOnly}
+                        className="w-full gap-2"
+                        variant="default"
+                        size="sm"
+                      >
+                        {aiLoading.editorial
+                          ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Rédaction en cours…</>
+                          : <><Sparkles className="h-3.5 w-3.5" /> Générer l'éditorial</>}
+                      </Button>
                     </div>
+                  )}
+
+                  {/* Textarea contenu — toujours visible pour éditer ou recevoir le résultat IA */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">
+                      {editorialMode === "ai" ? "Résultat généré (modifiable)" : "Contenu de l'éditorial"}
+                    </Label>
                     <Textarea
                       value={local.editorialContent ?? ""}
                       onChange={(e) => update("editorialContent", e.target.value)}
                       rows={8}
-                      placeholder="Rédigez ici votre éditorial ou cliquez sur « Générer avec l'IA »…"
+                      placeholder={
+                        editorialMode === "ai"
+                          ? "Le texte généré par l'IA apparaîtra ici, vous pourrez ensuite le modifier…"
+                          : "Rédigez ici votre éditorial…"
+                      }
                       disabled={isReadOnly}
                       className="resize-none font-light"
                     />
@@ -620,42 +698,37 @@ export function RapportRse() {
                   )}
                 </SectionCard>
 
-                {/* ── Section 6 : Photos institutionnelles ── */}
-                <SectionCard icon={FileText} title="Photos institutionnelles" subtitle="Galerie d'images pour le rapport">
-                  <FieldGroup label="Photos (URLs)" hint="Une URL par ligne">
-                    <Textarea
-                      value={(local.institutionalPhotos ?? []).map((p) => p.url).join("\n")}
-                      onChange={(e) => {
-                        const urls = e.target.value.split("\n").filter((u) => u.trim());
-                        update("institutionalPhotos", urls.map((url) => ({ url: url.trim() })));
-                      }}
-                      rows={4}
-                      placeholder={"https://...photo1.jpg\nhttps://...photo2.jpg"}
-                      disabled={isReadOnly}
-                      className="resize-none font-mono text-xs"
-                    />
-                  </FieldGroup>
-                </SectionCard>
-
-                {/* ── Section 7 : Temps forts ── */}
-                <SectionCard icon={Award} title="Temps forts de l'année" subtitle="Événements RSE marquants">
+                {/* ── Section 6 : Temps forts ── */}
+                <SectionCard icon={Award} title="Temps forts de l'année" subtitle="Vie d'entreprise & moments clés (RSE, équipe, célébrations…)">
                   {!isReadOnly ? (
                     <HighlightEditor
                       items={local.highlights ?? []}
                       onChange={(items) => update("highlights", items)}
+                      orgId={orgId}
                     />
                   ) : (
                     <p className="text-xs text-muted-foreground italic">Lecture seule.</p>
                   )}
                 </SectionCard>
 
-                {/* ── Section 8 : Perspectives ── */}
+                {/* ── Section 7 : Perspectives ── */}
                 <SectionCard icon={Target} title="Perspectives" subtitle="Engagement et priorités pour l'an prochain">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-medium">Contenu des perspectives</Label>
                       {!isReadOnly && (
-                        <AiButton onClick={handleAiPerspectives} loading={aiLoading.perspectives} label="Générer avec l'IA" />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAiPerspectives}
+                          disabled={aiLoading.perspectives}
+                          className="gap-1.5 border-primary/40 text-primary hover:bg-primary/5"
+                        >
+                          {aiLoading.perspectives
+                            ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Rédaction…</>
+                            : <><Sparkles className="h-3.5 w-3.5" /> Générer avec l'IA</>}
+                        </Button>
                       )}
                     </div>
                     <Textarea
@@ -669,29 +742,30 @@ export function RapportRse() {
                   </div>
                 </SectionCard>
 
-                {/* ── Section 9 : Périmètre & Méthodologie ── */}
-                <SectionCard icon={Leaf} title="Périmètre & Méthodologie" subtitle="Note de bas de rapport">
-                  <FieldGroup label="Périmètre du rapport" hint="Entités, sites, zones géographiques couverts">
-                    <Textarea
-                      value={local.reportScope ?? ""}
-                      onChange={(e) => update("reportScope", e.target.value)}
-                      rows={3}
-                      placeholder="ex : Ce rapport couvre l'ensemble des activités du groupe en France métropolitaine pour l'exercice 2024…"
-                      disabled={isReadOnly}
-                      className="resize-none"
-                    />
-                  </FieldGroup>
-
-                  <FieldGroup label="Méthodologie de collecte" hint="Référentiels, sources, processus de validation">
-                    <Textarea
-                      value={local.reportMethodology ?? ""}
-                      onChange={(e) => update("reportMethodology", e.target.value)}
-                      rows={3}
-                      placeholder="ex : Les données ont été collectées via la plateforme Cocci sur la base de…"
-                      disabled={isReadOnly}
-                      className="resize-none"
-                    />
-                  </FieldGroup>
+                {/* ── Section 8 : Périmètre & Méthodologie (fixe) ── */}
+                <SectionCard icon={Leaf} title="Périmètre & Méthodologie" subtitle="Note générée automatiquement">
+                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                    <div className="flex gap-2.5">
+                      <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div className="space-y-3 text-sm text-muted-foreground">
+                        <div>
+                          <p className="font-medium text-foreground text-xs mb-1">Périmètre</p>
+                          <p className="text-xs leading-relaxed">
+                            Ce rapport couvre l'ensemble des entités du groupe, telles qu'enregistrées dans la plateforme Cocci pour l'exercice concerné.
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground text-xs mb-1">Méthodologie</p>
+                          <p className="text-xs leading-relaxed">
+                            Les données ont été collectées et consolidées via la plateforme Cocci. Ce rapport est produit à des fins internes de pilotage RSE. Il n'est pas établi selon les référentiels normatifs en vigueur (GRI, DPEF, ISO 26000, etc.) et ne constitue pas un reporting réglementaire.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Cette note sera automatiquement incluse en fin de rapport. Elle n'est pas modifiable.
+                  </p>
                 </SectionCard>
               </>
             )}
@@ -703,11 +777,10 @@ export function RapportRse() {
               <div>
                 <h2 className="text-base font-semibold">Générer votre rapport DOCX</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Le rapport intègre automatiquement toutes vos données RSE (bilan carbone, capital humain, diagnostic, plan d'actions, labels, impact score…) ainsi que le contenu éditorial que vous avez préparé ci-dessus.
+                  Le rapport intègre automatiquement toutes vos données RSE (bilan carbone, capital humain, diagnostic, plan d'actions, labels, impact score…) ainsi que le contenu éditorial préparé ci-dessus.
                 </p>
               </div>
 
-              {/* Summary */}
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: "Éditorial", done: !!(local.editorialContent) },
@@ -715,7 +788,7 @@ export function RapportRse() {
                   { label: "Historique", done: (local.timeline?.length ?? 0) > 0 },
                   { label: "Temps forts", done: (local.highlights?.length ?? 0) > 0 },
                   { label: "Perspectives", done: !!(local.perspectivesContent) },
-                  { label: "Périmètre & Méthodo", done: !!(local.reportScope || local.reportMethodology) },
+                  { label: "Périmètre & Méthodo", done: true },
                 ].map((item) => (
                   <div key={item.label} className={cn(
                     "flex items-center gap-2 text-sm p-3 rounded-lg border",
@@ -729,7 +802,7 @@ export function RapportRse() {
 
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                 <p className="text-xs text-amber-800">
-                  <strong>Note :</strong> Les données non renseignées dans les modules RSE (bilan carbone, diagnostic, etc.) apparaîtront avec la mention « Non évalué » dans le rapport. Le contenu éditorial préparé ici sera intégré tel quel.
+                  <strong>Note :</strong> Les données non renseignées dans les modules RSE (bilan carbone, diagnostic, etc.) apparaîtront avec la mention « Non évalué » dans le rapport.
                 </p>
               </div>
 
@@ -751,7 +824,6 @@ export function RapportRse() {
               </p>
             </div>
 
-            {/* Documents archivés */}
             <div className="rounded-xl border bg-card p-5">
               <h3 className="text-sm font-semibold mb-1">Documents archivés</h3>
               <p className="text-xs text-muted-foreground mb-4">
