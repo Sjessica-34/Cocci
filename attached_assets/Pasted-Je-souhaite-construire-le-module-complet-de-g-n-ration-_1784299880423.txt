@@ -1,0 +1,303 @@
+Je souhaite construire le module complet de génération du Rapport RSE de Cocci.
+
+Je joins à ce prompt la structure du rapport que je souhaite obtenir.
+
+IMPORTANT
+
+Cette structure est la référence.
+
+Le plan, les chapitres, leur ordre et leur logique doivent être respectés.
+
+Tu peux proposer des améliorations uniquement si elles améliorent réellement l'expérience utilisateur ou la qualité du rapport, mais tu ne dois pas modifier l'architecture générale sans me demander.
+
+Le rapport V1 concerne uniquement le niveau Groupe.
+
+L'objectif est de produire automatiquement un rapport professionnel au format DOCX (ODT dans un second temps), entièrement modifiable après génération.
+
+Je souhaite également optimiser au maximum les coûts d'utilisation de l'IA.
+
+Le rapport ne doit donc pas être rédigé intégralement par une intelligence artificielle.
+
+L'IA doit uniquement servir à fluidifier la lecture.
+
+Le reste doit provenir directement des données de Cocci.
+
+────────────────────────────────────────
+
+1. INTERFACE DE PRÉPARATION DU RAPPORT
+
+Avant la génération, créer une interface dédiée permettant de préparer le rapport.
+
+Cette interface regroupe uniquement les éléments qui ne proviennent pas automatiquement des modules Cocci.
+
+Elle doit être simple, moderne et organisée par sections.
+
+Les sections attendues sont notamment :
+
+• Informations générales
+• Éditorial
+• Présentation de l'entreprise
+• Historique
+• Organigramme
+• Photos institutionnelles
+• Périmètre du rapport
+• Méthodologie
+• Temps forts
+• Captation carbone
+• Perspectives
+
+Cette liste pourra évoluer selon la structure du rapport fournie.
+
+────────────────────────────────────────
+
+2. INFORMATIONS GÉNÉRALES
+
+Permettre de renseigner :
+
+• logo
+• image de couverture
+• exercice
+• période
+• version du rapport
+
+Ces informations seront utilisées automatiquement lors de la génération.
+
+────────────────────────────────────────
+
+3. ÉDITORIAL
+
+Créer une section spécifique.
+
+L'utilisateur choisit entre deux modes.
+
+Mode 1 :
+
+"Générer avec l'IA"
+
+Afficher :
+
+• auteur
+• fonction
+• ton souhaité
+• longueur
+• messages importants à faire apparaître
+• contexte éventuel
+
+Bouton :
+
+"Générer"
+
+L'IA génère un éditorial.
+
+Une fois généré, il devient entièrement modifiable.
+
+Aucune régénération automatique.
+
+Mode 2 :
+
+"Rédiger moi-même"
+
+Afficher directement un éditeur de texte riche.
+
+Le texte est intégré tel quel dans le rapport.
+
+────────────────────────────────────────
+
+4. PRÉSENTATION DE L'ENTREPRISE
+
+Créer une section permettant de renseigner :
+
+• présentation
+• activité
+• mission
+• vision
+• valeurs
+• chiffres clés
+
+Ces éléments seront intégrés automatiquement dans le rapport.
+
+────────────────────────────────────────
+
+5. HISTORIQUE
+
+Deux possibilités :
+
+• construire l'historique dans Cocci
+
+ou
+
+• importer directement une image
+
+Si l'utilisateur choisit Cocci :
+
+Pouvoir créer une liste d'événements.
+
+Chaque événement contient :
+
+• date
+• titre
+• description
+• photo facultative
+
+Cette liste servira uniquement à générer automatiquement une frise chronologique dans le rapport.
+
+Aucune frise interactive n'est nécessaire dans Cocci.
+
+────────────────────────────────────────
+
+6. ORGANIGRAMME
+
+Permettre simplement d'importer une image.
+
+────────────────────────────────────────
+
+7. PHOTOS
+
+Créer une galerie permettant d'ajouter des photos qui pourront être utilisées dans le rapport.
+
+────────────────────────────────────────
+
+8. TEMPS FORTS
+
+Créer une liste d'événements.
+
+Chaque événement contient :
+
+• date
+• titre
+• catégorie
+• description
+• une ou plusieurs photos
+
+Ces événements seront transformés automatiquement en chronologie illustrée.
+
+────────────────────────────────────────
+
+9. PERSPECTIVES
+
+Même fonctionnement que l'éditorial.
+
+Choix :
+
+• IA
+
+ou
+
+• texte libre
+
+────────────────────────────────────────
+
+10. GÉNÉRATION DU RAPPORT
+
+Le rapport est généré automatiquement au format DOCX.
+
+Le document doit rester entièrement modifiable dans Word.
+
+Le moteur doit suivre la structure du document fourni.
+
+────────────────────────────────────────
+
+11. UTILISATION DES DONNÉES
+
+Le contenu doit être construit principalement à partir :
+
+• des modules Cocci
+• des tableaux
+• des indicateurs
+• des graphiques
+• des images
+• des textes renseignés dans l'interface
+
+L'IA ne doit jamais réécrire toutes ces données.
+
+────────────────────────────────────────
+
+12. UTILISATION DES VISUALISATIONS
+
+Je souhaite réutiliser autant que possible les composants graphiques déjà présents dans Cocci.
+
+Par exemple :
+
+• Impact Score
+• donuts ESG
+• graphiques
+• matrices
+• cartographies
+• tableaux
+• plan d'action
+• graphiques carbone
+• biodiversité
+
+Lorsque cela est pertinent, utiliser une capture haute définition des composants existants plutôt que de recréer les graphiques.
+
+L'objectif est d'obtenir exactement le même rendu entre Cocci et le rapport.
+
+────────────────────────────────────────
+
+13. UTILISATION DE L'IA
+
+L'IA ne doit intervenir que pour générer :
+
+• l'éditorial
+• les introductions de chapitres
+• les conclusions de chapitres
+• les perspectives
+
+Chaque génération IA doit être indépendante.
+
+Ne jamais envoyer l'ensemble du rapport.
+
+Chaque appel ne reçoit que les données utiles au chapitre concerné.
+
+Limiter au maximum les tokens envoyés.
+
+Ne jamais envoyer :
+
+• les autres chapitres
+• les graphiques
+• des tableaux complets
+• des données inutiles
+
+────────────────────────────────────────
+
+14. STRUCTURE D'UN CHAPITRE
+
+Chaque chapitre devra suivre la logique du document fourni.
+
+Dans la mesure du possible, la structure sera :
+
+• titre
+• courte introduction IA (100 à 150 mots)
+• visualisations
+• tableaux
+• graphiques
+• captures des composants Cocci
+• indicateurs
+• comparaisons N/N-1
+• photos éventuelles
+• courte conclusion IA (80 à 120 mots)
+
+Je ne souhaite pas d'analyses longues.
+
+Je ne souhaite pas que l'IA décrive tous les graphiques.
+
+Les visualisations parlent d'elles-mêmes.
+
+L'IA doit uniquement créer une lecture fluide entre les différentes parties.
+
+────────────────────────────────────────
+
+15. OBJECTIF
+
+Je souhaite obtenir un module de génération de rapport :
+
+• professionnel
+• élégant
+• très visuel
+• simple à utiliser
+• facilement maintenable
+• rapide à générer
+• entièrement modifiable après génération
+• extrêmement économique en consommation d'IA
+
+Avant de commencer le développement, analyse la structure du rapport jointe, identifie les données déjà disponibles dans Cocci, celles qui devront être renseignées dans l'interface de préparation et propose, si nécessaire, des améliorations d'ergonomie ou d'architecture avant d'implémenter le module.
