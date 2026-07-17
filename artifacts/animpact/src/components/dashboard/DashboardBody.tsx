@@ -166,6 +166,9 @@ export function DashboardBody({ orgId }: { orgId: number }) {
     s => s.rsePolicy || s.evalComments || s.certifications,
   ).length;
   const respSuppliers = allSuppliers.filter(s => !!s.certifications).length;
+  const certPct       = allSuppliers.length > 0
+    ? Math.round((respSuppliers / allSuppliers.length) * 100)
+    : 0;
 
   // ── Visibilité modules ────────────────────────────────────────────────────
   const showCarbon       = !carbonLoading && !!carbon;
@@ -432,9 +435,14 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                   {evalSuppliers > 0 && (
                     <KpiRow label="Évalués RSE" value={evalSuppliers} />
                   )}
-                  {respSuppliers > 0 && (
-                    <KpiRow label="Certifiés" value={respSuppliers} />
-                  )}
+                  <KpiRow
+                    label="Avec certification"
+                    value={
+                      respSuppliers > 0
+                        ? `${certPct}% (${respSuppliers})`
+                        : "Aucun"
+                    }
+                  />
                 </ModuleCard>
               )}
 
