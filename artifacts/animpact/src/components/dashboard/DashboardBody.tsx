@@ -11,7 +11,24 @@ import {
   useGetEmploymentResults,
   useListLabels,
   useListActionPlan,
+  useGetDiagnosticScores,
+  type DiagnosticSubcategoryScore,
 } from "@workspace/api-client-react";
+
+// ─── Diagnostic axis score helper ────────────────────────────────────────────
+
+function axisScore(scores: DiagnosticSubcategoryScore[], catId: string): number | null {
+  const cat = scores.filter(s => s.categoryId === catId && s.scorePercent != null);
+  if (cat.length === 0) return null;
+  return Math.round(cat.reduce((sum, s) => sum + (s.scorePercent ?? 0), 0) / cat.length);
+}
+
+function axisProgress(scores: DiagnosticSubcategoryScore[], catId: string): number {
+  const cat = scores.filter(s => s.categoryId === catId);
+  const total = cat.reduce((s, x) => s + x.totalQuestions, 0);
+  const answered = cat.reduce((s, x) => s + x.answered, 0);
+  return total > 0 ? Math.round((answered / total) * 100) : 0;
+}
 
 // ─── Carbon total helper ──────────────────────────────────────────────────────
 
@@ -87,6 +104,16 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   // ── Ligne 1 ────────────────────────────────────────────────────────────────
   const { data: labels,  isLoading: labelsLoading  } = useListLabels(orgId);
   const { data: actions, isLoading: actionsLoading } = useListActionPlan(orgId);
+
+  // ── Ligne 2 : scores diagnostic ───────────────────────────────────────────
+  const { data: diagScores, isLoading: diagLoading } = useGetDiagnosticScores(orgId);
+
+  const envScore  = diagScores ? axisScore(diagScores, "ENV")  : null;
+  const socScore  = diagScores ? axisScore(diagScores, "SOC")  : null;
+  const govScore  = diagScores ? axisScore(diagScores, "GOV")  : null;
+  const envProg   = diagScores ? axisProgress(diagScores, "ENV")  : 0;
+  const socProg   = diagScores ? axisProgress(diagScores, "SOC")  : 0;
+  const govProg   = diagScores ? axisProgress(diagScores, "GOV")  : 0;
 
   // ── Ligne 3 ────────────────────────────────────────────────────────────────
   const { data: carbon,       isLoading: carbonLoading } = useGetCarbonBilan(orgId);
@@ -260,13 +287,23 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pt-2 pb-4">
-                <div className="relative">
-                  <ProgressRing pct={0} color="#10B981" />
-                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-emerald-700">
-                    —
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 text-center">Diagnostic non commencé</p>
+                {diagLoading ? (
+                  <Skeleton className="h-[72px] w-[72px] rounded-full" />
+                ) : (
+                  <div className="relative">
+                    <ProgressRing pct={envScore ?? envProg} color="#10B981" />
+                    <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-emerald-700">
+                      {envScore != null ? `${envScore}%` : envProg > 0 ? `${envProg}%` : "—"}
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  {envScore != null
+                    ? "Score maturité"
+                    : envProg > 0
+                      ? `${envProg}% de progression`
+                      : "Diagnostic non commencé"}
+                </p>
               </CardContent>
             </Card>
           </Link>
@@ -279,13 +316,23 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pt-2 pb-4">
-                <div className="relative">
-                  <ProgressRing pct={0} color="#3B82F6" />
-                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-blue-700">
-                    —
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 text-center">Diagnostic non commencé</p>
+                {diagLoading ? (
+                  <Skeleton className="h-[72px] w-[72px] rounded-full" />
+                ) : (
+                  <div className="relative">
+                    <ProgressRing pct={socScore ?? socProg} color="#3B82F6" />
+                    <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-blue-700">
+                      {socScore != null ? `${socScore}%` : socProg > 0 ? `${socProg}%` : "—"}
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  {socScore != null
+                    ? "Score maturité"
+                    : socProg > 0
+                      ? `${socProg}% de progression`
+                      : "Diagnostic non commencé"}
+                </p>
               </CardContent>
             </Card>
           </Link>
@@ -298,13 +345,23 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pt-2 pb-4">
-                <div className="relative">
-                  <ProgressRing pct={0} color="#8B5CF6" />
-                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-violet-700">
-                    —
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 text-center">Diagnostic non commencé</p>
+                {diagLoading ? (
+                  <Skeleton className="h-[72px] w-[72px] rounded-full" />
+                ) : (
+                  <div className="relative">
+                    <ProgressRing pct={govScore ?? govProg} color="#8B5CF6" />
+                    <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-violet-700">
+                      {govScore != null ? `${govScore}%` : govProg > 0 ? `${govProg}%` : "—"}
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  {govScore != null
+                    ? "Score maturité"
+                    : govProg > 0
+                      ? `${govProg}% de progression`
+                      : "Diagnostic non commencé"}
+                </p>
               </CardContent>
             </Card>
           </Link>
