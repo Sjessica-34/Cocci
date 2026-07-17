@@ -22,6 +22,7 @@ import employmentRouter from "./employment";
 import actionPlanRouter from "./actionPlan";
 import planSlotsRouter from "./planSlots";
 import diagnosticRouter from "./diagnostic";
+import reportDraftRouter from "./reportDraft";
 
 const router: IRouter = Router();
 
@@ -48,5 +49,6 @@ router.use(employmentRouter);
 router.use(actionPlanRouter);
 router.use(planSlotsRouter);
 router.use(diagnosticRouter);
+router.use(reportDraftRouter);
 
 export default router;

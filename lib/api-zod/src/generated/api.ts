@@ -3294,3 +3294,185 @@ export const DeleteCaptationCarboneParams = zod.object({
 export const DeleteCaptationCarboneResponse = zod.void()
 
 
+/**
+ * @summary Get the RSE report draft for an organization
+ */
+export const GetReportDraftParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetReportDraftResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "coverImageUrl": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "period": zod.string().nullish(),
+  "editorialMode": zod.string().nullish(),
+  "editorialAuthor": zod.string().nullish(),
+  "editorialAuthorRole": zod.string().nullish(),
+  "editorialCoSigned": zod.boolean().nullish(),
+  "editorialTone": zod.string().nullish(),
+  "editorialThemes": zod.array(zod.string()).nullish(),
+  "editorialLength": zod.string().nullish(),
+  "editorialContext": zod.string().nullish(),
+  "editorialContent": zod.string().nullish(),
+  "companyDescription": zod.string().nullish(),
+  "companyMission": zod.string().nullish(),
+  "isMissionEntreprise": zod.boolean().nullish(),
+  "companyVision": zod.string().nullish(),
+  "companyValues": zod.string().nullish(),
+  "companyKeyFigures": zod.string().nullish(),
+  "timeline": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "photoUrl": zod.string().nullish()
+})).nullish(),
+  "orgChartUrl": zod.string().nullish(),
+  "institutionalPhotos": zod.array(zod.object({
+  "url": zod.string(),
+  "caption": zod.string().nullish()
+})).nullish(),
+  "highlights": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.string(),
+  "title": zod.string(),
+  "category": zod.string(),
+  "description": zod.string(),
+  "photos": zod.array(zod.string())
+})).nullish(),
+  "perspectivesMode": zod.string().nullish(),
+  "perspectivesContent": zod.string().nullish(),
+  "reportScope": zod.string().nullish(),
+  "reportMethodology": zod.string().nullish(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Create or update the RSE report draft
+ */
+export const UpdateReportDraftParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const UpdateReportDraftBody = zod.object({
+  "coverImageUrl": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "period": zod.string().nullish(),
+  "editorialMode": zod.string().nullish(),
+  "editorialAuthor": zod.string().nullish(),
+  "editorialAuthorRole": zod.string().nullish(),
+  "editorialCoSigned": zod.boolean().nullish(),
+  "editorialTone": zod.string().nullish(),
+  "editorialThemes": zod.array(zod.string()).nullish(),
+  "editorialLength": zod.string().nullish(),
+  "editorialContext": zod.string().nullish(),
+  "editorialContent": zod.string().nullish(),
+  "companyDescription": zod.string().nullish(),
+  "companyMission": zod.string().nullish(),
+  "isMissionEntreprise": zod.boolean().nullish(),
+  "companyVision": zod.string().nullish(),
+  "companyValues": zod.string().nullish(),
+  "companyKeyFigures": zod.string().nullish(),
+  "timeline": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "photoUrl": zod.string().nullish()
+})).nullish(),
+  "orgChartUrl": zod.string().nullish(),
+  "institutionalPhotos": zod.array(zod.object({
+  "url": zod.string(),
+  "caption": zod.string().nullish()
+})).nullish(),
+  "highlights": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.string(),
+  "title": zod.string(),
+  "category": zod.string(),
+  "description": zod.string(),
+  "photos": zod.array(zod.string())
+})).nullish(),
+  "perspectivesMode": zod.string().nullish(),
+  "perspectivesContent": zod.string().nullish(),
+  "reportScope": zod.string().nullish(),
+  "reportMethodology": zod.string().nullish()
+})
+
+export const UpdateReportDraftResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "exerciseId": zod.number(),
+  "coverImageUrl": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "period": zod.string().nullish(),
+  "editorialMode": zod.string().nullish(),
+  "editorialAuthor": zod.string().nullish(),
+  "editorialAuthorRole": zod.string().nullish(),
+  "editorialCoSigned": zod.boolean().nullish(),
+  "editorialTone": zod.string().nullish(),
+  "editorialThemes": zod.array(zod.string()).nullish(),
+  "editorialLength": zod.string().nullish(),
+  "editorialContext": zod.string().nullish(),
+  "editorialContent": zod.string().nullish(),
+  "companyDescription": zod.string().nullish(),
+  "companyMission": zod.string().nullish(),
+  "isMissionEntreprise": zod.boolean().nullish(),
+  "companyVision": zod.string().nullish(),
+  "companyValues": zod.string().nullish(),
+  "companyKeyFigures": zod.string().nullish(),
+  "timeline": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "photoUrl": zod.string().nullish()
+})).nullish(),
+  "orgChartUrl": zod.string().nullish(),
+  "institutionalPhotos": zod.array(zod.object({
+  "url": zod.string(),
+  "caption": zod.string().nullish()
+})).nullish(),
+  "highlights": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.string(),
+  "title": zod.string(),
+  "category": zod.string(),
+  "description": zod.string(),
+  "photos": zod.array(zod.string())
+})).nullish(),
+  "perspectivesMode": zod.string().nullish(),
+  "perspectivesContent": zod.string().nullish(),
+  "reportScope": zod.string().nullish(),
+  "reportMethodology": zod.string().nullish(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Generate AI text for a report section
+ */
+export const GenerateReportAiSectionParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GenerateReportAiSectionBody = zod.object({
+  "section": zod.string(),
+  "tone": zod.string().nullish(),
+  "length": zod.string().nullish(),
+  "author": zod.string().nullish(),
+  "authorRole": zod.string().nullish(),
+  "themes": zod.array(zod.string()).nullish(),
+  "context": zod.string().nullish(),
+  "data": zod.record(zod.string(), zod.unknown()).nullish()
+})
+
+export const GenerateReportAiSectionResponse = zod.object({
+  "content": zod.string()
+})
+
+

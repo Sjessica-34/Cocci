@@ -101,6 +101,10 @@ import type {
   PublicBarometreQuestionnaire,
   PublicBarometreSubmission,
   PublicBarometreSubmissionAck,
+  ReportAiSectionInput,
+  ReportAiSectionResponse,
+  ReportDraft,
+  ReportDraftUpdate,
   Resource,
   ResourceInput,
   ResourcePublishUpdate,
@@ -8163,5 +8167,224 @@ export const useDeleteCaptationCarbone = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteCaptationCarboneMutationOptions(options));
+    }
+
+export const getGetReportDraftUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/report-draft`
+}
+
+/**
+ * @summary Get the RSE report draft for an organization
+ */
+export const getReportDraft = async (orgId: number, options?: RequestInit): Promise<ReportDraft> => {
+
+  return customFetch<ReportDraft>(getGetReportDraftUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReportDraftQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/report-draft`
+    ] as const;
+    }
+
+
+export const getGetReportDraftQueryOptions = <TData = Awaited<ReturnType<typeof getReportDraft>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReportDraft>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReportDraftQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReportDraft>>> = ({ signal }) => getReportDraft(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReportDraft>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetReportDraftQueryResult = NonNullable<Awaited<ReturnType<typeof getReportDraft>>>
+export type GetReportDraftQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the RSE report draft for an organization
+ */
+
+export function useGetReportDraft<TData = Awaited<ReturnType<typeof getReportDraft>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReportDraft>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetReportDraftQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateReportDraftUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/report-draft`
+}
+
+/**
+ * @summary Create or update the RSE report draft
+ */
+export const updateReportDraft = async (orgId: number,
+    reportDraftUpdate: ReportDraftUpdate, options?: RequestInit): Promise<ReportDraft> => {
+
+  return customFetch<ReportDraft>(getUpdateReportDraftUrl(orgId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reportDraftUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateReportDraftMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReportDraft>>, TError,{orgId: number;data: BodyType<ReportDraftUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateReportDraft>>, TError,{orgId: number;data: BodyType<ReportDraftUpdate>}, TContext> => {
+
+const mutationKey = ['updateReportDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateReportDraft>>, {orgId: number;data: BodyType<ReportDraftUpdate>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  updateReportDraft(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateReportDraftMutationResult = NonNullable<Awaited<ReturnType<typeof updateReportDraft>>>
+    export type UpdateReportDraftMutationBody = BodyType<ReportDraftUpdate>
+    export type UpdateReportDraftMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or update the RSE report draft
+ */
+export const useUpdateReportDraft = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReportDraft>>, TError,{orgId: number;data: BodyType<ReportDraftUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateReportDraft>>,
+        TError,
+        {orgId: number;data: BodyType<ReportDraftUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateReportDraftMutationOptions(options));
+    }
+
+export const getGenerateReportAiSectionUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/report/ai-section`
+}
+
+/**
+ * @summary Generate AI text for a report section
+ */
+export const generateReportAiSection = async (orgId: number,
+    reportAiSectionInput: ReportAiSectionInput, options?: RequestInit): Promise<ReportAiSectionResponse> => {
+
+  return customFetch<ReportAiSectionResponse>(getGenerateReportAiSectionUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reportAiSectionInput)
+  }
+);}
+
+
+
+
+export const getGenerateReportAiSectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateReportAiSection>>, TError,{orgId: number;data: BodyType<ReportAiSectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateReportAiSection>>, TError,{orgId: number;data: BodyType<ReportAiSectionInput>}, TContext> => {
+
+const mutationKey = ['generateReportAiSection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateReportAiSection>>, {orgId: number;data: BodyType<ReportAiSectionInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  generateReportAiSection(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateReportAiSectionMutationResult = NonNullable<Awaited<ReturnType<typeof generateReportAiSection>>>
+    export type GenerateReportAiSectionMutationBody = BodyType<ReportAiSectionInput>
+    export type GenerateReportAiSectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate AI text for a report section
+ */
+export const useGenerateReportAiSection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateReportAiSection>>, TError,{orgId: number;data: BodyType<ReportAiSectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateReportAiSection>>,
+        TError,
+        {orgId: number;data: BodyType<ReportAiSectionInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateReportAiSectionMutationOptions(options));
     }
 

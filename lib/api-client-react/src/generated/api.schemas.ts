@@ -1951,3 +1951,104 @@ export interface DiagnosticConsolidatedEntry {
   scores: DiagnosticSubcategoryScore[];
 }
 
+export interface ReportTimelineEvent {
+  id: string;
+  date: string;
+  title: string;
+  description: string;
+  photoUrl?: string | null;
+}
+
+export interface ReportHighlight {
+  id: string;
+  date: string;
+  title: string;
+  category: string;
+  description: string;
+  photos: string[];
+}
+
+export interface ReportPhoto {
+  url: string;
+  caption?: string | null;
+}
+
+export interface ReportDraft {
+  id: number;
+  organizationId: number;
+  exerciseId: number;
+  coverImageUrl?: string | null;
+  version?: string | null;
+  period?: string | null;
+  editorialMode?: string | null;
+  editorialAuthor?: string | null;
+  editorialAuthorRole?: string | null;
+  editorialCoSigned?: boolean | null;
+  editorialTone?: string | null;
+  editorialThemes?: string[] | null;
+  editorialLength?: string | null;
+  editorialContext?: string | null;
+  editorialContent?: string | null;
+  companyDescription?: string | null;
+  companyMission?: string | null;
+  isMissionEntreprise?: boolean | null;
+  companyVision?: string | null;
+  companyValues?: string | null;
+  companyKeyFigures?: string | null;
+  timeline?: ReportTimelineEvent[] | null;
+  orgChartUrl?: string | null;
+  institutionalPhotos?: ReportPhoto[] | null;
+  highlights?: ReportHighlight[] | null;
+  perspectivesMode?: string | null;
+  perspectivesContent?: string | null;
+  reportScope?: string | null;
+  reportMethodology?: string | null;
+  updatedAt: string;
+}
+
+export interface ReportDraftUpdate {
+  coverImageUrl?: string | null;
+  version?: string | null;
+  period?: string | null;
+  editorialMode?: string | null;
+  editorialAuthor?: string | null;
+  editorialAuthorRole?: string | null;
+  editorialCoSigned?: boolean | null;
+  editorialTone?: string | null;
+  editorialThemes?: string[] | null;
+  editorialLength?: string | null;
+  editorialContext?: string | null;
+  editorialContent?: string | null;
+  companyDescription?: string | null;
+  companyMission?: string | null;
+  isMissionEntreprise?: boolean | null;
+  companyVision?: string | null;
+  companyValues?: string | null;
+  companyKeyFigures?: string | null;
+  timeline?: ReportTimelineEvent[] | null;
+  orgChartUrl?: string | null;
+  institutionalPhotos?: ReportPhoto[] | null;
+  highlights?: ReportHighlight[] | null;
+  perspectivesMode?: string | null;
+  perspectivesContent?: string | null;
+  reportScope?: string | null;
+  reportMethodology?: string | null;
+}
+
+export type ReportAiSectionInputData = { [key: string]: unknown } | null;
+
+export interface ReportAiSectionInput {
+  section: string;
+  tone?: string | null;
+  length?: string | null;
+  author?: string | null;
+  authorRole?: string | null;
+  themes?: string[] | null;
+  context?: string | null;
+  data?: ReportAiSectionInputData;
+}
+
+export interface ReportAiSectionResponse {
+  content: string;
+}
+
