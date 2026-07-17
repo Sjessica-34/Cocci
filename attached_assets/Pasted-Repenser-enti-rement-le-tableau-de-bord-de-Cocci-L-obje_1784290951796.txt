@@ -1,0 +1,228 @@
+Repenser entièrement le tableau de bord de Cocci.
+
+L'objectif est d'avoir UN SEUL tableau de bord utilisé partout.
+
+Il doit être strictement identique que l'utilisateur consulte :
+
+• une entreprise ;
+• une filiale ;
+• un groupe.
+
+La seule chose qui change est la source des données affichées.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRINCIPE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le tableau de bord ne doit jamais changer de structure.
+
+Les widgets restent toujours au même endroit.
+
+Chaque widget récupère automatiquement les données correspondant au contexte sélectionné.
+
+Exemple :
+
+Vue Groupe
+→ données consolidées.
+
+Vue Filiale
+→ données de la filiale.
+
+Certains widgets (comme l'Impact Score) utilisent toujours les données du groupe.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LIGNE 1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4 cartes de synthèse.
+
+🌍 Impact Score
+
+• Score
+• Niveau
+• Date de mise à jour
+
+Toujours afficher les données du groupe.
+
+Même lorsqu'une filiale est sélectionnée.
+
+━━━━━━━━━━━━━━━━━━━━
+
+🌱 Maturité RSE
+
+• %
+• Niveau
+
+Données :
+
+• Groupe → consolidées
+• Filiale → filiale
+
+━━━━━━━━━━━━━━━━━━━━
+
+📋 Plan d'action
+
+Afficher :
+
+• nombre d'actions
+• actions réalisées
+• taux d'avancement
+
+Données :
+
+• Groupe → consolidées
+• Filiale → filiale
+
+━━━━━━━━━━━━━━━━━━━━
+
+🏅 Labels & Certifications
+
+Afficher :
+
+• nombre obtenu
+• nombre en cours
+
+Données :
+
+• Groupe → consolidées
+• Filiale → filiale
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LIGNE 2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Afficher les trois donuts.
+
+🌿 Environnement
+
+👥 Social
+
+🏛 Gouvernance
+
+Les couleurs doivent être celles définies dans le diagnostic.
+
+Un clic ouvre les sous-catégories.
+
+Un clic supplémentaire ouvre les questions du diagnostic.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LIGNE 3
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Afficher les principaux modules sous forme de cartes.
+
+Chaque carte affiche les indicateurs clés du module.
+
+Exemple :
+
+🌍 Bilan carbone
+
+• émissions totales
+• évolution N/N-1 si disponible
+
+━━━━━━━━━━━━━━
+
+🌿 Dépendances à la biodiversité
+
+• ressources
+• activités
+• acteurs
+• lieux
+• connexions
+
+━━━━━━━━━━━━━━
+
+👥 Parties prenantes
+
+• nombre de parties prenantes
+
+━━━━━━━━━━━━━━
+
+🤝 Achats responsables
+
+• fournisseurs évalués
+• fournisseurs responsables
+
+━━━━━━━━━━━━━━
+
+💻 Numérique responsable
+
+• score
+• niveau
+
+━━━━━━━━━━━━━━
+
+👤 Capital humain
+
+• effectif
+• taux de formation
+• etc.
+
+Chaque module doit pouvoir être masqué automatiquement s'il n'est pas encore utilisé.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LIGNE 4
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Évolution des indicateurs.
+
+Afficher uniquement si l'exercice N-1 existe.
+
+Comparer automatiquement :
+
+N
+
+vs
+
+N-1
+
+Sinon masquer complètement cette section.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAVIGATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Toutes les cartes du tableau de bord sont cliquables.
+
+Un clic ouvre directement le module correspondant.
+
+Exemple :
+
+clic sur
+
+Bilan carbone
+
+↓
+
+ouvre le module Bilan carbone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le tableau de bord doit rester extrêmement lisible.
+
+Ne pas ajouter :
+
+• fil d'actualité
+• dernières activités
+• notifications
+• suggestions IA
+• échéances
+• journal des modifications
+
+Le tableau de bord est un outil de pilotage, pas un centre de notifications.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RÈGLE GÉNÉRALE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Le tableau de bord est identique pour :
+
+• Groupe
+• Maison mère
+• Filiale
+
+Seules les données changent.
+
+L'utilisateur doit toujours retrouver la même interface.
