@@ -226,7 +226,7 @@ router.post("/organizations/:orgId/report/ai-section", requireAuth, requireOrgMe
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 400,
+        max_completion_tokens: 400,
         temperature: 0.7,
       }),
     });
