@@ -13,6 +13,7 @@ import {
   useListActionPlan,
   useGetDiagnosticScores,
   useGetDashboardSummary,
+  useGetImpactScoreResult,
   type DiagnosticSubcategoryScore,
   type DashboardSummary,
   type DashboardIndicator,
@@ -201,6 +202,17 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   const socProg   = diagScores ? axisProgress(diagScores, "SOC")  : 0;
   const govProg   = diagScores ? axisProgress(diagScores, "GOV")  : 0;
 
+  const overallDiagScore = (() => {
+    const nonNull = [envScore, socScore, govScore].filter((v): v is number => v !== null);
+    return nonNull.length > 0 ? Math.round(nonNull.reduce((a, b) => a + b, 0) / nonNull.length) : null;
+  })();
+  const overallDiagProg = diagScores
+    ? Math.round((diagScores.reduce((s, x) => s + x.answered, 0) / diagScores.reduce((s, x) => s + x.totalQuestions, 0)) * 100)
+    : 0;
+
+  // ── Impact Score ───────────────────────────────────────────────────────────
+  const { data: impactData, isLoading: impactLoading } = useGetImpactScoreResult(orgId);
+
   // ── Ligne 3 ────────────────────────────────────────────────────────────────
   const { data: carbon,       isLoading: carbonLoading } = useGetCarbonBilan(orgId);
   const { data: bioDeps,      isLoading: bioLoading    } = useListBioDependencies(orgId);
@@ -292,8 +304,19 @@ export function DashboardBody({ orgId }: { orgId: number }) {
               <ArrowUpRight className="h-4 w-4 text-orange-400 group-hover:text-orange-600 transition-colors shrink-0" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-orange-500">—</p>
-              <p className="text-xs text-muted-foreground mt-1">Module à configurer</p>
+              {impactLoading ? (
+                <Skeleton className="h-9 w-24 mb-1" />
+              ) : impactData?.result ? (
+                <>
+                  <p className="text-3xl font-bold text-orange-500">{impactData.result.score}<span className="text-base font-normal text-muted-foreground">/100</span></p>
+                  <p className="text-xs text-muted-foreground mt-1">Score renseigné</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-bold text-orange-300">—</p>
+                  <p className="text-xs text-muted-foreground mt-1">Non renseigné</p>
+                </>
+              )}
             </CardContent>
           </Card>
         </Link>
@@ -306,8 +329,24 @@ export function DashboardBody({ orgId }: { orgId: number }) {
               <ArrowUpRight className="h-4 w-4 text-emerald-400 group-hover:text-emerald-600 transition-colors shrink-0" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-emerald-700">—</p>
-              <p className="text-xs text-muted-foreground mt-1">Commencer le diagnostic</p>
+              {diagLoading ? (
+                <Skeleton className="h-9 w-24 mb-1" />
+              ) : overallDiagScore != null ? (
+                <>
+                  <p className="text-3xl font-bold text-emerald-700">{overallDiagScore}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Score global ENV · SOC · GOV</p>
+                </>
+              ) : overallDiagProg > 0 ? (
+                <>
+                  <p className="text-3xl font-bold text-emerald-400">{overallDiagProg}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Avancement diagnostic</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-bold text-emerald-200">—</p>
+                  <p className="text-xs text-muted-foreground mt-1">Commencer le diagnostic</p>
+                </>
+              )}
             </CardContent>
           </Card>
         </Link>
