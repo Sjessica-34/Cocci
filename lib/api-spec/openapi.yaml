@@ -339,6 +339,30 @@ paths:
           content:
             application/json:
               schema:
+                $ref: "#/components/schemas/OrganizationDashboard"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /organizations/{orgId}/dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Agrégat KPI N/N-1 pour tous les modules RSE
+      description: Retourne les indicateurs clés de chaque module RSE pour l'exercice courant et le précédent.
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dashboard summary par module
+          content:
+            application/json:
+              schema:
                 $ref: "#/components/schemas/DashboardSummary"
         "401":
           description: Unauthorized
@@ -3797,7 +3821,7 @@ components:
         strategieImpactPositif:
           type: ["integer", "null"]
 
-    DashboardSummary:
+    OrganizationDashboard:
       type: object
       required: [organizationId, memberCount, activeModules, completionRate]
       properties:
@@ -3813,6 +3837,53 @@ components:
         lastActivityAt:
           type: ["string", "null"]
           format: date-time
+
+    DashboardIndicator:
+      type: object
+      required: [key, label, unit, current, previous]
+      properties:
+        key:
+          type: string
+          description: "Identifiant unique dans le module (ex: totalEmissions, headcount)"
+        label:
+          type: string
+          description: "Libellé affiché"
+        unit:
+          type: ["string", "null"]
+          description: "Unité d'affichage (tCO₂e, %, null pour les comptes)"
+        current:
+          type: ["number", "null"]
+          description: "Valeur exercice courant"
+        previous:
+          type: ["number", "null"]
+          description: "Valeur exercice précédent ; null si aucun exercice N-1"
+
+    DashboardModuleSummary:
+      type: object
+      required: [key, indicators]
+      properties:
+        key:
+          type: string
+          description: "Clé du module RSE (carbon, diagnostic, stakeholders, suppliers, bio, actions, labels, nr, employment)"
+        indicators:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardIndicator"
+
+    DashboardSummary:
+      type: object
+      required: [currentYear, previousYear, modules]
+      properties:
+        currentYear:
+          type: integer
+          description: "Année de l'exercice courant"
+        previousYear:
+          type: ["integer", "null"]
+          description: "Année de l'exercice précédent ; null si inexistant"
+        modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardModuleSummary"
 
     # ─── BAROMÈTRE SOCIAL ───────────────────────────────────────────────────────
     BarometreCampaign:

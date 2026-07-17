@@ -91,6 +91,7 @@ import type {
   NrData,
   NrDataInput,
   Organization,
+  OrganizationDashboard,
   OrganizationInput,
   OrganizationUpdate,
   PlanAchievement,
@@ -1045,9 +1046,9 @@ export const getGetOrganizationDashboardUrl = (id: number,) => {
  * Returns key RSE metrics summary — member count, active modules, completion rate
  * @summary Get dashboard summary for an organization
  */
-export const getOrganizationDashboard = async (id: number, options?: RequestInit): Promise<DashboardSummary> => {
+export const getOrganizationDashboard = async (id: number, options?: RequestInit): Promise<OrganizationDashboard> => {
 
-  return customFetch<DashboardSummary>(getGetOrganizationDashboardUrl(id),
+  return customFetch<OrganizationDashboard>(getGetOrganizationDashboardUrl(id),
   {
     ...options,
     method: 'GET'
@@ -1099,6 +1100,84 @@ export function useGetOrganizationDashboard<TData = Awaited<ReturnType<typeof ge
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetOrganizationDashboardQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDashboardSummaryUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/dashboard/summary`
+}
+
+/**
+ * Retourne les indicateurs clés de chaque module RSE pour l'exercice courant et le précédent.
+ * @summary Agrégat KPI N/N-1 pour tous les modules RSE
+ */
+export const getDashboardSummary = async (orgId: number, options?: RequestInit): Promise<DashboardSummary> => {
+
+  return customFetch<DashboardSummary>(getGetDashboardSummaryUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDashboardSummaryQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/dashboard/summary`
+    ] as const;
+    }
+
+
+export const getGetDashboardSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDashboardSummaryQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardSummary>>> = ({ signal }) => getDashboardSummary(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDashboardSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardSummary>>>
+export type GetDashboardSummaryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Agrégat KPI N/N-1 pour tous les modules RSE
+ */
+
+export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDashboardSummaryQueryOptions(orgId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

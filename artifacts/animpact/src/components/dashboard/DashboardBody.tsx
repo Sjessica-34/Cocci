@@ -12,7 +12,10 @@ import {
   useListLabels,
   useListActionPlan,
   useGetDiagnosticScores,
+  useGetDashboardSummary,
   type DiagnosticSubcategoryScore,
+  type DashboardSummary,
+  type DashboardIndicator,
 } from "@workspace/api-client-react";
 
 // ─── Diagnostic axis score helper ────────────────────────────────────────────
@@ -40,6 +43,89 @@ const CARBON_SCOPE_KEYS = [
 
 function computeCarbonTotal(b: Record<string, unknown>): number {
   return CARBON_SCOPE_KEYS.reduce((sum, k) => sum + (Number(b[k]) || 0), 0);
+}
+
+// ─── N/N-1 helpers ───────────────────────────────────────────────────────────
+
+function findInd(
+  modules: DashboardSummary["modules"],
+  moduleKey: string,
+  indicatorKey: string,
+): DashboardIndicator | null {
+  return (
+    modules
+      .find((m) => m.key === moduleKey)
+      ?.indicators.find((i) => i.key === indicatorKey) ?? null
+  );
+}
+
+interface TrendDef {
+  module: string;
+  key: string;
+  icon: string;
+  label: string;
+  inverse?: boolean;
+}
+
+const TREND_INDICATORS: TrendDef[] = [
+  { module: "carbon",     key: "totalEmissions", icon: "🌍", label: "Émissions carbone",        inverse: true  },
+  { module: "diagnostic", key: "envScore",        icon: "🌿", label: "Score ENV",                inverse: false },
+  { module: "diagnostic", key: "socScore",        icon: "👥", label: "Score SOC",                inverse: false },
+  { module: "diagnostic", key: "govScore",        icon: "🏛",  label: "Score GOV",                inverse: false },
+  { module: "suppliers",  key: "certifiedPct",    icon: "🤝", label: "Fournisseurs certifiés",   inverse: false },
+  { module: "actions",    key: "completionRate",  icon: "📋", label: "Taux d'actions",           inverse: false },
+  { module: "employment", key: "headcount",       icon: "👤", label: "Effectif",                 inverse: false },
+  { module: "nr",         key: "score",           icon: "💻", label: "Score NR",                 inverse: false },
+  { module: "labels",     key: "obtained",        icon: "🏅", label: "Labels obtenus",           inverse: false },
+];
+
+function formatVal(v: number | null, unit: string | null): string {
+  if (v == null) return "—";
+  if (unit === "%") return `${Math.round(v)} %`;
+  if (unit === "tCO₂e")
+    return `${v.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} tCO₂e`;
+  return `${Math.round(v)}`;
+}
+
+function TrendCard({ def, ind }: { def: TrendDef; ind: DashboardIndicator }) {
+  const { current, previous, unit } = ind;
+  const delta = current != null && previous != null ? current - previous : null;
+  const hasDelta = delta != null;
+  const isPositive = hasDelta ? (def.inverse ? delta < 0 : delta > 0) : null;
+
+  const deltaLabel = (() => {
+    if (!hasDelta || delta === 0) return null;
+    const abs = Math.abs(delta);
+    const sign = delta > 0 ? "▲" : "▼";
+    if (unit === "%") return `${sign} ${Math.round(abs)} pt`;
+    if (unit === "tCO₂e")
+      return `${sign} ${abs.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} ${unit}`;
+    return `${sign} ${Math.round(abs)}`;
+  })();
+
+  return (
+    <Card className="p-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="text-base leading-none">{def.icon}</span>
+        <span className="text-xs text-muted-foreground font-medium truncate">{def.label}</span>
+      </div>
+      <p className="text-xl font-bold tabular-nums leading-tight">
+        {formatVal(current, unit)}
+      </p>
+      {hasDelta && deltaLabel ? (
+        <p
+          className={`text-xs mt-1 font-medium ${isPositive ? "text-emerald-600" : "text-red-500"}`}
+        >
+          {deltaLabel}{" "}
+          <span className="text-muted-foreground font-normal">vs N-1</span>
+        </p>
+      ) : hasDelta ? (
+        <p className="text-xs mt-1 text-muted-foreground">= N-1</p>
+      ) : (
+        <p className="text-xs mt-1 text-muted-foreground">Pas de N-1</p>
+      )}
+    </Card>
+  );
 }
 
 // ─── Progress ring (SVG, 72×72) ───────────────────────────────────────────────
@@ -123,6 +209,11 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   const { data: nrData,       isLoading: nrLoading     } = useGetNrData(orgId);
   const { data: employment,   isLoading: empLoading    } = useGetEmploymentResults(orgId);
 
+  // ── Ligne 4 : N/N-1 ────────────────────────────────────────────────────────
+  const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary(orgId);
+  const hasPreviousYear = summary != null && summary.previousYear != null;
+  const mods = summary?.modules ?? [];
+
   // ── Actions ────────────────────────────────────────────────────────────────
   const totalActions = actions?.length ?? 0;
   const doneActions  = actions?.filter(a => a.isChecked).length ?? 0;
@@ -180,6 +271,12 @@ export function DashboardBody({ orgId }: { orgId: number }) {
 
   const modulesLoading  = carbonLoading || bioLoading || stakeLoading || suppLoading || nrLoading || empLoading;
   const anyModuleVisible = showCarbon || showBio || showStakeholders || showSuppliers || showNr || showEmployment;
+
+  // ── Indicateurs N/N-1 visibles ────────────────────────────────────────────
+  const visibleTrends = TREND_INDICATORS.filter((t) => {
+    const ind = findInd(mods, t.module, t.key);
+    return ind?.current != null;
+  });
 
   return (
     <div className="space-y-8">
@@ -468,6 +565,39 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                   )}
                 </ModuleCard>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ LIGNE 4 : Évolution N/N-1 ══════════════════════════════════════════ */}
+      {(summaryLoading || hasPreviousYear) && (
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            Évolution N/N-1
+            {summary && summary.previousYear != null && (
+              <span className="ml-2 normal-case font-normal text-muted-foreground/70">
+                {summary.previousYear} → {summary.currentYear}
+              </span>
+            )}
+          </h2>
+
+          {summaryLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map(i => (
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : visibleTrends.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aucune donnée disponible pour la comparaison N/N-1.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {visibleTrends.map((t) => {
+                const ind = findInd(mods, t.module, t.key)!;
+                return <TrendCard key={`${t.module}-${t.key}`} def={t} ind={ind} />;
+              })}
             </div>
           )}
         </div>

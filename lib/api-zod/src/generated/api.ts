@@ -353,6 +353,30 @@ export const GetOrganizationDashboardResponse = zod.object({
 
 
 /**
+ * Retourne les indicateurs clés de chaque module RSE pour l'exercice courant et le précédent.
+ * @summary Agrégat KPI N/N-1 pour tous les modules RSE
+ */
+export const GetDashboardSummaryParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GetDashboardSummaryResponse = zod.object({
+  "currentYear": zod.number().describe('Année de l\'exercice courant'),
+  "previousYear": zod.number().nullable().describe('Année de l\'exercice précédent ; null si inexistant'),
+  "modules": zod.array(zod.object({
+  "key": zod.string().describe('Clé du module RSE (carbon, diagnostic, stakeholders, suppliers, bio, actions, labels, nr, employment)'),
+  "indicators": zod.array(zod.object({
+  "key": zod.string().describe('Identifiant unique dans le module (ex: totalEmissions, headcount)'),
+  "label": zod.string().describe('Libellé affiché'),
+  "unit": zod.string().nullable().describe('Unité d\'affichage (tCO₂e, %, null pour les comptes)'),
+  "current": zod.number().nullable().describe('Valeur exercice courant'),
+  "previous": zod.number().nullable().describe('Valeur exercice précédent ; null si aucun exercice N-1')
+}))
+}))
+})
+
+
+/**
  * @summary List exercises for an organization
  */
 export const ListExercisesParams = zod.object({

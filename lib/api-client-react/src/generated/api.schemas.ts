@@ -1096,7 +1096,7 @@ export interface ImpactScoreResultInput {
   strategieImpactPositif?: number | null;
 }
 
-export interface DashboardSummary {
+export interface OrganizationDashboard {
   organizationId: number;
   memberCount: number;
   activeModules: number;
@@ -1104,6 +1104,45 @@ export interface DashboardSummary {
   completionRate: number;
   /** @nullable */
   lastActivityAt?: string | null;
+}
+
+export interface DashboardIndicator {
+  /** Identifiant unique dans le module (ex: totalEmissions, headcount) */
+  key: string;
+  /** Libellé affiché */
+  label: string;
+  /**
+     * Unité d'affichage (tCO₂e, %, null pour les comptes)
+     * @nullable
+     */
+  unit: string | null;
+  /**
+     * Valeur exercice courant
+     * @nullable
+     */
+  current: number | null;
+  /**
+     * Valeur exercice précédent ; null si aucun exercice N-1
+     * @nullable
+     */
+  previous: number | null;
+}
+
+export interface DashboardModuleSummary {
+  /** Clé du module RSE (carbon, diagnostic, stakeholders, suppliers, bio, actions, labels, nr, employment) */
+  key: string;
+  indicators: DashboardIndicator[];
+}
+
+export interface DashboardSummary {
+  /** Année de l'exercice courant */
+  currentYear: number;
+  /**
+     * Année de l'exercice précédent ; null si inexistant
+     * @nullable
+     */
+  previousYear: number | null;
+  modules: DashboardModuleSummary[];
 }
 
 export type BarometreCampaignMode = typeof BarometreCampaignMode[keyof typeof BarometreCampaignMode];

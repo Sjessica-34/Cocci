@@ -5,13 +5,15 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { DashboardModuleSummary } from './dashboardModuleSummary';
 
 export interface DashboardSummary {
-  organizationId: number;
-  memberCount: number;
-  activeModules: number;
-  /** RSE completion rate as a percentage (0-100) */
-  completionRate: number;
-  /** @nullable */
-  lastActivityAt?: Date | null;
+  /** Année de l'exercice courant */
+  currentYear: number;
+  /**
+     * Année de l'exercice précédent ; null si inexistant
+     * @nullable
+     */
+  previousYear: number | null;
+  modules: DashboardModuleSummary[];
 }
