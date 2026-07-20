@@ -290,9 +290,16 @@ Réponds UNIQUEMENT avec un JSON valide, sans commentaires ni markdown :
     messages: [{ role: "user", content: prompt }],
   });
 
-  const text = message.content[0]?.type === "text" ? message.content[0].text : "{}";
+  const rawText = message.content[0]?.type === "text" ? message.content[0].text : "{}";
+  // Strip optional markdown code fences (```json ... ```) that Claude sometimes adds
+  const text = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   let parsed: { issues: Array<{ name: string; description?: string | null; chainPosition?: string | null; importanceOrg?: number | null; importanceBio?: number | null; dependencyIds: number[] }> };
-  try { parsed = JSON.parse(text) as typeof parsed; } catch { parsed = { issues: [] }; }
+  try {
+    parsed = JSON.parse(text) as typeof parsed;
+  } catch (err) {
+    req.log.error({ err, text }, "bio-issues generate: JSON.parse failed");
+    parsed = { issues: [] };
+  }
 
   // Helper: compute max from deps for a given field when AI leaves it null
   function maxFromDeps(depIds: number[], field: "importanceOrg" | "importanceBio"): number | null {
