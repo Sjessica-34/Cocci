@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListBioIssues,
@@ -255,6 +255,29 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
 
   const isGenerating = generateMut.isPending;
 
+  // ── Auto-generate in group mode ──────────────────────────────────────────
+  const isGroupMode = !!subsidiaries && subsidiaries.length > 0;
+  const subsidiaryIds = subsidiaries?.map(s => s.id).sort().join(",") ?? "";
+  const triggeredKey = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isGroupMode) return;
+    const key = `${orgId}|${subsidiaryIds}`;
+    if (triggeredKey.current === key) return; // already triggered for this config
+    triggeredKey.current = key;
+
+    const subsidiaryOrgIds = subsidiaries!.map(s => s.id);
+    generateMut.mutate(
+      { orgId, data: { subsidiaryOrgIds } },
+      {
+        onSettled: () => {
+          queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
+        },
+      },
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, subsidiaryIds]);
+
   return (
     <div className="space-y-5">
 
@@ -265,19 +288,28 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
             Matrice de matérialité des enjeux de biodiversité
           </h2>
           <p className="text-xs text-slate-500 mt-0.5 max-w-2xl">
-            Les enjeux sont générés automatiquement à partir de vos dépendances et évalués
-            selon leur importance pour l'organisation et leur impact sur la biodiversité.
+            {isGroupMode
+              ? `Enjeux consolidés automatiquement à partir des dépendances de ${subsidiaries!.length} filiale${subsidiaries!.length > 1 ? "s" : ""}. La matrice se régénère à chaque ouverture.`
+              : "Les enjeux sont générés par IA à partir de vos dépendances et évalués selon leur importance pour l'organisation et leur impact sur la biodiversité."}
           </p>
         </div>
-        <Button
-          onClick={handleGenerate}
-          disabled={isGenerating || depsCount === 0}
-          className="flex-shrink-0"
-        >
-          {isGenerating
-            ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Génération en cours…</>
-            : <><Sparkles className="h-4 w-4 mr-2" />Générer les enjeux</>}
-        </Button>
+        {isGroupMode ? (
+          <Button variant="outline" onClick={handleGenerate} disabled={isGenerating} className="flex-shrink-0">
+            {isGenerating
+              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Consolidation…</>
+              : <><Sparkles className="h-4 w-4 mr-2" />Reconsolider</>}
+          </Button>
+        ) : (
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating || depsCount === 0}
+            className="flex-shrink-0"
+          >
+            {isGenerating
+              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Génération en cours…</>
+              : <><Sparkles className="h-4 w-4 mr-2" />Générer les enjeux</>}
+          </Button>
+        )}
       </div>
 
       {/* ── KPI cards ──────────────────────────────────────────────────────── */}
@@ -351,17 +383,21 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
         /* Empty state */
         <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl py-16 px-8 text-center">
           <Sparkles className="h-8 w-8 mx-auto text-slate-300 mb-3" />
-          <p className="text-sm font-semibold text-slate-600 mb-1">Aucun enjeu généré</p>
-          <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
-            {depsCount === 0
-              ? "Commencez par saisir vos dépendances à la biodiversité dans l'onglet Saisie, en renseignant l'importance pour l'organisation et l'impact sur la biodiversité pour chaque dépendance."
-              : `Vous avez ${depsCount} dépendance${depsCount > 1 ? "s" : ""} saisie${depsCount > 1 ? "s" : ""}. Cliquez sur "Générer les enjeux" pour créer votre matrice de matérialité.`}
+          <p className="text-sm font-semibold text-slate-600 mb-1">
+            {isGenerating ? "Consolidation en cours…" : "Aucun enjeu consolidé"}
           </p>
-          {depsCount > 0 && (
+          <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
+            {isGenerating
+              ? "L'IA analyse les dépendances des filiales pour construire la matrice de matérialité groupe."
+              : isGroupMode
+                ? "Aucune dépendance n'a encore été saisie dans les filiales. Complétez l'onglet Saisie pour chaque filiale."
+                : depsCount === 0
+                  ? "Commencez par saisir vos dépendances à la biodiversité dans l'onglet Saisie."
+                  : `Vous avez ${depsCount} dépendance${depsCount > 1 ? "s" : ""} saisie${depsCount > 1 ? "s" : ""}. Cliquez sur "Générer les enjeux" pour créer votre matrice.`}
+          </p>
+          {!isGroupMode && !isGenerating && depsCount > 0 && (
             <Button onClick={handleGenerate} disabled={isGenerating}>
-              {isGenerating
-                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Génération…</>
-                : <><Sparkles className="h-4 w-4 mr-2" />Générer les enjeux</>}
+              <Sparkles className="h-4 w-4 mr-2" />Générer les enjeux
             </Button>
           )}
         </div>
