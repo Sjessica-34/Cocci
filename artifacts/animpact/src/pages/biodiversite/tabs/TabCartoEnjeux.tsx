@@ -238,11 +238,11 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
   // Generate
   async function handleGenerate() {
     const subsidiaryOrgIds = subsidiaries?.map(s => s.id) ?? [];
-    const result = await generateMut.mutateAsync({
+    await generateMut.mutateAsync({
       orgId,
       data: subsidiaryOrgIds.length > 0 ? { subsidiaryOrgIds } : undefined,
     });
-    queryClient.setQueryData(getListBioIssuesQueryKey(orgId), { items: result.items });
+    await queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
   }
 
   // Delete
