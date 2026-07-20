@@ -1,4 +1,4 @@
-// ─── Familles d'éléments ─────────────────────────────────────────────────────
+// ─── Familles d'éléments (cartographie interne — NE PAS modifier) ────────────
 
 export type ElementFamily = "Ressource" | "Activité" | "Lieu" | "Acteur";
 
@@ -35,6 +35,31 @@ export const SUBTYPES: Record<ElementFamily, string[]> = {
     "Fournisseurs", "Sous-traitants", "Prestataires", "Clients",
     "Transporteurs", "Distributeurs", "Collectivités", "Autre",
   ],
+};
+
+// ─── Services écosystémiques (formulaire simplifié de saisie) ─────────────────
+
+export const ECOSYS_SERVICES = [
+  { value: "Eau douce",              icon: "💧", description: "Approvisionnement, régulation et purification de l'eau" },
+  { value: "Sols & nutriments",      icon: "🌱", description: "Fertilité des sols, cycle des nutriments" },
+  { value: "Biodiversité & habitats",icon: "🦋", description: "Espèces, écosystèmes, habitats naturels" },
+  { value: "Pollinisation",          icon: "🐝", description: "Pollinisation des cultures et végétaux" },
+  { value: "Régulation du climat",   icon: "🌡️", description: "Séquestration carbone, régulation thermique" },
+  { value: "Forêts & biomasse",      icon: "🌳", description: "Bois, fibres, régulation et protection" },
+  { value: "Ressources marines",     icon: "🌊", description: "Pêche, ressources côtières, épuration marine" },
+  { value: "Air & atmosphère",       icon: "💨", description: "Qualité de l'air, régulation atmosphérique" },
+  { value: "Matières premières",     icon: "🪨", description: "Minéraux, métaux, ressources naturelles non-renouvelables" },
+  { value: "Autre service",          icon: "🔗", description: "Autre dépendance à un service écosystémique" },
+] as const;
+
+export type EcosysServiceValue = (typeof ECOSYS_SERVICES)[number]["value"];
+
+export const CRITICITY_LABELS: Record<number, string> = {
+  1: "Faible — facilement substituable",
+  2: "Modérée — alternatives disponibles",
+  3: "Importante — dépendance significative",
+  4: "Élevée — peu de substituts",
+  5: "Critique — dépendance vitale",
 };
 
 export const RELATION_TYPES = [

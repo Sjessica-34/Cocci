@@ -12,13 +12,8 @@ import {
   getListBioConnectionsQueryKey,
   type BioDependency,
   type BioDependencyInput,
-  type BioConnection,
   type Organization,
 } from "@workspace/api-client-react";
-import {
-  useConsolidatedBio,
-  type ConsolidatedElement,
-} from "../useConsolidatedBio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,17 +34,122 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Leaf, Pencil, Plus, Trash2 } from "lucide-react";
 import {
-  FAMILIES, SUBTYPES, RELATION_TYPES, CHAIN_POSITIONS,
-  type ElementFamily,
-  elementLabel, familyIcon, familyColor, familyBg, chainLabel,
+  ECOSYS_SERVICES, CRITICITY_LABELS, RELATION_TYPES,
+  importanceBg, elementLabel,
+  type EcosysServiceValue,
 } from "../data";
 
 interface Props { orgId: number; subsidiaries?: Organization[]; }
 
+// ─── Formulaire vide ──────────────────────────────────────────────────────────
+
 const EMPTY: BioDependencyInput = {
-  name: null, category: null, subCategory: null, chainPosition: null,
-  dependencyLevel: null, masteryLevel: null, comments: null, documentIds: [],
+  name: null,
+  category: "Ressource",
+  subCategory: null,
+  chainPosition: null,
+  dependencyLevel: null,
+  masteryLevel: null,
+  comments: null,
+  documentIds: [],
 };
+
+// ─── Score buttons (criticité) ────────────────────────────────────────────────
+
+function CriticityButtons({
+  value,
+  onChange,
+}: {
+  value: number | null | undefined;
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        {[1, 2, 3, 4, 5].map(n => {
+          const colors = importanceBg(n);
+          const isSelected = value === n;
+          return (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onChange(value === n ? null : n)}
+              className="flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all"
+              style={{
+                borderColor:     isSelected ? colors.border : "#e2e8f0",
+                backgroundColor: isSelected ? colors.bg    : "#f8fafc",
+                color:           isSelected ? colors.text  : "#94a3b8",
+              }}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      {value && CRITICITY_LABELS[value] && (
+        <p className="text-[11px] text-muted-foreground text-center">{CRITICITY_LABELS[value]}</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Carte dépendance ─────────────────────────────────────────────────────────
+
+function DependencyCard({
+  dep,
+  onEdit,
+  onDelete,
+}: {
+  dep: BioDependency;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const svc    = ECOSYS_SERVICES.find(s => s.value === dep.subCategory);
+  const colors = importanceBg(dep.dependencyLevel);
+  const label  = dep.name ?? dep.subCategory ?? dep.category ?? "Dépendance";
+
+  return (
+    <div className="rounded-xl border bg-white p-3 space-y-2 hover:shadow-sm transition-shadow">
+      <div className="flex items-start gap-2">
+        <span className="text-xl leading-none shrink-0 mt-0.5">{svc?.icon ?? "🔗"}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-800 truncate">{label}</p>
+          {svc && dep.subCategory !== dep.name && (
+            <p className="text-[11px] text-slate-500">{svc.value}</p>
+          )}
+          {dep.comments && (
+            <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{dep.comments}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {dep.dependencyLevel && (
+            <span
+              className="text-[10px] font-bold rounded-full px-2 py-0.5"
+              style={{ backgroundColor: colors.bg, color: colors.text, border: `1.5px solid ${colors.border}` }}
+              title={`Criticité : ${dep.dependencyLevel}/5`}
+            >
+              C{dep.dependencyLevel}
+            </span>
+          )}
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TabSaisie ────────────────────────────────────────────────────────────────
 
 export function TabSaisie({ orgId, subsidiaries }: Props) {
   if (subsidiaries && subsidiaries.length > 0) {
@@ -62,37 +162,29 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
   const queryClient = useQueryClient();
 
   const { data: depsData, isLoading } = useListBioDependencies(orgId);
-  const { data: connData } = useListBioConnections(orgId);
+  const { data: connData }            = useListBioConnections(orgId);
   const elements    = depsData?.items ?? [];
   const connections = connData?.items ?? [];
 
-  const createEl  = useCreateBioDependency();
-  const updateEl  = useUpdateBioDependency();
-  const deleteEl  = useDeleteBioDependency();
+  const createEl   = useCreateBioDependency();
+  const updateEl   = useUpdateBioDependency();
+  const deleteEl   = useDeleteBioDependency();
   const createConn = useCreateBioConnection();
   const deleteConn = useDeleteBioConnection();
 
-  // ─── Element Sheet ──────────────────────────────────────────────────────────
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingEl, setEditingEl] = useState<BioDependency | null>(null);
-  const [form, setForm] = useState<BioDependencyInput>(EMPTY);
-  const [subFreeText, setSubFreeText] = useState("");
+  // ── Sheet dépendance ─────────────────────────────────────────────────────────
+  const [sheetOpen, setSheetOpen]     = useState(false);
+  const [editingEl, setEditingEl]     = useState<BioDependency | null>(null);
+  const [form, setForm]               = useState<BioDependencyInput>(EMPTY);
+  const [deleteElId, setDeleteElId]   = useState<number | null>(null);
 
-  // ─── Element filter ─────────────────────────────────────────────────────────
-  const [filterFamily, setFilterFamily] = useState<ElementFamily | "all">("all");
-
-  // ─── Delete element ─────────────────────────────────────────────────────────
-  const [deleteElId, setDeleteElId] = useState<number | null>(null);
-
-  // ─── Connection dialog ──────────────────────────────────────────────────────
-  const [connDialog, setConnDialog] = useState(false);
-  const [connFrom, setConnFrom] = useState("");
-  const [connTo, setConnTo] = useState("");
-  const [connType, setConnType] = useState("");
-  const [connTypeFree, setConnTypeFree] = useState("");
-  const [deleteConnId, setDeleteConnId] = useState<number | null>(null);
-
-  // ─── Helpers ────────────────────────────────────────────────────────────────
+  // ── Connexions ───────────────────────────────────────────────────────────────
+  const [connDialog, setConnDialog]       = useState(false);
+  const [connFrom, setConnFrom]           = useState("");
+  const [connTo, setConnTo]               = useState("");
+  const [connType, setConnType]           = useState("");
+  const [connTypeFree, setConnTypeFree]   = useState("");
+  const [deleteConnId, setDeleteConnId]   = useState<number | null>(null);
 
   function setF<K extends keyof BioDependencyInput>(k: K, v: BioDependencyInput[K]) {
     setForm(prev => ({ ...prev, [k]: v }));
@@ -101,26 +193,22 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
   function openCreate() {
     setEditingEl(null);
     setForm(EMPTY);
-    setSubFreeText("");
     setSheetOpen(true);
   }
 
   function openEdit(el: BioDependency) {
     setEditingEl(el);
     setForm({
-      name: el.name, category: el.category, subCategory: el.subCategory,
-      chainPosition: el.chainPosition, dependencyLevel: el.dependencyLevel,
-      masteryLevel: el.masteryLevel, comments: el.comments, documentIds: el.documentIds,
+      name: el.name, category: el.category ?? "Ressource",
+      subCategory: el.subCategory, chainPosition: el.chainPosition,
+      dependencyLevel: el.dependencyLevel, masteryLevel: el.masteryLevel,
+      comments: el.comments, documentIds: el.documentIds,
     });
-    setSubFreeText("");
     setSheetOpen(true);
   }
 
   async function handleSaveEl() {
-    const finalSub = form.subCategory === "Autre" ? (subFreeText || "Autre") : form.subCategory;
-    // Lieux → toujours in-situ
-    const finalPos = form.category === "Lieu" ? "in-situ" : form.chainPosition;
-    const payload  = { ...form, subCategory: finalSub, chainPosition: finalPos, x: null, y: null };
+    const payload = { ...form, category: "Ressource" };
     if (editingEl) {
       await updateEl.mutateAsync({ orgId, id: editingEl.id, data: payload });
     } else {
@@ -156,92 +244,58 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
     setDeleteConnId(null);
   }
 
-  const isSavingEl   = createEl.isPending || updateEl.isPending;
+  const isSavingEl     = createEl.isPending || updateEl.isPending;
   const isCreatingConn = createConn.isPending;
-
-  // ─── Filter & group ──────────────────────────────────────────────────────────
-
-  const filtered = filterFamily === "all"
-    ? elements
-    : elements.filter(e => e.category === filterFamily);
-
-  const subtypes: string[] = SUBTYPES[(form.category as ElementFamily) ?? "Ressource"] ?? [];
-  const isLieu = form.category === "Lieu";
 
   function getElLabel(id: number | string) {
     const el = elements.find(e => e.id === Number(id));
     if (!el) return `ID ${id}`;
-    return elementLabel(el.name, el.category, el.subCategory) || `ID ${id}`;
+    return el.name ?? el.subCategory ?? el.category ?? `ID ${id}`;
   }
+
+  const selectedSvc = ECOSYS_SERVICES.find(s => s.value === (form.subCategory as EcosysServiceValue));
 
   return (
     <div className="space-y-8">
 
-      {/* ── Éléments ─────────────────────────────────────────────────────── */}
+      {/* ── Dépendances ───────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">
-            Éléments de la chaîne de valeur
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              {isLoading ? "…" : `${elements.length} élément${elements.length !== 1 ? "s" : ""}`}
-            </span>
-          </h2>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-700">
+              Dépendances aux services écosystémiques
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {isLoading ? "…" : `${elements.length} dépendance${elements.length !== 1 ? "s" : ""}`}
+              </span>
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Identifiez les services écosystémiques dont votre organisation dépend.
+            </p>
+          </div>
           <Button size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4 mr-1" />
-            Ajouter un élément
+            Ajouter une dépendance
           </Button>
         </div>
 
-        {/* Filtres famille */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setFilterFamily("all")}
-            className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
-              filterFamily === "all"
-                ? "bg-slate-800 text-white border-slate-800"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Tous ({elements.length})
-          </button>
-          {FAMILIES.map(f => {
-            const count = elements.filter(e => e.category === f.value).length;
-            const active = filterFamily === f.value;
-            return (
-              <button
-                key={f.value}
-                onClick={() => setFilterFamily(active ? "all" : f.value)}
-                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors flex items-center gap-1 ${
-                  active ? "text-white border-transparent" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                }`}
-                style={active ? { backgroundColor: f.color, borderColor: f.color } : {}}
-              >
-                <span>{f.icon}</span>
-                {f.value} ({count})
-              </button>
-            );
-          })}
-        </div>
-
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : elements.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-3">
             <Leaf className="h-10 w-10 opacity-25" />
             <p className="text-sm max-w-xs">
-              {elements.length === 0
-                ? "Aucun élément. Cliquez sur \"Ajouter un élément\" pour construire votre chaîne de valeur."
-                : "Aucun élément dans cette famille."}
+              Aucune dépendance. Cliquez sur "Ajouter une dépendance" pour identifier les services
+              écosystémiques dont vous dépendez.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filtered.map(el => (
-              <ElementCard
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {elements.map(el => (
+              <DependencyCard
                 key={el.id}
-                element={el}
+                dep={el}
                 onEdit={() => openEdit(el)}
                 onDelete={() => setDeleteElId(el.id)}
               />
@@ -250,170 +304,155 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
         )}
       </section>
 
-      {/* ── Connexions ───────────────────────────────────────────────────── */}
+      {/* ── Connexions ────────────────────────────────────────────────────── */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">
-            Connexions
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              {connections.length} connexion{connections.length !== 1 ? "s" : ""}
-            </span>
-          </h2>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-700">
+              Relations entre dépendances
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {connections.length} connexion{connections.length !== 1 ? "s" : ""}
+              </span>
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Reliez les dépendances entre elles pour enrichir l'analyse IA.
+            </p>
+          </div>
           <Button
-            size="sm"
-            variant="outline"
+            size="sm" variant="outline"
             onClick={() => setConnDialog(true)}
             disabled={elements.length < 2}
           >
             <Plus className="h-4 w-4 mr-1" />
-            Créer une connexion
+            Créer une relation
           </Button>
         </div>
 
         {connections.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">
-            Aucune connexion. Créez au moins 2 éléments pour les relier.
+            Aucune relation. Créez au moins 2 dépendances pour les relier.
           </p>
         ) : (
           <div className="space-y-2">
-            {connections.map(conn => {
-              const fromLabel = getElLabel(conn.fromElementId);
-              const toLabel   = getElLabel(conn.toElementId);
-              return (
-                <div
-                  key={conn.id}
-                  className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border text-sm"
+            {connections.map(conn => (
+              <div
+                key={conn.id}
+                className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border text-sm"
+              >
+                <span className="font-medium text-slate-700 truncate max-w-[8rem]">
+                  {getElLabel(conn.fromElementId)}
+                </span>
+                {conn.relationType && (
+                  <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shrink-0">
+                    {conn.relationType}
+                  </span>
+                )}
+                <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <span className="font-medium text-slate-700 truncate max-w-[8rem] flex-1">
+                  {getElLabel(conn.toElementId)}
+                </span>
+                <button
+                  onClick={() => setDeleteConnId(conn.id)}
+                  className="ml-auto p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors shrink-0"
                 >
-                  <span className="font-medium text-slate-700 truncate max-w-[8rem]">{fromLabel}</span>
-                  {conn.relationType && (
-                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shrink-0">
-                      {conn.relationType}
-                    </span>
-                  )}
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                  <span className="font-medium text-slate-700 truncate max-w-[8rem] flex-1">{toLabel}</span>
-                  <button
-                    onClick={() => setDeleteConnId(conn.id)}
-                    className="ml-auto p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors shrink-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              );
-            })}
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </section>
 
-      {/* ── Sheet création / édition élément ─────────────────────────────── */}
+      {/* ── Sheet dépendance ──────────────────────────────────────────────── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="overflow-y-auto w-full sm:max-w-lg">
+        <SheetContent className="overflow-y-auto w-full sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>{editingEl ? "Modifier l'élément" : "Ajouter un élément"}</SheetTitle>
+            <SheetTitle>
+              {editingEl ? "Modifier la dépendance" : "Nouvelle dépendance"}
+            </SheetTitle>
           </SheetHeader>
 
-          <div className="space-y-5 mt-6">
-            {/* Famille */}
+          <div className="space-y-6 mt-6">
+
+            {/* Service écosystémique */}
             <div className="space-y-2">
-              <Label>Famille</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {FAMILIES.map(f => {
-                  const active = form.category === f.value;
+              <Label>Service écosystémique <span className="text-red-500">*</span></Label>
+              <div className="grid grid-cols-1 gap-1.5">
+                {ECOSYS_SERVICES.map(svc => {
+                  const active = form.subCategory === svc.value;
                   return (
                     <button
-                      key={f.value}
+                      key={svc.value}
                       type="button"
-                      onClick={() => {
-                        setF("category", f.value);
-                        setF("subCategory", null);
-                        setSubFreeText("");
-                        if (f.value === "Lieu") setF("chainPosition", "in-situ");
-                      }}
-                      className="flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all"
-                      style={{
-                        borderColor: active ? f.color : "#E2E8F0",
-                        backgroundColor: active ? f.bg : "white",
-                        color: active ? f.color : "#64748B",
-                      }}
+                      onClick={() => setF("subCategory", svc.value)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                        active
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                      }`}
                     >
-                      <span className="text-xl leading-none">{f.icon}</span>
-                      <span className="text-xs font-semibold leading-tight">{f.value}</span>
+                      <span className="text-xl leading-none shrink-0">{svc.icon}</span>
+                      <div>
+                        <p className={`text-sm font-semibold ${active ? "text-emerald-800" : "text-slate-700"}`}>
+                          {svc.value}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">{svc.description}</p>
+                      </div>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Sous-type */}
-            {form.category && (
-              <div className="space-y-1.5">
-                <Label>Type</Label>
-                <Select
-                  value={form.subCategory ?? ""}
-                  onValueChange={v => { setF("subCategory", v || null); setSubFreeText(""); }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-                  <SelectContent>
-                    {subtypes.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {form.subCategory === "Autre" && (
-                  <Input
-                    className="mt-1.5"
-                    placeholder="Préciser le type…"
-                    value={subFreeText}
-                    onChange={e => setSubFreeText(e.target.value)}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Nom (facultatif) */}
+            {/* Nom */}
             <div className="space-y-1.5">
-              <Label>Nom <span className="text-muted-foreground font-normal text-xs">— facultatif</span></Label>
+              <Label>
+                Nom de la dépendance{" "}
+                <span className="text-muted-foreground font-normal text-xs">— facultatif</span>
+              </Label>
               <Input
-                placeholder="Ex : Eau de la Garonne, Usine de Rouen…"
+                placeholder={
+                  selectedSvc
+                    ? `Ex : ${selectedSvc.value} de la rivière Garonne…`
+                    : "Ex : Eau de la rivière Garonne, Pollinisation des vergers…"
+                }
                 value={form.name ?? ""}
                 onChange={e => setF("name", e.target.value || null)}
               />
             </div>
 
-            {/* Position chaîne */}
+            {/* Description */}
             <div className="space-y-1.5">
-              <Label>Position sur la chaîne de valeur</Label>
-              {isLieu ? (
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                  <span>📍</span>
-                  <span>Les lieux sont toujours positionnés <strong>In situ</strong>.</span>
-                </div>
-              ) : (
-                <Select
-                  value={form.chainPosition ?? ""}
-                  onValueChange={v => setF("chainPosition", v || null)}
-                >
-                  <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-                  <SelectContent>
-                    {CHAIN_POSITIONS.map(p => (
-                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {/* Commentaires */}
-            <div className="space-y-1.5">
-              <Label>Commentaires</Label>
+              <Label>
+                Description{" "}
+                <span className="text-muted-foreground font-normal text-xs">— facultatif</span>
+              </Label>
               <Textarea
-                placeholder="Observations, contexte, sources…"
+                placeholder="Contexte, usage, sources d'information…"
                 rows={3}
                 value={form.comments ?? ""}
                 onChange={e => setF("comments", e.target.value || null)}
               />
             </div>
 
+            {/* Criticité */}
+            <div className="space-y-2">
+              <Label>
+                Criticité de la dépendance{" "}
+                <span className="text-muted-foreground font-normal text-xs">— de 1 (faible) à 5 (vitale)</span>
+              </Label>
+              <CriticityButtons
+                value={form.dependencyLevel}
+                onChange={v => setF("dependencyLevel", v)}
+              />
+            </div>
+
             <div className="flex gap-2 pt-1">
-              <Button onClick={handleSaveEl} disabled={isSavingEl} className="flex-1">
+              <Button
+                onClick={handleSaveEl}
+                disabled={isSavingEl || !form.subCategory}
+                className="flex-1"
+              >
                 {isSavingEl ? "Enregistrement…" : "Enregistrer"}
               </Button>
               {editingEl && (
@@ -431,31 +470,35 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
         </SheetContent>
       </Sheet>
 
-      {/* ── Dialog connexion ─────────────────────────────────────────────── */}
+      {/* ── Dialog connexion ──────────────────────────────────────────────── */}
       <Dialog open={connDialog} onOpenChange={open => !open && setConnDialog(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Créer une connexion</DialogTitle>
+            <DialogTitle>Créer une relation</DialogTitle>
             <DialogDescription>
-              Définissez la relation entre deux éléments de votre chaîne de valeur.
+              Reliez deux dépendances entre elles pour enrichir l'analyse IA.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Origine</Label>
+              <Label>Dépendance source</Label>
               <Select value={connFrom} onValueChange={setConnFrom}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un élément…" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                 <SelectContent>
                   {elements.filter(e => String(e.id) !== connTo).map(e => (
                     <SelectItem key={e.id} value={String(e.id)}>
-                      {familyIcon(e.category)} {elementLabel(e.name, e.category, e.subCategory) || `Élément ${e.id}`}
+                      {ECOSYS_SERVICES.find(s => s.value === e.subCategory)?.icon ?? "🔗"}{" "}
+                      {e.name ?? e.subCategory ?? `Dépendance ${e.id}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Type de relation <span className="text-muted-foreground font-normal text-xs">— optionnel</span></Label>
+              <Label>
+                Type de relation{" "}
+                <span className="text-muted-foreground font-normal text-xs">— optionnel</span>
+              </Label>
               <Select value={connType} onValueChange={setConnType}>
                 <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                 <SelectContent>
@@ -472,13 +515,14 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Destination</Label>
+              <Label>Dépendance cible</Label>
               <Select value={connTo} onValueChange={setConnTo}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un élément…" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                 <SelectContent>
                   {elements.filter(e => String(e.id) !== connFrom).map(e => (
                     <SelectItem key={e.id} value={String(e.id)}>
-                      {familyIcon(e.category)} {elementLabel(e.name, e.category, e.subCategory) || `Élément ${e.id}`}
+                      {ECOSYS_SERVICES.find(s => s.value === e.subCategory)?.icon ?? "🔗"}{" "}
+                      {e.name ?? e.subCategory ?? `Dépendance ${e.id}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -497,13 +541,13 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
         </DialogContent>
       </Dialog>
 
-      {/* ── Confirm delete élément ───────────────────────────────────────── */}
+      {/* ── Confirm delete dépendance ─────────────────────────────────────── */}
       <AlertDialog open={deleteElId !== null} onOpenChange={open => !open && setDeleteElId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cet élément ?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer cette dépendance ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Les connexions liées à cet élément seront également supprimées.
+              Les relations liées seront également supprimées.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -519,11 +563,11 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Confirm delete connexion ─────────────────────────────────────── */}
+      {/* ── Confirm delete connexion ──────────────────────────────────────── */}
       <AlertDialog open={deleteConnId !== null} onOpenChange={open => !open && setDeleteConnId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette connexion ?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer cette relation ?</AlertDialogTitle>
             <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -542,262 +586,20 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
   );
 }
 
-// ─── Vue groupe consolidée (Saisie) ──────────────────────────────────────────
+// ─── Vue groupe (agrégation filiales) ─────────────────────────────────────────
 
 function GroupSaisie({ subsidiaries }: { subsidiaries: Organization[] }) {
-  const { elements, connections, isLoading } = useConsolidatedBio(subsidiaries);
-  const [filterFamily, setFilterFamily] = useState<ElementFamily | "all">("all");
-
-  const filtered = filterFamily === "all"
-    ? elements
-    : elements.filter(e => e.category === filterFamily);
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-        <span>📊</span>
-        <span>Vue consolidée — {subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""} · Lecture seule. Modifiez les données depuis chaque filiale.</span>
-      </div>
-
-      {/* ── Éléments ─────────────────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-slate-700">
-          Éléments de la chaîne de valeur
-          <span className="ml-2 text-xs font-normal text-muted-foreground">
-            {elements.length} élément{elements.length !== 1 ? "s" : ""}
-          </span>
-        </h2>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setFilterFamily("all")}
-            className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
-              filterFamily === "all"
-                ? "bg-slate-800 text-white border-slate-800"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Tous ({elements.length})
-          </button>
-          {FAMILIES.map(f => {
-            const count  = elements.filter(e => e.category === f.value).length;
-            const active = filterFamily === f.value;
-            return (
-              <button
-                key={f.value}
-                onClick={() => setFilterFamily(active ? "all" : f.value)}
-                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors flex items-center gap-1 ${
-                  active ? "text-white border-transparent" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                }`}
-                style={active ? { backgroundColor: f.color, borderColor: f.color } : {}}
-              >
-                <span>{f.icon}</span>
-                {f.value} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-3">
-            <Leaf className="h-10 w-10 opacity-25" />
-            <p className="text-sm max-w-xs">
-              {elements.length === 0
-                ? "Aucun élément dans les filiales."
-                : "Aucun élément dans cette famille."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filtered.map(el => (
-              <GroupElementCard key={el.virtualId} element={el} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ── Connexions ───────────────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700">
-          Connexions
-          <span className="ml-2 text-xs font-normal text-muted-foreground">
-            {connections.length} connexion{connections.length !== 1 ? "s" : ""}
-          </span>
-        </h2>
-
-        {connections.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic">Aucune connexion dans les filiales.</p>
-        ) : (
-          <div className="space-y-2">
-            {connections.map(conn => {
-              const fromEl    = elements.find(e => e.virtualId === conn.fromVirtualId);
-              const toEl      = elements.find(e => e.virtualId === conn.toVirtualId);
-              const fromLabel = elementLabel(fromEl?.name, fromEl?.category, fromEl?.subCategory) || "?";
-              const toLabel   = elementLabel(toEl?.name, toEl?.category, toEl?.subCategory) || "?";
-              return (
-                <div
-                  key={conn.virtualId}
-                  className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border text-sm"
-                >
-                  <span className="font-medium text-slate-700 truncate max-w-[8rem]">{fromLabel}</span>
-                  {conn.relationType && (
-                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shrink-0">
-                      {conn.relationType}
-                    </span>
-                  )}
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                  <span className="font-medium text-slate-700 truncate max-w-[8rem] flex-1">{toLabel}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-// ─── Carte élément groupe ─────────────────────────────────────────────────────
-
-function GroupElementCard({ element }: { element: ConsolidatedElement }) {
-  const label = elementLabel(element.name, element.category, element.subCategory);
-  const icon  = familyIcon(element.category);
-  const color = familyColor(element.category);
-  const bg    = familyBg(element.category);
-
-  const originsText =
-    element.origins.length === 1
-      ? element.origins[0].orgName
-      : `${element.origins.length} filiales`;
-  const originsTitle =
-    element.origins.length > 1
-      ? element.origins.map(o => o.orgName).join(", ")
-      : undefined;
-
-  return (
-    <div
-      className="bg-white rounded-xl border-2 shadow-sm p-3 flex flex-col gap-2.5"
-      style={{ borderColor: color }}
-    >
-      <div className="flex items-start gap-2">
-        <span
-          className="text-2xl leading-none mt-0.5 shrink-0 rounded-lg flex items-center justify-center"
-          style={{ width: 36, height: 36, backgroundColor: bg }}
-        >
-          {icon}
-        </span>
-        <div className="flex-1 min-w-0">
-          {label ? (
-            <p className="font-semibold text-sm leading-tight text-slate-800 truncate">{label}</p>
-          ) : (
-            <p className="text-sm text-slate-400 italic leading-tight">—</p>
-          )}
-          {element.name && element.subCategory && (
-            <p className="text-[10px] text-slate-500 mt-0.5">{element.subCategory}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span
-          className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-          style={{ backgroundColor: bg, color }}
-        >
-          {element.category}
-        </span>
-        {element.chainPosition && (
-          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
-            {chainLabel(element.chainPosition)}
-          </span>
-        )}
-      </div>
-
-      <p className="text-[10px] text-slate-400 leading-tight" title={originsTitle}>
-        📍 {originsText}
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Vue groupe — dépendances de {subsidiaries.length} filiale{subsidiaries.length !== 1 ? "s" : ""} :
       </p>
-    </div>
-  );
-}
-
-// ─── Carte élément ────────────────────────────────────────────────────────────
-
-function ElementCard({
-  element,
-  onEdit,
-  onDelete,
-}: {
-  element: BioDependency;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const label  = elementLabel(element.name, element.category, element.subCategory);
-  const icon   = familyIcon(element.category);
-  const color  = familyColor(element.category);
-  const bg     = familyBg(element.category);
-
-  return (
-    <div
-      className="relative bg-white rounded-xl border-2 shadow-sm p-3 flex flex-col gap-2.5 hover:shadow-md transition-shadow"
-      style={{ borderColor: color }}
-    >
-      {/* Actions */}
-      <div className="absolute top-2 right-2 flex gap-1">
-        <button
-          onClick={onEdit}
-          className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-        >
-          <Pencil className="h-3 w-3" />
-        </button>
-        <button
-          onClick={onDelete}
-          className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
-      </div>
-
-      {/* Icon + label */}
-      <div className="flex items-start gap-2 pr-12">
-        <span
-          className="text-2xl leading-none mt-0.5 shrink-0 rounded-lg flex items-center justify-center"
-          style={{ width: 36, height: 36, backgroundColor: bg }}
-        >
-          {icon}
-        </span>
-        <div className="flex-1 min-w-0">
-          {label ? (
-            <p className="font-semibold text-sm leading-tight text-slate-800 truncate">{label}</p>
-          ) : (
-            <p className="text-sm text-slate-400 italic leading-tight">—</p>
-          )}
-          {element.name && element.subCategory && (
-            <p className="text-[10px] text-slate-500 mt-0.5">{element.subCategory}</p>
-          )}
+      {subsidiaries.map(sub => (
+        <div key={sub.id} className="rounded-xl border p-4">
+          <h3 className="text-sm font-semibold text-slate-700 mb-3">🏢 {sub.name}</h3>
+          <IndividualSaisie orgId={sub.id} />
         </div>
-      </div>
-
-      {/* Badges */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span
-          className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-          style={{ backgroundColor: bg, color }}
-        >
-          {element.category}
-        </span>
-        {element.chainPosition && (
-          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
-            {chainLabel(element.chainPosition)}
-          </span>
-        )}
-      </div>
+      ))}
     </div>
   );
 }

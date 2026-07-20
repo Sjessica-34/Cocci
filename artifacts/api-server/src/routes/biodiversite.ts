@@ -239,49 +239,63 @@ Chaque enjeu doit appartenir à exactement un groupe. Tous les IDs doivent être
   res.json(parsed);
 });
 
-router.post("/organizations/:orgId/bio-issues/generate", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+router.post("/organizations/:orgId/bio-issues/generate", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const elements    = await db.select().from(bioDependenciesTable).where(scopeToExercise(bioDependenciesTable, req));
   const connections = await db.select().from(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req));
 
-  if (elements.length === 0) { res.json({ suggestions: [] }); return; }
+  if (elements.length === 0) { res.json({ items: [] }); return; }
 
-  const elementList = elements.map(e =>
-    `- ID ${e.id} | "${e.name ?? "Sans nom"}" | ${e.category ?? "?"}${e.subCategory ? ` / ${e.subCategory}` : ""} | Position: ${e.chainPosition ?? "?"} | Dépendance: ${e.dependencyLevel ?? "?"}/5 | Maîtrise: ${e.masteryLevel ?? "?"}/5`
-  ).join("\n");
+  // Dépendances — format simplifié (service écosystémique + criticité)
+  const depList = elements.map(e => {
+    const service   = e.subCategory ?? e.category ?? "service inconnu";
+    const nom       = e.name ? `"${e.name}"` : `(${service})`;
+    const criticite = e.dependencyLevel ? `criticité ${e.dependencyLevel}/5` : "criticité non définie";
+    const desc      = e.comments ? ` — ${e.comments}` : "";
+    return `- ID ${e.id} | Service : ${service} | Nom : ${nom} | ${criticite}${desc}`;
+  }).join("\n");
 
+  // Connexions entre dépendances
   const connList = connections.length > 0
-    ? connections.map((c) => {
-        const from = elements.find((e) => e.id === c.fromElementId);
-        const to   = elements.find((e) => e.id === c.toElementId);
-        return `- "${from?.name ?? "ID " + c.fromElementId}" → "${to?.name ?? "ID " + c.toElementId}" (${c.relationType ?? "connexion"})`;
+    ? connections.map(c => {
+        const from = elements.find(e => e.id === c.fromElementId);
+        const to   = elements.find(e => e.id === c.toElementId);
+        const fLabel = from?.name ?? from?.subCategory ?? `ID ${c.fromElementId}`;
+        const tLabel = to?.name   ?? to?.subCategory   ?? `ID ${c.toElementId}`;
+        return `- "${fLabel}" → "${tLabel}"${c.relationType ? ` (${c.relationType})` : ""}`;
       }).join("\n")
-    : "Aucune connexion définie.";
+    : "Aucune relation définie.";
 
-  const prompt = `Tu es un expert RSE spécialisé en biodiversité et services écosystémiques. Voici les éléments d'activité d'une entreprise et leurs connexions :
+  const prompt = `Tu es un expert RSE spécialisé en biodiversité et services écosystémiques (cadre IPBES/TEEB).
 
-ÉLÉMENTS D'ACTIVITÉ :
-${elementList}
+Une entreprise a identifié les dépendances suivantes vis-à-vis des services écosystémiques :
 
-CONNEXIONS :
+DÉPENDANCES AUX SERVICES ÉCOSYSTÉMIQUES :
+${depList}
+
+RELATIONS ENTRE DÉPENDANCES :
 ${connList}
 
-Regroupe ces éléments en enjeux RSE biodiversité cohérents (4 à 8 enjeux maximum). Chaque enjeu doit avoir un titre professionnel et synthétique.
+À partir de ces dépendances et de leurs relations, génère les ENJEUX DE BIODIVERSITÉ de l'organisation (4 à 8 enjeux). Un enjeu exprime un risque, une opportunité ou une dépendance stratégique vis-à-vis du vivant, formulé de façon professionnelle et synthétique.
+
+Règles :
+- Un enjeu peut regrouper plusieurs dépendances liées
+- chainPosition (amont/in-situ/aval) reflète où se situe principalement l'enjeu dans la chaîne de valeur de l'entreprise
+- importance de 1 (faible) à 5 (critique) : basée sur la criticité des dépendances concernées et leurs connexions
+- Les enjeux de criticité 4-5 doivent être clairement identifiables
+- Tirer parti des relations pour identifier des enjeux systémiques
 
 Réponds UNIQUEMENT avec un JSON valide, sans commentaires ni markdown :
 {
   "suggestions": [
     {
-      "name": "Nom court et professionnel de l'enjeu",
-      "description": "Description en 1-2 phrases",
+      "name": "Nom court et professionnel (ex : Dépendance à l'eau douce)",
+      "description": "Description en 1-2 phrases expliquant le risque ou l'enjeu pour l'organisation",
       "elementIds": [1, 2],
-      "chainPosition": "amont|in-situ|aval",
-      "importance": 3
+      "chainPosition": "amont",
+      "importance": 4
     }
   ]
-}
-
-chainPosition doit refléter la position majoritaire des éléments du groupe.
-importance de 1 (faible) à 5 (critique) selon le niveau de dépendance moyen et les connexions.`;
+}`;
 
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5",
@@ -292,7 +306,24 @@ importance de 1 (faible) à 5 (critique) selon le niveau de dépendance moyen et
   const text = message.content[0]?.type === "text" ? message.content[0].text : "{}";
   let parsed: { suggestions: Array<{ name: string; description?: string | null; elementIds: number[]; chainPosition?: string | null; importance?: number | null }> };
   try { parsed = JSON.parse(text) as typeof parsed; } catch { parsed = { suggestions: [] }; }
-  res.json(parsed);
+
+  // Sauvegarde en DB — remplace les enjeux existants
+  await db.delete(bioIssuesTable).where(scopeToExercise(bioIssuesTable, req));
+  const created = [];
+  for (const s of parsed.suggestions ?? []) {
+    const elIds = Array.isArray(s.elementIds) ? s.elementIds : [];
+    const [row] = await db.insert(bioIssuesTable).values(
+      withExerciseValues(req, {
+        name:          s.name ?? null,
+        description:   s.description ?? null,
+        chainPosition: s.chainPosition ?? null,
+        importance:    s.importance   ?? null,
+        dependencyIds: JSON.stringify(elIds),
+      }),
+    ).returning();
+    created.push(mapIssue(row));
+  }
+  res.json({ items: created });
 });
 
 router.put("/organizations/:orgId/bio-issues/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
