@@ -38,6 +38,7 @@ export const bioIssuesTable = pgTable("bio_issues", {
   organizationId: integer("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   exerciseId:     integer("exercise_id").notNull().references(() => exercisesTable.id, { onDelete: "cascade" }),
   name:           text("name"),
+  family:         text("family"),
   description:    text("description"),
   issueType:      text("issue_type"),
   importance:     integer("importance"),

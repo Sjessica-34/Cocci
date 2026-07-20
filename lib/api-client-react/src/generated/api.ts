@@ -43,6 +43,7 @@ import type {
   BioDependencyInput,
   BioDependencyListResponse,
   BioGenerateResponse,
+  BioGroupResponse,
   BioIssue,
   BioIssueInput,
   BioIssueListResponse,
@@ -3707,6 +3708,76 @@ export const useCreateBioIssue = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateBioIssueMutationOptions(options));
+    }
+
+export const getGroupBioIssuesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/bio-issues/group`
+}
+
+/**
+ * @summary Group existing issues automatically using AI
+ */
+export const groupBioIssues = async (orgId: number, options?: RequestInit): Promise<BioGroupResponse> => {
+
+  return customFetch<BioGroupResponse>(getGroupBioIssuesUrl(orgId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGroupBioIssuesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof groupBioIssues>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof groupBioIssues>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['groupBioIssues'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof groupBioIssues>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  groupBioIssues(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GroupBioIssuesMutationResult = NonNullable<Awaited<ReturnType<typeof groupBioIssues>>>
+
+    export type GroupBioIssuesMutationError = ErrorType<void>
+
+    /**
+ * @summary Group existing issues automatically using AI
+ */
+export const useGroupBioIssues = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof groupBioIssues>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof groupBioIssues>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getGroupBioIssuesMutationOptions(options));
     }
 
 export const getGenerateBioIssuesUrl = (orgId: number,) => {

@@ -1,0 +1,130 @@
+Modification du module « Dépendances à la biodiversité » - Onglet « Enjeux »
+
+L'objectif est de transformer l'onglet Enjeux afin qu'il permette de générer automatiquement une cartographie des enjeux et une matrice de matérialité pertinente.
+
+1. Ajouter un champ "Importance de l'enjeu"
+
+Dans la fenêtre Ajouter un élément, ajouter un nouveau champ obligatoire :
+
+Importance de l'enjeu
+
+Type :
+
+Curseur ou notation de 1 à 5
+1 = Faible
+2 = Modérée
+3 = Importante
+4 = Élevée
+5 = Critique
+
+Cette valeur servira à positionner l'enjeu sur l'axe vertical de la cartographie.
+
+2. Conserver les champs existants
+
+Conserver :
+
+Famille
+Type
+Nom
+Position sur la chaîne de valeur (Amont / In situ / Aval)
+Commentaires
+
+Aucune autre modification.
+
+3. Ajouter un regroupement automatique par IA
+
+Ajouter un bouton :
+
+✨ Regrouper automatiquement les enjeux
+
+Lors du clic :
+
+L'IA analyse l'ensemble des enjeux saisis et regroupe automatiquement les doublons, synonymes ou sujets proches.
+
+Exemples :
+
+Consommation d'eau
+Prélèvements d'eau
+Ressource en eau
+
+↓
+
+Eau
+
+Émissions de CO₂
+Gaz à effet de serre
+Empreinte carbone
+
+↓
+
+Climat
+
+Déchets
+Valorisation des déchets
+Tri
+
+↓
+
+Déchets
+
+Biodiversité locale
+Espèces protégées
+Habitats naturels
+
+↓
+
+Biodiversité
+
+Achats
+Approvisionnement
+Fournisseurs
+
+↓
+
+Achats responsables
+
+Les regroupements restent modifiables par l'utilisateur.
+
+4. Générer automatiquement la cartographie des enjeux
+
+Créer automatiquement une cartographie similaire aux matrices de matérialité classiques.
+
+Axe horizontal :
+Position sur la chaîne de valeur
+
+Amont
+In situ
+Aval
+
+Axe vertical :
+Importance de l'enjeu
+
+(de faible à critique)
+
+Chaque groupe d'enjeux est représenté par un bloc.
+
+Le titre affiché correspond au nom généré par l'IA.
+
+5. Identifier automatiquement les enjeux prioritaires
+
+Les enjeux ayant une importance de 4 ou 5 sont automatiquement placés dans la zone :
+
+Enjeux prioritaires
+
+Cette zone est mise à jour en temps réel.
+
+6. Ajouter une synthèse automatique
+
+Sous la cartographie, afficher un résumé généré automatiquement.
+
+Exemple :
+
+L'analyse met en évidence X enjeux matériels, regroupés en Y grandes thématiques. Les enjeux prioritaires concernent principalement l'approvisionnement, la biodiversité, le climat et les relations avec les parties prenantes. La majorité des impacts se situe en amont de la chaîne de valeur, traduisant une forte dépendance aux ressources naturelles et aux fournisseurs.
+
+7. Préparer l'évolution vers une matrice de matérialité
+
+Structurer le code pour permettre, dans une future version, d'ajouter un second axe (importance pour les parties prenantes ou impacts) sans devoir modifier toute l'architecture.
+
+L'objectif est que la cartographie actuelle puisse évoluer facilement vers une véritable matrice de double matérialité compatible avec les exigences de la CSRD.
+
+Je rajouterais même un petit détail qui peut faire toute la différence : si l'utilisateur ne renseigne pas la criticité, l'IA peut proposer automatiquement une note en se basant sur le type d'activité, la ressource concernée, la position dans la chaîne de valeur et les commentaires. L'utilisateur n'a alors plus qu'à valider ou ajuster la proposition, ce qui rend l'expérience beaucoup plus fluide.

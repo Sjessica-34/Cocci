@@ -10,6 +10,8 @@ export interface BioIssueInput {
   /** @nullable */
   name?: string | null;
   /** @nullable */
+  family?: string | null;
+  /** @nullable */
   description?: string | null;
   /** @nullable */
   issueType?: string | null;

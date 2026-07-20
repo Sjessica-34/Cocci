@@ -13,6 +13,7 @@ import {
   useUpdateBioIssue,
   useDeleteBioIssue,
   useGenerateBioIssues,
+  useGroupBioIssues,
   getListBioIssuesQueryKey,
   type BioIssue,
   type BioIssueInput,
@@ -34,11 +35,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Layers, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Layers, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import {
-  CHAIN_POSITIONS, ISSUE_TYPES,
+  CHAIN_POSITIONS, ISSUE_TYPES, ISSUE_FAMILIES,
   importanceBg, importanceLabel, issueTypeData, defaultIssuePosition, elementLabel,
 } from "../data";
 
@@ -72,7 +72,6 @@ const BioIssueNodeComp = memo(function BioIssueNodeComp({ data }: NodeProps<BioI
         borderColor:     colors.border,
       }}
     >
-      {/* Header: type badge + criticité */}
       <div className="flex items-center justify-between gap-1 mb-1.5">
         {itData ? (
           <span
@@ -129,7 +128,7 @@ const nodeTypes: NodeTypes = { bioIssue: BioIssueNodeComp };
 // ─── EMPTY form ───────────────────────────────────────────────────────────────
 
 const EMPTY_ISSUE: BioIssueInput = {
-  name: null, description: null, issueType: null,
+  name: null, family: null, description: null, issueType: null,
   importance: null, probability: null, urgency: null, reversibility: null,
   comments: null, chainPosition: null, elementIds: [],
 };
@@ -186,7 +185,7 @@ function ScoreButtons({
 }
 
 const IMPORTANCE_LABELS: Record<number, string> = {
-  1: "Faible", 2: "Moyenne", 3: "Forte", 4: "Très forte", 5: "Critique",
+  1: "Faible", 2: "Modérée", 3: "Importante", 4: "Élevée", 5: "Critique",
 };
 const PROBABILITY_LABELS: Record<number, string> = {
   1: "Très improbable", 2: "Improbable", 3: "Possible", 4: "Probable", 5: "Très probable",
@@ -199,6 +198,185 @@ const REVERSIBILITY_LABELS: Record<number, string> = {
   4: "Difficilement réversible", 5: "Irréversible",
 };
 
+// ─── Static cartography grid ──────────────────────────────────────────────────
+
+const GRID_POSITIONS = ["amont", "in-situ", "aval"] as const;
+const GRID_POS_LABELS: Record<string, string> = { "amont": "Amont", "in-situ": "In situ", "aval": "Aval" };
+const GRID_POS_COLORS: Record<string, { header: string; bg: string; border: string }> = {
+  "amont":   { header: "text-blue-700 bg-blue-50",    bg: "bg-blue-50/40",    border: "border-blue-100" },
+  "in-situ": { header: "text-emerald-700 bg-emerald-50", bg: "bg-emerald-50/40", border: "border-emerald-100" },
+  "aval":    { header: "text-purple-700 bg-purple-50",  bg: "bg-purple-50/40",  border: "border-purple-100" },
+};
+
+/**
+ * Matrice des enjeux (X = position chaîne, Y = importance)
+ * Extensible vers une double matérialité : ajouter un second axe vertical
+ * (importance parties prenantes) sans changer l'architecture de base.
+ */
+function IssueMatrix({ issues, onClickIssue }: {
+  issues: BioIssue[];
+  onClickIssue: (issue: BioIssue) => void;
+}) {
+  function cellIssues(pos: string, importance: number) {
+    return issues.filter(i => {
+      const matchPos = i.chainPosition
+        ? i.chainPosition === pos
+        : pos === "in-situ";
+      return matchPos && i.importance === importance;
+    });
+  }
+
+  function groupChips(cellItems: BioIssue[]) {
+    const grouped: Map<string, BioIssue[]> = new Map();
+    for (const issue of cellItems) {
+      const key = issue.family ?? "\0";
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(issue);
+    }
+    return Array.from(grouped.entries());
+  }
+
+  if (issues.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border shadow-sm overflow-hidden">
+      {/* Column headers */}
+      <div className="grid grid-cols-[56px_1fr_1fr_1fr] border-b">
+        <div className="bg-slate-50" />
+        {GRID_POSITIONS.map(pos => {
+          const c = GRID_POS_COLORS[pos];
+          return (
+            <div
+              key={pos}
+              className={`py-2.5 text-center text-[11px] font-bold uppercase tracking-wide border-l ${c.header} ${c.border}`}
+            >
+              {GRID_POS_LABELS[pos]}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Rows: importance 5 → 1 */}
+      {[5, 4, 3, 2, 1].map(imp => {
+        const rowColors = importanceBg(imp);
+        return (
+          <div key={imp} className="grid grid-cols-[56px_1fr_1fr_1fr] border-b last:border-b-0 min-h-[64px]">
+            {/* Y-axis label */}
+            <div
+              className="flex flex-col items-center justify-center py-2 border-r shrink-0"
+              style={{ backgroundColor: rowColors.bg }}
+            >
+              <span className="text-[11px] font-bold" style={{ color: rowColors.text }}>{imp}</span>
+              <span className="text-[9px] leading-tight text-center px-0.5" style={{ color: rowColors.text, opacity: 0.75 }}>
+                {IMPORTANCE_LABELS[imp]}
+              </span>
+            </div>
+
+            {/* Cells */}
+            {GRID_POSITIONS.map(pos => {
+              const c = GRID_POS_COLORS[pos];
+              const items = cellIssues(pos, imp);
+              const chips = groupChips(items);
+              return (
+                <div
+                  key={pos}
+                  className={`p-1.5 border-l ${c.border} flex flex-wrap gap-1 content-start`}
+                  style={{ minHeight: 64 }}
+                >
+                  {chips.map(([family, grpIssues]) => {
+                    if (family !== "\0") {
+                      return (
+                        <button
+                          key={family}
+                          onClick={() => onClickIssue(grpIssues[0])}
+                          className="text-[10px] font-semibold rounded-lg px-2 py-1 border-2 transition-all hover:shadow-sm cursor-pointer"
+                          style={{
+                            backgroundColor: rowColors.bg,
+                            borderColor: rowColors.border,
+                            color: rowColors.text,
+                          }}
+                          title={grpIssues.map(i => i.name ?? "Sans nom").join(", ")}
+                        >
+                          {family}
+                          {grpIssues.length > 1 && (
+                            <span className="ml-1 opacity-60">×{grpIssues.length}</span>
+                          )}
+                        </button>
+                      );
+                    }
+                    return grpIssues.map(issue => (
+                      <button
+                        key={issue.id}
+                        onClick={() => onClickIssue(issue)}
+                        className="text-[10px] rounded-lg px-2 py-1 border-2 transition-all hover:shadow-sm cursor-pointer text-left"
+                        style={{
+                          backgroundColor: rowColors.bg,
+                          borderColor: rowColors.border,
+                          color: rowColors.text,
+                        }}
+                      >
+                        {issue.name ?? "Enjeu sans nom"}
+                      </button>
+                    ));
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Priority issues section ──────────────────────────────────────────────────
+
+function PriorityIssues({ issues, onEdit }: { issues: BioIssue[]; onEdit: (i: BioIssue) => void }) {
+  const priority = issues.filter(i => (i.importance ?? 0) >= 4)
+    .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0));
+
+  if (priority.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-orange-200 bg-orange-50/60 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-base">🔴</span>
+        <h3 className="text-sm font-bold text-orange-900">
+          Enjeux prioritaires
+          <span className="ml-2 text-xs font-normal text-orange-700">
+            ({priority.length} enjeu{priority.length !== 1 ? "x" : ""} — importance ≥ 4)
+          </span>
+        </h3>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {priority.map(issue => {
+          const c = importanceBg(issue.importance);
+          return (
+            <button
+              key={issue.id}
+              onClick={() => onEdit(issue)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all hover:shadow-sm"
+              style={{ backgroundColor: c.bg, borderColor: c.border, color: c.text }}
+            >
+              <span>{issue.importance === 5 ? "⚠️" : "🔶"}</span>
+              <span>{issue.name ?? "Enjeu sans nom"}</span>
+              {issue.family && (
+                <span className="text-[10px] opacity-70">· {issue.family}</span>
+              )}
+              <span
+                className="ml-1 text-[10px] rounded-full px-1.5 py-0.5 font-bold"
+                style={{ backgroundColor: c.border, color: "white" }}
+              >
+                {issue.importance === 5 ? "Critique" : "Élevée"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props { orgId: number; }
@@ -208,18 +386,25 @@ export function TabCartoEnjeux({ orgId }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<BioIssueNode>([]);
   const [, , onEdgesChange] = useEdgesState([]);
 
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpen, setSheetOpen]       = useState(false);
   const [editingIssue, setEditingIssue] = useState<BioIssue | null>(null);
-  const [form, setForm] = useState<BioIssueInput>(EMPTY_ISSUE);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [form, setForm]                 = useState<BioIssueInput>(EMPTY_ISSUE);
+  const [deleteId, setDeleteId]         = useState<number | null>(null);
+  const [showReactFlow, setShowReactFlow] = useState(false);
 
+  // ── Suggestions (AI generate) ──
   const [suggestionsDialog, setSuggestionsDialog] = useState(false);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [accepted, setAccepted] = useState<Set<number>>(new Set());
+  const [suggestions, setSuggestions]             = useState<Suggestion[]>([]);
+  const [accepted, setAccepted]                   = useState<Set<number>>(new Set());
+
+  // ── Groups (AI group) ──
+  const [groupDialog, setGroupDialog]       = useState(false);
+  const [proposedGroups, setProposedGroups] = useState<{ name: string; issueIds: number[] }[]>([]);
+  const [editGroupNames, setEditGroupNames] = useState<string[]>([]);
 
   const nodePositions = useRef(new Map<number, { x: number; y: number }>());
 
-  const { data: depsData } = useListBioDependencies(orgId);
+  const { data: depsData }              = useListBioDependencies(orgId);
   const { data: issuesData, isLoading } = useListBioIssues(orgId);
   const elements = depsData?.items ?? [];
   const issues   = issuesData?.items ?? [];
@@ -228,8 +413,9 @@ export function TabCartoEnjeux({ orgId }: Props) {
   const updateMut   = useUpdateBioIssue();
   const deleteMut   = useDeleteBioIssue();
   const generateMut = useGenerateBioIssues();
+  const groupMut    = useGroupBioIssues();
 
-  // Sync issues → nodes
+  // Sync issues → ReactFlow nodes
   useEffect(() => {
     if (!issuesData) return;
     const newNodes: BioIssueNode[] = issues.map((issue, idx) => {
@@ -240,11 +426,11 @@ export function TabCartoEnjeux({ orgId }: Props) {
         position: nodePositions.current.get(issue.id) ?? { x: issue.x ?? def.x, y: issue.y ?? def.y },
         data: {
           id:           issue.id,
-          name:         issue.name         ?? null,
-          description:  issue.description  ?? null,
-          issueType:    issue.issueType     ?? null,
-          importance:   issue.importance   ?? null,
-          probability:  issue.probability  ?? null,
+          name:         issue.name        ?? null,
+          description:  issue.description ?? null,
+          issueType:    issue.issueType    ?? null,
+          importance:   issue.importance  ?? null,
+          probability:  issue.probability ?? null,
           elementCount: issue.elementIds.length,
         },
       };
@@ -279,7 +465,8 @@ export function TabCartoEnjeux({ orgId }: Props) {
   function openEdit(issue: BioIssue) {
     setEditingIssue(issue);
     setForm({
-      name: issue.name, description: issue.description,
+      name: issue.name, family: issue.family ?? null,
+      description: issue.description,
       issueType: issue.issueType ?? null,
       importance: issue.importance, probability: issue.probability ?? null,
       urgency: issue.urgency ?? null, reversibility: issue.reversibility ?? null,
@@ -318,6 +505,25 @@ export function TabCartoEnjeux({ orgId }: Props) {
     setSuggestionsDialog(true);
   }
 
+  async function handleGroupAI() {
+    const result = await groupMut.mutateAsync({ orgId });
+    const groups = result.groups ?? [];
+    setProposedGroups(groups);
+    setEditGroupNames(groups.map(g => g.name));
+    setGroupDialog(true);
+  }
+
+  async function applyGroups() {
+    for (let i = 0; i < proposedGroups.length; i++) {
+      const familyName = editGroupNames[i] ?? proposedGroups[i].name;
+      for (const id of proposedGroups[i].issueIds) {
+        await updateMut.mutateAsync({ orgId, id, data: { family: familyName } });
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
+    setGroupDialog(false);
+  }
+
   async function acceptSuggestion(s: Suggestion, idx: number) {
     if (accepted.has(idx)) return;
     await createMut.mutateAsync({
@@ -353,19 +559,17 @@ export function TabCartoEnjeux({ orgId }: Props) {
 
   const isSaving   = createMut.isPending || updateMut.isPending;
   const issueCount = issues.length;
+  const criticite  = form.importance && form.probability ? form.importance * form.probability : null;
 
-  // Criticité calculée
-  const criticite = form.importance && form.probability
-    ? form.importance * form.probability
-    : null;
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   if (!isLoading && issueCount === 0) {
     return (
       <div className="space-y-3">
         <ToolBar
           issueCount={0} elementCount={elements.length}
-          isGenerating={generateMut.isPending}
-          onGenerate={handleGenerate} onCreateIssue={openCreate}
+          isGenerating={generateMut.isPending} isGrouping={groupMut.isPending}
+          onGenerate={handleGenerate} onGroup={handleGroupAI} onCreateIssue={openCreate}
         />
         <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
           <Layers className="h-10 w-10 opacity-30" />
@@ -395,6 +599,19 @@ export function TabCartoEnjeux({ orgId }: Props) {
                 value={form.name ?? ""}
                 onChange={e => setF("name", e.target.value || null)}
               />
+            </div>
+
+            {/* Famille / Thème */}
+            <div className="space-y-1.5">
+              <Label>Famille / Thème</Label>
+              <Select value={form.family ?? ""} onValueChange={v => setF("family", v || null)}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner un thème…" /></SelectTrigger>
+                <SelectContent>
+                  {ISSUE_FAMILIES.map(f => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Type d'enjeu */}
@@ -434,9 +651,12 @@ export function TabCartoEnjeux({ orgId }: Props) {
               />
             </div>
 
-            {/* Impact */}
+            {/* Importance de l'enjeu */}
             <div className="space-y-1.5">
-              <Label>Impact <span className="text-muted-foreground font-normal text-xs">— gravité de l'enjeu</span></Label>
+              <Label>
+                Importance de l'enjeu{" "}
+                <span className="text-muted-foreground font-normal text-xs">— de 1 (Faible) à 5 (Critique)</span>
+              </Label>
               <ScoreButtons
                 value={form.importance}
                 onChange={v => setF("importance", v)}
@@ -459,7 +679,7 @@ export function TabCartoEnjeux({ orgId }: Props) {
               <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-slate-50">
                 <div>
                   <p className="text-xs font-semibold text-slate-700">Criticité calculée</p>
-                  <p className="text-[11px] text-muted-foreground">Impact × Probabilité</p>
+                  <p className="text-[11px] text-muted-foreground">Importance × Probabilité</p>
                 </div>
                 <div
                   className="ml-auto text-2xl font-bold rounded-xl px-4 py-2"
@@ -567,152 +787,218 @@ export function TabCartoEnjeux({ orgId }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <ToolBar
         issueCount={issueCount} elementCount={elements.length}
-        isGenerating={generateMut.isPending}
-        onGenerate={handleGenerate} onCreateIssue={openCreate}
+        isGenerating={generateMut.isPending} isGrouping={groupMut.isPending}
+        onGenerate={handleGenerate} onGroup={handleGroupAI} onCreateIssue={openCreate}
       />
 
       {isLoading ? (
-        <Skeleton className="h-[612px] w-full rounded-xl" />
+        <Skeleton className="h-[400px] w-full rounded-xl" />
       ) : (
-        <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 612 }}>
-          {/* Zone headers */}
-          <div className="grid grid-cols-3 border-b shrink-0">
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">Amont</div>
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">In situ</div>
-            <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">Aval</div>
-          </div>
-          {/* Importance axis + ReactFlow */}
-          <div className="flex flex-1 overflow-hidden">
-            {/* Y-axis */}
-            <div className="flex flex-col justify-around text-right pr-2 pl-1 bg-slate-50/80 border-r shrink-0" style={{ width: 72 }}>
-              {[5, 4, 3, 2, 1].map(n => (
-                <div key={n} className="flex flex-col items-end">
-                  <span className="text-[10px] font-semibold text-slate-500">{n}</span>
-                  <span className="text-[9px] text-slate-400 leading-tight">{importanceLabel(n)}</span>
+        <>
+          {/* ── Cartographie statique des enjeux ───────────────────── */}
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              Cartographie des enjeux
+              <span className="text-xs font-normal text-muted-foreground">
+                — position chaîne × importance
+              </span>
+            </h2>
+            <IssueMatrix issues={issues} onClickIssue={openEdit} />
+          </section>
+
+          {/* ── Enjeux prioritaires ────────────────────────────────── */}
+          <PriorityIssues issues={issues} onEdit={openEdit} />
+
+          {/* ── Vue interactive (ReactFlow) ────────────────────────── */}
+          <section className="space-y-2">
+            <button
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+              onClick={() => setShowReactFlow(v => !v)}
+            >
+              Vue interactive (carte libre)
+              {showReactFlow
+                ? <ChevronUp className="h-4 w-4" />
+                : <ChevronDown className="h-4 w-4" />}
+            </button>
+
+            {showReactFlow && (
+              <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 612 }}>
+                {/* Zone headers */}
+                <div className="grid grid-cols-3 border-b shrink-0">
+                  <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">Amont</div>
+                  <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">In situ</div>
+                  <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">Aval</div>
                 </div>
-              ))}
-            </div>
-            {/* ReactFlow */}
-            <div style={{ flex: 1 }}>
-              <ReactFlow
-                nodes={nodes}
-                edges={[]}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onNodeDragStop={onNodeDragStop}
-                onNodeClick={onNodeClick}
-                nodeTypes={nodeTypes}
-                fitView fitViewOptions={{ padding: 0.15 }}
-                minZoom={0.25} maxZoom={2.5}
-                style={{
-                  background: "linear-gradient(to right, #EFF6FF 0%, #EFF6FF 33.33%, #ECFDF5 33.33%, #ECFDF5 66.67%, #F5F3FF 66.67%, #F5F3FF 100%)",
-                }}
-              >
-                <Background gap={20} size={1} color="#cbd5e1" />
-                <Controls position="bottom-left" />
-                <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
-              </ReactFlow>
-            </div>
-          </div>
-        </div>
+                {/* Importance axis + ReactFlow */}
+                <div className="flex flex-1 overflow-hidden">
+                  {/* Y-axis */}
+                  <div className="flex flex-col justify-around text-right pr-2 pl-1 bg-slate-50/80 border-r shrink-0" style={{ width: 72 }}>
+                    {[5, 4, 3, 2, 1].map(n => (
+                      <div key={n} className="flex flex-col items-end">
+                        <span className="text-[10px] font-semibold text-slate-500">{n}</span>
+                        <span className="text-[9px] text-slate-400 leading-tight">{importanceLabel(n)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* ReactFlow */}
+                  <div className="flex-1 relative">
+                    <ReactFlow
+                      nodes={nodes}
+                      edges={[]}
+                      onNodesChange={onNodesChange}
+                      onEdgesChange={onEdgesChange}
+                      nodeTypes={nodeTypes}
+                      onNodeDragStop={onNodeDragStop}
+                      onNodeClick={onNodeClick}
+                      fitView
+                      fitViewOptions={{ padding: 0.2 }}
+                      minZoom={0.3}
+                      maxZoom={1.5}
+                    >
+                      <Background gap={40} color="#f1f5f9" />
+                      <Controls showInteractive={false} />
+                      <MiniMap nodeColor={(n) => {
+                        const d = n.data as BioIssueData;
+                        return importanceBg(d.importance).border;
+                      }} />
+                    </ReactFlow>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        </>
       )}
 
-      {/* AI suggestions dialog */}
-      <Dialog open={suggestionsDialog} onOpenChange={open => !open && closeSuggestions()}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      {renderSheet()}
+
+      {/* ── AI grouping dialog ─────────────────────────────────────────── */}
+      <Dialog open={groupDialog} onOpenChange={open => !open && setGroupDialog(false)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Suggestions d'enjeux IA ({suggestions.length})</DialogTitle>
-            <DialogDescription>Acceptez les enjeux pertinents pour les ajouter à votre cartographie.</DialogDescription>
+            <DialogTitle>✨ Regroupement automatique des enjeux</DialogTitle>
+            <DialogDescription>
+              L'IA a regroupé vos enjeux par thématique. Modifiez les noms si nécessaire, puis acceptez.
+            </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto space-y-3 py-2">
-            {suggestions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Aucune suggestion générée. Ajoutez plus d'éléments dans l'onglet "Saisie".
-              </p>
-            ) : suggestions.map((s, idx) => {
-              const colors = importanceBg(s.importance);
-              const isAcc = accepted.has(idx);
-              const linkedNames = s.elementIds
-                .map(id => {
-                  const el = elements.find(e => e.id === id);
-                  return el ? elementLabel(el.name, el.category, el.subCategory) || `ID ${id}` : `ID ${id}`;
-                })
+          <div className="space-y-3 py-2">
+            {proposedGroups.map((group, idx) => {
+              const names = group.issueIds
+                .map(id => issues.find(i => i.id === id)?.name ?? `Enjeu ${id}`)
                 .filter(Boolean);
               return (
-                <div
-                  key={idx}
-                  className="rounded-xl border p-4 flex gap-3 transition-opacity"
-                  style={{
-                    borderColor: colors.border,
-                    backgroundColor: isAcc ? colors.bg : "white",
-                    opacity: isAcc ? 0.75 : 1,
-                  }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-semibold text-sm">{s.name}</p>
-                      {s.importance && (
-                        <span
-                          className="text-[10px] font-bold rounded-full px-1.5 py-0.5 shrink-0"
-                          style={{ backgroundColor: colors.border, color: "white" }}
-                        >
-                          {importanceLabel(s.importance)}
-                        </span>
-                      )}
-                      {s.chainPosition && (
-                        <Badge variant="outline" className="text-[10px] py-0">{s.chainPosition}</Badge>
-                      )}
-                    </div>
-                    {s.description && (
-                      <p className="text-xs text-muted-foreground mb-2">{s.description}</p>
-                    )}
-                    {linkedNames.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {linkedNames.map(name => (
-                          <span key={name} className="text-[10px] bg-slate-100 rounded px-1.5 py-0.5">{name}</span>
-                        ))}
-                      </div>
-                    )}
+                <div key={idx} className="rounded-xl border p-3 space-y-2 bg-slate-50">
+                  <Input
+                    value={editGroupNames[idx] ?? group.name}
+                    onChange={e => setEditGroupNames(prev => {
+                      const next = [...prev];
+                      next[idx] = e.target.value;
+                      return next;
+                    })}
+                    className="font-semibold text-sm"
+                  />
+                  <div className="flex flex-wrap gap-1">
+                    {names.map((n, ni) => (
+                      <span key={ni} className="text-[11px] bg-white border rounded-full px-2 py-0.5 text-slate-600">
+                        {n}
+                      </span>
+                    ))}
                   </div>
-                  <button
-                    onClick={() => {
-                      if (!isAcc) {
-                        void acceptSuggestion(s, idx).then(() =>
-                          queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) })
-                        );
-                      }
-                    }}
-                    disabled={isAcc || createMut.isPending}
-                    className={`flex items-center justify-center rounded-lg border-2 px-3 py-2 text-xs font-semibold transition-colors shrink-0 ${
-                      isAcc
-                        ? "border-green-300 bg-green-50 text-green-700"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-green-300 hover:bg-green-50 hover:text-green-700"
-                    }`}
-                  >
-                    {isAcc ? <Check className="h-4 w-4" /> : "Accepter"}
-                  </button>
                 </div>
               );
             })}
+            {proposedGroups.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Aucun regroupement proposé.
+              </p>
+            )}
           </div>
-          <DialogFooter className="gap-2 pt-2 border-t">
-            <Button variant="outline" onClick={closeSuggestions}>Fermer</Button>
-            {suggestions.length > 0 && accepted.size < suggestions.length && (
-              <Button onClick={acceptAllSuggestions} disabled={createMut.isPending}>
-                {createMut.isPending ? "Acceptation…" : "Tout accepter"}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGroupDialog(false)}>Annuler</Button>
+            {proposedGroups.length > 0 && (
+              <Button
+                onClick={applyGroups}
+                disabled={updateMut.isPending}
+              >
+                {updateMut.isPending ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Application…</>
+                ) : (
+                  <><Check className="h-4 w-4 mr-2" /> Appliquer les groupes</>
+                )}
               </Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit sheet */}
-      {renderSheet()}
+      {/* ── Suggestions dialog (generate) ─────────────────────────────── */}
+      <Dialog open={suggestionsDialog} onOpenChange={open => !open && closeSuggestions()}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>✨ Suggestions d'enjeux par l'IA</DialogTitle>
+            <DialogDescription>
+              Sélectionnez les enjeux à ajouter à votre analyse.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {suggestions.map((s, idx) => {
+              const isAccepted = accepted.has(idx);
+              const colors = importanceBg(s.importance);
+              return (
+                <div
+                  key={idx}
+                  className="rounded-xl border p-3 space-y-1.5 transition-all"
+                  style={{ backgroundColor: isAccepted ? "#F0FDF4" : "white", borderColor: isAccepted ? "#86EFAC" : "#E2E8F0" }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">{s.name}</p>
+                      {s.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{s.description}</p>}
+                      <div className="flex gap-2 mt-1.5 flex-wrap">
+                        {s.chainPosition && (
+                          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                            {s.chainPosition === "amont" ? "Amont" : s.chainPosition === "aval" ? "Aval" : "In situ"}
+                          </span>
+                        )}
+                        {s.importance && (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                            style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+                          >
+                            Importance {s.importance}/5
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={isAccepted ? "secondary" : "default"}
+                      onClick={() => acceptSuggestion(s, idx)}
+                      disabled={isAccepted}
+                      className="shrink-0"
+                    >
+                      {isAccepted ? <><Check className="h-3.5 w-3.5 mr-1" /> Ajouté</> : "Ajouter"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeSuggestions}>Fermer</Button>
+            {suggestions.some((_, i) => !accepted.has(i)) && (
+              <Button onClick={acceptAllSuggestions} disabled={createMut.isPending}>
+                {createMut.isPending ? "Ajout en cours…" : "Tout ajouter"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Delete dialog */}
+      {/* ── Delete confirm ─────────────────────────────────────────────── */}
       <AlertDialog open={deleteId !== null} onOpenChange={open => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -738,32 +1024,52 @@ export function TabCartoEnjeux({ orgId }: Props) {
 // ─── ToolBar ──────────────────────────────────────────────────────────────────
 
 function ToolBar({
-  issueCount, elementCount, isGenerating, onGenerate, onCreateIssue,
+  issueCount, elementCount, isGenerating, isGrouping,
+  onGenerate, onGroup, onCreateIssue,
 }: {
-  issueCount: number; elementCount: number;
+  issueCount: number;
+  elementCount: number;
   isGenerating: boolean;
-  onGenerate: () => void; onCreateIssue: () => void;
+  isGrouping: boolean;
+  onGenerate: () => void;
+  onGroup: () => void;
+  onCreateIssue: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <p className="text-sm text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-sm text-muted-foreground mr-auto">
         {issueCount} enjeu{issueCount !== 1 ? "x" : ""}
-        {issueCount > 0 && " — cliquez sur un enjeu pour le modifier"}
-      </p>
-      <div className="flex gap-2">
+      </span>
+      {elementCount > 0 && (
         <Button
-          variant="outline" size="sm"
+          variant="outline"
+          size="sm"
           onClick={onGenerate}
-          disabled={isGenerating || elementCount === 0}
-          title={elementCount === 0 ? "Ajoutez des éléments dans Saisie d'abord" : undefined}
+          disabled={isGenerating}
+          className="gap-1.5"
         >
-          {isGenerating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
-          Générer avec l'IA
+          {isGenerating
+            ? <><Loader2 className="h-4 w-4 animate-spin" /> Génération…</>
+            : <><Sparkles className="h-4 w-4" /> Générer avec l'IA</>}
         </Button>
-        <Button size="sm" onClick={onCreateIssue}>
-          <Plus className="h-4 w-4 mr-1" />Créer un enjeu
+      )}
+      {issueCount >= 2 && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onGroup}
+          disabled={isGrouping}
+          className="gap-1.5"
+        >
+          {isGrouping
+            ? <><Loader2 className="h-4 w-4 animate-spin" /> Regroupement…</>
+            : <><Sparkles className="h-4 w-4" /> Regrouper automatiquement</>}
         </Button>
-      </div>
+      )}
+      <Button size="sm" onClick={onCreateIssue} className="gap-1.5">
+        <Plus className="h-4 w-4" />
+        Ajouter un enjeu
+      </Button>
     </div>
   );
 }

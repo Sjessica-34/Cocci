@@ -1219,6 +1219,23 @@ paths:
         "403":
           description: Forbidden
 
+  /organizations/{orgId}/bio-issues/group:
+    post:
+      operationId: groupBioIssues
+      tags: [biodiversite]
+      summary: Group existing issues automatically using AI
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: AI-generated issue groups
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BioGroupResponse"
+        "403":
+          description: Forbidden
+
   /organizations/{orgId}/bio-issues/generate:
     post:
       operationId: generateBioIssues
@@ -3608,6 +3625,7 @@ components:
         id: { type: integer }
         organizationId: { type: integer }
         name: { type: ["string", "null"] }
+        family: { type: ["string", "null"] }
         description: { type: ["string", "null"] }
         issueType: { type: ["string", "null"] }
         importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
@@ -3628,6 +3646,7 @@ components:
       type: object
       properties:
         name: { type: ["string", "null"] }
+        family: { type: ["string", "null"] }
         description: { type: ["string", "null"] }
         issueType: { type: ["string", "null"] }
         importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
@@ -3650,6 +3669,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BioIssue"
+
+    BioGroup:
+      type: object
+      required: [name, issueIds]
+      properties:
+        name: { type: string }
+        issueIds:
+          type: array
+          items: { type: integer }
+
+    BioGroupResponse:
+      type: object
+      required: [groups]
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/BioGroup"
 
     BioGenerateSuggestion:
       type: object

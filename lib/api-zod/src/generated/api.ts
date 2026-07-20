@@ -1198,6 +1198,7 @@ export const ListBioIssuesResponse = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "name": zod.string().nullish(),
+  "family": zod.string().nullish(),
   "description": zod.string().nullish(),
   "issueType": zod.string().nullish(),
   "importance": zod.number().min(1).max(listBioIssuesResponseItemsItemImportanceMax).nullish(),
@@ -1234,6 +1235,7 @@ export const createBioIssueBodyReversibilityMax = 5;
 
 export const CreateBioIssueBody = zod.object({
   "name": zod.string().nullish(),
+  "family": zod.string().nullish(),
   "description": zod.string().nullish(),
   "issueType": zod.string().nullish(),
   "importance": zod.number().min(1).max(createBioIssueBodyImportanceMax).nullish(),
@@ -1261,6 +1263,7 @@ export const CreateBioIssueResponse = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "name": zod.string().nullish(),
+  "family": zod.string().nullish(),
   "description": zod.string().nullish(),
   "issueType": zod.string().nullish(),
   "importance": zod.number().min(1).max(createBioIssueResponseImportanceMax).nullish(),
@@ -1274,6 +1277,21 @@ export const CreateBioIssueResponse = zod.object({
   "y": zod.number().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Group existing issues automatically using AI
+ */
+export const GroupBioIssuesParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GroupBioIssuesResponse = zod.object({
+  "groups": zod.array(zod.object({
+  "name": zod.string(),
+  "issueIds": zod.array(zod.number())
+}))
 })
 
 
@@ -1319,6 +1337,7 @@ export const updateBioIssueBodyReversibilityMax = 5;
 
 export const UpdateBioIssueBody = zod.object({
   "name": zod.string().nullish(),
+  "family": zod.string().nullish(),
   "description": zod.string().nullish(),
   "issueType": zod.string().nullish(),
   "importance": zod.number().min(1).max(updateBioIssueBodyImportanceMax).nullish(),
@@ -1346,6 +1365,7 @@ export const UpdateBioIssueResponse = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "name": zod.string().nullish(),
+  "family": zod.string().nullish(),
   "description": zod.string().nullish(),
   "issueType": zod.string().nullish(),
   "importance": zod.number().min(1).max(updateBioIssueResponseImportanceMax).nullish(),

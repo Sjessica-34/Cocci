@@ -45,6 +45,8 @@ export * from './bioDependencyInput';
 export * from './bioDependencyListResponse';
 export * from './bioGenerateResponse';
 export * from './bioGenerateSuggestion';
+export * from './bioGroup';
+export * from './bioGroupResponse';
 export * from './bioIssue';
 export * from './bioIssueInput';
 export * from './bioIssueListResponse';

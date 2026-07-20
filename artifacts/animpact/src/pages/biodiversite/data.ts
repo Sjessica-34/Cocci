@@ -128,10 +128,27 @@ export function importanceBg(importance: number | null | undefined): {
 export function importanceLabel(importance: number | null | undefined): string {
   if (!importance) return "Non défini";
   const labels: Record<number, string> = {
-    1: "Faible", 2: "Moyenne", 3: "Forte", 4: "Très forte", 5: "Critique",
+    1: "Faible", 2: "Modérée", 3: "Importante", 4: "Élevée", 5: "Critique",
   };
   return labels[importance] ?? "—";
 }
+
+// ─── Familles / Thèmes d'enjeux ───────────────────────────────────────────────
+
+export const ISSUE_FAMILIES = [
+  "Eau",
+  "Biodiversité locale",
+  "Climat",
+  "Sols",
+  "Air",
+  "Espèces protégées",
+  "Déchets",
+  "Achats responsables",
+  "Énergie",
+  "Autre",
+] as const;
+
+export type IssueFamilyValue = (typeof ISSUE_FAMILIES)[number];
 
 // ─── Positionnement par défaut ────────────────────────────────────────────────
 

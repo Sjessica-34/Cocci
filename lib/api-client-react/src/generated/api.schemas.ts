@@ -784,6 +784,8 @@ export interface BioIssue {
   /** @nullable */
   name?: string | null;
   /** @nullable */
+  family?: string | null;
+  /** @nullable */
   description?: string | null;
   /** @nullable */
   issueType?: string | null;
@@ -828,6 +830,8 @@ export interface BioIssueInput {
   /** @nullable */
   name?: string | null;
   /** @nullable */
+  family?: string | null;
+  /** @nullable */
   description?: string | null;
   /** @nullable */
   issueType?: string | null;
@@ -868,6 +872,15 @@ export interface BioIssueInput {
 
 export interface BioIssueListResponse {
   items: BioIssue[];
+}
+
+export interface BioGroup {
+  name: string;
+  issueIds: number[];
+}
+
+export interface BioGroupResponse {
+  groups: BioGroup[];
 }
 
 export interface BioGenerateSuggestion {

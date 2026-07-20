@@ -48,6 +48,7 @@ function mapIssue(row: typeof bioIssuesTable.$inferSelect) {
     id:             row.id,
     organizationId: row.organizationId,
     name:           row.name          ?? null,
+    family:         row.family        ?? null,
     description:    row.description   ?? null,
     issueType:      row.issueType     ?? null,
     importance:     row.importance    ?? null,
@@ -182,6 +183,7 @@ router.post("/organizations/:orgId/bio-issues", requireAuth, requireOrgMembershi
   const [row] = await db.insert(bioIssuesTable).values(
     withExerciseValues(req, {
       name:           (b.name        as string | undefined) ?? null,
+      family:         (b.family      as string | undefined) ?? null,
       description:    (b.description as string | undefined) ?? null,
       issueType:      (b.issueType   as string | undefined) ?? null,
       importance:     (b.importance  as number | undefined) ?? null,
@@ -196,6 +198,45 @@ router.post("/organizations/:orgId/bio-issues", requireAuth, requireOrgMembershi
     }),
   ).returning();
   res.json(mapIssue(row));
+});
+
+router.post("/organizations/:orgId/bio-issues/group", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const issues = await db.select().from(bioIssuesTable).where(scopeToExercise(bioIssuesTable, req));
+
+  if (issues.length === 0) { res.json({ groups: [] }); return; }
+
+  const issueList = issues.map(i =>
+    `- ID ${i.id} | "${i.name ?? "Sans nom"}" | Type: ${i.issueType ?? "?"} | Position: ${i.chainPosition ?? "?"} | Importance: ${i.importance ?? "?"}/5 | Description: ${i.description ?? ""}`
+  ).join("\n");
+
+  const prompt = `Tu es un expert RSE spécialisé en biodiversité. Voici une liste d'enjeux biodiversité saisis par une entreprise :
+
+${issueList}
+
+Regroupe ces enjeux par thématique en fusionnant les doublons, synonymes et sujets proches. Donne un nom court et professionnel à chaque groupe (ex : "Eau", "Climat", "Biodiversité locale", "Achats responsables").
+
+Réponds UNIQUEMENT avec un JSON valide, sans commentaires ni markdown :
+{
+  "groups": [
+    {
+      "name": "Nom court du thème",
+      "issueIds": [1, 2, 3]
+    }
+  ]
+}
+
+Chaque enjeu doit appartenir à exactement un groupe. Tous les IDs doivent être présents.`;
+
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 4096,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = message.content[0]?.type === "text" ? message.content[0].text : "{}";
+  let parsed: { groups: Array<{ name: string; issueIds: number[] }> };
+  try { parsed = JSON.parse(text) as typeof parsed; } catch { parsed = { groups: [] }; }
+  res.json(parsed);
 });
 
 router.post("/organizations/:orgId/bio-issues/generate", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
@@ -261,6 +302,7 @@ router.put("/organizations/:orgId/bio-issues/:id", requireAuth, requireOrgMember
   const elIds = Array.isArray(b.elementIds) ? (b.elementIds as number[]) : undefined;
   const updates: Partial<typeof bioIssuesTable.$inferInsert> = { updatedAt: new Date() };
   if (b.name          !== undefined) updates.name          = (b.name          as string | null) ?? null;
+  if (b.family        !== undefined) updates.family        = (b.family        as string | null) ?? null;
   if (b.description   !== undefined) updates.description   = (b.description   as string | null) ?? null;
   if (b.issueType     !== undefined) updates.issueType     = (b.issueType     as string | null) ?? null;
   if (b.importance    !== undefined) updates.importance    = (b.importance    as number | null) ?? null;
