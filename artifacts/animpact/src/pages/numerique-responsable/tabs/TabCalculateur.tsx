@@ -5,9 +5,10 @@ import { Slider } from "@/components/ui/slider";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import { Calculator, Leaf, Zap, Printer, Server } from "lucide-react";
+import { Calculator, Leaf, Users, Zap, Printer, Server } from "lucide-react";
 
 interface ParcData {
+  employees:      number;
   laptops:        number;
   desktops:       number;
   screens:        number;
@@ -24,6 +25,7 @@ interface ParcData {
 }
 
 const DEFAULTS: ParcData = {
+  employees:     25,
   laptops:       20,
   desktops:      5,
   screens:       25,
@@ -90,8 +92,8 @@ function useCalc(data: ParcData) {
     sobriete = Math.min(100, Math.max(0, sobriete));
 
     return {
-      eqCo2Tons:    Math.round(eqCo2 / 1000 * 10) / 10,
-      eqCo2KgUnit:  totalDevices > 0 ? Math.round(eqCo2 / totalDevices) : 0,
+      eqCo2Tons:      Math.round(eqCo2 / 1000 * 10) / 10,
+      eqCo2KgPerson:  data.employees > 0 ? Math.round(eqCo2 / data.employees) : 0,
       totalDevices,
       sobriete,
       chartData: [
@@ -133,6 +135,11 @@ export function TabCalculateur() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input form */}
         <div className="space-y-4">
+          {/* Effectif */}
+          <Section title="Effectif" icon={<Users className="h-4 w-4 text-slate-600" />}>
+            <Row label="Nombre d'employés" right={<Input {...inputProps("employees")} />} />
+          </Section>
+
           {/* Équipements */}
           <Section title="Parc d'équipements" icon={<Zap className="h-4 w-4 text-blue-600" />}>
             <Row label="Ordinateurs portables"  right={<Input {...inputProps("laptops")} />} />
@@ -200,9 +207,9 @@ export function TabCalculateur() {
               color="text-red-600"
             />
             <KpiCard
-              label="Par équipement"
-              value={`${calc.eqCo2KgUnit} kg CO₂e`}
-              sub="par équipement et par an"
+              label="Par personne"
+              value={`${calc.eqCo2KgPerson} kg CO₂e`}
+              sub="par employé et par an"
               color="text-orange-600"
             />
             <KpiCard
