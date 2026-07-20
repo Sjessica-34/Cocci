@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useListBioDependencies,
   useListBioIssues,
+  useCreateBioIssue,
   useUpdateBioIssue,
   useDeleteBioIssue,
   useGenerateBioIssues,
@@ -35,7 +36,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ChevronUp, Info, Layers, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import {
   CHAIN_POSITIONS,
   importanceBg, importanceLabel, defaultIssuePosition,
@@ -86,6 +87,61 @@ const BioIssueNodeComp = memo(function BioIssueNodeComp({ data }: NodeProps<BioI
 });
 
 const nodeTypes: NodeTypes = { bioIssue: BioIssueNodeComp };
+
+// ─── EMPTY form ───────────────────────────────────────────────────────────────
+
+const EMPTY_ISSUE: BioIssueInput = {
+  name: null, family: null, description: null, issueType: null,
+  importance: null, probability: null, urgency: null, reversibility: null,
+  comments: null, chainPosition: null, elementIds: [],
+};
+
+// ─── Score buttons ────────────────────────────────────────────────────────────
+
+function ScoreButtons({
+  value, onChange, labels,
+}: {
+  value: number | null | undefined;
+  onChange: (v: number | null) => void;
+  labels?: Record<number, string>;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-1.5">
+        {[1, 2, 3, 4, 5].map(n => {
+          const colors = importanceBg(n);
+          const isSelected = value === n;
+          return (
+            <button
+              key={n} type="button"
+              onClick={() => onChange(value === n ? null : n)}
+              className="flex-1 py-2 rounded-lg border-2 text-xs font-bold transition-all"
+              style={{
+                borderColor:     isSelected ? colors.border : "#e2e8f0",
+                backgroundColor: isSelected ? colors.bg    : "#f8fafc",
+                color:           isSelected ? colors.text  : "#94a3b8",
+              }}
+            >{n}</button>
+          );
+        })}
+      </div>
+      {labels && value && labels[value] && (
+        <p className="text-[11px] text-muted-foreground text-center">{labels[value]}</p>
+      )}
+    </div>
+  );
+}
+
+const PROBABILITY_LABELS: Record<number, string> = {
+  1: "Très improbable", 2: "Improbable", 3: "Possible", 4: "Probable", 5: "Très probable",
+};
+const URGENCY_LABELS: Record<number, string> = {
+  1: "Très faible", 2: "Faible", 3: "Modérée", 4: "Forte", 5: "Immédiate",
+};
+const REVERSIBILITY_LABELS: Record<number, string> = {
+  1: "Totalement réversible", 2: "Réversible", 3: "Partiellement réversible",
+  4: "Difficilement réversible", 5: "Irréversible",
+};
 
 // ─── Static cartography grid ──────────────────────────────────────────────────
 
@@ -250,17 +306,14 @@ export function TabCartoEnjeux({ orgId }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<BioIssueNode>([]);
   const [, , onEdgesChange] = useEdgesState([]);
 
-  // ── Edit sheet (enjeu généré) ────────────────────────────────────────────────
+  // ── Sheet enjeu (création / édition) ────────────────────────────────────────
   const [sheetOpen, setSheetOpen]       = useState(false);
   const [editingIssue, setEditingIssue] = useState<BioIssue | null>(null);
-  const [editForm, setEditForm]         = useState<Partial<BioIssueInput>>({});
+  const [form, setForm]                 = useState<BioIssueInput>(EMPTY_ISSUE);
   const [deleteId, setDeleteId]         = useState<number | null>(null);
 
   // ── Vue interactive ──────────────────────────────────────────────────────────
   const [showReactFlow, setShowReactFlow] = useState(false);
-
-  // ── AI generate ─────────────────────────────────────────────────────────────
-  const [lastGenerated, setLastGenerated] = useState(0);
 
   // ── AI group ────────────────────────────────────────────────────────────────
   const [groupDialog, setGroupDialog]       = useState(false);
@@ -274,6 +327,7 @@ export function TabCartoEnjeux({ orgId }: Props) {
   const elements = depsData?.items ?? [];
   const issues   = issuesData?.items ?? [];
 
+  const createMut   = useCreateBioIssue();
   const updateMut   = useUpdateBioIssue();
   const deleteMut   = useDeleteBioIssue();
   const generateMut = useGenerateBioIssues();
@@ -320,20 +374,41 @@ export function TabCartoEnjeux({ orgId }: Props) {
     [issues],
   );
 
+  function openCreate() {
+    setEditingIssue(null);
+    setForm(EMPTY_ISSUE);
+    setSheetOpen(true);
+  }
+
   function openEdit(issue: BioIssue) {
     setEditingIssue(issue);
-    setEditForm({
-      name:          issue.name,
-      description:   issue.description,
-      chainPosition: issue.chainPosition,
-      importance:    issue.importance,
+    setForm({
+      name: issue.name, family: issue.family ?? null,
+      description: issue.description,
+      issueType: issue.issueType ?? null,
+      importance: issue.importance, probability: issue.probability ?? null,
+      urgency: issue.urgency ?? null, reversibility: issue.reversibility ?? null,
+      comments: issue.comments ?? null, chainPosition: issue.chainPosition,
+      elementIds: issue.elementIds,
     });
     setSheetOpen(true);
   }
 
-  async function handleSaveEdit() {
-    if (!editingIssue) return;
-    await updateMut.mutateAsync({ orgId, id: editingIssue.id, data: editForm as BioIssueInput });
+  function setF<K extends keyof BioIssueInput>(key: K, value: BioIssueInput[K]) {
+    setForm(prev => ({ ...prev, [key]: value }));
+  }
+
+  function toggleElement(id: number) {
+    const cur = form.elementIds ?? [];
+    setF("elementIds", cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]);
+  }
+
+  async function handleSave() {
+    if (editingIssue) {
+      await updateMut.mutateAsync({ orgId, id: editingIssue.id, data: form });
+    } else {
+      await createMut.mutateAsync({ orgId, data: form });
+    }
     queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
     setSheetOpen(false);
   }
@@ -349,7 +424,6 @@ export function TabCartoEnjeux({ orgId }: Props) {
   async function handleGenerate() {
     await generateMut.mutateAsync({ orgId });
     queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
-    setLastGenerated(Date.now());
   }
 
   async function handleGroupAI() {
@@ -371,9 +445,9 @@ export function TabCartoEnjeux({ orgId }: Props) {
     setGroupDialog(false);
   }
 
-  const isSaving = updateMut.isPending;
+  const isSaving  = createMut.isPending || updateMut.isPending;
   const hasIssues = issues.length > 0;
-  const hasDeps = elements.length > 0;
+  const hasDeps   = elements.length > 0;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -386,9 +460,13 @@ export function TabCartoEnjeux({ orgId }: Props) {
           <p className="text-sm text-muted-foreground">
             {isLoading ? "Chargement…" : hasIssues
               ? `${issues.length} enjeu${issues.length !== 1 ? "x" : ""} identifié${issues.length !== 1 ? "s" : ""}`
-              : "Aucun enjeu — utilisez l'IA pour les générer automatiquement"}
+              : "Aucun enjeu — utilisez l'IA ou ajoutez-en manuellement"}
           </p>
         </div>
+
+        <Button variant="outline" size="sm" onClick={openCreate} className="gap-1.5">
+          <Plus className="h-4 w-4" />Ajouter un enjeu
+        </Button>
 
         {hasIssues && issues.length >= 2 && (
           <Button
@@ -503,22 +581,34 @@ export function TabCartoEnjeux({ orgId }: Props) {
         </>
       )}
 
-      {/* ── Sheet édition enjeu ────────────────────────────────────────────── */}
+      {/* ── Sheet enjeu (création / édition) ──────────────────────────────── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="overflow-y-auto w-full sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Modifier l'enjeu</SheetTitle>
+            <SheetTitle>{editingIssue ? "Modifier l'enjeu" : "Nouvel enjeu"}</SheetTitle>
             <SheetDescription>
-              Ajustez le nom, la description ou la position de l'enjeu généré par l'IA.
+              {editingIssue
+                ? "Ajustez les caractéristiques de l'enjeu."
+                : "Ajoutez manuellement un enjeu biodiversité."}
             </SheetDescription>
           </SheetHeader>
           <div className="space-y-5 mt-6">
 
             <div className="space-y-1.5">
-              <Label>Nom de l'enjeu</Label>
+              <Label>Nom de l'enjeu *</Label>
               <Input
-                value={editForm.name ?? ""}
-                onChange={e => setEditForm(p => ({ ...p, name: e.target.value || null }))}
+                placeholder="Ex : Perte d'habitats forestiers"
+                value={form.name ?? ""}
+                onChange={e => setF("name", e.target.value || null)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Famille / Thématique</Label>
+              <Input
+                placeholder="Ex : Habitats, Espèces, Eau…"
+                value={form.family ?? ""}
+                onChange={e => setF("family", e.target.value || null)}
               />
             </div>
 
@@ -526,16 +616,17 @@ export function TabCartoEnjeux({ orgId }: Props) {
               <Label>Description</Label>
               <Textarea
                 rows={3}
-                value={editForm.description ?? ""}
-                onChange={e => setEditForm(p => ({ ...p, description: e.target.value || null }))}
+                placeholder="Décrivez l'enjeu…"
+                value={form.description ?? ""}
+                onChange={e => setF("description", e.target.value || null)}
               />
             </div>
 
             <div className="space-y-1.5">
               <Label>Position sur la chaîne de valeur</Label>
               <Select
-                value={editForm.chainPosition ?? ""}
-                onValueChange={v => setEditForm(p => ({ ...p, chainPosition: v || null }))}
+                value={form.chainPosition ?? ""}
+                onValueChange={v => setF("chainPosition", v || null)}
               >
                 <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
                 <SelectContent>
@@ -547,33 +638,79 @@ export function TabCartoEnjeux({ orgId }: Props) {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Importance <span className="text-muted-foreground font-normal text-xs">— niveau sur la cartographie</span></Label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map(n => {
-                  const c = importanceBg(n);
-                  const sel = editForm.importance === n;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setEditForm(p => ({ ...p, importance: sel ? null : n }))}
-                      className="flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all"
-                      style={{
-                        borderColor:     sel ? c.border : "#e2e8f0",
-                        backgroundColor: sel ? c.bg    : "#f8fafc",
-                        color:           sel ? c.text  : "#94a3b8",
-                      }}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
+              <Label>Importance <span className="text-muted-foreground font-normal text-xs">— position sur la cartographie</span></Label>
+              <ScoreButtons
+                value={form.importance}
+                onChange={v => setF("importance", v)}
+                labels={IMPORTANCE_LABELS}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Probabilité d'occurrence</Label>
+              <ScoreButtons
+                value={form.probability}
+                onChange={v => setF("probability", v)}
+                labels={PROBABILITY_LABELS}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Urgence</Label>
+              <ScoreButtons
+                value={form.urgency}
+                onChange={v => setF("urgency", v)}
+                labels={URGENCY_LABELS}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Réversibilité</Label>
+              <ScoreButtons
+                value={form.reversibility}
+                onChange={v => setF("reversibility", v)}
+                labels={REVERSIBILITY_LABELS}
+              />
+            </div>
+
+            {elements.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Dépendances liées</Label>
+                <div className="max-h-36 overflow-y-auto rounded-lg border p-2 space-y-1">
+                  {elements.map(el => {
+                    const linked = (form.elementIds ?? []).includes(el.id);
+                    return (
+                      <button
+                        key={el.id}
+                        type="button"
+                        onClick={() => toggleElement(el.id)}
+                        className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg border transition-all ${
+                          linked
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-800 font-medium"
+                            : "bg-white border-border text-muted-foreground hover:bg-slate-50"
+                        }`}
+                      >
+                        {el.name ?? `Élément ${el.id}`}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label>Commentaires</Label>
+              <Textarea
+                rows={2}
+                placeholder="Notes complémentaires…"
+                value={form.comments ?? ""}
+                onChange={e => setF("comments", e.target.value || null)}
+              />
             </div>
 
             <div className="flex items-center gap-2 pt-2">
-              <Button onClick={handleSaveEdit} disabled={isSaving} className="flex-1">
-                {isSaving ? "Enregistrement…" : "Enregistrer"}
+              <Button onClick={handleSave} disabled={isSaving} className="flex-1">
+                {isSaving ? "Enregistrement…" : editingIssue ? "Enregistrer" : "Créer"}
               </Button>
               {editingIssue && (
                 <Button
