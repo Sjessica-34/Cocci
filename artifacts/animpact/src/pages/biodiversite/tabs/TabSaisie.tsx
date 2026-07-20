@@ -88,7 +88,9 @@ interface Props { orgId: number; subsidiaries?: Organization[]; }
 
 const EMPTY: BioDependencyInput = {
   name: null, category: null, subCategory: null, chainPosition: null,
-  dependencyLevel: null, masteryLevel: null, comments: null, documentIds: [],
+  dependencyLevel: null, masteryLevel: null,
+  importanceOrg: null, importanceBio: null,
+  comments: null, documentIds: [],
 };
 
 export function TabSaisie({ orgId, subsidiaries }: Props) {
@@ -150,7 +152,10 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
     setForm({
       name: el.name, category: el.category, subCategory: el.subCategory,
       chainPosition: el.chainPosition, dependencyLevel: el.dependencyLevel,
-      masteryLevel: el.masteryLevel, comments: el.comments, documentIds: el.documentIds,
+      masteryLevel: el.masteryLevel,
+      importanceOrg: el.importanceOrg ?? null,
+      importanceBio: el.importanceBio ?? null,
+      comments: el.comments, documentIds: el.documentIds,
     });
     setSubFreeText("");
     setSheetOpen(true);
@@ -450,6 +455,30 @@ function IndividualSaisie({ orgId }: { orgId: number }) {
               <CriticityButtons
                 value={form.dependencyLevel}
                 onChange={v => setF("dependencyLevel", v)}
+              />
+            </div>
+
+            {/* Importance pour l'organisation (pour les enjeux) */}
+            <div className="space-y-1.5">
+              <Label>
+                Importance pour l'organisation{" "}
+                <span className="text-muted-foreground font-normal text-xs">— pour la matrice des enjeux (1 à 5)</span>
+              </Label>
+              <CriticityButtons
+                value={form.importanceOrg}
+                onChange={v => setF("importanceOrg", v)}
+              />
+            </div>
+
+            {/* Impact sur la biodiversité (pour les enjeux) */}
+            <div className="space-y-1.5">
+              <Label>
+                Impact sur la biodiversité{" "}
+                <span className="text-muted-foreground font-normal text-xs">— pour la matrice des enjeux (1 à 5)</span>
+              </Label>
+              <CriticityButtons
+                value={form.importanceBio}
+                onChange={v => setF("importanceBio", v)}
               />
             </div>
 

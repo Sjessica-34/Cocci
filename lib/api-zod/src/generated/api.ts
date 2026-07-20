@@ -1042,6 +1042,10 @@ export const listBioDependenciesResponseItemsItemDependencyLevelMax = 5;
 
 export const listBioDependenciesResponseItemsItemMasteryLevelMax = 5;
 
+export const listBioDependenciesResponseItemsItemImportanceOrgMax = 5;
+
+export const listBioDependenciesResponseItemsItemImportanceBioMax = 5;
+
 
 
 export const ListBioDependenciesResponse = zod.object({
@@ -1054,6 +1058,8 @@ export const ListBioDependenciesResponse = zod.object({
   "chainPosition": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(listBioDependenciesResponseItemsItemDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(listBioDependenciesResponseItemsItemMasteryLevelMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(listBioDependenciesResponseItemsItemImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(listBioDependenciesResponseItemsItemImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "documentIds": zod.array(zod.number()),
   "x": zod.number().nullish(),
@@ -1075,6 +1081,10 @@ export const createBioDependencyBodyDependencyLevelMax = 5;
 
 export const createBioDependencyBodyMasteryLevelMax = 5;
 
+export const createBioDependencyBodyImportanceOrgMax = 5;
+
+export const createBioDependencyBodyImportanceBioMax = 5;
+
 
 
 export const CreateBioDependencyBody = zod.object({
@@ -1084,6 +1094,8 @@ export const CreateBioDependencyBody = zod.object({
   "chainPosition": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(createBioDependencyBodyDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(createBioDependencyBodyMasteryLevelMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(createBioDependencyBodyImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(createBioDependencyBodyImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "documentIds": zod.array(zod.number()).optional(),
   "x": zod.number().nullish(),
@@ -1093,6 +1105,10 @@ export const CreateBioDependencyBody = zod.object({
 export const createBioDependencyResponseDependencyLevelMax = 5;
 
 export const createBioDependencyResponseMasteryLevelMax = 5;
+
+export const createBioDependencyResponseImportanceOrgMax = 5;
+
+export const createBioDependencyResponseImportanceBioMax = 5;
 
 
 
@@ -1105,6 +1121,8 @@ export const CreateBioDependencyResponse = zod.object({
   "chainPosition": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(createBioDependencyResponseDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(createBioDependencyResponseMasteryLevelMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(createBioDependencyResponseImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(createBioDependencyResponseImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "documentIds": zod.array(zod.number()),
   "x": zod.number().nullish(),
@@ -1126,6 +1144,10 @@ export const updateBioDependencyBodyDependencyLevelMax = 5;
 
 export const updateBioDependencyBodyMasteryLevelMax = 5;
 
+export const updateBioDependencyBodyImportanceOrgMax = 5;
+
+export const updateBioDependencyBodyImportanceBioMax = 5;
+
 
 
 export const UpdateBioDependencyBody = zod.object({
@@ -1135,6 +1157,8 @@ export const UpdateBioDependencyBody = zod.object({
   "chainPosition": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(updateBioDependencyBodyDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(updateBioDependencyBodyMasteryLevelMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(updateBioDependencyBodyImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(updateBioDependencyBodyImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "documentIds": zod.array(zod.number()).optional(),
   "x": zod.number().nullish(),
@@ -1144,6 +1168,10 @@ export const UpdateBioDependencyBody = zod.object({
 export const updateBioDependencyResponseDependencyLevelMax = 5;
 
 export const updateBioDependencyResponseMasteryLevelMax = 5;
+
+export const updateBioDependencyResponseImportanceOrgMax = 5;
+
+export const updateBioDependencyResponseImportanceBioMax = 5;
 
 
 
@@ -1156,6 +1184,8 @@ export const UpdateBioDependencyResponse = zod.object({
   "chainPosition": zod.string().nullish(),
   "dependencyLevel": zod.number().min(1).max(updateBioDependencyResponseDependencyLevelMax).nullish(),
   "masteryLevel": zod.number().min(1).max(updateBioDependencyResponseMasteryLevelMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(updateBioDependencyResponseImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(updateBioDependencyResponseImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "documentIds": zod.array(zod.number()),
   "x": zod.number().nullish(),
@@ -1191,6 +1221,10 @@ export const listBioIssuesResponseItemsItemUrgencyMax = 5;
 
 export const listBioIssuesResponseItemsItemReversibilityMax = 5;
 
+export const listBioIssuesResponseItemsItemImportanceOrgMax = 5;
+
+export const listBioIssuesResponseItemsItemImportanceBioMax = 5;
+
 
 
 export const ListBioIssuesResponse = zod.object({
@@ -1205,6 +1239,8 @@ export const ListBioIssuesResponse = zod.object({
   "probability": zod.number().min(1).max(listBioIssuesResponseItemsItemProbabilityMax).nullish(),
   "urgency": zod.number().min(1).max(listBioIssuesResponseItemsItemUrgencyMax).nullish(),
   "reversibility": zod.number().min(1).max(listBioIssuesResponseItemsItemReversibilityMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(listBioIssuesResponseItemsItemImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(listBioIssuesResponseItemsItemImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
   "elementIds": zod.array(zod.number()),
@@ -1231,6 +1267,10 @@ export const createBioIssueBodyUrgencyMax = 5;
 
 export const createBioIssueBodyReversibilityMax = 5;
 
+export const createBioIssueBodyImportanceOrgMax = 5;
+
+export const createBioIssueBodyImportanceBioMax = 5;
+
 
 
 export const CreateBioIssueBody = zod.object({
@@ -1242,6 +1282,8 @@ export const CreateBioIssueBody = zod.object({
   "probability": zod.number().min(1).max(createBioIssueBodyProbabilityMax).nullish(),
   "urgency": zod.number().min(1).max(createBioIssueBodyUrgencyMax).nullish(),
   "reversibility": zod.number().min(1).max(createBioIssueBodyReversibilityMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(createBioIssueBodyImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(createBioIssueBodyImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
   "elementIds": zod.array(zod.number()).optional(),
@@ -1257,6 +1299,10 @@ export const createBioIssueResponseUrgencyMax = 5;
 
 export const createBioIssueResponseReversibilityMax = 5;
 
+export const createBioIssueResponseImportanceOrgMax = 5;
+
+export const createBioIssueResponseImportanceBioMax = 5;
+
 
 
 export const CreateBioIssueResponse = zod.object({
@@ -1270,6 +1316,8 @@ export const CreateBioIssueResponse = zod.object({
   "probability": zod.number().min(1).max(createBioIssueResponseProbabilityMax).nullish(),
   "urgency": zod.number().min(1).max(createBioIssueResponseUrgencyMax).nullish(),
   "reversibility": zod.number().min(1).max(createBioIssueResponseReversibilityMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(createBioIssueResponseImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(createBioIssueResponseImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
   "elementIds": zod.array(zod.number()),
@@ -1302,17 +1350,45 @@ export const GenerateBioIssuesParams = zod.object({
   "orgId": zod.coerce.number()
 })
 
-export const generateBioIssuesResponseSuggestionsItemImportanceMax = 5;
+export const GenerateBioIssuesBody = zod.object({
+  "subsidiaryOrgIds": zod.array(zod.number()).optional()
+})
+
+export const generateBioIssuesResponseItemsItemImportanceMax = 5;
+
+export const generateBioIssuesResponseItemsItemProbabilityMax = 5;
+
+export const generateBioIssuesResponseItemsItemUrgencyMax = 5;
+
+export const generateBioIssuesResponseItemsItemReversibilityMax = 5;
+
+export const generateBioIssuesResponseItemsItemImportanceOrgMax = 5;
+
+export const generateBioIssuesResponseItemsItemImportanceBioMax = 5;
 
 
 
 export const GenerateBioIssuesResponse = zod.object({
-  "suggestions": zod.array(zod.object({
-  "name": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "name": zod.string().nullish(),
+  "family": zod.string().nullish(),
   "description": zod.string().nullish(),
-  "elementIds": zod.array(zod.number()),
+  "issueType": zod.string().nullish(),
+  "importance": zod.number().min(1).max(generateBioIssuesResponseItemsItemImportanceMax).nullish(),
+  "probability": zod.number().min(1).max(generateBioIssuesResponseItemsItemProbabilityMax).nullish(),
+  "urgency": zod.number().min(1).max(generateBioIssuesResponseItemsItemUrgencyMax).nullish(),
+  "reversibility": zod.number().min(1).max(generateBioIssuesResponseItemsItemReversibilityMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(generateBioIssuesResponseItemsItemImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(generateBioIssuesResponseItemsItemImportanceBioMax).nullish(),
+  "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
-  "importance": zod.number().min(1).max(generateBioIssuesResponseSuggestionsItemImportanceMax).nullish()
+  "elementIds": zod.array(zod.number()),
+  "x": zod.number().nullish(),
+  "y": zod.number().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
 }))
 })
 
@@ -1333,6 +1409,10 @@ export const updateBioIssueBodyUrgencyMax = 5;
 
 export const updateBioIssueBodyReversibilityMax = 5;
 
+export const updateBioIssueBodyImportanceOrgMax = 5;
+
+export const updateBioIssueBodyImportanceBioMax = 5;
+
 
 
 export const UpdateBioIssueBody = zod.object({
@@ -1344,6 +1424,8 @@ export const UpdateBioIssueBody = zod.object({
   "probability": zod.number().min(1).max(updateBioIssueBodyProbabilityMax).nullish(),
   "urgency": zod.number().min(1).max(updateBioIssueBodyUrgencyMax).nullish(),
   "reversibility": zod.number().min(1).max(updateBioIssueBodyReversibilityMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(updateBioIssueBodyImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(updateBioIssueBodyImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
   "elementIds": zod.array(zod.number()).optional(),
@@ -1359,6 +1441,10 @@ export const updateBioIssueResponseUrgencyMax = 5;
 
 export const updateBioIssueResponseReversibilityMax = 5;
 
+export const updateBioIssueResponseImportanceOrgMax = 5;
+
+export const updateBioIssueResponseImportanceBioMax = 5;
+
 
 
 export const UpdateBioIssueResponse = zod.object({
@@ -1372,6 +1458,8 @@ export const UpdateBioIssueResponse = zod.object({
   "probability": zod.number().min(1).max(updateBioIssueResponseProbabilityMax).nullish(),
   "urgency": zod.number().min(1).max(updateBioIssueResponseUrgencyMax).nullish(),
   "reversibility": zod.number().min(1).max(updateBioIssueResponseReversibilityMax).nullish(),
+  "importanceOrg": zod.number().min(1).max(updateBioIssueResponseImportanceOrgMax).nullish(),
+  "importanceBio": zod.number().min(1).max(updateBioIssueResponseImportanceBioMax).nullish(),
   "comments": zod.string().nullish(),
   "chainPosition": zod.string().nullish(),
   "elementIds": zod.array(zod.number()),

@@ -5,8 +5,8 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { BioGenerateSuggestion } from './bioGenerateSuggestion';
+import type { BioIssue } from './bioIssue';
 
 export interface BioGenerateResponse {
-  suggestions: BioGenerateSuggestion[];
+  items: BioIssue[];
 }

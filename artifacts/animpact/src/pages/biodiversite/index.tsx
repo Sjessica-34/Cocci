@@ -73,7 +73,10 @@ export function Biodiversite() {
 
         <TabsContent value="enjeux">
           {currentOrgId
-            ? <TabCartoEnjeux orgId={currentOrgId} />
+            ? <TabCartoEnjeux
+                orgId={currentOrgId}
+                subsidiaries={isGroupView ? subsidiaries : undefined}
+              />
             : <p className="text-sm text-muted-foreground">Sélectionnez une organisation.</p>}
         </TabsContent>
 

@@ -42,6 +42,7 @@ import type {
   BioDependency,
   BioDependencyInput,
   BioDependencyListResponse,
+  BioGenerateInput,
   BioGenerateResponse,
   BioGroupResponse,
   BioIssue,
@@ -3791,14 +3792,15 @@ export const getGenerateBioIssuesUrl = (orgId: number,) => {
 /**
  * @summary Generate issue suggestions using AI from existing dependencies
  */
-export const generateBioIssues = async (orgId: number, options?: RequestInit): Promise<BioGenerateResponse> => {
+export const generateBioIssues = async (orgId: number,
+    bioGenerateInput?: BioGenerateInput, options?: RequestInit): Promise<BioGenerateResponse> => {
 
   return customFetch<BioGenerateResponse>(getGenerateBioIssuesUrl(orgId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bioGenerateInput)
   }
 );}
 
@@ -3806,8 +3808,8 @@ export const generateBioIssues = async (orgId: number, options?: RequestInit): P
 
 
 export const getGenerateBioIssuesMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number;data?: BodyType<BioGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number;data?: BodyType<BioGenerateInput>}, TContext> => {
 
 const mutationKey = ['generateBioIssues'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -3819,10 +3821,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateBioIssues>>, {orgId: number}> = (props) => {
-          const {orgId} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateBioIssues>>, {orgId: number;data?: BodyType<BioGenerateInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
 
-          return  generateBioIssues(orgId,requestOptions)
+          return  generateBioIssues(orgId,data,requestOptions)
         }
 
 
@@ -3833,18 +3835,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type GenerateBioIssuesMutationResult = NonNullable<Awaited<ReturnType<typeof generateBioIssues>>>
-
+    export type GenerateBioIssuesMutationBody = BodyType<BioGenerateInput> | undefined
     export type GenerateBioIssuesMutationError = ErrorType<void>
 
     /**
  * @summary Generate issue suggestions using AI from existing dependencies
  */
 export const useGenerateBioIssues = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBioIssues>>, TError,{orgId: number;data?: BodyType<BioGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof generateBioIssues>>,
         TError,
-        {orgId: number},
+        {orgId: number;data?: BodyType<BioGenerateInput>},
         TContext
       > => {
       return useMutation(getGenerateBioIssuesMutationOptions(options));

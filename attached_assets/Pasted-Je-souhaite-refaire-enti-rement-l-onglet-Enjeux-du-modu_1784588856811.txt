@@ -1,0 +1,160 @@
+Je souhaite refaire entièrement l'onglet **"Enjeux"** du module **Dépendances à la biodiversité**.
+
+Je joins une capture d'écran qui servira de **maquette de référence**.
+
+⚠️ IMPORTANT
+
+Je ne souhaite absolument PAS modifier le fonctionnement du module "Cartographie des dépendances".
+
+Je suis satisfait de son fonctionnement actuel.
+
+Je ne souhaite pas modifier :
+
+- le guide ;
+- la saisie ;
+- la cartographie des dépendances ;
+- les connexions ;
+- les ressources ;
+- les activités ;
+- les acteurs ;
+- les sites.
+
+Toute cette partie doit rester exactement comme aujourd'hui.
+
+Le seul écran concerné est l'onglet **Enjeux**.
+
+---
+
+## Fonctionnement attendu
+
+Le module reste organisé ainsi :
+
+1. Guide
+2. Saisie
+3. Cartographie
+4. Enjeux
+5. Synthèse
+
+Je souhaite uniquement refaire l'étape **Enjeux**.
+
+---
+
+## Ajout de deux informations dans les dépendances
+
+Sans modifier la logique de la cartographie actuelle, je souhaite simplement ajouter deux nouveaux champs lors de la création ou de l'édition d'une dépendance :
+
+- Importance pour l'organisation (1 à 5)
+- Importance pour la biodiversité (1 à 5)
+
+Ces deux informations serviront uniquement au calcul des enjeux.
+
+Elles ne doivent pas modifier la cartographie actuelle.
+
+---
+
+## Génération automatique des enjeux
+
+L'utilisateur ne crée jamais d'enjeu.
+
+Les enjeux sont générés automatiquement.
+
+L'IA doit analyser toutes les dépendances renseignées puis regrouper celles qui traitent du même sujet afin de créer des enjeux stratégiques.
+
+Par exemple :
+
+Plusieurs dépendances liées à l'eau deviennent :
+
+➡ Sécuriser l'accès durable à la ressource en eau.
+
+Plusieurs dépendances liées aux pollinisateurs deviennent :
+
+➡ Préserver les pollinisateurs indispensables aux activités.
+
+Plusieurs dépendances liées aux sols deviennent :
+
+➡ Préserver la qualité et la fertilité des sols.
+
+Plusieurs dépendances liées aux habitats naturels deviennent :
+
+➡ Limiter la dégradation et la fragmentation des habitats naturels.
+
+Plusieurs dépendances liées à la biomasse deviennent :
+
+➡ Assurer une gestion durable des ressources biologiques.
+
+Plusieurs dépendances liées au climat deviennent :
+
+➡ Renforcer la résilience des activités face aux dérèglements climatiques.
+
+Plusieurs dépendances liées aux ressources naturelles deviennent :
+
+➡ Garantir un approvisionnement durable en ressources naturelles.
+
+L'objectif est de produire une dizaine d'enjeux stratégiques et non une liste de dépendances.
+
+---
+
+## Matrice
+
+Je souhaite une matrice inspirée de la maquette jointe.
+
+Les axes sont :
+
+- Importance pour l'organisation
+- Importance pour la biodiversité
+
+Les enjeux sont positionnés automatiquement dans cette matrice à partir des dépendances qui les composent.
+
+---
+
+## Interface
+
+Je souhaite une interface proche de la maquette jointe comprenant :
+
+- des cartes de synthèse ;
+- une vue Matrice ;
+- une vue Liste ;
+- un filtre Tous / In situ / Amont / Aval ;
+- trois matrices distinctes :
+  - In situ
+  - Amont
+  - Aval
+
+Les enjeux sont affichés automatiquement dans ces matrices.
+
+---
+
+## Fonctionnement Groupe / Filiales
+
+Comme tous les autres modules de Cocci, cette fonctionnalité doit fonctionner :
+
+- au niveau d'une filiale ;
+- au niveau du groupe.
+
+Pour une filiale :
+
+Les enjeux sont générés uniquement à partir des dépendances de cette filiale.
+
+Pour le groupe :
+
+Les dépendances de toutes les filiales sont consolidées.
+
+L'IA regroupe ensuite les dépendances similaires afin de produire une liste unique d'enjeux stratégiques.
+
+Exemple :
+
+Trois filiales possèdent des dépendances liées à l'eau.
+
+Le groupe ne doit pas afficher trois enjeux.
+
+Il doit générer un seul enjeu groupe :
+
+➡ Sécuriser l'accès durable à la ressource en eau.
+
+Le même principe s'applique à tous les thèmes.
+
+---
+
+L'objectif est que Cocci transforme automatiquement une cartographie des dépendances en une cartographie des enjeux biodiversité, sans que l'utilisateur ait à créer lui-même ses enjeux.
+
+⚠️ Je le répète : je ne souhaite pas modifier le module de cartographie des dépendances. Je souhaite uniquement ajouter les deux nouvelles notes sur les dépendances et refaire complètement l'onglet Enjeux.

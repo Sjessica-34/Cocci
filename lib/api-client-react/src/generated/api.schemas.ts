@@ -711,6 +711,18 @@ export interface BioDependency {
      * @nullable
      */
   masteryLevel?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceOrg?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceBio?: number | null;
   /** @nullable */
   comments?: string | null;
   documentIds: number[];
@@ -743,6 +755,18 @@ export interface BioDependencyInput {
      * @nullable
      */
   masteryLevel?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceOrg?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceBio?: number | null;
   /** @nullable */
   comments?: string | null;
   documentIds?: number[];
@@ -813,6 +837,18 @@ export interface BioIssue {
      * @nullable
      */
   reversibility?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceOrg?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceBio?: number | null;
   /** @nullable */
   comments?: string | null;
   /** @nullable */
@@ -859,6 +895,18 @@ export interface BioIssueInput {
      * @nullable
      */
   reversibility?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceOrg?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceBio?: number | null;
   /** @nullable */
   comments?: string | null;
   /** @nullable */
@@ -883,23 +931,12 @@ export interface BioGroupResponse {
   groups: BioGroup[];
 }
 
-export interface BioGenerateSuggestion {
-  name: string;
-  /** @nullable */
-  description?: string | null;
-  elementIds: number[];
-  /** @nullable */
-  chainPosition?: string | null;
-  /**
-     * @minimum 1
-     * @maximum 5
-     * @nullable
-     */
-  importance?: number | null;
+export interface BioGenerateInput {
+  subsidiaryOrgIds?: number[];
 }
 
 export interface BioGenerateResponse {
-  suggestions: BioGenerateSuggestion[];
+  items: BioIssue[];
 }
 
 export interface Label {

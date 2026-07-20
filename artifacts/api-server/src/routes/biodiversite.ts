@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, bioDependenciesTable, bioConnectionsTable, bioIssuesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, bioDependenciesTable, bioConnectionsTable, bioIssuesTable, exercisesTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
@@ -22,6 +22,8 @@ function mapDep(row: typeof bioDependenciesTable.$inferSelect) {
     chainPosition:   row.chainPosition ?? null,
     dependencyLevel: row.dependencyLevel ?? null,
     masteryLevel:    row.masteryLevel ?? null,
+    importanceOrg:   row.importanceOrg ?? null,
+    importanceBio:   row.importanceBio ?? null,
     comments:        row.comments ?? null,
     documentIds:     row.documentIds ? (JSON.parse(row.documentIds) as number[]) : [],
     x:               row.posX ?? null,
@@ -55,6 +57,8 @@ function mapIssue(row: typeof bioIssuesTable.$inferSelect) {
     probability:    row.probability   ?? null,
     urgency:        row.urgency       ?? null,
     reversibility:  row.reversibility ?? null,
+    importanceOrg:  row.importanceOrg ?? null,
+    importanceBio:  row.importanceBio ?? null,
     comments:       row.comments      ?? null,
     chainPosition:  row.chainPosition ?? null,
     elementIds:     row.dependencyIds ? (JSON.parse(row.dependencyIds) as number[]) : [],
@@ -83,6 +87,8 @@ router.post("/organizations/:orgId/bio-dependencies", requireAuth, requireOrgMem
       chainPosition:   (b.chainPosition as string | undefined) ?? null,
       dependencyLevel: (b.dependencyLevel as number | undefined) ?? null,
       masteryLevel:    (b.masteryLevel as number | undefined) ?? null,
+      importanceOrg:   (b.importanceOrg as number | undefined) ?? null,
+      importanceBio:   (b.importanceBio as number | undefined) ?? null,
       comments:        (b.comments as string | undefined) ?? null,
       documentIds:     JSON.stringify(docIds),
       posX:            (b.x as number | undefined) ?? null,
@@ -105,17 +111,20 @@ router.put("/organizations/:orgId/bio-dependencies/:id", requireAuth, requireOrg
   const id = parseId(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const b = req.body as Record<string, unknown>;
+  const docIds = Array.isArray(b.documentIds) ? (b.documentIds as number[]) : undefined;
   const updates: Partial<typeof bioDependenciesTable.$inferInsert> = { updatedAt: new Date() };
-  if (b.name !== undefined)            updates.name            = (b.name            as string | null) ?? null;
-  if (b.category !== undefined)        updates.category        = (b.category        as string | null) ?? null;
-  if (b.subCategory !== undefined)     updates.subCategory     = (b.subCategory     as string | null) ?? null;
-  if (b.chainPosition !== undefined)   updates.chainPosition   = (b.chainPosition   as string | null) ?? null;
+  if (b.name            !== undefined) updates.name            = (b.name            as string | null) ?? null;
+  if (b.category        !== undefined) updates.category        = (b.category        as string | null) ?? null;
+  if (b.subCategory     !== undefined) updates.subCategory     = (b.subCategory     as string | null) ?? null;
+  if (b.chainPosition   !== undefined) updates.chainPosition   = (b.chainPosition   as string | null) ?? null;
   if (b.dependencyLevel !== undefined) updates.dependencyLevel = (b.dependencyLevel as number | null) ?? null;
-  if (b.masteryLevel !== undefined)    updates.masteryLevel    = (b.masteryLevel    as number | null) ?? null;
-  if (b.comments !== undefined)        updates.comments        = (b.comments        as string | null) ?? null;
-  if (b.documentIds !== undefined)     updates.documentIds     = JSON.stringify(Array.isArray(b.documentIds) ? b.documentIds : []);
-  if (b.x !== undefined)               updates.posX            = (b.x as number | null) ?? null;
-  if (b.y !== undefined)               updates.posY            = (b.y as number | null) ?? null;
+  if (b.masteryLevel    !== undefined) updates.masteryLevel    = (b.masteryLevel    as number | null) ?? null;
+  if (b.importanceOrg   !== undefined) updates.importanceOrg   = (b.importanceOrg   as number | null) ?? null;
+  if (b.importanceBio   !== undefined) updates.importanceBio   = (b.importanceBio   as number | null) ?? null;
+  if (b.comments        !== undefined) updates.comments        = (b.comments        as string | null) ?? null;
+  if (docIds            !== undefined) updates.documentIds     = JSON.stringify(docIds);
+  if (b.x               !== undefined) updates.posX            = (b.x as number | null) ?? null;
+  if (b.y               !== undefined) updates.posY            = (b.y as number | null) ?? null;
   const [row] = await db.update(bioDependenciesTable).set(updates)
     .where(scopeToExercise(bioDependenciesTable, req, eq(bioDependenciesTable.id, id))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -129,7 +138,7 @@ router.delete("/organizations/:orgId/bio-dependencies/:id", requireAuth, require
   res.status(204).send();
 });
 
-// ─── CONNECTIONS ───────────────────────────────────────────────────────────────
+// ─── CONNECTIONS ──────────────────────────────────────────────────────────────
 
 router.get("/organizations/:orgId/bio-connections", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const rows = await db.select().from(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req));
@@ -138,14 +147,11 @@ router.get("/organizations/:orgId/bio-connections", requireAuth, requireOrgMembe
 
 router.post("/organizations/:orgId/bio-connections", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const b = req.body as Record<string, unknown>;
-  const fromElementId = Number(b.fromElementId);
-  const toElementId   = Number(b.toElementId);
-  if (isNaN(fromElementId) || isNaN(toElementId)) { res.status(400).json({ error: "Invalid element ids" }); return; }
   const [row] = await db.insert(bioConnectionsTable).values(
     withExerciseValues(req, {
-      fromElementId,
-      toElementId,
-      relationType: (b.relationType as string | undefined) ?? null,
+      fromElementId: b.fromElementId as number,
+      toElementId:   b.toElementId   as number,
+      relationType:  (b.relationType as string | undefined) ?? null,
     }),
   ).returning();
   res.json(mapConn(row));
@@ -153,19 +159,16 @@ router.post("/organizations/:orgId/bio-connections", requireAuth, requireOrgMemb
 
 router.put("/organizations/:orgId/bio-connections/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const b = req.body as Record<string, unknown>;
-  const [row] = await db.update(bioConnectionsTable).set({
-    relationType: (b.relationType as string | null | undefined) ?? null,
-    updatedAt:    new Date(),
-  }).where(scopeToExercise(bioConnectionsTable, req, eq(bioConnectionsTable.id, id))).returning();
+  const b  = req.body as Record<string, unknown>;
+  const [row] = await db.update(bioConnectionsTable)
+    .set({ relationType: (b.relationType as string | null) ?? null, updatedAt: new Date() })
+    .where(scopeToExercise(bioConnectionsTable, req, eq(bioConnectionsTable.id, id))).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(mapConn(row));
 });
 
 router.delete("/organizations/:orgId/bio-connections/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req, eq(bioConnectionsTable.id, id)));
   res.status(204).send();
 });
@@ -182,117 +185,101 @@ router.post("/organizations/:orgId/bio-issues", requireAuth, requireOrgMembershi
   const elIds = Array.isArray(b.elementIds) ? (b.elementIds as number[]) : [];
   const [row] = await db.insert(bioIssuesTable).values(
     withExerciseValues(req, {
-      name:           (b.name        as string | undefined) ?? null,
-      family:         (b.family      as string | undefined) ?? null,
-      description:    (b.description as string | undefined) ?? null,
-      issueType:      (b.issueType   as string | undefined) ?? null,
-      importance:     (b.importance  as number | undefined) ?? null,
-      probability:    (b.probability as number | undefined) ?? null,
-      urgency:        (b.urgency     as number | undefined) ?? null,
-      reversibility:  (b.reversibility as number | undefined) ?? null,
-      comments:       (b.comments    as string | undefined) ?? null,
-      chainPosition:  (b.chainPosition as string | undefined) ?? null,
-      dependencyIds:  JSON.stringify(elIds),
-      posX:           (b.x as number | undefined) ?? null,
-      posY:           (b.y as number | undefined) ?? null,
+      name:          (b.name          as string | undefined) ?? null,
+      family:        (b.family        as string | undefined) ?? null,
+      description:   (b.description   as string | undefined) ?? null,
+      issueType:     (b.issueType     as string | undefined) ?? null,
+      importance:    (b.importance    as number | undefined) ?? null,
+      probability:   (b.probability   as number | undefined) ?? null,
+      urgency:       (b.urgency       as number | undefined) ?? null,
+      reversibility: (b.reversibility as number | undefined) ?? null,
+      importanceOrg: (b.importanceOrg as number | undefined) ?? null,
+      importanceBio: (b.importanceBio as number | undefined) ?? null,
+      comments:      (b.comments      as string | undefined) ?? null,
+      chainPosition: (b.chainPosition as string | undefined) ?? null,
+      dependencyIds: JSON.stringify(elIds),
     }),
   ).returning();
   res.json(mapIssue(row));
 });
 
-router.post("/organizations/:orgId/bio-issues/group", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
-  const issues = await db.select().from(bioIssuesTable).where(scopeToExercise(bioIssuesTable, req));
-
-  if (issues.length === 0) { res.json({ groups: [] }); return; }
-
-  const issueList = issues.map(i =>
-    `- ID ${i.id} | "${i.name ?? "Sans nom"}" | Type: ${i.issueType ?? "?"} | Position: ${i.chainPosition ?? "?"} | Importance: ${i.importance ?? "?"}/5 | Description: ${i.description ?? ""}`
-  ).join("\n");
-
-  const prompt = `Tu es un expert RSE spécialisé en biodiversité. Voici une liste d'enjeux biodiversité saisis par une entreprise :
-
-${issueList}
-
-Regroupe ces enjeux par thématique en fusionnant les doublons, synonymes et sujets proches. Donne un nom court et professionnel à chaque groupe (ex : "Eau", "Climat", "Biodiversité locale", "Achats responsables").
-
-Réponds UNIQUEMENT avec un JSON valide, sans commentaires ni markdown :
-{
-  "groups": [
-    {
-      "name": "Nom court du thème",
-      "issueIds": [1, 2, 3]
-    }
-  ]
-}
-
-Chaque enjeu doit appartenir à exactement un groupe. Tous les IDs doivent être présents.`;
-
-  const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 4096,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const text = message.content[0]?.type === "text" ? message.content[0].text : "{}";
-  let parsed: { groups: Array<{ name: string; issueIds: number[] }> };
-  try { parsed = JSON.parse(text) as typeof parsed; } catch { parsed = { groups: [] }; }
-  res.json(parsed);
-});
+// ─── GENERATE (IA) ────────────────────────────────────────────────────────────
 
 router.post("/organizations/:orgId/bio-issues/generate", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
-  const elements    = await db.select().from(bioDependenciesTable).where(scopeToExercise(bioDependenciesTable, req));
-  const connections = await db.select().from(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req));
+  const b = req.body as Record<string, unknown>;
 
-  if (elements.length === 0) { res.json({ items: [] }); return; }
+  // Collect deps from the current org+exercise
+  let allDeps = await db.select().from(bioDependenciesTable).where(scopeToExercise(bioDependenciesTable, req));
 
-  // Dépendances — format simplifié (service écosystémique + criticité)
-  const depList = elements.map(e => {
+  // Group mode: gather deps from subsidiary orgs (same exercise year)
+  const subsidiaryOrgIds = Array.isArray(b.subsidiaryOrgIds)
+    ? (b.subsidiaryOrgIds as number[]).filter(Number.isFinite)
+    : [];
+
+  if (subsidiaryOrgIds.length > 0) {
+    // Find exercises for each subsidiary that match the current exercise year
+    const currentYear = req.exercise!.year;
+    const subExercises = await db.select().from(exercisesTable)
+      .where(and(
+        inArray(exercisesTable.organizationId, subsidiaryOrgIds),
+        eq(exercisesTable.year, currentYear),
+      ));
+
+    if (subExercises.length > 0) {
+      const subExIds = subExercises.map(e => e.id);
+      const subOrgIds = subExercises.map(e => e.organizationId);
+      const subDeps = await db.select().from(bioDependenciesTable)
+        .where(and(
+          inArray(bioDependenciesTable.organizationId, subOrgIds),
+          inArray(bioDependenciesTable.exerciseId, subExIds),
+        ));
+      allDeps = [...allDeps, ...subDeps];
+    }
+  }
+
+  if (allDeps.length === 0) { res.json({ items: [] }); return; }
+
+  // Build dep list for AI prompt
+  const depList = allDeps.map(e => {
     const service   = e.subCategory ?? e.category ?? "service inconnu";
     const nom       = e.name ? `"${e.name}"` : `(${service})`;
-    const criticite = e.dependencyLevel ? `criticité ${e.dependencyLevel}/5` : "criticité non définie";
+    const chain     = e.chainPosition ?? "non défini";
+    const impOrg    = e.importanceOrg ? `importance org ${e.importanceOrg}/5` : "importance org non définie";
+    const impBio    = e.importanceBio ? `impact biodiversité ${e.importanceBio}/5` : "impact bio non défini";
     const desc      = e.comments ? ` — ${e.comments}` : "";
-    return `- ID ${e.id} | Service : ${service} | Nom : ${nom} | ${criticite}${desc}`;
+    return `- ID ${e.id} | Service : ${service} | Nom : ${nom} | Chaîne : ${chain} | ${impOrg} | ${impBio}${desc}`;
   }).join("\n");
 
-  // Connexions entre dépendances
-  const connList = connections.length > 0
-    ? connections.map(c => {
-        const from = elements.find(e => e.id === c.fromElementId);
-        const to   = elements.find(e => e.id === c.toElementId);
-        const fLabel = from?.name ?? from?.subCategory ?? `ID ${c.fromElementId}`;
-        const tLabel = to?.name   ?? to?.subCategory   ?? `ID ${c.toElementId}`;
-        return `- "${fLabel}" → "${tLabel}"${c.relationType ? ` (${c.relationType})` : ""}`;
-      }).join("\n")
-    : "Aucune relation définie.";
+  const isGroup = subsidiaryOrgIds.length > 0;
 
   const prompt = `Tu es un expert RSE spécialisé en biodiversité et services écosystémiques (cadre IPBES/TEEB).
 
-Une entreprise a identifié les dépendances suivantes vis-à-vis des services écosystémiques :
+${isGroup ? "Un groupe d'entreprises a consolidé" : "Une entreprise a identifié"} les dépendances suivantes vis-à-vis des services écosystémiques :
 
 DÉPENDANCES AUX SERVICES ÉCOSYSTÉMIQUES :
 ${depList}
 
-RELATIONS ENTRE DÉPENDANCES :
-${connList}
+À partir de ces dépendances, génère entre 6 et 12 ENJEUX STRATÉGIQUES DE BIODIVERSITÉ.
 
-À partir de ces dépendances et de leurs relations, génère les ENJEUX DE BIODIVERSITÉ de l'organisation (4 à 8 enjeux). Un enjeu exprime un risque, une opportunité ou une dépendance stratégique vis-à-vis du vivant, formulé de façon professionnelle et synthétique.
-
-Règles :
-- Un enjeu peut regrouper plusieurs dépendances liées
-- chainPosition (amont/in-situ/aval) reflète où se situe principalement l'enjeu dans la chaîne de valeur de l'entreprise
-- importance de 1 (faible) à 5 (critique) : basée sur la criticité des dépendances concernées et leurs connexions
-- Les enjeux de criticité 4-5 doivent être clairement identifiables
-- Tirer parti des relations pour identifier des enjeux systémiques
+Règles de génération :
+- Regrouper les dépendances qui traitent du même sujet écosystémique (eau, pollinisateurs, sols, habitats, biomasse, etc.)
+- Formuler chaque enjeu de façon stratégique et professionnelle (ex : "Sécuriser l'accès durable à la ressource en eau")
+- ${isGroup ? "Consolider les dépendances similaires de différentes entités en UN SEUL enjeu groupe" : "Un enjeu peut regrouper plusieurs dépendances du même thème"}
+- chainPosition : position dominante dans la chaîne de valeur (in-situ, amont, ou aval) selon les dépendances du groupe
+- importanceOrg (1-5) : prendre le MAX de l'importance organisationnelle des dépendances du groupe
+- importanceBio (1-5) : prendre le MAX de l'impact biodiversité des dépendances du groupe
+- Si importanceOrg ou importanceBio n'est pas défini dans les dépendances, estimer en fonction du service et de la criticité
 
 Réponds UNIQUEMENT avec un JSON valide, sans commentaires ni markdown :
 {
-  "suggestions": [
+  "issues": [
     {
-      "name": "Nom court et professionnel (ex : Dépendance à l'eau douce)",
+      "name": "Nom de l'enjeu stratégique",
       "description": "Description en 1-2 phrases expliquant le risque ou l'enjeu pour l'organisation",
-      "elementIds": [1, 2],
       "chainPosition": "amont",
-      "importance": 4
+      "importanceOrg": 4,
+      "importanceBio": 5,
+      "dependencyIds": [1, 2, 3]
     }
   ]
 }`;
@@ -304,26 +291,79 @@ Réponds UNIQUEMENT avec un JSON valide, sans commentaires ni markdown :
   });
 
   const text = message.content[0]?.type === "text" ? message.content[0].text : "{}";
-  let parsed: { suggestions: Array<{ name: string; description?: string | null; elementIds: number[]; chainPosition?: string | null; importance?: number | null }> };
-  try { parsed = JSON.parse(text) as typeof parsed; } catch { parsed = { suggestions: [] }; }
+  let parsed: { issues: Array<{ name: string; description?: string | null; chainPosition?: string | null; importanceOrg?: number | null; importanceBio?: number | null; dependencyIds: number[] }> };
+  try { parsed = JSON.parse(text) as typeof parsed; } catch { parsed = { issues: [] }; }
 
-  // Sauvegarde en DB — remplace les enjeux existants
+  // Helper: compute max from deps for a given field when AI leaves it null
+  function maxFromDeps(depIds: number[], field: "importanceOrg" | "importanceBio"): number | null {
+    const values = depIds
+      .map(id => allDeps.find(d => d.id === id))
+      .filter(Boolean)
+      .map(d => d![field])
+      .filter((v): v is number => typeof v === "number" && v > 0);
+    return values.length > 0 ? Math.max(...values) : null;
+  }
+
+  // Helper: dominant chain position from deps
+  function dominantChain(depIds: number[]): string | null {
+    const counts: Record<string, number> = {};
+    for (const id of depIds) {
+      const dep = allDeps.find(d => d.id === id);
+      if (dep?.chainPosition) counts[dep.chainPosition] = (counts[dep.chainPosition] ?? 0) + 1;
+    }
+    const entries = Object.entries(counts);
+    if (entries.length === 0) return null;
+    return entries.reduce((a, b) => a[1] >= b[1] ? a : b)[0];
+  }
+
+  // Delete existing issues and insert new ones
   await db.delete(bioIssuesTable).where(scopeToExercise(bioIssuesTable, req));
+
   const created = [];
-  for (const s of parsed.suggestions ?? []) {
-    const elIds = Array.isArray(s.elementIds) ? s.elementIds : [];
+  for (const s of parsed.issues ?? []) {
+    const depIds = Array.isArray(s.dependencyIds) ? s.dependencyIds : [];
+    const importanceOrg = s.importanceOrg ?? maxFromDeps(depIds, "importanceOrg");
+    const importanceBio = s.importanceBio ?? maxFromDeps(depIds, "importanceBio");
+    const chainPosition = s.chainPosition ?? dominantChain(depIds);
+
     const [row] = await db.insert(bioIssuesTable).values(
       withExerciseValues(req, {
         name:          s.name ?? null,
         description:   s.description ?? null,
-        chainPosition: s.chainPosition ?? null,
-        importance:    s.importance   ?? null,
-        dependencyIds: JSON.stringify(elIds),
+        chainPosition: chainPosition ?? null,
+        importanceOrg: importanceOrg ?? null,
+        importanceBio: importanceBio ?? null,
+        dependencyIds: JSON.stringify(depIds),
       }),
     ).returning();
     created.push(mapIssue(row));
   }
   res.json({ items: created });
+});
+
+// ─── GROUP (legacy — kept for compatibility) ──────────────────────────────────
+
+router.post("/organizations/:orgId/bio-issues/group", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const issues = await db.select().from(bioIssuesTable).where(scopeToExercise(bioIssuesTable, req));
+  if (issues.length === 0) { res.json({ groups: [] }); return; }
+
+  const issueList = issues.map(i => `- ID ${i.id} : ${i.name ?? "(sans nom)"}`).join("\n");
+  const prompt = `Regroupe ces enjeux par thématique. Donne un nom court à chaque groupe.
+Réponds uniquement en JSON : { "groups": [{ "name": "string", "issueIds": [1,2] }] }
+
+ENJEUX :
+${issueList}`;
+
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 2048,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = message.content[0]?.type === "text" ? message.content[0].text : "{}";
+  let parsed: { groups: Array<{ name: string; issueIds: number[] }> };
+  try { parsed = JSON.parse(text) as typeof parsed; } catch { parsed = { groups: [] }; }
+  res.json({ groups: parsed.groups ?? [] });
 });
 
 router.put("/organizations/:orgId/bio-issues/:id", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
@@ -340,6 +380,8 @@ router.put("/organizations/:orgId/bio-issues/:id", requireAuth, requireOrgMember
   if (b.probability   !== undefined) updates.probability   = (b.probability   as number | null) ?? null;
   if (b.urgency       !== undefined) updates.urgency       = (b.urgency       as number | null) ?? null;
   if (b.reversibility !== undefined) updates.reversibility = (b.reversibility as number | null) ?? null;
+  if (b.importanceOrg !== undefined) updates.importanceOrg = (b.importanceOrg as number | null) ?? null;
+  if (b.importanceBio !== undefined) updates.importanceBio = (b.importanceBio as number | null) ?? null;
   if (b.comments      !== undefined) updates.comments      = (b.comments      as string | null) ?? null;
   if (b.chainPosition !== undefined) updates.chainPosition = (b.chainPosition as string | null) ?? null;
   if (elIds           !== undefined) updates.dependencyIds = JSON.stringify(elIds);

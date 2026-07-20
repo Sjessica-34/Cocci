@@ -1243,6 +1243,12 @@ paths:
       summary: Generate issue suggestions using AI from existing dependencies
       parameters:
         - { name: orgId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BioGenerateInput"
       responses:
         "200":
           description: AI-generated issue suggestions
@@ -3555,6 +3561,8 @@ components:
         chainPosition: { type: ["string", "null"] }
         dependencyLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         masteryLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        importanceOrg: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        importanceBio: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
         documentIds:
           type: array
@@ -3573,6 +3581,8 @@ components:
         chainPosition: { type: ["string", "null"] }
         dependencyLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         masteryLevel: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        importanceOrg: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        importanceBio: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
         documentIds:
           type: array
@@ -3632,6 +3642,8 @@ components:
         probability: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         urgency: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         reversibility: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        importanceOrg: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        importanceBio: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
         chainPosition: { type: ["string", "null"] }
         elementIds:
@@ -3653,6 +3665,8 @@ components:
         probability: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         urgency: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         reversibility: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        importanceOrg: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        importanceBio: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         comments: { type: ["string", "null"] }
         chainPosition: { type: ["string", "null"] }
         elementIds:
@@ -3688,26 +3702,21 @@ components:
           items:
             $ref: "#/components/schemas/BioGroup"
 
-    BioGenerateSuggestion:
+    BioGenerateInput:
       type: object
-      required: [name, elementIds]
       properties:
-        name: { type: string }
-        description: { type: ["string", "null"] }
-        elementIds:
+        subsidiaryOrgIds:
           type: array
           items: { type: integer }
-        chainPosition: { type: ["string", "null"] }
-        importance: { type: ["integer", "null"], minimum: 1, maximum: 5 }
 
     BioGenerateResponse:
       type: object
-      required: [suggestions]
+      required: [items]
       properties:
-        suggestions:
+        items:
           type: array
           items:
-            $ref: "#/components/schemas/BioGenerateSuggestion"
+            $ref: "#/components/schemas/BioIssue"
 
     Label:
       type: object

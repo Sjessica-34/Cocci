@@ -27,6 +27,18 @@ export interface BioDependencyInput {
      * @nullable
      */
   masteryLevel?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceOrg?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  importanceBio?: number | null;
   /** @nullable */
   comments?: string | null;
   documentIds?: number[];

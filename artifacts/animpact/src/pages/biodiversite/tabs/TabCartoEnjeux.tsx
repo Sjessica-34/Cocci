@@ -1,799 +1,549 @@
-import "@xyflow/react/dist/style.css";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
-import {
-  ReactFlow, Background, Controls, MiniMap,
-  useNodesState, useEdgesState,
-  type Node, type NodeProps, type NodeTypes,
-} from "@xyflow/react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useListBioDependencies,
   useListBioIssues,
-  useCreateBioIssue,
-  useUpdateBioIssue,
-  useDeleteBioIssue,
   useGenerateBioIssues,
-  useGroupBioIssues,
+  useDeleteBioIssue,
   getListBioIssuesQueryKey,
+  useListBioDependencies,
   type BioIssue,
-  type BioIssueInput,
+  type Organization,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
-} from "@/components/ui/sheet";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ChevronUp, Info, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
-import {
-  CHAIN_POSITIONS,
-  importanceBg, importanceLabel, defaultIssuePosition,
-} from "../data";
+import { Sparkles, Grid3X3, List, Info, Loader2, Trash2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type BioIssueData = {
-  id: number;
-  name: string | null;
-  description: string | null;
-  issueType: string | null;
-  importance: number | null;
-  probability: number | null;
-  elementCount: number;
+type View     = "matrix" | "list";
+type Filter   = "all" | "in-situ" | "amont" | "aval";
+type ChainPos = "in-situ" | "amont" | "aval";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function matScore(issue: BioIssue): number | null {
+  const org = issue.importanceOrg;
+  const bio = issue.importanceBio;
+  if (!org || !bio) return null;
+  return (org + bio) / 2;
+}
+
+type ML = { label: string; color: string; bg: string; border: string };
+
+function matLabel(score: number | null): ML {
+  if (score === null) return { label: "Non classé", color: "#94a3b8", bg: "#f8fafc",  border: "#e2e8f0" };
+  if (score >= 4)     return { label: "Critique",   color: "#dc2626", bg: "#fef2f2",  border: "#fca5a5" };
+  if (score >= 3)     return { label: "Important",  color: "#ea580c", bg: "#fff7ed",  border: "#fdba74" };
+  if (score >= 2)     return { label: "Modéré",     color: "#ca8a04", bg: "#fefce8",  border: "#fde047" };
+  return                     { label: "Faible",     color: "#16a34a", bg: "#f0fdf4",  border: "#86efac" };
+}
+
+function cellBg(x: number, y: number): string {
+  const s = (x + y) / 2;
+  if (s >= 4) return "#fee2e2";
+  if (s >= 3) return "#ffedd5";
+  if (s >= 2) return "#fef9c3";
+  return "#dcfce7";
+}
+
+const CHAIN_CFG: Record<ChainPos, { label: string; subtitle: string; icon: string; color: string }> = {
+  "in-situ": { label: "IN SITU", subtitle: "Sur vos sites et opérations directes",  icon: "🌿", color: "#16a34a" },
+  "amont":   { label: "AMONT",   subtitle: "Chez vos fournisseurs et partenaires",   icon: "🏭", color: "#0284c7" },
+  "aval":    { label: "AVAL",    subtitle: "Chez vos clients et en fin de vie",      icon: "📦", color: "#7c3aed" },
 };
-type BioIssueNode = Node<BioIssueData, "bioIssue">;
 
-// ─── Custom node (MUST be outside component) ──────────────────────────────────
+// ─── BioMatrix ────────────────────────────────────────────────────────────────
 
-const BioIssueNodeComp = memo(function BioIssueNodeComp({ data }: NodeProps<BioIssueNode>) {
-  const colors = importanceBg(data.importance);
+function BioMatrix({
+  issues, position, issueNum,
+}: {
+  issues: BioIssue[];
+  position: ChainPos;
+  issueNum: (id: number) => number;
+}) {
+  const cfg = CHAIN_CFG[position];
+  const posIssues = issues.filter(i => i.chainPosition === position);
+  const [hoverId, setHoverId] = useState<number | null>(null);
+
+  const cellMap = new Map<string, BioIssue[]>();
+  for (const iss of posIssues) {
+    const x = iss.importanceBio;
+    const y = iss.importanceOrg;
+    if (!x || !y) continue;
+    const key = `${x}-${y}`;
+    cellMap.set(key, [...(cellMap.get(key) ?? []), iss]);
+  }
+
   return (
-    <div
-      className="rounded-xl shadow-md border-2 p-3 cursor-pointer hover:shadow-lg transition-shadow select-none"
-      style={{ minWidth: 150, maxWidth: 220, backgroundColor: colors.bg, borderColor: colors.border }}
-    >
-      <div className="flex items-start gap-1.5">
-        <p className="text-sm font-bold leading-tight flex-1" style={{ color: colors.text }}>
-          {data.name || "Enjeu sans nom"}
-        </p>
-        {data.importance && (
-          <span
-            className="text-[10px] font-bold rounded-full px-1.5 py-0.5 shrink-0"
-            style={{ backgroundColor: colors.border, color: "white" }}
+    <div className="flex-1 min-w-0 bg-white rounded-xl border border-slate-200 shadow-sm">
+      {/* Header */}
+      <div className="px-4 pt-3 pb-3 border-b border-slate-100 text-center">
+        <div className="text-xs font-bold tracking-widest" style={{ color: cfg.color }}>
+          {cfg.icon} {cfg.label}
+        </div>
+        <div className="text-[10px] text-slate-400 mt-0.5">{cfg.subtitle}</div>
+      </div>
+
+      {/* Grid */}
+      <div className="p-3">
+        <div className="flex gap-1 items-stretch">
+          {/* Y-axis label */}
+          <div
+            className="flex-shrink-0 text-[9px] text-slate-400 font-medium flex items-center justify-center"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", minHeight: 140 }}
           >
-            {data.importance}
-          </span>
+            Importance pour l'organisation
+          </div>
+
+          <div className="flex-1">
+            {[5, 4, 3, 2, 1].map(y => (
+              <div key={y} className="flex gap-0.5 mb-0.5">
+                <div className="w-3 text-[9px] text-slate-400 flex items-center justify-end pr-0.5 flex-shrink-0">{y}</div>
+                {[1, 2, 3, 4, 5].map(x => {
+                  const cellIssues = cellMap.get(`${x}-${y}`) ?? [];
+                  return (
+                    <div
+                      key={x}
+                      className="flex-1 rounded-sm flex flex-wrap items-center justify-center gap-0.5 relative"
+                      style={{ backgroundColor: cellBg(x, y), minHeight: 34 }}
+                    >
+                      {cellIssues.map(iss => {
+                        const num  = issueNum(iss.id);
+                        const ml   = matLabel(matScore(iss));
+                        const isH  = hoverId === iss.id;
+                        return (
+                          <div key={iss.id} className="relative" style={{ zIndex: isH ? 9999 : "auto" }}>
+                            <button
+                              type="button"
+                              onMouseEnter={() => setHoverId(iss.id)}
+                              onMouseLeave={() => setHoverId(null)}
+                              className="w-6 h-6 rounded-full text-[9px] font-bold border-2 flex items-center justify-center transition-transform hover:scale-125"
+                              style={{ backgroundColor: ml.bg, borderColor: ml.border, color: ml.color }}
+                            >
+                              {num}
+                            </button>
+                            {isH && (
+                              <div
+                                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 pointer-events-none"
+                                style={{ zIndex: 9999 }}
+                              >
+                                <div className="flex items-center gap-1.5 mb-1.5">
+                                  <span
+                                    className="w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center border-2 flex-shrink-0"
+                                    style={{ backgroundColor: ml.bg, borderColor: ml.border, color: ml.color }}
+                                  >
+                                    {num}
+                                  </span>
+                                  <span className="text-[11px] font-semibold text-slate-700 leading-tight">
+                                    {iss.name ?? "(sans nom)"}
+                                  </span>
+                                </div>
+                                {iss.description && (
+                                  <p className="text-[10px] text-slate-500 leading-snug mb-1.5">{iss.description}</p>
+                                )}
+                                <div className="flex gap-1 flex-wrap">
+                                  <span className="text-[9px] bg-slate-100 rounded-md px-1.5 py-0.5 text-slate-600">
+                                    Org : {iss.importanceOrg}/5
+                                  </span>
+                                  <span className="text-[9px] bg-slate-100 rounded-md px-1.5 py-0.5 text-slate-600">
+                                    Bio : {iss.importanceBio}/5
+                                  </span>
+                                  <span
+                                    className="text-[9px] rounded-md px-1.5 py-0.5 font-medium border"
+                                    style={{ backgroundColor: ml.bg, color: ml.color, borderColor: ml.border }}
+                                  >
+                                    {ml.label}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+
+            {/* X ticks + label */}
+            <div className="flex gap-0.5 mt-1 ml-3.5">
+              {[1, 2, 3, 4, 5].map(x => (
+                <div key={x} className="flex-1 text-center text-[9px] text-slate-400">{x}</div>
+              ))}
+            </div>
+            <div className="text-center text-[9px] text-slate-400 mt-0.5">Impact sur la biodiversité</div>
+          </div>
+        </div>
+
+        {posIssues.length === 0 && (
+          <p className="text-center text-[10px] text-slate-400 mt-3 pb-1">
+            Aucun enjeu positionné {cfg.label.toLowerCase()}
+          </p>
         )}
       </div>
-      {data.description && (
-        <p className="text-[10px] line-clamp-2 mt-1 opacity-75" style={{ color: colors.text }}>
-          {data.description}
-        </p>
-      )}
-    </div>
-  );
-});
-
-const nodeTypes: NodeTypes = { bioIssue: BioIssueNodeComp };
-
-// ─── EMPTY form ───────────────────────────────────────────────────────────────
-
-const EMPTY_ISSUE: BioIssueInput = {
-  name: null, family: null, description: null, issueType: null,
-  importance: null, probability: null, urgency: null, reversibility: null,
-  comments: null, chainPosition: null, elementIds: [],
-};
-
-// ─── Score buttons ────────────────────────────────────────────────────────────
-
-function ScoreButtons({
-  value, onChange, labels,
-}: {
-  value: number | null | undefined;
-  onChange: (v: number | null) => void;
-  labels?: Record<number, string>;
-}) {
-  return (
-    <div className="space-y-1">
-      <div className="flex gap-1.5">
-        {[1, 2, 3, 4, 5].map(n => {
-          const colors = importanceBg(n);
-          const isSelected = value === n;
-          return (
-            <button
-              key={n} type="button"
-              onClick={() => onChange(value === n ? null : n)}
-              className="flex-1 py-2 rounded-lg border-2 text-xs font-bold transition-all"
-              style={{
-                borderColor:     isSelected ? colors.border : "#e2e8f0",
-                backgroundColor: isSelected ? colors.bg    : "#f8fafc",
-                color:           isSelected ? colors.text  : "#94a3b8",
-              }}
-            >{n}</button>
-          );
-        })}
-      </div>
-      {labels && value && labels[value] && (
-        <p className="text-[11px] text-muted-foreground text-center">{labels[value]}</p>
-      )}
     </div>
   );
 }
 
-const PROBABILITY_LABELS: Record<number, string> = {
-  1: "Très improbable", 2: "Improbable", 3: "Possible", 4: "Probable", 5: "Très probable",
-};
-const URGENCY_LABELS: Record<number, string> = {
-  1: "Très faible", 2: "Faible", 3: "Modérée", 4: "Forte", 5: "Immédiate",
-};
-const REVERSIBILITY_LABELS: Record<number, string> = {
-  1: "Totalement réversible", 2: "Réversible", 3: "Partiellement réversible",
-  4: "Difficilement réversible", 5: "Irréversible",
-};
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
 
-// ─── Static cartography grid ──────────────────────────────────────────────────
-
-const GRID_POSITIONS = ["amont", "in-situ", "aval"] as const;
-const GRID_POS_LABELS: Record<string, string> = { "amont": "Amont", "in-situ": "In situ", "aval": "Aval" };
-const GRID_POS_COLORS: Record<string, { header: string; border: string }> = {
-  "amont":   { header: "text-blue-700 bg-blue-50 border-blue-200",       border: "border-blue-100" },
-  "in-situ": { header: "text-emerald-700 bg-emerald-50 border-emerald-200", border: "border-emerald-100" },
-  "aval":    { header: "text-purple-700 bg-purple-50 border-purple-200",  border: "border-purple-100" },
-};
-
-const IMPORTANCE_LABELS: Record<number, string> = {
-  1: "Faible", 2: "Modérée", 3: "Importante", 4: "Élevée", 5: "Critique",
-};
-
-/**
- * Matrice des enjeux biodiversité (extensible vers double matérialité CSRD).
- * Axe X = position chaîne de valeur, Axe Y = importance de l'enjeu.
- * Pour évoluer vers la double matérialité : ajouter un 2e axe vertical
- * (importance pour les parties prenantes) sans modifier l'architecture de base.
- */
-function IssueMatrix({ issues, onEdit }: { issues: BioIssue[]; onEdit: (i: BioIssue) => void }) {
-  function cellIssues(pos: string, importance: number) {
-    return issues.filter(i => {
-      const matchPos = i.chainPosition ? i.chainPosition === pos : pos === "in-situ";
-      return matchPos && i.importance === importance;
-    });
-  }
-
-  if (issues.length === 0) return null;
-
+function KpiCard({ value, label, sub, color }: { value: number; label: string; sub: string; color: string }) {
   return (
-    <div className="rounded-xl border shadow-sm overflow-hidden bg-white">
-      {/* En-têtes colonnes */}
-      <div className="grid grid-cols-[64px_1fr_1fr_1fr] border-b bg-slate-50">
-        <div className="py-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wide border-r">
-          Importance
-        </div>
-        {GRID_POSITIONS.map(pos => {
-          const c = GRID_POS_COLORS[pos];
-          return (
-            <div
-              key={pos}
-              className={`py-3 text-center text-[11px] font-bold uppercase tracking-wide border-l ${c.header}`}
-            >
-              {GRID_POS_LABELS[pos]}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Lignes : importance 5 → 1 */}
-      {[5, 4, 3, 2, 1].map(imp => {
-        const rc = importanceBg(imp);
-        const isPriority = imp >= 4;
-        return (
-          <div
-            key={imp}
-            className={`grid grid-cols-[64px_1fr_1fr_1fr] border-b last:border-b-0 ${isPriority ? "bg-orange-50/30" : ""}`}
-            style={{ minHeight: 72 }}
-          >
-            {/* Libellé Y */}
-            <div
-              className="flex flex-col items-center justify-center py-2 border-r shrink-0"
-              style={{ backgroundColor: rc.bg }}
-            >
-              <span className="text-[12px] font-bold" style={{ color: rc.text }}>{imp}</span>
-              <span className="text-[9px] leading-tight text-center px-1" style={{ color: rc.text, opacity: 0.75 }}>
-                {IMPORTANCE_LABELS[imp]}
-              </span>
-              {isPriority && <span className="text-[8px] mt-0.5" title="Enjeu prioritaire">🔴</span>}
-            </div>
-
-            {/* Cellules */}
-            {GRID_POSITIONS.map(pos => {
-              const c = GRID_POS_COLORS[pos];
-              const items = cellIssues(pos, imp);
-              return (
-                <div
-                  key={pos}
-                  className={`p-1.5 border-l ${c.border} flex flex-wrap gap-1.5 content-start`}
-                >
-                  {items.map(issue => (
-                    <button
-                      key={issue.id}
-                      onClick={() => onEdit(issue)}
-                      className="text-[11px] font-medium rounded-lg px-2.5 py-1.5 border-2 transition-all hover:shadow-sm text-left"
-                      style={{ backgroundColor: rc.bg, borderColor: rc.border, color: rc.text }}
-                    >
-                      {issue.name ?? "Enjeu sans nom"}
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
-
-      {/* Légende enjeux prioritaires */}
-      <div className="flex items-center gap-1.5 px-4 py-2 bg-orange-50 border-t border-orange-100 text-[11px] text-orange-700">
-        <span>🔴</span>
-        <span className="font-medium">Zone prioritaire</span>
-        <span className="text-orange-500">— enjeux d'importance élevée ou critique (4–5)</span>
-      </div>
+    <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex-1 min-w-0">
+      <div className="text-2xl font-bold" style={{ color }}>{value}</div>
+      <div className="text-xs font-semibold text-slate-700 mt-0.5">{label}</div>
+      <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">{sub}</div>
     </div>
   );
 }
 
-// ─── Priority issues ──────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
-function PriorityIssues({ issues, onEdit }: { issues: BioIssue[]; onEdit: (i: BioIssue) => void }) {
-  const priority = issues
-    .filter(i => (i.importance ?? 0) >= 4)
-    .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0));
-
-  if (priority.length === 0) return null;
-
-  return (
-    <div className="rounded-xl border border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-lg">🔴</span>
-        <div>
-          <h3 className="text-sm font-bold text-orange-900">Enjeux prioritaires</h3>
-          <p className="text-[11px] text-orange-700">
-            {priority.length} enjeu{priority.length !== 1 ? "x" : ""} d'importance élevée ou critique — à traiter en priorité
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {priority.map(issue => {
-          const c = importanceBg(issue.importance);
-          return (
-            <button
-              key={issue.id}
-              onClick={() => onEdit(issue)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all hover:shadow-sm"
-              style={{ backgroundColor: c.bg, borderColor: c.border, color: c.text }}
-            >
-              <span>{issue.importance === 5 ? "⚠️" : "🔶"}</span>
-              <span>{issue.name ?? "Enjeu sans nom"}</span>
-              <span
-                className="ml-1 text-[10px] rounded-full px-1.5 py-0.5 font-bold shrink-0"
-                style={{ backgroundColor: c.border, color: "white" }}
-              >
-                {issue.importance === 5 ? "Critique" : "Élevée"}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+interface Props {
+  orgId: number;
+  subsidiaries?: Organization[];
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-interface Props { orgId: number; }
-
-export function TabCartoEnjeux({ orgId }: Props) {
+export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
   const queryClient = useQueryClient();
-  const [nodes, setNodes, onNodesChange] = useNodesState<BioIssueNode>([]);
-  const [, , onEdgesChange] = useEdgesState([]);
+  const [view,     setView]     = useState<View>("matrix");
+  const [filter,   setFilter]   = useState<Filter>("all");
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  // ── Sheet enjeu (création / édition) ────────────────────────────────────────
-  const [sheetOpen, setSheetOpen]       = useState(false);
-  const [editingIssue, setEditingIssue] = useState<BioIssue | null>(null);
-  const [form, setForm]                 = useState<BioIssueInput>(EMPTY_ISSUE);
-  const [deleteId, setDeleteId]         = useState<number | null>(null);
-
-  // ── Vue interactive ──────────────────────────────────────────────────────────
-  const [showReactFlow, setShowReactFlow] = useState(false);
-
-  // ── AI group ────────────────────────────────────────────────────────────────
-  const [groupDialog, setGroupDialog]       = useState(false);
-  const [proposedGroups, setProposedGroups] = useState<{ name: string; issueIds: number[] }[]>([]);
-  const [editGroupNames, setEditGroupNames] = useState<string[]>([]);
-
-  const nodePositions = useRef(new Map<number, { x: number; y: number }>());
-
-  const { data: depsData }              = useListBioDependencies(orgId);
   const { data: issuesData, isLoading } = useListBioIssues(orgId);
-  const elements = depsData?.items ?? [];
-  const issues   = issuesData?.items ?? [];
-
-  const createMut   = useCreateBioIssue();
-  const updateMut   = useUpdateBioIssue();
-  const deleteMut   = useDeleteBioIssue();
+  const { data: depsData }              = useListBioDependencies(orgId);
   const generateMut = useGenerateBioIssues();
-  const groupMut    = useGroupBioIssues();
+  const deleteMut   = useDeleteBioIssue();
 
-  // Sync issues → ReactFlow nodes
-  useEffect(() => {
-    if (!issuesData) return;
-    const newNodes: BioIssueNode[] = issues.map((issue, idx) => {
-      const def = defaultIssuePosition(issue.chainPosition, issue.importance, idx);
-      return {
-        id:   String(issue.id),
-        type: "bioIssue" as const,
-        position: nodePositions.current.get(issue.id) ?? { x: issue.x ?? def.x, y: issue.y ?? def.y },
-        data: {
-          id:          issue.id,
-          name:        issue.name        ?? null,
-          description: issue.description ?? null,
-          issueType:   issue.issueType    ?? null,
-          importance:  issue.importance  ?? null,
-          probability: issue.probability ?? null,
-          elementCount: issue.elementIds.length,
-        },
-      };
+  const issues    = issuesData?.items ?? [];
+  const depsCount = depsData?.items?.length ?? 0;
+
+  // Sequential numbering
+  const issueIndex = new Map(issues.map((iss, i) => [iss.id, i + 1]));
+  const issueNum   = (id: number) => issueIndex.get(id) ?? 0;
+
+  // KPIs
+  const scores     = issues.map(matScore);
+  const critiques  = scores.filter(s => s !== null && s >= 4).length;
+  const importants = scores.filter(s => s !== null && s >= 3 && s < 4).length;
+  const moderes    = scores.filter(s => s !== null && s >= 2 && s < 3).length;
+  const faibles    = scores.filter(s => s !== null && s < 2).length;
+
+  const positions: ChainPos[] = ["in-situ", "amont", "aval"];
+
+  // Generate
+  async function handleGenerate() {
+    const subsidiaryOrgIds = subsidiaries?.map(s => s.id) ?? [];
+    const result = await generateMut.mutateAsync({
+      orgId,
+      data: subsidiaryOrgIds.length > 0 ? { subsidiaryOrgIds } : undefined,
     });
-    setNodes(newNodes);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [issuesData]);
-
-  const onNodeDragStop = useCallback(
-    (_: MouseEvent | TouchEvent, node: Node) => {
-      nodePositions.current.set(Number(node.id), { x: node.position.x, y: node.position.y });
-      updateMut.mutate({ orgId, id: Number(node.id), data: { x: node.position.x, y: node.position.y } });
-    },
-    [orgId, updateMut],
-  );
-
-  const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      const issue = issues.find(i => String(i.id) === node.id);
-      if (issue) openEdit(issue);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [issues],
-  );
-
-  function openCreate() {
-    setEditingIssue(null);
-    setForm(EMPTY_ISSUE);
-    setSheetOpen(true);
+    queryClient.setQueryData(getListBioIssuesQueryKey(orgId), { items: result.items });
   }
 
-  function openEdit(issue: BioIssue) {
-    setEditingIssue(issue);
-    setForm({
-      name: issue.name, family: issue.family ?? null,
-      description: issue.description,
-      issueType: issue.issueType ?? null,
-      importance: issue.importance, probability: issue.probability ?? null,
-      urgency: issue.urgency ?? null, reversibility: issue.reversibility ?? null,
-      comments: issue.comments ?? null, chainPosition: issue.chainPosition,
-      elementIds: issue.elementIds,
-    });
-    setSheetOpen(true);
-  }
-
-  function setF<K extends keyof BioIssueInput>(key: K, value: BioIssueInput[K]) {
-    setForm(prev => ({ ...prev, [key]: value }));
-  }
-
-  function toggleElement(id: number) {
-    const cur = form.elementIds ?? [];
-    setF("elementIds", cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]);
-  }
-
-  async function handleSave() {
-    if (editingIssue) {
-      await updateMut.mutateAsync({ orgId, id: editingIssue.id, data: form });
-    } else {
-      await createMut.mutateAsync({ orgId, data: form });
-    }
-    queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
-    setSheetOpen(false);
-  }
-
+  // Delete
   async function handleDelete() {
     if (deleteId === null) return;
     await deleteMut.mutateAsync({ orgId, id: deleteId });
-    nodePositions.current.delete(deleteId);
     queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
     setDeleteId(null);
   }
 
-  async function handleGenerate() {
-    await generateMut.mutateAsync({ orgId });
-    queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
-  }
-
-  async function handleGroupAI() {
-    const result = await groupMut.mutateAsync({ orgId });
-    const groups = result.groups ?? [];
-    setProposedGroups(groups);
-    setEditGroupNames(groups.map(g => g.name));
-    setGroupDialog(true);
-  }
-
-  async function applyGroups() {
-    for (let i = 0; i < proposedGroups.length; i++) {
-      const familyName = editGroupNames[i] ?? proposedGroups[i].name;
-      for (const id of proposedGroups[i].issueIds) {
-        await updateMut.mutateAsync({ orgId, id, data: { family: familyName } });
-      }
-    }
-    queryClient.invalidateQueries({ queryKey: getListBioIssuesQueryKey(orgId) });
-    setGroupDialog(false);
-  }
-
-  const isSaving  = createMut.isPending || updateMut.isPending;
-  const hasIssues = issues.length > 0;
-  const hasDeps   = elements.length > 0;
-
-  // ── Render ──────────────────────────────────────────────────────────────────
+  const isGenerating = generateMut.isPending;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
 
-      {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-muted-foreground">
-            {isLoading ? "Chargement…" : hasIssues
-              ? `${issues.length} enjeu${issues.length !== 1 ? "x" : ""} identifié${issues.length !== 1 ? "s" : ""}`
-              : "Aucun enjeu — utilisez l'IA ou ajoutez-en manuellement"}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">
+            Matrice de matérialité des enjeux de biodiversité
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5 max-w-2xl">
+            Les enjeux sont générés automatiquement à partir de vos dépendances et évalués
+            selon leur importance pour l'organisation et leur impact sur la biodiversité.
           </p>
         </div>
-
-        <Button variant="outline" size="sm" onClick={openCreate} className="gap-1.5">
-          <Plus className="h-4 w-4" />Ajouter un enjeu
-        </Button>
-
-        {hasIssues && issues.length >= 2 && (
-          <Button
-            variant="outline" size="sm"
-            onClick={handleGroupAI}
-            disabled={groupMut.isPending}
-            className="gap-1.5"
-          >
-            {groupMut.isPending
-              ? <><Loader2 className="h-4 w-4 animate-spin" />Regroupement…</>
-              : <><Sparkles className="h-4 w-4" />Regrouper les enjeux</>}
-          </Button>
-        )}
-
         <Button
-          size="sm"
           onClick={handleGenerate}
-          disabled={generateMut.isPending || !hasDeps}
-          className="gap-1.5"
-          title={!hasDeps ? "Ajoutez d'abord des dépendances dans l'onglet Saisie" : undefined}
+          disabled={isGenerating || depsCount === 0}
+          className="flex-shrink-0"
         >
-          {generateMut.isPending
-            ? <><Loader2 className="h-4 w-4 animate-spin" />Génération…</>
-            : hasIssues
-              ? <><RefreshCw className="h-4 w-4" />Regénérer</>
-              : <><Sparkles className="h-4 w-4" />Générer les enjeux</>}
+          {isGenerating
+            ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Génération en cours…</>
+            : <><Sparkles className="h-4 w-4 mr-2" />Générer les enjeux</>}
         </Button>
       </div>
 
-      {/* ── État vide ────────────────────────────────────────────────────────── */}
-      {isLoading ? (
-        <Skeleton className="h-80 w-full rounded-xl" />
-      ) : !hasIssues ? (
-        <div className="rounded-xl border border-dashed bg-slate-50/50 flex flex-col items-center justify-center py-16 text-center gap-4">
-          <Layers className="h-12 w-12 text-slate-300" />
-          <div>
-            <p className="text-sm font-medium text-slate-700">Aucun enjeu généré</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-              {hasDeps
-                ? "Cliquez sur « Générer les enjeux » — l'IA analysera vos dépendances et produira automatiquement la cartographie."
-                : "Commencez par identifier vos dépendances dans l'onglet « Saisie », puis revenez ici pour générer les enjeux."}
-            </p>
+      {/* ── KPI cards ──────────────────────────────────────────────────────── */}
+      <div className="flex gap-3 flex-wrap">
+        <KpiCard
+          value={issues.length}
+          label="Enjeux générés par l'IA"
+          sub={depsCount > 0
+            ? `À partir de ${depsCount} dépendance${depsCount > 1 ? "s" : ""}`
+            : "Aucune dépendance saisie"}
+          color="#0f172a"
+        />
+        <KpiCard value={critiques}  label="Enjeux critiques"  sub="Nécessitent une action prioritaire"  color="#dc2626" />
+        <KpiCard value={importants} label="Enjeux importants" sub="À surveiller et à gérer"             color="#ea580c" />
+        <KpiCard value={moderes}    label="Enjeux modérés"    sub="Surveillance recommandée"            color="#ca8a04" />
+        <KpiCard value={faibles}    label="Enjeux faibles"    sub="Impact et importance limités"        color="#16a34a" />
+      </div>
+
+      {/* ── View toggle + position filter ──────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        {/* View toggle */}
+        <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 gap-0.5">
+          {(["matrix", "list"] as const).map(v => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                view === v
+                  ? "bg-white text-slate-800 shadow-sm border border-slate-200"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {v === "matrix"
+                ? <><Grid3X3 className="h-3.5 w-3.5" />Matrice de matérialité</>
+                : <><List     className="h-3.5 w-3.5" />Liste des enjeux générés</>}
+            </button>
+          ))}
+        </div>
+
+        {/* Position filter (matrix only) */}
+        {view === "matrix" && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-medium">Vue :</span>
+            {(["all", "in-situ", "amont", "aval"] as const).map(f => {
+              const labels: Record<Filter, string> = { all: "Tous", "in-situ": "In situ", amont: "Amont", aval: "Aval" };
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                    filter === f
+                      ? "bg-slate-800 text-white border-slate-800"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+                  }`}
+                >
+                  {labels[f]}
+                </button>
+              );
+            })}
           </div>
-          {hasDeps && (
-            <Button size="sm" onClick={handleGenerate} disabled={generateMut.isPending} className="gap-1.5">
-              {generateMut.isPending
-                ? <><Loader2 className="h-4 w-4 animate-spin" />Génération…</>
-                : <><Sparkles className="h-4 w-4" />Générer les enjeux</>}
+        )}
+      </div>
+
+      {/* ── Content ────────────────────────────────────────────────────────── */}
+      {isLoading ? (
+        <div className="text-center text-sm text-slate-400 py-16">Chargement…</div>
+
+      ) : issues.length === 0 ? (
+        /* Empty state */
+        <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl py-16 px-8 text-center">
+          <Sparkles className="h-8 w-8 mx-auto text-slate-300 mb-3" />
+          <p className="text-sm font-semibold text-slate-600 mb-1">Aucun enjeu généré</p>
+          <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
+            {depsCount === 0
+              ? "Commencez par saisir vos dépendances à la biodiversité dans l'onglet Saisie, en renseignant l'importance pour l'organisation et l'impact sur la biodiversité pour chaque dépendance."
+              : `Vous avez ${depsCount} dépendance${depsCount > 1 ? "s" : ""} saisie${depsCount > 1 ? "s" : ""}. Cliquez sur "Générer les enjeux" pour créer votre matrice de matérialité.`}
+          </p>
+          {depsCount > 0 && (
+            <Button onClick={handleGenerate} disabled={isGenerating}>
+              {isGenerating
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Génération…</>
+                : <><Sparkles className="h-4 w-4 mr-2" />Générer les enjeux</>}
             </Button>
           )}
         </div>
-      ) : (
-        <>
-          {/* ── Cartographie statique des enjeux ────────────────────────────── */}
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              Cartographie des enjeux
-              <span className="text-xs font-normal text-muted-foreground">
-                — cliquez sur un enjeu pour le modifier
+
+      ) : view === "matrix" ? (
+        /* ── Matrix view ────────────────────────────────────────────────── */
+        <div>
+          {/* Matrices */}
+          {filter === "all" ? (
+            <div className="flex gap-4 overflow-visible">
+              {positions.map(pos => (
+                <BioMatrix key={pos} issues={issues} position={pos} issueNum={issueNum} />
+              ))}
+            </div>
+          ) : (
+            <div className="max-w-sm">
+              <BioMatrix
+                issues={issues}
+                position={filter as ChainPos}
+                issueNum={issueNum}
+              />
+            </div>
+          )}
+
+          {/* Legend */}
+          <div className="mt-4 flex items-center gap-5 flex-wrap">
+            <span className="text-xs font-medium text-slate-500">Niveau de matérialité :</span>
+            {[
+              { label: "Faible (1-2)",    color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+              { label: "Modéré (2-3)",    color: "#ca8a04", bg: "#fef9c3", border: "#fde047" },
+              { label: "Important (3-4)", color: "#ea580c", bg: "#ffedd5", border: "#fdba74" },
+              { label: "Critique (4-5)",  color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+            ].map(l => (
+              <span key={l.label} className="flex items-center gap-1.5 text-xs" style={{ color: l.color }}>
+                <span
+                  className="w-3 h-3 rounded-sm inline-block border"
+                  style={{ backgroundColor: l.bg, borderColor: l.border }}
+                />
+                {l.label}
               </span>
-            </h2>
-            <IssueMatrix issues={issues} onEdit={openEdit} />
-          </section>
+            ))}
+          </div>
 
-          {/* ── Enjeux prioritaires ──────────────────────────────────────────── */}
-          <PriorityIssues issues={issues} onEdit={openEdit} />
-
-          {/* ── Vue interactive (ReactFlow) ──────────────────────────────────── */}
-          <section className="space-y-2">
-            <button
-              className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors"
-              onClick={() => setShowReactFlow(v => !v)}
-            >
-              Vue interactive (carte libre)
-              {showReactFlow ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-
-            {showReactFlow && (
-              <div className="flex flex-col overflow-hidden rounded-xl border shadow-sm" style={{ height: 580 }}>
-                <div className="grid grid-cols-3 border-b shrink-0">
-                  <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border-r border-blue-200">Amont</div>
-                  <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border-r border-emerald-200">In situ</div>
-                  <div className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-purple-700 bg-purple-50">Aval</div>
-                </div>
-                <div className="flex flex-1 overflow-hidden">
-                  <div className="flex flex-col justify-around text-right pr-2 pl-1 bg-slate-50/80 border-r shrink-0" style={{ width: 72 }}>
-                    {[5, 4, 3, 2, 1].map(n => (
-                      <div key={n} className="flex flex-col items-end">
-                        <span className="text-[10px] font-semibold text-slate-500">{n}</span>
-                        <span className="text-[9px] text-slate-400 leading-tight">{importanceLabel(n)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex-1 relative">
-                    <ReactFlow
-                      nodes={nodes} edges={[]}
-                      onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-                      nodeTypes={nodeTypes}
-                      onNodeDragStop={onNodeDragStop} onNodeClick={onNodeClick}
-                      fitView fitViewOptions={{ padding: 0.2 }}
-                      minZoom={0.3} maxZoom={1.5}
-                    >
-                      <Background gap={40} color="#f1f5f9" />
-                      <Controls showInteractive={false} />
-                      <MiniMap nodeColor={(n) => importanceBg((n.data as BioIssueData).importance).border} />
-                    </ReactFlow>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
-        </>
-      )}
-
-      {/* ── Sheet enjeu (création / édition) ──────────────────────────────── */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="overflow-y-auto w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>{editingIssue ? "Modifier l'enjeu" : "Nouvel enjeu"}</SheetTitle>
-            <SheetDescription>
-              {editingIssue
-                ? "Ajustez les caractéristiques de l'enjeu."
-                : "Ajoutez manuellement un enjeu biodiversité."}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="space-y-5 mt-6">
-
-            <div className="space-y-1.5">
-              <Label>Nom de l'enjeu *</Label>
-              <Input
-                placeholder="Ex : Perte d'habitats forestiers"
-                value={form.name ?? ""}
-                onChange={e => setF("name", e.target.value || null)}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Famille / Thématique</Label>
-              <Input
-                placeholder="Ex : Habitats, Espèces, Eau…"
-                value={form.family ?? ""}
-                onChange={e => setF("family", e.target.value || null)}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Description</Label>
-              <Textarea
-                rows={3}
-                placeholder="Décrivez l'enjeu…"
-                value={form.description ?? ""}
-                onChange={e => setF("description", e.target.value || null)}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Position sur la chaîne de valeur</Label>
-              <Select
-                value={form.chainPosition ?? ""}
-                onValueChange={v => setF("chainPosition", v || null)}
-              >
-                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-                <SelectContent>
-                  {CHAIN_POSITIONS.map(p => (
-                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Importance <span className="text-muted-foreground font-normal text-xs">— position sur la cartographie</span></Label>
-              <ScoreButtons
-                value={form.importance}
-                onChange={v => setF("importance", v)}
-                labels={IMPORTANCE_LABELS}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Probabilité d'occurrence</Label>
-              <ScoreButtons
-                value={form.probability}
-                onChange={v => setF("probability", v)}
-                labels={PROBABILITY_LABELS}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Urgence</Label>
-              <ScoreButtons
-                value={form.urgency}
-                onChange={v => setF("urgency", v)}
-                labels={URGENCY_LABELS}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Réversibilité</Label>
-              <ScoreButtons
-                value={form.reversibility}
-                onChange={v => setF("reversibility", v)}
-                labels={REVERSIBILITY_LABELS}
-              />
-            </div>
-
-            {elements.length > 0 && (
-              <div className="space-y-1.5">
-                <Label>Dépendances liées</Label>
-                <div className="max-h-36 overflow-y-auto rounded-lg border p-2 space-y-1">
-                  {elements.map(el => {
-                    const linked = (form.elementIds ?? []).includes(el.id);
+          {/* Unpositioned issues warning */}
+          {issues.some(i => !i.importanceOrg || !i.importanceBio) && (
+            <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="text-[11px] font-semibold text-amber-700 flex items-center gap-1.5 mb-1.5">
+                <Info className="h-3.5 w-3.5" />
+                Enjeux non positionnés dans la matrice (importance manquante)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {issues
+                  .filter(i => !i.importanceOrg || !i.importanceBio)
+                  .map(iss => {
+                    const ml = matLabel(null);
                     return (
-                      <button
-                        key={el.id}
-                        type="button"
-                        onClick={() => toggleElement(el.id)}
-                        className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg border transition-all ${
-                          linked
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-800 font-medium"
-                            : "bg-white border-border text-muted-foreground hover:bg-slate-50"
-                        }`}
+                      <span
+                        key={iss.id}
+                        className="text-[10px] px-2 py-0.5 rounded-full border"
+                        style={{ backgroundColor: ml.bg, borderColor: ml.border, color: ml.color }}
                       >
-                        {el.name ?? `Élément ${el.id}`}
-                      </button>
+                        {issueNum(iss.id)}. {iss.name ?? "(sans nom)"}
+                      </span>
                     );
                   })}
-                </div>
               </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label>Commentaires</Label>
-              <Textarea
-                rows={2}
-                placeholder="Notes complémentaires…"
-                value={form.comments ?? ""}
-                onChange={e => setF("comments", e.target.value || null)}
-              />
             </div>
+          )}
+        </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <Button onClick={handleSave} disabled={isSaving} className="flex-1">
-                {isSaving ? "Enregistrement…" : editingIssue ? "Enregistrer" : "Créer"}
-              </Button>
-              {editingIssue && (
-                <Button
-                  variant="outline"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => { setSheetOpen(false); setDeleteId(editingIssue.id); }}
+      ) : (
+        /* ── List view ──────────────────────────────────────────────────── */
+        <div className="space-y-2">
+          {issues.map(issue => {
+            const num   = issueNum(issue.id);
+            const score = matScore(issue);
+            const ml    = matLabel(score);
+            const chain = issue.chainPosition ? CHAIN_CFG[issue.chainPosition as ChainPos] : null;
+            return (
+              <div
+                key={issue.id}
+                className="bg-white rounded-xl border border-slate-200 px-4 py-3.5 flex items-start gap-4 hover:shadow-sm transition-shadow"
+              >
+                {/* Number */}
+                <div
+                  className="w-7 h-7 rounded-full text-sm font-bold border-2 flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ backgroundColor: ml.bg, borderColor: ml.border, color: ml.color }}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button variant="outline" onClick={() => setSheetOpen(false)}>Annuler</Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+                  {num}
+                </div>
 
-      {/* ── Dialog regroupement IA ─────────────────────────────────────────── */}
-      <Dialog open={groupDialog} onOpenChange={(open: boolean) => !open && setGroupDialog(false)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>✨ Regroupement automatique</DialogTitle>
-            <DialogDescription>
-              L'IA a regroupé vos enjeux par thématique. Modifiez les noms si nécessaire.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {proposedGroups.map((group, idx) => {
-              const names = group.issueIds
-                .map(id => issues.find(i => i.id === id)?.name ?? `Enjeu ${id}`)
-                .filter(Boolean);
-              return (
-                <div key={idx} className="rounded-xl border p-3 space-y-2 bg-slate-50">
-                  <Input
-                    value={editGroupNames[idx] ?? group.name}
-                    onChange={e => setEditGroupNames(prev => {
-                      const next = [...prev];
-                      next[idx] = e.target.value;
-                      return next;
-                    })}
-                    className="font-semibold text-sm"
-                  />
-                  <div className="flex flex-wrap gap-1">
-                    {names.map((n, ni) => (
-                      <span key={ni} className="text-[11px] bg-white border rounded-full px-2 py-0.5 text-slate-600">
-                        {n}
+                {/* Body */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-slate-800">
+                      {issue.name ?? "(sans nom)"}
+                    </span>
+                    <span
+                      className="text-[10px] font-medium px-2 py-0.5 rounded-full border"
+                      style={{ backgroundColor: ml.bg, borderColor: ml.border, color: ml.color }}
+                    >
+                      {ml.label}
+                    </span>
+                    {chain && (
+                      <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                        {chain.icon} {chain.label}
                       </span>
-                    ))}
+                    )}
+                  </div>
+
+                  {issue.description && (
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">{issue.description}</p>
+                  )}
+
+                  <div className="flex gap-4 mt-1.5">
+                    {issue.importanceOrg != null && (
+                      <span className="text-[10px] text-slate-500">
+                        Importance org : <strong className="text-slate-700">{issue.importanceOrg}/5</strong>
+                      </span>
+                    )}
+                    {issue.importanceBio != null && (
+                      <span className="text-[10px] text-slate-500">
+                        Impact biodiversité : <strong className="text-slate-700">{issue.importanceBio}/5</strong>
+                      </span>
+                    )}
+                    {score !== null && (
+                      <span className="text-[10px] text-slate-500">
+                        Matérialité : <strong style={{ color: ml.color }}>{score.toFixed(1)}/5</strong>
+                      </span>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-            {proposedGroups.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">Aucun regroupement proposé.</p>
-            )}
+
+                {/* Delete */}
+                <button
+                  type="button"
+                  onClick={() => setDeleteId(issue.id)}
+                  className="text-slate-300 hover:text-red-500 transition-colors mt-0.5 flex-shrink-0"
+                  title="Supprimer cet enjeu"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Info panel ─────────────────────────────────────────────────────── */}
+      {issues.length > 0 && (
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+          <Sparkles className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-blue-700 mb-1">Génération automatique par IA</p>
+            <p className="text-[11px] text-blue-600 leading-relaxed">
+              Cette matrice est générée automatiquement à partir de vos {depsCount}{" "}
+              dépendance{depsCount > 1 ? "s" : ""} à la biodiversité, en analysant pour chaque enjeu :{" "}
+              <span className="font-medium">son importance stratégique pour votre organisation</span>,{" "}
+              <span className="font-medium">son impact potentiel sur la biodiversité</span>,{" "}
+              <span className="font-medium">le contexte de vos activités, sites et chaîne de valeur</span>.
+            </p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setGroupDialog(false)}>Annuler</Button>
-            {proposedGroups.length > 0 && (
-              <Button onClick={applyGroups} disabled={updateMut.isPending}>
-                {updateMut.isPending
-                  ? "Application…"
-                  : "Appliquer les groupes"}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       {/* ── Delete confirm ─────────────────────────────────────────────────── */}
       <AlertDialog open={deleteId !== null} onOpenChange={open => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer cet enjeu ?</AlertDialogTitle>
-            <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+            <AlertDialogDescription>
+              Cette action est irréversible. L'enjeu sera supprimé définitivement.
+              Vous pourrez toujours régénérer les enjeux à partir de vos dépendances.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
-              disabled={deleteMut.isPending}
+              onClick={handleDelete}
             >
-              {deleteMut.isPending ? "Suppression…" : "Supprimer"}
+              Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
