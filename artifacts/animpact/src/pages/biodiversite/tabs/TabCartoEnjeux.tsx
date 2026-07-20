@@ -233,7 +233,7 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
   const moderes    = scores.filter(s => s !== null && s >= 2 && s < 3).length;
   const faibles    = scores.filter(s => s !== null && s < 2).length;
 
-  const positions: ChainPos[] = ["in-situ", "amont", "aval"];
+  const positions: ChainPos[] = ["amont", "in-situ", "aval"];
 
   // Generate
   async function handleGenerate() {
@@ -354,7 +354,7 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
         {view === "matrix" && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500 font-medium">Vue :</span>
-            {(["all", "in-situ", "amont", "aval"] as const).map(f => {
+            {(["all", "amont", "in-situ", "aval"] as const).map(f => {
               const labels: Record<Filter, string> = { all: "Tous", "in-situ": "In situ", amont: "Amont", aval: "Aval" };
               return (
                 <button
