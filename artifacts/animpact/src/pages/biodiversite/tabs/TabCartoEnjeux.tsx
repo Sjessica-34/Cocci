@@ -285,7 +285,7 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-lg font-bold text-slate-800">
-            Matrice de matérialité des enjeux de biodiversité
+            Cartographie des enjeux de biodiversité
           </h2>
           <p className="text-xs text-slate-500 mt-0.5 max-w-2xl">
             {isGroupMode
