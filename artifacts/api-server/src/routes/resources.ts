@@ -28,13 +28,26 @@ router.get("/organizations/:orgId/resources", requireAuth, async (req, res): Pro
     return;
   }
 
-  const resources = await db
-    .select()
-    .from(resourcesTable)
-    .where(and(eq(resourcesTable.organizationId, orgId), eq(resourcesTable.isPublished, true)))
-    .orderBy(resourcesTable.createdAt);
+  const [orgResources, globalResources] = await Promise.all([
+    db
+      .select()
+      .from(resourcesTable)
+      .where(and(eq(resourcesTable.organizationId, orgId), eq(resourcesTable.isPublished, true))),
+    db
+      .select()
+      .from(resourcesTable)
+      .where(and(eq(resourcesTable.isGlobal, true), eq(resourcesTable.isPublished, true))),
+  ]);
 
-  res.json(resources);
+  // Merge and deduplicate by id, global resources at the end
+  const seen = new Set<number>();
+  const merged = [...orgResources, ...globalResources].filter((r) => {
+    if (seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  });
+
+  res.json(merged);
 });
 
 export default router;

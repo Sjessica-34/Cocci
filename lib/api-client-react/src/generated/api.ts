@@ -1876,6 +1876,153 @@ export const useCreateAdminResource = <TError = ErrorType<void>,
       return useMutation(getCreateAdminResourceMutationOptions(options));
     }
 
+export const getListAdminGlobalResourcesUrl = () => {
+
+
+
+
+  return `/api/admin/global-resources`
+}
+
+/**
+ * @summary List all global resources (visible to all clients)
+ */
+export const listAdminGlobalResources = async ( options?: RequestInit): Promise<Resource[]> => {
+
+  return customFetch<Resource[]>(getListAdminGlobalResourcesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminGlobalResourcesQueryKey = () => {
+    return [
+    `/api/admin/global-resources`
+    ] as const;
+    }
+
+
+export const getListAdminGlobalResourcesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminGlobalResources>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminGlobalResources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminGlobalResourcesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminGlobalResources>>> = ({ signal }) => listAdminGlobalResources({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminGlobalResources>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminGlobalResourcesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminGlobalResources>>>
+export type ListAdminGlobalResourcesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all global resources (visible to all clients)
+ */
+
+export function useListAdminGlobalResources<TData = Awaited<ReturnType<typeof listAdminGlobalResources>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminGlobalResources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminGlobalResourcesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminGlobalResourceUrl = () => {
+
+
+
+
+  return `/api/admin/global-resources`
+}
+
+/**
+ * @summary Create a global resource visible to all clients
+ */
+export const createAdminGlobalResource = async (resourceInput: ResourceInput, options?: RequestInit): Promise<Resource> => {
+
+  return customFetch<Resource>(getCreateAdminGlobalResourceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(resourceInput)
+  }
+);}
+
+
+
+
+export const getCreateAdminGlobalResourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminGlobalResource>>, TError,{data: BodyType<ResourceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminGlobalResource>>, TError,{data: BodyType<ResourceInput>}, TContext> => {
+
+const mutationKey = ['createAdminGlobalResource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminGlobalResource>>, {data: BodyType<ResourceInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminGlobalResource(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminGlobalResourceMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminGlobalResource>>>
+    export type CreateAdminGlobalResourceMutationBody = BodyType<ResourceInput>
+    export type CreateAdminGlobalResourceMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a global resource visible to all clients
+ */
+export const useCreateAdminGlobalResource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminGlobalResource>>, TError,{data: BodyType<ResourceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminGlobalResource>>,
+        TError,
+        {data: BodyType<ResourceInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminGlobalResourceMutationOptions(options));
+    }
+
 export const getUpdateAdminResourceUrl = (id: number,) => {
 
 

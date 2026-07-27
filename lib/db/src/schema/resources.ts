@@ -4,8 +4,8 @@ import { organizationsTable } from "./organizations";
 export const resourcesTable = pgTable("resources", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id")
-    .notNull()
     .references(() => organizationsTable.id, { onDelete: "cascade" }),
+  isGlobal: boolean("is_global").notNull().default(false),
   title: text("title").notNull(),
   description: text("description"),
   category: text("category"),

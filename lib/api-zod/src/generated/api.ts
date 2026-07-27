@@ -556,7 +556,8 @@ export const ListAdminOrgResourcesParams = zod.object({
 
 export const ListAdminOrgResourcesResponseItem = zod.object({
   "id": zod.number(),
-  "organizationId": zod.number(),
+  "organizationId": zod.number().nullish(),
+  "isGlobal": zod.boolean(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "category": zod.string().nullish(),
@@ -592,7 +593,61 @@ export const CreateAdminResourceBody = zod.object({
 
 export const CreateAdminResourceResponse = zod.object({
   "id": zod.number(),
-  "organizationId": zod.number(),
+  "organizationId": zod.number().nullish(),
+  "isGlobal": zod.boolean(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "documentType": zod.string().nullish().describe('PDF, Word, Excel, Vidéo, Lien, Autre'),
+  "imageUrl": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary List all global resources (visible to all clients)
+ */
+export const ListAdminGlobalResourcesResponseItem = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number().nullish(),
+  "isGlobal": zod.boolean(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "documentType": zod.string().nullish().describe('PDF, Word, Excel, Vidéo, Lien, Autre'),
+  "imageUrl": zod.string().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+export const ListAdminGlobalResourcesResponse = zod.array(ListAdminGlobalResourcesResponseItem)
+
+
+/**
+ * @summary Create a global resource visible to all clients
+ */
+
+
+
+export const CreateAdminGlobalResourceBody = zod.object({
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "category": zod.string().optional(),
+  "documentType": zod.string().optional(),
+  "imageUrl": zod.string().optional(),
+  "fileUrl": zod.string().optional()
+})
+
+export const CreateAdminGlobalResourceResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number().nullish(),
+  "isGlobal": zod.boolean(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "category": zod.string().nullish(),
@@ -627,7 +682,8 @@ export const UpdateAdminResourceBody = zod.object({
 
 export const UpdateAdminResourceResponse = zod.object({
   "id": zod.number(),
-  "organizationId": zod.number(),
+  "organizationId": zod.number().nullish(),
+  "isGlobal": zod.boolean(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "category": zod.string().nullish(),
@@ -664,7 +720,8 @@ export const PublishAdminResourceBody = zod.object({
 
 export const PublishAdminResourceResponse = zod.object({
   "id": zod.number(),
-  "organizationId": zod.number(),
+  "organizationId": zod.number().nullish(),
+  "isGlobal": zod.boolean(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "category": zod.string().nullish(),
@@ -1235,7 +1292,8 @@ export const ListOrgResourcesParams = zod.object({
 
 export const ListOrgResourcesResponseItem = zod.object({
   "id": zod.number(),
-  "organizationId": zod.number(),
+  "organizationId": zod.number().nullish(),
+  "isGlobal": zod.boolean(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "category": zod.string().nullish(),

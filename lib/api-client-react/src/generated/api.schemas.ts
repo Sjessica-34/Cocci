@@ -578,7 +578,9 @@ export interface AdminMemberUpdate {
 
 export interface Resource {
   id: number;
-  organizationId: number;
+  /** @nullable */
+  organizationId?: number | null;
+  isGlobal: boolean;
   title: string;
   /** @nullable */
   description?: string | null;

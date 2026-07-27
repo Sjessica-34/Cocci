@@ -593,6 +593,46 @@ paths:
         "403":
           description: Forbidden
 
+  /admin/global-resources:
+    get:
+      operationId: listAdminGlobalResources
+      tags: [admin]
+      summary: List all global resources (visible to all clients)
+      responses:
+        "200":
+          description: Global resources list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Resource"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    post:
+      operationId: createAdminGlobalResource
+      tags: [admin]
+      summary: Create a global resource visible to all clients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResourceInput"
+      responses:
+        "201":
+          description: Created resource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
   /admin/resources/{id}:
     patch:
       operationId: updateAdminResource
@@ -3448,12 +3488,14 @@ components:
     # ─── RESOURCE ───────────────────────────────────────────────────────────────
     Resource:
       type: object
-      required: [id, organizationId, title, isPublished, createdAt]
+      required: [id, title, isPublished, isGlobal, createdAt]
       properties:
         id:
           type: integer
         organizationId:
-          type: integer
+          type: ["integer", "null"]
+        isGlobal:
+          type: boolean
         title:
           type: string
         description:

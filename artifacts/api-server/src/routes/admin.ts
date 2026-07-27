@@ -758,6 +758,30 @@ router.patch("/admin/resources/:id/publish", async (req, res): Promise<void> => 
   res.json(updated);
 });
 
+// ─── GET /admin/global-resources ─────────────────────────────────────────────
+router.get("/admin/global-resources", async (req, res): Promise<void> => {
+  const resources = await db
+    .select()
+    .from(resourcesTable)
+    .where(eq(resourcesTable.isGlobal, true))
+    .orderBy(desc(resourcesTable.createdAt));
+  res.json(resources);
+});
+
+// ─── POST /admin/global-resources ────────────────────────────────────────────
+router.post("/admin/global-resources", async (req, res): Promise<void> => {
+  const { title, description, category, documentType, imageUrl, fileUrl } = req.body;
+  if (!title || typeof title !== "string") {
+    res.status(400).json({ error: "title is required" });
+    return;
+  }
+  const [created] = await db
+    .insert(resourcesTable)
+    .values({ isGlobal: true, organizationId: null, title, description, category, documentType, imageUrl, fileUrl })
+    .returning();
+  res.status(201).json(created);
+});
+
 // ─── PATCH /admin/users/:id/superadmin ────────────────────────────────────────
 router.patch("/admin/users/:id/superadmin", async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

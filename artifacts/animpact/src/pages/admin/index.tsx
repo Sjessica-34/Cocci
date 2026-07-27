@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { AdminLayout } from "./layout";
+import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
 import {
   useGetAdminStats,
   getGetAdminStatsQueryKey,
@@ -121,7 +122,7 @@ function OrgRow({ org, index }: { org: AdminOrganization; index: number }) {
         "group transition-colors hover:bg-muted/40 cursor-pointer",
         index !== 0 && "border-t border-border",
       )}
-      onClick={() => navigate(`/admin/organizations/${org.id}`)}
+      onClick={() => { setCurrentOrg(org.id); navigate(`/admin/organizations/${org.id}`); }}
     >
       <td className="px-4 py-3">
         <Link href={`/admin/organizations/${org.id}`}>

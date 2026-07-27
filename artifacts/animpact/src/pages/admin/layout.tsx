@@ -1,5 +1,5 @@
 import { type ReactNode, useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 import {
   LayoutDashboard,
   Building2,
@@ -16,6 +16,7 @@ import {
   Shield,
   Check,
   ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 import { useUser, useClerk } from "@clerk/react";
 import {
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard, exact: true },
   { href: "/admin/organizations", label: "Organisations", icon: Building2, exact: false },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, exact: false },
+  { href: "/admin/resources", label: "Bibliothèque globale", icon: BookOpen, exact: false },
   { href: null, label: "Factures", icon: CreditCard },
   { href: null, label: "Abonnements", icon: Receipt },
   { href: null, label: "Analytics", icon: BarChart3 },
@@ -62,15 +64,27 @@ function EspaceClientPanel() {
   const { currentOrgId } = useCurrentOrganization();
   const [, navigate] = useLocation();
 
+  // Sync selected org with the org detail page currently open in the admin
+  const [matchDetail, paramsDetail] = useRoute("/admin/organizations/:id");
+  useEffect(() => {
+    if (matchDetail && paramsDetail?.id) {
+      const id = Number(paramsDetail.id);
+      if (Number.isFinite(id) && id > 0 && id !== currentOrgId) {
+        setCurrentOrg(id);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchDetail, paramsDetail?.id]);
+
   const { data: orgs } = useListAdminOrganizations({
     query: { queryKey: getListAdminOrganizationsQueryKey() },
   });
 
-  const currentOrg = orgs?.find((o) => o.id === currentOrgId);
+  const currentOrg = orgs?.find((o) => o.id === (matchDetail && paramsDetail?.id ? Number(paramsDetail.id) : currentOrgId));
 
   const filtered = (orgs ?? [])
     .filter((o) => !search || o.name.toLowerCase().includes(search.toLowerCase()))
-    .slice(0, 7);
+    .slice(0, search ? 20 : 10);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -170,7 +184,7 @@ function EspaceClientPanel() {
         <Link href="/dashboard">
           <button className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] text-sidebar-foreground/50 hover:bg-white/8 hover:text-sidebar-foreground transition-colors">
             <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
-            Retour à l'administration
+            Voir l'espace client
           </button>
         </Link>
       </div>

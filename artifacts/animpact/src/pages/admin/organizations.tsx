@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
 import { AdminLayout } from "./layout";
 import {
   useListAdminOrganizations,
@@ -180,7 +181,7 @@ export function AdminOrganizations() {
                   {filtered.map((org) => {
                     const score = org.healthScore ?? 0;
                     return (
-                      <tr key={org.id} className="group hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/admin/organizations/${org.id}`)}>
+                      <tr key={org.id} className="group hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => { setCurrentOrg(org.id); navigate(`/admin/organizations/${org.id}`); }}>
                         <td className="px-5 py-4">
                           <Link href={`/admin/organizations/${org.id}`}>
                             <div className="flex items-center gap-3 cursor-pointer">
