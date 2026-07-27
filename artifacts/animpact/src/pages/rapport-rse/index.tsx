@@ -814,11 +814,28 @@ export function RapportRse() {
                 </p>
               </div>
 
+              {/* ─── Rapport illustré ─── */}
+              <a
+                href="/rapport-rse/viewer"
+                className="flex items-center justify-center gap-2 w-full rounded-lg px-4 py-3 text-sm font-semibold border-2 border-green-600 text-green-700 bg-green-50 hover:bg-green-100 transition-colors"
+                style={{ textDecoration: "none" }}
+              >
+                <span>🌿</span>
+                Voir le rapport illustré (avec graphiques)
+              </a>
+
+              <div className="relative flex items-center gap-3 my-1">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">ou</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
               <Button
                 onClick={handleDownload}
                 disabled={downloading || isReadOnly}
                 className="w-full gap-2"
                 size="lg"
+                variant="outline"
               >
                 {downloading ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Génération en cours…</>

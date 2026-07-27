@@ -26,6 +26,7 @@ import { Resources } from "@/pages/resources";
 import { DiagnosticRse } from "@/pages/diagnostic/index";
 import { DiagnosticQuestionnaire } from "@/pages/diagnostic/questionnaire";
 import { RapportRse } from "@/pages/rapport-rse";
+import { ReportViewer } from "@/pages/rapport-rse/ReportViewer";
 import { Biodiversite } from "@/pages/biodiversite";
 import { AchatsResponsables } from "@/pages/achats-responsables";
 import { ImpactScore } from "@/pages/impact-score";
@@ -292,6 +293,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/numerique-responsable"><WorkspaceGuard component={NumeriqueResponsable} /></Route>
             <Route path="/impact-score"><WorkspaceGuard component={ImpactScore} /></Route>
             <Route path="/rapport-rse"><WorkspaceGuard component={RapportRse} /></Route>
+            <Route path="/rapport-rse/viewer"><WorkspaceGuard component={ReportViewer} /></Route>
             <Route path="/mes-documents"><WorkspaceGuard component={MesDocuments} /></Route>
             <Route path="/mes-labels"><WorkspaceGuard component={MesLabels} /></Route>
             <Route path="/captation-carbone"><WorkspaceGuard component={CaptationCarbone} /></Route>

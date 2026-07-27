@@ -189,6 +189,8 @@ router.post("/organizations/:orgId/report/ai-section", requireAuth, requireOrgMe
 
   const systemPrompt = section === "editorial"
     ? `Tu es expert RSE francophone. Tu rédiges un éditorial professionnel pour un rapport RSE. Sois direct, sincère et humain. Évite le jargon. Maximum ${lengthMap[length ?? "standard"] ?? "130 à 160 mots"}.`
+    : section === "analyse"
+    ? `Tu es expert RSE francophone. Tu analyses des données RSE et rédiges des analyses factuelles (3 à 5 phrases). Base-toi uniquement sur les données fournies. Sois direct, précis et utile. Formule des recommandations concrètes et des axes d'amélioration mesurables. Évite le jargon excessif.`
     : `Tu es expert RSE francophone. Tu rédiges de courtes introductions ou conclusions de chapitres pour un rapport RSE professionnel. Sois concis, factuel et fluide. Ne décris pas les graphiques. Maximum ${section === "intro" ? "100 à 130 mots" : "80 à 110 mots"}.`;
 
   let userPrompt = "";
@@ -199,6 +201,15 @@ router.post("/organizations/:orgId/report/ai-section", requireAuth, requireOrgMe
     if (themes?.length) userPrompt += `Thématiques à mettre en avant : ${themes.join(", ")}.\n`;
     if (context) userPrompt += `Contexte : ${context}.\n`;
     if (data) userPrompt += `Données clés disponibles : ${JSON.stringify(data)}.\n`;
+  } else if (section === "analyse") {
+    userPrompt = `Analyse les données suivantes et rédige une synthèse factuelle pour le rapport RSE.\n`;
+    if (context) userPrompt += `Données et contexte : ${context}.\n`;
+    if (data) {
+      const { chapterName: _, ...relevantData } = data as { chapterName?: string; [k: string]: unknown };
+      if (Object.keys(relevantData).length > 0) {
+        userPrompt += `Données additionnelles : ${JSON.stringify(relevantData)}.\n`;
+      }
+    }
   } else {
     const chapterName = data?.chapterName ?? section;
     const sectionType = section === "intro" ? "une introduction" : "une conclusion";
