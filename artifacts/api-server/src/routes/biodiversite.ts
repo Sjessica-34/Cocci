@@ -5,6 +5,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { scopeToExercise, withExerciseValues } from "../lib/exercise";
+import { getSubsidiaryExercises } from "../lib/consolidation";
 
 const router = Router();
 
@@ -72,6 +73,19 @@ function mapIssue(row: typeof bioIssuesTable.$inferSelect) {
 // ─── DEPENDENCIES ─────────────────────────────────────────────────────────────
 
 router.get("/organizations/:orgId/bio-dependencies", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+  if (subExercises.length > 0) {
+    const [rootRows, ...subRowArrays] = await Promise.all([
+      db.select().from(bioDependenciesTable).where(scopeToExercise(bioDependenciesTable, req)),
+      ...subExercises.map(({ orgId, exerciseId }) =>
+        db.select().from(bioDependenciesTable)
+          .where(and(eq(bioDependenciesTable.organizationId, orgId), eq(bioDependenciesTable.exerciseId, exerciseId)))
+      ),
+    ]);
+    const allRows = [rootRows, ...subRowArrays].flat();
+    res.json({ items: allRows.map(mapDep) });
+    return;
+  }
   const rows = await db.select().from(bioDependenciesTable).where(scopeToExercise(bioDependenciesTable, req));
   res.json({ items: rows.map(mapDep) });
 });
@@ -141,6 +155,19 @@ router.delete("/organizations/:orgId/bio-dependencies/:id", requireAuth, require
 // ─── CONNECTIONS ──────────────────────────────────────────────────────────────
 
 router.get("/organizations/:orgId/bio-connections", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+  if (subExercises.length > 0) {
+    const [rootRows, ...subRowArrays] = await Promise.all([
+      db.select().from(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req)),
+      ...subExercises.map(({ orgId, exerciseId }) =>
+        db.select().from(bioConnectionsTable)
+          .where(and(eq(bioConnectionsTable.organizationId, orgId), eq(bioConnectionsTable.exerciseId, exerciseId)))
+      ),
+    ]);
+    const allRows = [rootRows, ...subRowArrays].flat();
+    res.json({ items: allRows.map(mapConn) });
+    return;
+  }
   const rows = await db.select().from(bioConnectionsTable).where(scopeToExercise(bioConnectionsTable, req));
   res.json({ items: rows.map(mapConn) });
 });
