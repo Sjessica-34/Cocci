@@ -220,7 +220,8 @@ function NrCalcSummary() {
     <>
       <SectionTitle>Numérique responsable — Empreinte estimée</SectionTitle>
       <ExplainerText>
-        Estimation indicative de l'empreinte numérique basée sur les valeurs par défaut du parc. Modifiez les données dans le module "Ma démarche Numérique Responsable" pour affiner ces chiffres.
+        Le calculateur Numérique Responsable fournit une estimation de l'empreinte environnementale du parc numérique de l'organisation à partir des informations renseignées dans la plateforme. Les résultats présentés permettent d'identifier les principales sources d'émissions et de disposer d'indicateurs d'aide à la décision pour orienter les actions de réduction de l'impact du numérique.
+        Les indicateurs estimés du parc numérique et de son impact environnemental sont présentés ci-dessous.
       </ExplainerText>
 
       {/* KPI cards */}
