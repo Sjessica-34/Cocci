@@ -1,0 +1,134 @@
+Je souhaite créer un nouveau module intitulé **Échanges avec Cocci**.
+
+L'objectif est de permettre aux utilisateurs de communiquer facilement avec l'équipe Cocci, que ce soit pour signaler un problème, proposer une amélioration, poser une question ou partager leur avis sur la plateforme.
+
+Le module est composé de deux onglets.
+
+====================================================
+1. Nous écrire
+====================================================
+
+Cette page permet à l'utilisateur de transmettre un message à l'équipe Cocci.
+
+Le formulaire comprend :
+
+- Objet
+- Type de demande
+  - Suggestion d'amélioration
+  - Signaler un problème
+  - Demande d'évolution
+  - Question
+  - Autre
+- Message (champ libre)
+- Pièce jointe (optionnelle : capture d'écran, document, etc.)
+- Case à cocher : "Je souhaite être recontacté"
+- Bouton "Envoyer"
+
+À l'envoi, la demande est automatiquement enregistrée et remonte dans le panneau Administrateur.
+
+Les informations enregistrées sont :
+
+- Organisation
+- Groupe (si applicable)
+- Utilisateur
+- Adresse e-mail
+- Date et heure
+- Type de demande
+- Objet
+- Message
+- Pièce jointe
+- Demande de rappel (Oui / Non)
+- Statut
+
+Statuts disponibles :
+
+- Nouveau
+- En cours
+- Traité
+- Fermé
+
+====================================================
+2. Évaluer Cocci
+====================================================
+
+Cette page permet à l'utilisateur de donner son avis sur la plateforme.
+
+Le formulaire comprend :
+
+- Note de 1 à 5 étoiles
+- Commentaire libre (facultatif)
+- Bouton "Envoyer"
+
+Une fois envoyé, l'avis est automatiquement enregistré et apparaît dans le panneau Administrateur.
+
+Les informations enregistrées sont :
+
+- Organisation
+- Utilisateur
+- Date
+- Nombre d'étoiles
+- Commentaire
+
+====================================================
+Panneau Administrateur
+====================================================
+
+Créer un nouvel espace intitulé **Échanges avec Cocci**.
+
+Il comporte deux onglets.
+
+----------------------------------------------------
+Onglet : Nous écrire
+----------------------------------------------------
+
+Afficher un tableau avec :
+
+- Date
+- Organisation
+- Utilisateur
+- Type de demande
+- Objet
+- Statut
+
+Chaque ligne doit être consultable afin d'afficher :
+
+- toutes les informations du formulaire ;
+- les éventuelles pièces jointes ;
+- l'historique de traitement.
+
+L'administrateur doit pouvoir modifier le statut.
+
+----------------------------------------------------
+Onglet : Avis
+----------------------------------------------------
+
+Afficher un tableau de bord comprenant :
+
+- Note moyenne
+- Nombre total d'avis
+- Répartition des notes (1 à 5 étoiles)
+
+Puis la liste complète des avis avec :
+
+- Date
+- Organisation
+- Utilisateur
+- Note
+- Commentaire
+
+====================================================
+Notifications
+====================================================
+
+À chaque nouveau message ou nouvel avis, une notification doit apparaître dans le panneau Administrateur.
+
+====================================================
+Contraintes
+====================================================
+
+- Ne modifier aucun autre module.
+- Réutiliser le système d'authentification existant.
+- Associer automatiquement chaque message et chaque avis à la bonne organisation et au bon utilisateur.
+- Les utilisateurs ne peuvent consulter que leurs propres formulaires.
+- Seul l'administrateur peut consulter l'ensemble des échanges.
+- Le design doit être cohérent avec les autres modules de Cocci.
