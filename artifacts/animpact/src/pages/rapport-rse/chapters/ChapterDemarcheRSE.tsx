@@ -1,11 +1,159 @@
+import { memo, useMemo } from "react";
 import {
   ChapterWrapper, SectionTitle, ExplainerText, AiBlock, EditableAiBlock, ReportTable, R, KpiGrid,
 } from "./_shared";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
+import {
+  ReactFlow, Background, Handle, Position, MarkerType,
+  type Node, type Edge, type NodeTypes, type NodeProps,
+} from "@xyflow/react";
+import {
+  defaultElementPosition, elementLabel, familyIcon, familyColor, familyBg,
+} from "../../biodiversite/data";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
+
+// ─── Cartographie des connexions (ReactFlow, read-only) ───────────────────────
+
+const ZONE_W = 390;
+const ZONE_H_PANEL = 5000;
+const ZONE_Y_START = -100;
+
+type FlowBioNodeData = { name: string | null; category: string | null; subCategory: string | null };
+type FlowBioNode = Node<FlowBioNodeData, "bioElement">;
+type ZonePanelData = { label: string; bg: string; border: string; textColor: string; height: number };
+
+const FlowBioElementNode = memo(function FlowBioElementNode({ data }: NodeProps<FlowBioNode>) {
+  const label = elementLabel(data.name, data.category, data.subCategory);
+  const icon  = familyIcon(data.category);
+  const color = familyColor(data.category);
+  const bg    = familyBg(data.category);
+  return (
+    <div style={{ position: "relative" }}>
+      <Handle type="target" position={Position.Left}
+        style={{ background: color, width: 8, height: 8, border: "2px solid white" }} />
+      <div style={{
+        minWidth: 120, maxWidth: 165, backgroundColor: bg,
+        borderColor: color, borderWidth: 2, borderStyle: "solid",
+        borderRadius: 10, padding: "8px 10px", boxShadow: "0 2px 5px rgba(0,0,0,0.08)",
+        display: "flex", alignItems: "center", gap: 7,
+      }}>
+        <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color, margin: "0 0 1px",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {label || "—"}
+          </p>
+          <p style={{ fontSize: 9, color, opacity: 0.65, margin: 0,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {data.category ?? ""}
+          </p>
+        </div>
+      </div>
+      <Handle type="source" position={Position.Right}
+        style={{ background: color, width: 8, height: 8, border: "2px solid white" }} />
+    </div>
+  );
+});
+
+const FlowZonePanelNode = memo(function FlowZonePanelNode({ data }: NodeProps<Node<ZonePanelData>>) {
+  return (
+    <div style={{
+      width: ZONE_W, height: data.height,
+      backgroundColor: data.bg, borderRight: `1px dashed ${data.border}`,
+      pointerEvents: "none", userSelect: "none", position: "relative",
+    }}>
+      <div style={{
+        position: "absolute", top: 14, left: 0, right: 0,
+        textAlign: "center", color: data.textColor,
+        fontSize: 11, fontWeight: 700, textTransform: "uppercase",
+        letterSpacing: "0.07em", opacity: 0.65, fontFamily: "sans-serif",
+      }}>
+        {data.label}
+      </div>
+    </div>
+  );
+});
+
+const depFlowNodeTypes: NodeTypes = {
+  bioElement: FlowBioElementNode as NodeTypes[string],
+  zonePanel:  FlowZonePanelNode  as NodeTypes[string],
+};
+
+const ZONE_CFG = [
+  { key: "amont",   label: "Amont",   bg: "#EFF6FF", border: "#BFDBFE", textColor: "#1D4ED8" },
+  { key: "in-situ", label: "In situ", bg: "#ECFDF5", border: "#A7F3D0", textColor: "#065F46" },
+  { key: "aval",    label: "Aval",    bg: "#F5F3FF", border: "#DDD6FE", textColor: "#6D28D9" },
+] as const;
+
+function DepFlowReport({
+  deps, conns,
+}: {
+  deps: Array<Record<string, unknown>>;
+  conns: Array<Record<string, unknown>>;
+}) {
+  const { nodes, edges } = useMemo(() => {
+    const bgNodes: Node[] = ZONE_CFG.map((z, i) => ({
+      id: `bg-${z.key}`, type: "zonePanel",
+      position: { x: i * ZONE_W, y: ZONE_Y_START },
+      data: { label: z.label, bg: z.bg, border: z.border, textColor: z.textColor, height: ZONE_H_PANEL },
+      zIndex: -10, selectable: false, draggable: false, connectable: false,
+    }));
+
+    const zoneCounts: Record<string, number> = {};
+    const itemNodes: Node[] = deps.map(dep => {
+      const zone = (dep.chainPosition as string) ?? "amont";
+      const idx  = zoneCounts[zone] ?? 0;
+      zoneCounts[zone] = idx + 1;
+      const pos = dep.x != null && dep.y != null
+        ? { x: dep.x as number, y: dep.y as number }
+        : defaultElementPosition(zone, idx);
+      return {
+        id: String(dep.id),
+        type: "bioElement",
+        position: pos,
+        data: { name: dep.name as string | null, category: dep.category as string | null, subCategory: dep.subCategory as string | null },
+        draggable: false, selectable: false, connectable: false,
+      };
+    });
+
+    const edgeList: Edge[] = conns.map(conn => ({
+      id:     String(conn.id),
+      source: String(conn.fromElementId),
+      target: String(conn.toElementId),
+      type:   "smoothstep",
+      label:  (conn.relationType as string) ?? undefined,
+      labelStyle:          { fontSize: 9, fill: "#475569", fontWeight: 600 },
+      labelBgStyle:        { fill: "#f8fafc", stroke: "#e2e8f0", strokeWidth: 1 },
+      labelBgPadding:      [4, 2] as [number, number],
+      labelBgBorderRadius: 3,
+      markerEnd:  { type: MarkerType.ArrowClosed, color: "#94a3b8" },
+      style:      { stroke: "#94a3b8", strokeWidth: 1.5 },
+    }));
+
+    return { nodes: [...bgNodes, ...itemNodes], edges: edgeList };
+  }, [deps, conns]);
+
+  if (deps.length === 0) return null;
+
+  return (
+    <div style={{ height: 400, border: "1px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
+      <ReactFlow
+        nodes={nodes} edges={edges}
+        nodeTypes={depFlowNodeTypes}
+        fitView fitViewOptions={{ padding: 0.12 }}
+        nodesDraggable={false} nodesConnectable={false} elementsSelectable={false}
+        panOnDrag={true} zoomOnScroll={false}
+        minZoom={0.25} maxZoom={1.5}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="#e2e8f0" gap={18} size={0.5} />
+      </ReactFlow>
+    </div>
+  );
+}
 
 // ─── Matrice de matérialité (SVG statique) ─────────────────────────────────────
 
@@ -353,6 +501,7 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
   const issueAI = data.issueAI as Record<string, unknown> | null;
   const stakeholders = data.stakeholders as unknown as AnyItem[];
   const bioDeps = data.bioDeps as unknown as AnyItem[];
+  const bioConns = (data as any).bioConns as unknown as AnyItem[] ?? [];
   const bioIssues = (data as any).bioIssues as unknown as AnyItem[] ?? [];
   const orgs = (data.orgs as Array<Record<string, unknown>>) ?? [];
 
@@ -500,9 +649,15 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
             { label: "Catégories", value: String(Object.keys(catMap).length), color: "#14b8a6" },
           ]} />
 
-          {/* Cartographie visuelle des dépendances par zone */}
+          {/* Cartographie interactive des dépendances (ReactFlow) */}
           <p style={{ fontSize: 12, fontWeight: 700, color: "#475569", margin: "4px 0 8px", fontFamily: "sans-serif", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Cartographie des dépendances par zone de chaîne de valeur
+            Cartographie des dépendances — Chaîne de valeur
+          </p>
+          <DepFlowReport deps={bioDeps} conns={bioConns} />
+
+          {/* Cartographie en tableau par zone */}
+          <p style={{ fontSize: 12, fontWeight: 700, color: "#475569", margin: "12px 0 8px", fontFamily: "sans-serif", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Détail par zone de chaîne de valeur
           </p>
           <CartoDependances deps={bioDeps} />
 

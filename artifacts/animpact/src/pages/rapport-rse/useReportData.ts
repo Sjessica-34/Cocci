@@ -24,6 +24,7 @@ import {
   useListOrganizations,
   useListSuppliers,
   useListPlanSlots,
+  useListBioConnections,
 } from "@workspace/api-client-react";
 
 // Helper pour passer `enabled` sans avoir à importer les queryKey functions
@@ -54,6 +55,7 @@ export function useReportData(orgId: number | null) {
   const bioIssues    = useListBioIssues(id, q(enabled));
   const suppliers    = useListSuppliers(id, q(enabled));
   const planSlots    = useListPlanSlots(id, q(enabled));
+  const bioConns     = useListBioConnections(id, q(enabled));
 
   // Baromètre synthèse + résultats — nécessitent le premier campaign ID
   const campaignId   = baroList.data?.items?.[0]?.id ?? 0;
@@ -88,6 +90,7 @@ export function useReportData(orgId: number | null) {
     bioIssues:     (bioIssues.data?.items ?? []) as unknown[],
     suppliers:     (suppliers.data?.items ?? []) as unknown[],
     planSlots:     ((planSlots.data ?? []) as unknown[]),
+    bioConns:      (bioConns.data?.items ?? []) as unknown[],
   };
 }
 

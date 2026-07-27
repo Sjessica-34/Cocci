@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useStorageUpload } from "@/hooks/useStorageUpload";
 import { useAuth } from "@clerk/react";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
@@ -17,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles,
-  Plus, Trash2, Download, ChevronDown, ChevronRight, FileText,
+  Plus, Trash2, ChevronDown, ChevronRight, FileText,
   Building2, Users2, Leaf, Award, LayoutList, BookOpen, Target,
   PenLine, Info,
 } from "lucide-react";
@@ -133,6 +134,7 @@ function HighlightEditor({ items, onChange, orgId }: {
     onChange(items.map((h) => h.id === id ? { ...h, [field]: value } : h));
   const updPhoto = (id: string, url: string) =>
     onChange(items.map((h) => h.id === id ? { ...h, photos: url ? [url] : [] } : h));
+  const { uploadFile, isUploading } = useStorageUpload();
 
   return (
     <div className="space-y-3">
@@ -174,20 +176,52 @@ function HighlightEditor({ items, onChange, orgId }: {
             <Textarea value={hl.description} onChange={(e) => upd(hl.id, "description", e.target.value)} rows={2} className="text-xs resize-none" placeholder="Quelques mots sur ce moment…" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Photo (URL)</Label>
-            <Input
-              value={hl.photos[0] ?? ""}
-              onChange={(e) => updPhoto(hl.id, e.target.value)}
-              placeholder="https://..."
-              className="h-8 text-xs"
-            />
-          </div>
-          <div className="pt-0.5">
-            <DocumentUploader
-              orgId={orgId}
-              category="temps-forts"
-              question={`Photo — ${hl.title || `Moment ${i + 1}`}`}
-            />
+            <Label className="text-xs">Photo</Label>
+            {hl.photos[0] ? (
+              <div className="flex items-center gap-2">
+                <img
+                  src={hl.photos[0]}
+                  alt="aperçu"
+                  className="h-10 w-14 object-cover rounded border"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                <button
+                  type="button"
+                  onClick={() => updPhoto(hl.id, "")}
+                  className="text-xs text-destructive hover:underline"
+                >
+                  Supprimer
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium transition-colors",
+                  isUploading
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-background hover:bg-muted text-foreground",
+                )}>
+                  {isUploading ? (
+                    <><Loader2 className="h-3 w-3 animate-spin" /> Envoi…</>
+                  ) : (
+                    <>📷 Ajouter une photo</>
+                  )}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={isUploading}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const result = await uploadFile(file);
+                    if (result) updPhoto(hl.id, result.fileUrl);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
           </div>
         </div>
       ))}
@@ -231,7 +265,6 @@ export function RapportRse() {
   const [local, setLocal] = useState<LocalDraft>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
-  const [downloading, setDownloading] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -329,30 +362,6 @@ export function RapportRse() {
     }
   };
 
-  const handleDownload = async () => {
-    if (!orgId) return;
-    setDownloading(true);
-    try {
-      const token = await getToken();
-      const exerciseId = getCurrentExerciseId();
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      if (exerciseId != null) headers["X-Exercise-Id"] = String(exerciseId);
-      const res = await fetch(`/api/organizations/${orgId}/report/generate`, { credentials: "include", headers });
-      if (!res.ok) throw new Error("Failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `rapport-rse.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      alert("Erreur lors de la génération du rapport. Veuillez réessayer.");
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   const TONES = ["institutionnel", "inspirant", "humain", "technique", "ambitieux", "transparent"];
   const EDITORIAL_THEMES = [
@@ -824,29 +833,6 @@ export function RapportRse() {
                 Voir le rapport illustré (avec graphiques)
               </a>
 
-              <div className="relative flex items-center gap-3 my-1">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">ou</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-
-              <Button
-                onClick={handleDownload}
-                disabled={downloading || isReadOnly}
-                className="w-full gap-2"
-                size="lg"
-                variant="outline"
-              >
-                {downloading ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Génération en cours…</>
-                ) : (
-                  <><Download className="h-4 w-4" /> Télécharger le rapport DOCX</>
-                )}
-              </Button>
-
-              <p className="text-xs text-muted-foreground text-center">
-                Format Microsoft Word (.docx) — compatible Word, LibreOffice, Google Docs
-              </p>
             </div>
 
             <div className="rounded-xl border bg-card p-5">

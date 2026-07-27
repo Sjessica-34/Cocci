@@ -103,6 +103,7 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
             ...(wf.nbRecrutements ? [{ label: "Recrutements", value: String(wf.nbRecrutements), color: R.green }] : []),
             ...(wf.nbDeparts ? [{ label: "Départs", value: String(wf.nbDeparts), color: "#f97316" }] : []),
           ]} />
+          <EditableAiBlock id="wf_effectifs" text={ai.wf_effectifs ?? null} label="Analyse — Capital humain & effectifs" />
         </>
       )}
 
@@ -149,6 +150,7 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
             ...(feminRate != null ? [{ label: "Taux de féminisation", value: `${feminRate}`, unit: "%", color: "#ec4899" }] : []),
             ...(div.nbHandicap != null ? [{ label: "Situation de handicap", value: String(div.nbHandicap), color: "#8b5cf6" }] : []),
           ]} />
+          <EditableAiBlock id="wf_diversite" text={ai.wf_diversite ?? null} label="Analyse — Diversité & inclusion" />
         </>
       )}
 
@@ -165,10 +167,9 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
             ...(tr.nbHeuresFormation != null ? [{ label: "Heures de formation", value: String(tr.nbHeuresFormation), unit: "h", color: "#3b82f6" }] : []),
             ...(hPerCollab != null ? [{ label: "Heures par collab.", value: `${hPerCollab}`, unit: "h", color: "#8b5cf6" }] : []),
           ]} />
+          <EditableAiBlock id="wf_formation" text={ai.wf_formation ?? null} label="Analyse — Formation & développement des compétences" />
         </>
       )}
-
-      <EditableAiBlock id="workforce" text={ai.workforce ?? null} label="Analyse du capital humain &amp; social" />
 
       {/* ── BAROMÈTRE SOCIAL ──────────────────────────────────────────────── */}
       {baro != null && (

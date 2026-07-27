@@ -106,12 +106,34 @@ function buildContexts(data: ReportData): Record<string, string> {
   if (wf) {
     const div = diversity;
     const tr = training;
-    contexts.workforce =
-      `Capital humain — Effectif : ${wf.totalHeadcount ?? "N/A"}, CDI : ${wf.nbCdi ?? "N/A"}, CDD : ${wf.nbCdd ?? "N/A"}. ` +
-      `Recrutements : ${wf.nbRecrutements ?? "N/A"}, Départs : ${wf.nbDeparts ?? "N/A"}. ` +
-      (div ? `Féminisation : ${wf.totalHeadcount && div.nbFemmes ? Math.round(Number(div.nbFemmes) / Number(wf.totalHeadcount) * 100) : "N/A"}%. ` : "") +
-      (tr ? `Formés : ${tr.nbCollaborateursFormes ?? "N/A"}, heures : ${tr.nbHeuresFormation ?? "N/A"}.` : "") +
-      ` Évalue la dynamique RH et formule des recommandations.`;
+
+    // Synthèse effectifs
+    contexts.wf_effectifs =
+      `Capital humain — Effectif total : ${wf.totalHeadcount ?? "N/A"}, CDI : ${wf.nbCdi ?? "N/A"}, CDD : ${wf.nbCdd ?? "N/A"}, ` +
+      `Alternants : ${wf.nbAlternants ?? "N/A"}, Recrutements : ${wf.nbRecrutements ?? "N/A"}, Départs : ${wf.nbDeparts ?? "N/A"}. ` +
+      `Analyse la composition et la dynamique des effectifs, identifie les tendances clés et formule des recommandations RH concrètes.`;
+
+    // Synthèse diversité & inclusion
+    if (div) {
+      const feminRate = wf.totalHeadcount && div.nbFemmes
+        ? Math.round(Number(div.nbFemmes) / Number(wf.totalHeadcount) * 100) : null;
+      contexts.wf_diversite =
+        `Diversité & Inclusion — Femmes : ${div.nbFemmes ?? "N/A"}, Hommes : ${div.nbHommes ?? "N/A"}, ` +
+        `Taux de féminisation : ${feminRate != null ? `${feminRate}%` : "N/A"}, ` +
+        `Situations de handicap : ${div.nbHandicap ?? "N/A"}. ` +
+        `Évalue le niveau d'inclusion et d'égalité professionnelle, identifie les axes de progression et les bonnes pratiques à renforcer.`;
+    }
+
+    // Synthèse formation
+    if (tr) {
+      const trainingRate = wf.totalHeadcount && tr.nbCollaborateursFormes
+        ? Math.round(Number(tr.nbCollaborateursFormes) / Number(wf.totalHeadcount) * 100) : null;
+      contexts.wf_formation =
+        `Formation & Développement — Collaborateurs formés : ${tr.nbCollaborateursFormes ?? "N/A"} ` +
+        `(${trainingRate != null ? `${trainingRate}%` : "N/A"} de l'effectif), ` +
+        `Heures de formation : ${tr.nbHeuresFormation ?? "N/A"}. ` +
+        `Évalue l'investissement dans le développement des compétences, compare aux bonnes pratiques sectorielles et formule des recommandations.`;
+    }
   }
 
   const donePlanSlots = planSlots.filter((s) => s.isDone);
