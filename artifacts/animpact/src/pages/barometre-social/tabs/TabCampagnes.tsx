@@ -313,29 +313,33 @@ export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, 
                       </DialogContent>
                     </Dialog>
 
-                    {campaign.status === "draft" && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" title="Supprimer">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Supprimer cette campagne ?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Cette action est irréversible. Seules les campagnes en brouillon peuvent être supprimées.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteCampaign({ orgId, id: campaign.id })}>
-                              Supprimer
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" title="Supprimer la campagne">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer cette campagne ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {campaign.nbRepondants > 0
+                              ? `Cette campagne contient ${campaign.nbRepondants} réponse${campaign.nbRepondants > 1 ? "s" : ""}. Toutes les données seront définitivement perdues.`
+                              : "Cette action est irréversible."
+                            }
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => deleteCampaign({ orgId, id: campaign.id })}
+                          >
+                            Supprimer définitivement
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardHeader>

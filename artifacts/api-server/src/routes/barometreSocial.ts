@@ -202,10 +202,6 @@ router.delete(
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (campaign.status !== "draft") {
-      res.status(403).json({ error: "Seules les campagnes en brouillon peuvent être supprimées" });
-      return;
-    }
     await db.delete(barometreCampaignsTable).where(eq(barometreCampaignsTable.id, id));
     res.status(204).end();
   },
