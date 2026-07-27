@@ -89,6 +89,7 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
     mutation: {
       onSuccess: (saved) => {
         setSavedAt(saved.updatedAt);
+        queryClient.invalidateQueries({ queryKey: getGetEmploymentWorkforceQueryKey(orgId) });
         queryClient.invalidateQueries({ queryKey: getGetEmploymentResultsQueryKey(orgId) });
       },
     },

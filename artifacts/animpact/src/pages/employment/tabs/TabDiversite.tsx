@@ -54,6 +54,7 @@ export function TabDiversite({ orgId, readOnly }: Props) {
     mutation: {
       onSuccess: (saved) => {
         setSavedAt(saved.updatedAt);
+        queryClient.invalidateQueries({ queryKey: getGetEmploymentDiversityQueryKey(orgId) });
         queryClient.invalidateQueries({ queryKey: getGetEmploymentResultsQueryKey(orgId) });
       },
     },

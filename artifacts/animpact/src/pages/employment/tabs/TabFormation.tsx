@@ -53,6 +53,7 @@ export function TabFormation({ orgId, readOnly }: Props) {
     mutation: {
       onSuccess: (saved) => {
         setSavedAt(saved.updatedAt);
+        queryClient.invalidateQueries({ queryKey: getGetEmploymentTrainingQueryKey(orgId) });
         queryClient.invalidateQueries({ queryKey: getGetEmploymentResultsQueryKey(orgId) });
       },
     },
