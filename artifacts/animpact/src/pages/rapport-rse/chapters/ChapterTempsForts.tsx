@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { ChapterWrapper, SectionTitle, ExplainerText, R } from "./_shared";
 import type { ReportData } from "../useReportData";
 
@@ -100,7 +101,7 @@ export function ChapterTempsForts({ data, chapterNum }: { data: ReportData; chap
                     )}
 
                     {/* Photos */}
-                    {photos.length > 0 && (
+                    {photos.length > 0 ? (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
                         {photos.filter(Boolean).map((url, pi) => (
                           <img
@@ -116,6 +117,18 @@ export function ChapterTempsForts({ data, chapterNum }: { data: ReportData; chap
                           />
                         ))}
                       </div>
+                    ) : (
+                      <Link to="/rapport-rse">
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          fontSize: 11, color: "#9CA3AF", fontFamily: "sans-serif",
+                          border: "1px dashed #D1D5DB", borderRadius: 6,
+                          padding: "4px 10px", marginTop: 4, cursor: "pointer",
+                          textDecoration: "none",
+                        }}>
+                          📷 Ajouter une photo — éditer dans Rapport RSE
+                        </span>
+                      </Link>
                     )}
                   </div>
                 </div>

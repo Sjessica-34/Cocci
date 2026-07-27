@@ -31,9 +31,24 @@ function NrSection({ nrRaw, ai }: {
     return (
       <>
         <SectionTitle>Numérique responsable — Diagnostic</SectionTitle>
-        <p style={{ fontSize: 13, color: "#94A3B8", fontStyle: "italic", fontFamily: "sans-serif" }}>
-          Le diagnostic Numérique Responsable n'a pas encore été complété.
-        </p>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "12px 16px", borderRadius: 8,
+          border: "1px dashed #D1D5DB", backgroundColor: "#F9FAFB",
+        }}>
+          <span style={{ fontSize: 20 }}>💻</span>
+          <div>
+            <p style={{ fontSize: 13, color: "#6B7280", margin: "0 0 4px", fontFamily: "sans-serif" }}>
+              Le diagnostic Numérique Responsable n'a pas encore été complété.
+            </p>
+            <a
+              href="/numerique-responsable"
+              style={{ fontSize: 12, color: "#1F6B3A", fontWeight: 600, fontFamily: "sans-serif", textDecoration: "underline" }}
+            >
+              → Compléter le calculateur NR
+            </a>
+          </div>
+        </div>
       </>
     );
   }
