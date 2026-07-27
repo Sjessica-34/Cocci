@@ -79,7 +79,7 @@ export function useReportData(orgId: number | null) {
     stakeholders:  (stakeholders.data ?? []) as unknown[],
     labels:        (labels.data?.items ?? []) as unknown[],
     actions:       (actions.data ?? []) as unknown[],
-    impactScore:   (impactScore.data ?? null) as Record<string, unknown> | null,
+    impactScore:   ((impactScore.data as any)?.result ?? null) as Record<string, unknown> | null,
     workforce:     ((workforce.data as any)?.data ?? null) as Record<string, unknown> | null,
     diversity:     ((diversity.data as any)?.data ?? null) as Record<string, unknown> | null,
     training:      ((training.data as any)?.data ?? null) as Record<string, unknown> | null,
