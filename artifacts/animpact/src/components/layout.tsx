@@ -41,6 +41,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { useAdminViewOrg, setAdminViewOrg } from "@/hooks/useAdminView";
 import { ExerciseSelector } from "@/components/ExerciseSelector";
 import { GroupSwitcher } from "@/components/GroupSwitcher";
 import { ClosedExerciseBanner } from "@/components/ClosedExerciseBanner";
@@ -99,7 +100,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useClerk();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   const { currentOrgId } = useCurrentOrganization();
-  const { data: allOrgs = [] } = useListOrganizations();
+  const adminViewOrgId = useAdminViewOrg();
+  const { data: allOrgs = [] } = useListOrganizations(
+    adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
+  );
   const rootOrg = allOrgs.find((o) => !o.parentId) ?? null;
   // Exercise selector always shows the root org's exercises so subsidiaries
   // (which have no exercises of their own) can still see and select an exercise.
@@ -283,6 +287,22 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0 max-w-full">
+        {/* Admin-view banner */}
+        {adminViewOrgId && rootOrg && (
+          <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 shrink-0">
+            <span>
+              👁 Vue admin — vous consultez l'espace de <strong>{rootOrg.name}</strong>
+            </span>
+            <Link href="/admin">
+              <button
+                onClick={() => setAdminViewOrg(null)}
+                className="ml-4 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+              >
+                Retourner à l'administration
+              </button>
+            </Link>
+          </div>
+        )}
         <div
           className="flex-1 p-4 md:p-8 w-full max-w-6xl mx-auto"
           // @ts-expect-error -- `inert` is a valid HTML boolean attribute (React 19+) not yet in JSX types.

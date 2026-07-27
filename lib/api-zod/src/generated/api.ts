@@ -56,9 +56,13 @@ export const UpdateMeResponse = zod.object({
 
 
 /**
- * Returns all organizations the authenticated user belongs to
+ * Returns all organizations the authenticated user belongs to. Superadmins can pass viewAs=<orgId> to impersonate a client org.
  * @summary List organizations for current user
  */
+export const ListOrganizationsQueryParams = zod.object({
+  "viewAs": zod.coerce.number().optional().describe('Superadmin only — return this org and its subsidiaries instead of the caller\'s own orgs.')
+})
+
 export const listOrganizationsResponseTypeDefault = `entreprise`;
 export const listOrganizationsResponseExerciseOpeningMonthMax = 12;
 

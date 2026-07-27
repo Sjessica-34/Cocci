@@ -28,14 +28,17 @@ export async function requireOrgMembership(req: Request, res: Response, next: Ne
     return;
   }
   const user = await getOrCreateUser(req.clerkUserId!);
-  const [membership] = await db
-    .select({ id: membersTable.id })
-    .from(membersTable)
-    .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id)))
-    .limit(1);
-  if (!membership) {
-    res.status(403).json({ error: "Forbidden" });
-    return;
+  // Superadmins can access any organization without being a member.
+  if (!user.isSuperAdmin) {
+    const [membership] = await db
+      .select({ id: membersTable.id })
+      .from(membersTable)
+      .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id)))
+      .limit(1);
+    if (!membership) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
   }
   req.orgId = orgId;
   req.userId = user.id;

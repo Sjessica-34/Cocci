@@ -39,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { useAdminViewOrg, setAdminViewOrg } from "@/hooks/useAdminView";
 import { cn } from "@/lib/utils";
 
 // ── Group mode dialog ──────────────────────────────────────────────────────
@@ -216,7 +217,10 @@ function AddSubsidiaryDialog({
 
 export function GroupSwitcher() {
   const { currentOrgId } = useCurrentOrganization();
-  const { data: orgs = [], isLoading } = useListOrganizations();
+  const adminViewOrgId = useAdminViewOrg();
+  const { data: orgs = [], isLoading } = useListOrganizations(
+    adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
+  );
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
   const [addSubOpen, setAddSubOpen] = useState(false);
@@ -226,12 +230,13 @@ export function GroupSwitcher() {
   const rootOrg = orgs.find((o) => !o.parentId) ?? null;
   const subsidiaries = orgs.filter((o) => rootOrg && o.parentId === rootOrg.id);
 
-  // Auto-initialize currentOrgId when app loads
+  // Auto-initialize currentOrgId when app loads or when admin view org changes.
   useEffect(() => {
-    if (!currentOrgId && rootOrg) {
+    if (rootOrg && (adminViewOrgId ? currentOrgId !== rootOrg.id : !currentOrgId)) {
       setCurrentOrg(rootOrg.id);
     }
-  }, [currentOrgId, rootOrg]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootOrg?.id, adminViewOrgId]);
 
   // Show group mode dialog when group has subsidiaries but no mode set
   const needsGroupMode =

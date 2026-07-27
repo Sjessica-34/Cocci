@@ -20,6 +20,32 @@ const router: IRouter = Router();
 router.get("/organizations", requireAuth, async (req, res): Promise<void> => {
   const user = await getOrCreateUser(req.clerkUserId!);
 
+  // Superadmin impersonation: ?viewAs=<orgId> returns the target org's full
+  // hierarchy (root + subsidiaries) so the admin can browse as that client.
+  const viewAsRaw = req.query.viewAs;
+  if (viewAsRaw && user.isSuperAdmin) {
+    const rootId = Number(viewAsRaw);
+    if (!Number.isFinite(rootId) || rootId <= 0) {
+      res.status(400).json({ error: "Invalid viewAs org id" });
+      return;
+    }
+    // Return the target root org + all its subsidiaries so the GroupSwitcher
+    // works correctly in the admin-view client context.
+    const rows = await db
+      .select()
+      .from(organizationsTable)
+      .where(
+        eq(organizationsTable.id, rootId),
+      );
+    // Also fetch subsidiaries.
+    const children = await db
+      .select()
+      .from(organizationsTable)
+      .where(eq(organizationsTable.parentId, rootId));
+    res.json(ListOrganizationsResponse.parse([...rows, ...children]));
+    return;
+  }
+
   const memberships = await db
     .select({ organization: organizationsTable })
     .from(membersTable)

@@ -96,7 +96,14 @@ paths:
       operationId: listOrganizations
       tags: [organizations]
       summary: List organizations for current user
-      description: Returns all organizations the authenticated user belongs to
+      description: Returns all organizations the authenticated user belongs to. Superadmins can pass viewAs=<orgId> to impersonate a client org.
+      parameters:
+        - name: viewAs
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Superadmin only — return this org and its subsidiaries instead of the caller's own orgs.
       responses:
         "200":
           description: List of organizations

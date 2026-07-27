@@ -24,6 +24,7 @@ import {
   getListAdminOrganizationsQueryKey,
 } from "@workspace/api-client-react";
 import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { setAdminViewOrg } from "@/hooks/useAdminView";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -180,13 +181,22 @@ function EspaceClientPanel() {
           </p>
         )}
 
-        {/* Link to client view */}
-        <Link href="/dashboard">
-          <button className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] text-sidebar-foreground/50 hover:bg-white/8 hover:text-sidebar-foreground transition-colors">
-            <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
-            Voir l'espace client
-          </button>
-        </Link>
+        {/* Link to client view — impersonate the selected org if one is chosen */}
+        <button
+          onClick={() => {
+            if (currentOrg) {
+              setAdminViewOrg(currentOrg.id);
+              setCurrentOrg(currentOrg.id);
+            } else {
+              setAdminViewOrg(null);
+            }
+            navigate("/dashboard");
+          }}
+          className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] text-sidebar-foreground/50 hover:bg-white/8 hover:text-sidebar-foreground transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+          Voir l'espace client{currentOrg ? ` — ${currentOrg.name}` : ""}
+        </button>
       </div>
     </div>
   );

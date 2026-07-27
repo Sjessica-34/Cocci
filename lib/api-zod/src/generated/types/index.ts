@@ -125,6 +125,7 @@ export * from './issuesResponse';
 export * from './label';
 export * from './labelInput';
 export * from './labelListResponse';
+export * from './listOrganizationsParams';
 export * from './member';
 export * from './memberInvite';
 export * from './memberInviteRole';

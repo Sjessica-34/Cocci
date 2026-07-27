@@ -31,25 +31,28 @@ export function requireMembership(allowedRoles: MemberRole[]) {
     const clerkUserId = req.clerkUserId!;
     const user = await getOrCreateUser(clerkUserId);
 
-    const [membership] = await db
-      .select()
-      .from(membersTable)
-      .where(
-        and(
-          eq(membersTable.userId, user.id),
-          eq(membersTable.organizationId, orgId),
-          eq(membersTable.status, "active"),
-        ),
-      )
-      .limit(1);
+    // Superadmins bypass the membership check entirely.
+    if (!user.isSuperAdmin) {
+      const [membership] = await db
+        .select()
+        .from(membersTable)
+        .where(
+          and(
+            eq(membersTable.userId, user.id),
+            eq(membersTable.organizationId, orgId),
+            eq(membersTable.status, "active"),
+          ),
+        )
+        .limit(1);
 
-    if (!membership || !allowedRoles.includes(membership.role as MemberRole)) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
+      if (!membership || !allowedRoles.includes(membership.role as MemberRole)) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+      req.membership = membership;
     }
 
     req.currentUser = user;
-    req.membership = membership;
     next();
   };
 }

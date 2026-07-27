@@ -2368,3 +2368,10 @@ export interface ReportAiSectionResponse {
   content: string;
 }
 
+export type ListOrganizationsParams = {
+/**
+ * Superadmin only — return this org and its subsidiaries instead of the caller's own orgs.
+ */
+viewAs?: number;
+};
+

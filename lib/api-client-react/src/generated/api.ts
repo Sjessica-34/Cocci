@@ -92,6 +92,7 @@ import type {
   Label,
   LabelInput,
   LabelListResponse,
+  ListOrganizationsParams,
   Member,
   MemberInvite,
   MemberUpdate,
@@ -381,21 +382,28 @@ export const useUpdateMe = <TError = ErrorType<void>,
       return useMutation(getUpdateMeMutationOptions(options));
     }
 
-export const getListOrganizationsUrl = () => {
+export const getListOrganizationsUrl = (params?: ListOrganizationsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/organizations`
+  return stringifiedParams.length > 0 ? `/api/organizations?${stringifiedParams}` : `/api/organizations`
 }
 
 /**
- * Returns all organizations the authenticated user belongs to
+ * Returns all organizations the authenticated user belongs to. Superadmins can pass viewAs=<orgId> to impersonate a client org.
  * @summary List organizations for current user
  */
-export const listOrganizations = async ( options?: RequestInit): Promise<Organization[]> => {
+export const listOrganizations = async (params?: ListOrganizationsParams, options?: RequestInit): Promise<Organization[]> => {
 
-  return customFetch<Organization[]>(getListOrganizationsUrl(),
+  return customFetch<Organization[]>(getListOrganizationsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -408,23 +416,23 @@ export const listOrganizations = async ( options?: RequestInit): Promise<Organiz
 
 
 
-export const getListOrganizationsQueryKey = () => {
+export const getListOrganizationsQueryKey = (params?: ListOrganizationsParams,) => {
     return [
-    `/api/organizations`
+    `/api/organizations`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListOrganizationsQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListOrganizationsQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<void>>(params?: ListOrganizationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListOrganizationsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizations>>> = ({ signal }) => listOrganizations({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizations>>> = ({ signal }) => listOrganizations(params, { signal, ...requestOptions });
 
 
 
@@ -442,11 +450,11 @@ export type ListOrganizationsQueryError = ErrorType<void>
  */
 
 export function useListOrganizations<TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListOrganizationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListOrganizationsQueryOptions(options)
+  const queryOptions = getListOrganizationsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
