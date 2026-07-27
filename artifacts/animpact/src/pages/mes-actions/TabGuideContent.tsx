@@ -74,24 +74,65 @@ export function TabGuideContent() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Comment utiliser ce module ?</h2>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
-          Parcourez les 232 actions du référentiel dans l'onglet <strong className="text-foreground">Mes actions</strong>.
-          Cochez chaque action réalisée, puis documentez-la avec une date, un commentaire et un justificatif.
-          Retrouvez un récapitulatif de toutes vos actions réalisées dans l'onglet <strong className="text-foreground">Mon plan d'action</strong>.
-          Vos justificatifs sont automatiquement classés dans <strong className="text-foreground">Mes documents → Mes actions RSE</strong>.
+          Ce module est composé de deux espaces complémentaires.
         </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+          <Card className="border">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <span>📍</span> Feuille de route
+              </p>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                La Feuille de route regroupe les objectifs stratégiques de votre démarche RSE.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+                Elle peut être construite par l'IA ou complétée manuellement afin de définir les projets prioritaires de votre organisation, leur échéance, leur responsable et leur niveau d'avancement.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+                Elle constitue votre feuille de route de pilotage et sera automatiquement valorisée dans votre rapport RSE.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <span>📚</span> Catalogue d'actions
+              </p>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Le Catalogue d'actions met à votre disposition un référentiel de plusieurs centaines d'actions RSE concrètes.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+                Parcourez le catalogue, sélectionnez les actions que vous réalisez puis documentez-les en ajoutant une date, un commentaire et, si nécessaire, un justificatif.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+                Ces éléments permettent de démontrer la mise en œuvre de votre démarche RSE et d'enrichir automatiquement votre rapport. Vos justificatifs sont automatiquement classés dans <strong className="text-foreground">Mes documents &gt; Mes actions RSE</strong>.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card className="border mt-3">
-          <CardContent className="px-4 py-4">
+          <CardHeader className="pb-1 pt-4 px-4">
+            <p className="text-sm font-semibold">Quelques conseils</p>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
             <ul className="space-y-2 text-sm text-muted-foreground">
               {[
-                ["Commencez par les actions rapides", "elles génèrent des résultats immédiats et mobilisent les équipes."],
-                ["Planifiez 2-3 projets", "par exercice — des actions plus profondes avec un impact durable."],
-                ["Visez 1 engagement structurel", "tous les 2 exercices pour ancrer la RSE dans la stratégie."],
-                ["Documentez vos réalisations", "les justificatifs et commentaires enrichissent votre rapport RSE."],
-                ["Équilibrez les piliers E, S et G", "pour une démarche RSE globale et crédible."],
+                ["Commencez par mettre en œuvre des actions simples", "afin d'obtenir des résultats rapidement."],
+                ["Construisez progressivement votre Feuille de route", "autour de quelques projets structurants."],
+                ["Documentez vos réalisations", "avec des commentaires et des justificatifs afin de conserver des preuves."],
+                ["Répartissez vos actions entre les piliers Environnement, Social et Gouvernance", "afin de construire une démarche équilibrée."],
+                ["Mettez régulièrement à jour vos actions", "pour faciliter le suivi de votre démarche et la génération de votre rapport RSE."],
               ].map(([title, rest], i) => (
                 <li key={i} className="flex items-start gap-2">
                   <span className="font-semibold text-foreground shrink-0">{i + 1}.</span>
-                  <span><strong className="text-foreground">{title}</strong> — {rest}</span>
+                  <span><strong className="text-foreground">{title}</strong> {rest}</span>
                 </li>
               ))}
             </ul>

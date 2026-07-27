@@ -34,11 +34,11 @@ export function MesActions() {
             </TabsTrigger>
             <TabsTrigger value="plan" className="gap-2 text-sm">
               <ClipboardCheck className="h-4 w-4" />
-              Mon plan d'action
+              Feuille de route
             </TabsTrigger>
             <TabsTrigger value="actions" className="gap-2 text-sm">
               <ListChecks className="h-4 w-4" />
-              Mes actions
+              Catalogue d'actions
             </TabsTrigger>
             <TabsTrigger value="realisations" className="gap-2 text-sm">
               <Trophy className="h-4 w-4" />

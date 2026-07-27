@@ -1,0 +1,66 @@
+Le module fonctionne bien. Je ne souhaite PAS modifier le fonctionnement du back-end, la base de données ni la logique métier.
+
+Je souhaite uniquement effectuer quelques modifications de l'interface et du vocabulaire.
+
+## 1. Renommage des onglets
+
+Je souhaite renommer :
+
+- "Plan d'action" → **Feuille de route**
+- "Mes actions" → **Catalogue d'actions**
+
+L'objectif est de mieux distinguer la stratégie de l'organisation des actions proposées.
+
+La Feuille de route correspond aux objectifs stratégiques de l'entreprise.
+
+Le Catalogue d'actions correspond à une bibliothèque d'actions RSE dans laquelle l'utilisateur peut sélectionner les actions qu'il met réellement en œuvre et les documenter.
+
+## 2. Guide
+
+Je souhaite réécrire complètement le guide afin qu'il soit cohérent avec cette nouvelle terminologie.
+
+### Comment utiliser ce module ?
+
+Ce module est composé de deux espaces complémentaires.
+
+### 📍 Feuille de route
+
+La Feuille de route regroupe les objectifs stratégiques de votre démarche RSE.
+
+Elle peut être construite par l'IA ou complétée manuellement afin de définir les projets prioritaires de votre organisation, leur échéance, leur responsable et leur niveau d'avancement.
+
+Elle constitue votre feuille de route de pilotage et sera automatiquement valorisée dans votre rapport RSE.
+
+### 📚 Catalogue d'actions
+
+Le Catalogue d'actions met à votre disposition un référentiel de plusieurs centaines d'actions RSE concrètes.
+
+Parcourez le catalogue, sélectionnez les actions que vous réalisez puis documentez-les en ajoutant une date, un commentaire et, si nécessaire, un justificatif.
+
+Ces éléments permettent de démontrer la mise en œuvre de votre démarche RSE et d'enrichir automatiquement votre rapport.
+
+Vos justificatifs sont automatiquement classés dans **Mes documents > Mes actions RSE**.
+
+## Quelques conseils
+
+1. Commencez par mettre en œuvre des actions simples afin d'obtenir des résultats rapidement.
+
+2. Construisez progressivement votre Feuille de route autour de quelques projets structurants.
+
+3. Documentez vos réalisations avec des commentaires et des justificatifs afin de conserver des preuves.
+
+4. Répartissez vos actions entre les piliers Environnement, Social et Gouvernance afin de construire une démarche équilibrée.
+
+5. Mettez régulièrement à jour vos actions pour faciliter le suivi de votre démarche et la génération de votre rapport RSE.
+
+## Important
+
+Je ne souhaite PAS modifier le fonctionnement actuel du module.
+
+Je souhaite uniquement :
+
+- renommer les deux onglets ;
+- mettre à jour les textes du guide ;
+- adapter les libellés de l'interface lorsque cela est nécessaire.
+
+Aucune modification du back-end, des traitements, de la base de données ou de la logique métier ne doit être réalisée.
