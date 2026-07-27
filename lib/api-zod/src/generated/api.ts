@@ -588,7 +588,8 @@ export const CreateAdminResourceBody = zod.object({
   "category": zod.string().optional(),
   "documentType": zod.string().optional(),
   "imageUrl": zod.string().optional(),
-  "fileUrl": zod.string().optional()
+  "fileUrl": zod.string().optional(),
+  "isPublished": zod.boolean().nullish()
 })
 
 export const CreateAdminResourceResponse = zod.object({
@@ -671,7 +672,8 @@ export const CreateAdminGlobalResourceBody = zod.object({
   "category": zod.string().optional(),
   "documentType": zod.string().optional(),
   "imageUrl": zod.string().optional(),
-  "fileUrl": zod.string().optional()
+  "fileUrl": zod.string().optional(),
+  "isPublished": zod.boolean().nullish()
 })
 
 export const CreateAdminGlobalResourceResponse = zod.object({
@@ -707,7 +709,8 @@ export const UpdateAdminResourceBody = zod.object({
   "category": zod.string().optional(),
   "documentType": zod.string().optional(),
   "imageUrl": zod.string().optional(),
-  "fileUrl": zod.string().optional()
+  "fileUrl": zod.string().optional(),
+  "isPublished": zod.boolean().nullish()
 })
 
 export const UpdateAdminResourceResponse = zod.object({

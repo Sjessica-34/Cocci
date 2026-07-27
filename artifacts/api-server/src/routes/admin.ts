@@ -770,14 +770,19 @@ router.get("/admin/global-resources", async (req, res): Promise<void> => {
 
 // ─── POST /admin/global-resources ────────────────────────────────────────────
 router.post("/admin/global-resources", async (req, res): Promise<void> => {
-  const { title, description, category, documentType, imageUrl, fileUrl } = req.body;
+  const { title, description, category, documentType, imageUrl, fileUrl, isPublished } = req.body;
   if (!title || typeof title !== "string") {
     res.status(400).json({ error: "title is required" });
     return;
   }
   const [created] = await db
     .insert(resourcesTable)
-    .values({ isGlobal: true, organizationId: null, title, description, category, documentType, imageUrl, fileUrl })
+    .values({
+      isGlobal: true,
+      organizationId: null,
+      title, description, category, documentType, imageUrl, fileUrl,
+      isPublished: isPublished !== false, // publié par défaut
+    })
     .returning();
   res.status(201).json(created);
 });

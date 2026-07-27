@@ -120,6 +120,7 @@ function ResourceDialog({ open, onClose, resource }: ResourceDialogProps) {
     documentType: resource?.documentType ?? "",
     fileUrl: resource?.fileUrl ?? "",
     imageUrl: resource?.imageUrl ?? "",
+    isPublished: resource?.isPublished ?? true,
   });
 
   // Reset form when dialog opens with different resource
@@ -133,6 +134,7 @@ function ResourceDialog({ open, onClose, resource }: ResourceDialogProps) {
       documentType: resource?.documentType ?? "",
       fileUrl: resource?.fileUrl ?? "",
       imageUrl: resource?.imageUrl ?? "",
+      isPublished: resource?.isPublished ?? true,
     });
   }
 
@@ -147,6 +149,7 @@ function ResourceDialog({ open, onClose, resource }: ResourceDialogProps) {
       documentType: form.documentType || undefined,
       fileUrl: form.fileUrl || undefined,
       imageUrl: form.imageUrl || undefined,
+      isPublished: form.isPublished,
     };
 
     if (isEdit && resource) {
@@ -273,9 +276,22 @@ function ResourceDialog({ open, onClose, resource }: ResourceDialogProps) {
             />
           </div>
 
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isPublished"
+              checked={form.isPublished}
+              onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))}
+              className="h-4 w-4 rounded border-input accent-primary"
+            />
+            <Label htmlFor="isPublished" className="cursor-pointer text-sm font-normal">
+              Visible par les clients dès la création
+            </Label>
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-            <Button type="submit" disabled={isPending || !form.title.trim()}>
+            <Button type="submit" disabled={isPending || isUploading || !form.title.trim()}>
               {isPending ? "Enregistrement..." : isEdit ? "Enregistrer" : "Créer la ressource"}
             </Button>
           </DialogFooter>

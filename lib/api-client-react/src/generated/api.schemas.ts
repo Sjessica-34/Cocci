@@ -610,6 +610,7 @@ export interface ResourceInput {
   documentType?: string;
   imageUrl?: string;
   fileUrl?: string;
+  isPublished?: boolean | null;
 }
 
 export interface ResourcePublishUpdate {
