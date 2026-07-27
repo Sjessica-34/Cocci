@@ -101,7 +101,7 @@ function EspaceClientPanel() {
     setCurrentOrg(id);
     setDropdownOpen(false);
     setSearch("");
-    navigate("/dashboard");
+    navigate(`/admin/organizations/${id}`);
   }
 
   return (
@@ -153,7 +153,7 @@ function EspaceClientPanel() {
               Entreprise sélectionnée
             </p>
             <div className="flex items-center gap-1">
-              <Link href="/dashboard" className="flex-1">
+              <Link href={`/admin/organizations/${currentOrg.id}`} className="flex-1">
                 <button className="w-full flex items-center gap-2 bg-sidebar-accent/60 hover:bg-sidebar-accent rounded-md px-2 py-1.5 transition-colors">
                   <div className="h-6 w-6 rounded bg-sidebar-primary flex items-center justify-center text-[10px] font-bold text-sidebar-primary-foreground shrink-0">
                     {orgInitials(currentOrg.name)}
