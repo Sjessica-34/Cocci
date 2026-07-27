@@ -3,10 +3,14 @@ import { useListOrganizations } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardBody } from "@/components/dashboard/DashboardBody";
+import { useAdminViewOrg } from "@/hooks/useAdminView";
 
 export function Dashboard() {
   const { user }  = useUser();
-  const { data: orgs, isLoading } = useListOrganizations();
+  const adminViewOrgId = useAdminViewOrg();
+  const { data: orgs, isLoading } = useListOrganizations(
+    adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
+  );
 
   const greeting = user?.firstName ? `Bonjour, ${user.firstName} 👋` : "Bienvenue 👋";
   const rootOrg  = orgs?.find(o => !o.parentId) ?? null;
