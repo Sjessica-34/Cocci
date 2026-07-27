@@ -11,6 +11,8 @@ import { ReportEditProvider, useReportEdit } from "./ReportEditContext";
 
 // Chapitres
 import { ChapterCover }              from "./chapters/ChapterCover";
+import { ChapterIntroRSE }           from "./chapters/ChapterIntroRSE";
+import { ChapterChiffresCles }       from "./chapters/ChapterChiffresCles";
 import { ChapterEditorial }          from "./chapters/ChapterEditorial";
 import { ChapterQuiSommesNous }      from "./chapters/ChapterQuiSommesNous";
 import { ChapterDemarcheRSE }        from "./chapters/ChapterDemarcheRSE";
@@ -121,6 +123,7 @@ function TableOfContents({
   let n = 1;
   const chapters = [
     { num: n++, title: "Éditorial" },
+    // (L'intro RSE est une page non numérotée avant l'éditorial)
     { num: n++, title: "Qui sommes-nous ?" },
     { num: n++, title: "Notre démarche RSE" },
     { num: n++, title: "Agir pour la planète" },
@@ -132,6 +135,7 @@ function TableOfContents({
     { num: n++, title: "Nos labels et engagements" },
     ...(hasCaptation ? [{ num: n++, title: "Notre captation carbone" }] : []),
     ...(hasTempsForts ? [{ num: n++, title: "Les temps forts de l'année" }] : []),
+    { num: n++, title: "Les 10 chiffres clés" },
     { num: n++, title: "Perspectives" },
     { num: n++, title: "Annexes" },
     { num: n++, title: "Notes complémentaires" },
@@ -213,6 +217,7 @@ function ReportContent({ orgId }: { orgId: number | null }) {
   const labels        = ++n;
   const captNum       = hasCaptation  ? ++n : null;
   const tempsNum      = hasTempsForts ? ++n : null;
+  const chiffresNum   = ++n;
   const perspNum      = ++n;
   const annexesNum    = ++n;
   const notesNum      = ++n;
@@ -224,6 +229,7 @@ function ReportContent({ orgId }: { orgId: number | null }) {
       <ChapterCover data={data} year={YEAR} />
       <TableOfContents hasCaptation={hasCaptation} hasTempsForts={hasTempsForts} hasAchats={hasAchats} />
 
+      <ChapterIntroRSE />
       <ChapterEditorial data={data} />
       <ChapterQuiSommesNous data={data} />
       <ChapterDemarcheRSE data={data} ai={ai} />
@@ -242,6 +248,7 @@ function ReportContent({ orgId }: { orgId: number | null }) {
       {hasCaptation && captNum !== null && <ChapterCaptation data={data} ai={ai} />}
       {hasTempsForts && tempsNum !== null && <ChapterTempsForts data={data} chapterNum={tempsNum} />}
 
+      <ChapterChiffresCles data={data} chapterNum={chiffresNum} />
       <ChapterPerspectives data={data} chapterNum={perspNum} />
       <ChapterAnnexes data={data} chapterNum={annexesNum} />
       <ChapterNotesLibres chapterNum={notesNum} />
