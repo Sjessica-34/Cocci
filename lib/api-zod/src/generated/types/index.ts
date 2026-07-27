@@ -179,5 +179,7 @@ export * from './superIssue';
 export * from './supplier';
 export * from './supplierInput';
 export * from './supplierListResponse';
+export * from './uploadUrlRequest';
+export * from './uploadUrlResponse';
 export * from './user';
 export * from './userUpdate';

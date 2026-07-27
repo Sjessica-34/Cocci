@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useUpload } from "@workspace/object-storage-web";
 import { useParams, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "./layout";
@@ -658,6 +659,15 @@ function ResourceDialog({ orgId, resource, open, onClose }: { orgId: number; res
   const isEditing = !!resource;
   const isPending = createResource.isPending || updateResource.isPending;
 
+  const { uploadFile, isUploading, progress } = useUpload({
+    onSuccess: (res: { objectPath: string }) => {
+      const url = `/api/storage${res.objectPath}`;
+      setForm((f: any) => ({ ...f, fileUrl: url }));
+      toast({ title: "Fichier téléversé." });
+    },
+    onError: () => toast({ title: "Échec du téléversement.", variant: "destructive" }),
+  });
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim()) return;
@@ -691,11 +701,43 @@ function ResourceDialog({ orgId, resource, open, onClose }: { orgId: number; res
               </Select>
             </div>
           </div>
-          <div className="space-y-1.5"><Label>URL Fichier</Label><Input type="url" value={form.fileUrl} onChange={(e) => setForm((f: any) => ({...f, fileUrl: e.target.value}))} /></div>
-          <div className="space-y-1.5"><Label>URL Image</Label><Input type="url" value={form.imageUrl} onChange={(e) => setForm((f: any) => ({...f, imageUrl: e.target.value}))} /></div>
+          <div className="space-y-1.5">
+            <Label>Fichier</Label>
+            <div className="flex gap-2">
+              <Input
+                value={form.fileUrl}
+                onChange={(e) => setForm((f: any) => ({...f, fileUrl: e.target.value}))}
+                placeholder="Coller une URL ou téléverser ci-dessous"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 relative overflow-hidden"
+                disabled={isUploading}
+              >
+                {isUploading ? `${progress}%` : "Téléverser"}
+                <input
+                  type="file"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }}
+                  disabled={isUploading}
+                />
+              </Button>
+            </div>
+            {isUploading && (
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary transition-all rounded-full" style={{ width: `${progress}%` }} />
+              </div>
+            )}
+            {form.fileUrl && !isUploading && (
+              <p className="text-xs text-muted-foreground truncate">{form.fileUrl}</p>
+            )}
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>Annuler</Button>
-            <Button type="submit" disabled={isPending || !form.title.trim()}>{isPending ? "Enregistrement..." : "Enregistrer"}</Button>
+            <Button type="submit" disabled={isPending || isUploading || !form.title.trim()}>{isPending ? "Enregistrement..." : "Enregistrer"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

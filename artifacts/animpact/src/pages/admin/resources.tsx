@@ -56,7 +56,9 @@ import {
   Video,
   Link2,
   File,
+  Upload,
 } from "lucide-react";
+import { useUpload } from "@workspace/object-storage-web";
 import { cn } from "@/lib/utils";
 
 const DOC_TYPE_OPTIONS = [
@@ -168,6 +170,14 @@ function ResourceDialog({ open, onClose, resource }: ResourceDialogProps) {
 
   const isPending = createResource.isPending || updateResource.isPending;
 
+  const { uploadFile, isUploading, progress } = useUpload({
+    onSuccess: (res: { objectPath: string }) => {
+      setForm((f) => ({ ...f, fileUrl: `/api/storage${res.objectPath}` }));
+      toast({ title: "Fichier téléversé." });
+    },
+    onError: () => toast({ title: "Échec du téléversement.", variant: "destructive" }),
+  });
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg">
@@ -216,14 +226,40 @@ function ResourceDialog({ open, onClose, resource }: ResourceDialogProps) {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="fileUrl">URL du fichier ou lien</Label>
-            <Input
-              id="fileUrl"
-              value={form.fileUrl}
-              onChange={(e) => setForm((f) => ({ ...f, fileUrl: e.target.value }))}
-              placeholder="https://..."
-              type="url"
-            />
+            <Label htmlFor="fileUrl">Fichier</Label>
+            <div className="flex gap-2">
+              <Input
+                id="fileUrl"
+                value={form.fileUrl}
+                onChange={(e) => setForm((f) => ({ ...f, fileUrl: e.target.value }))}
+                placeholder="Coller une URL ou téléverser ci-dessous"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 relative overflow-hidden gap-1.5"
+                disabled={isUploading}
+              >
+                <Upload className="h-4 w-4" />
+                {isUploading ? `${progress}%` : "Téléverser"}
+                <input
+                  type="file"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }}
+                  disabled={isUploading}
+                />
+              </Button>
+            </div>
+            {isUploading && (
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary transition-all rounded-full" style={{ width: `${progress}%` }} />
+              </div>
+            )}
+            {form.fileUrl && !isUploading && (
+              <p className="text-xs text-muted-foreground truncate">{form.fileUrl}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">

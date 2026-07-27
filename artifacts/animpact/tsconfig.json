@@ -22,6 +22,9 @@
     },
     {
       "path": "../../lib/rse-referentials"
+    },
+    {
+      "path": "../../lib/object-storage-web"
     }
   ]
 }
