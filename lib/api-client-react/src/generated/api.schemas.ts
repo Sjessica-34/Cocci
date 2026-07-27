@@ -253,6 +253,98 @@ export interface AdminStats {
   organizationCount: number;
   userCount: number;
   memberCount: number;
+  activeCount: number;
+  trialCount: number;
+  suspendedCount: number;
+  groupCount: number;
+  subsidiaryCount: number;
+  alertCount: number;
+}
+
+export type AdminOrganizationType = typeof AdminOrganizationType[keyof typeof AdminOrganizationType];
+
+
+export const AdminOrganizationType = {
+  entreprise: 'entreprise',
+  groupe: 'groupe',
+} as const;
+
+export type AdminSubscriptionMode = typeof AdminSubscriptionMode[keyof typeof AdminSubscriptionMode];
+
+
+export const AdminSubscriptionMode = {
+  stripe: 'stripe',
+  invoice: 'invoice',
+  free: 'free',
+  demo: 'demo',
+} as const;
+
+export type AdminSubscriptionStatus = typeof AdminSubscriptionStatus[keyof typeof AdminSubscriptionStatus];
+
+
+export const AdminSubscriptionStatus = {
+  active: 'active',
+  trial: 'trial',
+  suspended: 'suspended',
+  expired: 'expired',
+} as const;
+
+export interface AdminSubscription {
+  id: number;
+  organizationId: number;
+  mode: AdminSubscriptionMode;
+  status: AdminSubscriptionStatus;
+  /** @nullable */
+  offerName?: string | null;
+  /** @nullable */
+  maxEmployees?: number | null;
+  /** @nullable */
+  maxUsers?: number | null;
+  /** @nullable */
+  startAt?: string | null;
+  /** @nullable */
+  endAt?: string | null;
+  /** @nullable */
+  trialStartAt?: string | null;
+  /** @nullable */
+  trialEndAt?: string | null;
+  autoRenew: boolean;
+  /** @nullable */
+  stripeSubscriptionId?: string | null;
+  /** @nullable */
+  stripeCustomerId?: string | null;
+  /** @nullable */
+  modules?: string[] | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  overrideMaxEmployees?: number | null;
+  /** @nullable */
+  overrideMaxUsers?: number | null;
+  /** @nullable */
+  overrideNote?: string | null;
+  /** @nullable */
+  overrideExpiresAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdminComplianceStatus = typeof AdminComplianceStatus[keyof typeof AdminComplianceStatus];
+
+
+export const AdminComplianceStatus = {
+  ok: 'ok',
+  overflow: 'overflow',
+  missing: 'missing',
+  na: 'na',
+} as const;
+
+export interface AdminCompliance {
+  status: AdminComplianceStatus;
+  /** @nullable */
+  message?: string | null;
+  /** @nullable */
+  overflow?: number | null;
 }
 
 export interface AdminOrganization {
@@ -261,13 +353,36 @@ export interface AdminOrganization {
   /** @nullable */
   legalName?: string | null;
   /** @nullable */
+  siren?: string | null;
+  /** @nullable */
   siret?: string | null;
+  /** @nullable */
+  address?: string | null;
   /** @nullable */
   sector?: string | null;
   /** @nullable */
   size?: string | null;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  /** @nullable */
+  employeeCount?: number | null;
+  type: AdminOrganizationType;
+  /** @nullable */
+  parentId?: number | null;
+  /** @nullable */
+  groupMode?: string | null;
   memberCount: number;
+  /** @nullable */
+  lastActivityAt?: string | null;
   createdAt: string;
+  subscription?: AdminSubscription | null;
+  compliance?: AdminCompliance;
+  /** Score 0–100 calculé automatiquement */
+  healthScore: number;
 }
 
 export interface AdminUser {
@@ -325,6 +440,140 @@ export interface AdminMember {
 
 export interface SuperAdminUpdate {
   isSuperAdmin: boolean;
+}
+
+export type AdminSubscriptionUpsertMode = typeof AdminSubscriptionUpsertMode[keyof typeof AdminSubscriptionUpsertMode];
+
+
+export const AdminSubscriptionUpsertMode = {
+  stripe: 'stripe',
+  invoice: 'invoice',
+  free: 'free',
+  demo: 'demo',
+} as const;
+
+export type AdminSubscriptionUpsertStatus = typeof AdminSubscriptionUpsertStatus[keyof typeof AdminSubscriptionUpsertStatus];
+
+
+export const AdminSubscriptionUpsertStatus = {
+  active: 'active',
+  trial: 'trial',
+  suspended: 'suspended',
+  expired: 'expired',
+} as const;
+
+export interface AdminSubscriptionUpsert {
+  mode?: AdminSubscriptionUpsertMode;
+  status?: AdminSubscriptionUpsertStatus;
+  /** @nullable */
+  offerName?: string | null;
+  /** @nullable */
+  maxEmployees?: number | null;
+  /** @nullable */
+  maxUsers?: number | null;
+  /** @nullable */
+  startAt?: string | null;
+  /** @nullable */
+  endAt?: string | null;
+  /** @nullable */
+  trialStartAt?: string | null;
+  /** @nullable */
+  trialEndAt?: string | null;
+  autoRenew?: boolean;
+  /** @nullable */
+  stripeSubscriptionId?: string | null;
+  /** @nullable */
+  stripeCustomerId?: string | null;
+  /** @nullable */
+  modules?: string[] | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  overrideMaxEmployees?: number | null;
+  /** @nullable */
+  overrideMaxUsers?: number | null;
+  /** @nullable */
+  overrideNote?: string | null;
+  /** @nullable */
+  overrideExpiresAt?: string | null;
+}
+
+export interface AdminOrgUpdate {
+  name?: string;
+  /** @nullable */
+  legalName?: string | null;
+  /** @nullable */
+  siren?: string | null;
+  /** @nullable */
+  siret?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  sector?: string | null;
+  /** @nullable */
+  size?: string | null;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  /** @nullable */
+  employeeCount?: number | null;
+}
+
+export type AdminAlertType = typeof AdminAlertType[keyof typeof AdminAlertType];
+
+
+export const AdminAlertType = {
+  employee_overflow: 'employee_overflow',
+  expired_subscription: 'expired_subscription',
+  no_admin: 'no_admin',
+  missing_data: 'missing_data',
+  trial_expiring: 'trial_expiring',
+  suspended: 'suspended',
+} as const;
+
+export type AdminAlertSeverity = typeof AdminAlertSeverity[keyof typeof AdminAlertSeverity];
+
+
+export const AdminAlertSeverity = {
+  critical: 'critical',
+  warning: 'warning',
+  info: 'info',
+} as const;
+
+export interface AdminAlert {
+  organizationId: number;
+  organizationName: string;
+  type: AdminAlertType;
+  severity: AdminAlertSeverity;
+  message: string;
+  /** @nullable */
+  detail?: string | null;
+}
+
+export type AdminMemberUpdateRole = typeof AdminMemberUpdateRole[keyof typeof AdminMemberUpdateRole];
+
+
+export const AdminMemberUpdateRole = {
+  owner: 'owner',
+  admin: 'admin',
+  member: 'member',
+  viewer: 'viewer',
+} as const;
+
+export type AdminMemberUpdateStatus = typeof AdminMemberUpdateStatus[keyof typeof AdminMemberUpdateStatus];
+
+
+export const AdminMemberUpdateStatus = {
+  active: 'active',
+  suspended: 'suspended',
+} as const;
+
+export interface AdminMemberUpdate {
+  role?: AdminMemberUpdateRole;
+  status?: AdminMemberUpdateStatus;
 }
 
 export interface Resource {

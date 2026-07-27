@@ -6,9 +6,16 @@ export const organizationsTable = pgTable("organizations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   legalName: text("legal_name"),
+  siren: text("siren"),
   siret: text("siret"),
+  address: text("address"),
   sector: text("sector"),
   size: text("size"), // TPE | PME | ETI | GE
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  employeeCount: integer("employee_count"),
+  lastActivityAt: timestamp("last_activity_at", { withTimezone: true }),
   logoUrl: text("logo_url"),
   /**
    * Entity type: 'entreprise' (default) or 'groupe'.

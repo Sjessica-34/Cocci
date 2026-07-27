@@ -10,4 +10,10 @@ export interface AdminStats {
   organizationCount: number;
   userCount: number;
   memberCount: number;
+  activeCount: number;
+  trialCount: number;
+  suspendedCount: number;
+  groupCount: number;
+  subsidiaryCount: number;
+  alertCount: number;
 }

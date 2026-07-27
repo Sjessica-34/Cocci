@@ -1,16 +1,19 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { AdminLayout } from "./layout";
 import {
   useGetAdminStats,
   getGetAdminStatsQueryKey,
   useListAdminOrganizations,
   getListAdminOrganizationsQueryKey,
+  useListAdminAlerts,
+  getListAdminAlertsQueryKey,
 } from "@workspace/api-client-react";
-import type { AdminOrganization } from "@workspace/api-client-react";
+import type { AdminOrganization, AdminAlert } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +29,12 @@ import {
   MoreHorizontal,
   CalendarDays,
   ChevronRight,
+  AlertTriangle,
+  ShieldAlert,
+  Clock,
+  Ban,
+  Activity,
+  Network
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,126 +58,115 @@ function orgInitials(name: string) {
     .toUpperCase();
 }
 
-const ORG_COLORS = [
-  "bg-teal-100 text-teal-700",
-  "bg-blue-100 text-blue-700",
-  "bg-violet-100 text-violet-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-orange-100 text-orange-700",
-  "bg-sky-100 text-sky-700",
-];
+function getScoreColor(score: number) {
+  if (score >= 80) return "bg-emerald-500 text-white border-emerald-600";
+  if (score >= 50) return "bg-amber-500 text-white border-amber-600";
+  return "bg-rose-500 text-white border-rose-600";
+}
 
-function orgColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = ((hash << 5) - hash) + name.charCodeAt(i);
-  return ORG_COLORS[Math.abs(hash) % ORG_COLORS.length];
+function getScoreTextColor(score: number) {
+  if (score >= 80) return "text-emerald-600";
+  if (score >= 50) return "text-amber-600";
+  return "text-rose-600";
+}
+
+function getSubBadge(status: string | undefined) {
+  switch (status) {
+    case 'active':
+      return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 text-[10px] px-1.5 py-0">Actif</Badge>;
+    case 'trial':
+      return <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 text-[10px] px-1.5 py-0">Essai</Badge>;
+    case 'suspended':
+      return <Badge className="bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 text-[10px] px-1.5 py-0">Suspendu</Badge>;
+    case 'expired':
+      return <Badge className="bg-zinc-100 text-zinc-700 border-zinc-200 hover:bg-zinc-200 text-[10px] px-1.5 py-0">Expiré</Badge>;
+    default:
+      return <Badge className="bg-zinc-100 text-zinc-700 border-zinc-200 hover:bg-zinc-200 text-[10px] px-1.5 py-0">N/A</Badge>;
+  }
+}
+
+function getComplianceBadge(compliance: AdminOrganization['compliance']) {
+  if (!compliance) return <span className="text-muted-foreground">—</span>;
+  
+  switch (compliance.status) {
+    case 'ok':
+      return <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50/50 text-[10px] font-medium h-5">Conforme</Badge>;
+    case 'overflow':
+      return <Badge variant="outline" className="border-rose-200 text-rose-700 bg-rose-50/50 text-[10px] font-medium h-5">Dépassement (+{compliance.overflow})</Badge>;
+    case 'missing':
+      return <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50/50 text-[10px] font-medium h-5">Données manquantes</Badge>;
+    case 'na':
+    default:
+      return <Badge variant="outline" className="border-border text-muted-foreground bg-muted/50 text-[10px] font-medium h-5">N/A</Badge>;
+  }
 }
 
 const KPI_CARDS = [
-  {
-    label: "Organisations",
-    description: "Entreprises actives sur la plateforme",
-    key: "organizationCount" as const,
-    icon: Building2,
-    bg: "bg-emerald-100",
-    text: "text-emerald-600",
-  },
-  {
-    label: "Utilisateurs",
-    description: "Utilisateurs inscrits",
-    key: "userCount" as const,
-    icon: Users,
-    bg: "bg-blue-100",
-    text: "text-blue-600",
-  },
-  {
-    label: "Sièges actifs",
-    description: "Sièges facturables actifs",
-    key: "memberCount" as const,
-    icon: UserCheck,
-    bg: "bg-amber-100",
-    text: "text-amber-600",
-  },
-  {
-    label: "Revenus",
-    description: "Revenus générés",
-    key: null,
-    icon: DollarSign,
-    bg: "bg-red-100",
-    text: "text-red-500",
-  },
+  { label: "Organisations", key: "organizationCount", icon: Building2, color: "text-blue-600", bg: "bg-blue-100/50" },
+  { label: "Actifs", key: "activeCount", icon: Activity, color: "text-emerald-600", bg: "bg-emerald-100/50" },
+  { label: "En essai", key: "trialCount", icon: Clock, color: "text-amber-600", bg: "bg-amber-100/50" },
+  { label: "Suspendus", key: "suspendedCount", icon: Ban, color: "text-rose-600", bg: "bg-rose-100/50" },
+  { label: "Groupes", key: "groupCount", icon: Network, color: "text-violet-600", bg: "bg-violet-100/50" },
+  { label: "Filiales", key: "subsidiaryCount", icon: Building2, color: "text-indigo-600", bg: "bg-indigo-100/50" },
+  { label: "Utilisateurs", key: "userCount", icon: Users, color: "text-sky-600", bg: "bg-sky-100/50" },
+  { label: "Alertes", key: "alertCount", icon: AlertTriangle, color: "text-orange-600", bg: "bg-orange-100/50" },
 ] as const;
 
-type StatKey = "organizationCount" | "userCount" | "memberCount";
-
-function StatValue({
-  statsLoading,
-  statKey,
-  stats,
-}: {
-  statsLoading: boolean;
-  statKey: StatKey | null;
-  stats: { organizationCount: number; userCount: number; memberCount: number } | undefined;
-}) {
-  if (!statKey) return <span className="text-3xl font-bold tracking-tight text-foreground">—</span>;
-  if (statsLoading) return <Skeleton className="h-9 w-16 mt-1" />;
-  return <span className="text-3xl font-bold tracking-tight text-foreground">{stats?.[statKey] ?? 0}</span>;
-}
-
 function OrgRow({ org, index }: { org: AdminOrganization; index: number }) {
-  const color = orgColor(org.name);
+  const score = org.healthScore ?? 0;
+  const [, navigate] = useLocation();
   return (
     <tr
       className={cn(
-        "group transition-colors hover:bg-muted/40",
+        "group transition-colors hover:bg-muted/40 cursor-pointer",
         index !== 0 && "border-t border-border",
       )}
+      onClick={() => navigate(`/admin/organizations/${org.id}`)}
     >
-      {/* Organisation */}
       <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0", color)}>
-            {orgInitials(org.name)}
+        <Link href={`/admin/organizations/${org.id}`}>
+          <div className="flex items-center gap-3 cursor-pointer">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+              {orgInitials(org.name)}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{org.name}</p>
+                {org.type === 'groupe' && (
+                  <Badge variant="outline" className="text-[9px] h-4 px-1 py-0 uppercase tracking-wider bg-violet-50 text-violet-700 border-violet-200">
+                    Groupe
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">{org.sector || 'Secteur non défini'}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{org.name}</p>
-            {org.legalName && org.legalName !== org.name && (
-              <p className="text-xs text-muted-foreground truncate">{org.legalName}</p>
-            )}
+        </Link>
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap">
+        {getSubBadge(org.subscription?.status)}
+      </td>
+      <td className="px-4 py-3 text-sm text-foreground">
+        {org.subscription?.offerName || <span className="text-muted-foreground text-xs italic">Aucune</span>}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap">
+        {getComplianceBadge(org.compliance)}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className={cn("h-full rounded-full", getScoreColor(score).split(' ')[0])} style={{ width: `${score}%` }} />
           </div>
+          <span className={cn("text-xs font-bold", getScoreTextColor(score))}>{score}</span>
         </div>
       </td>
-      {/* Statut */}
-      <td className="px-4 py-3">
-        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-medium px-2 py-0.5 border">
-          Actif
-        </Badge>
-      </td>
-      {/* Utilisateurs */}
-      <td className="px-4 py-3 text-sm text-foreground font-medium text-center">
-        {org.memberCount}
-      </td>
-      {/* Sièges */}
-      <td className="px-4 py-3 text-sm text-foreground font-medium text-center">
-        {org.memberCount}
-      </td>
-      {/* Revenus */}
-      <td className="px-4 py-3 text-sm text-muted-foreground text-center">—</td>
-      {/* Dernière activité */}
       <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
-        {formatRelative(org.createdAt)}
+        {org.lastActivityAt ? formatRelative(org.lastActivityAt) : 'Jamais'}
       </td>
-      {/* Actions */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -178,9 +176,11 @@ function OrgRow({ org, index }: { org: AdminOrganization; index: number }) {
                 Voir la fiche
               </DropdownMenuItem>
             </Link>
-            <DropdownMenuItem className="text-sm cursor-pointer">
-              Membres
-            </DropdownMenuItem>
+            <Link href={`/admin/organizations/${org.id}?tab=utilisateurs`}>
+              <DropdownMenuItem className="text-sm cursor-pointer">
+                Gérer les membres
+              </DropdownMenuItem>
+            </Link>
           </DropdownMenuContent>
         </DropdownMenu>
       </td>
@@ -188,57 +188,23 @@ function OrgRow({ org, index }: { org: AdminOrganization; index: number }) {
   );
 }
 
-type ActivityItem = {
-  id: number;
-  label: string;
-  sub: string;
-  time: string;
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-};
-
-function ActivityFeed({ orgs }: { orgs: AdminOrganization[] | undefined }) {
-  const items: ActivityItem[] = (orgs ?? [])
-    .slice()
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 8)
-    .map((org) => ({
-      id: org.id,
-      label: `${org.name} a été créée`,
-      sub: org.sector ?? org.size ?? "Nouvelle organisation",
-      time: formatRelative(org.createdAt),
-      icon: Building2,
-      iconBg: "bg-emerald-100",
-      iconColor: "text-emerald-600",
-    }));
-
-  if (!items.length) {
-    return (
-      <p className="text-sm text-muted-foreground text-center py-8">Aucune activité récente.</p>
-    );
+function getAlertConfig(type: AdminAlert['type']) {
+  switch (type) {
+    case 'expired_subscription':
+      return { icon: Ban, color: "text-rose-600", bg: "bg-rose-100", label: "Abonnement expiré" };
+    case 'employee_overflow':
+      return { icon: Users, color: "text-orange-600", bg: "bg-orange-100", label: "Dépassement d'effectif" };
+    case 'suspended':
+      return { icon: ShieldAlert, color: "text-rose-600", bg: "bg-rose-100", label: "Compte suspendu" };
+    case 'no_admin':
+      return { icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-100", label: "Aucun administrateur" };
+    case 'missing_data':
+      return { icon: Activity, color: "text-blue-600", bg: "bg-blue-100", label: "Données manquantes" };
+    case 'trial_expiring':
+      return { icon: Clock, color: "text-indigo-600", bg: "bg-indigo-100", label: "Essai arrivant à terme" };
+    default:
+      return { icon: AlertTriangle, color: "text-zinc-600", bg: "bg-zinc-100", label: "Alerte" };
   }
-
-  return (
-    <div className="divide-y divide-border">
-      {items.map((item) => (
-        <div key={item.id} className="flex items-start gap-3 py-3 px-1">
-          <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5", item.iconBg)}>
-            <item.icon className={cn("h-4 w-4", item.iconColor)} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2">
-              {item.label}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
-          </div>
-          <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
-            {item.time}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export function AdminDashboard() {
@@ -250,92 +216,92 @@ export function AdminDashboard() {
     query: { queryKey: getListAdminOrganizationsQueryKey() },
   });
 
+  const { data: alertsData, isLoading: alertsLoading } = useListAdminAlerts({
+    query: { queryKey: getListAdminAlertsQueryKey() },
+  });
+
   const recentOrgs = (orgs ?? [])
     .slice()
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 6);
 
+  const alerts = alertsData?.slice(0, 8) ?? [];
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Page header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Vue d'ensemble</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Statistiques globales de la plateforme cocci.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Cockpit de pilotage</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">Vue d'ensemble de la flotte de clients et état de santé de la plateforme.</p>
           </div>
-          <Button variant="outline" size="sm" className="gap-2 text-muted-foreground">
+          <Button variant="outline" size="sm" className="gap-2 bg-white dark:bg-black text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
             30 derniers jours
             <ChevronRight className="h-3.5 w-3.5 rotate-90" />
           </Button>
         </div>
 
-        {/* KPI cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {KPI_CARDS.map((card) => (
-            <Card key={card.label} className="overflow-hidden">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-                    <div className="mt-1.5">
-                      <StatValue
-                        statsLoading={statsLoading}
-                        statKey={card.key ?? null}
-                        stats={stats}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                      {card.description}
+            <Card key={card.label} className="overflow-hidden border-border/50 bg-card">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", card.bg)}>
+                  <card.icon className={cn("h-5 w-5", card.color)} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{card.label}</p>
+                  {statsLoading ? (
+                    <Skeleton className="h-7 w-12 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold tracking-tight text-foreground leading-none mt-1">
+                      {stats?.[card.key as keyof typeof stats] ?? 0}
                     </p>
-                  </div>
-                  <div className={cn("h-11 w-11 rounded-xl flex items-center justify-center shrink-0", card.bg)}>
-                    <card.icon className={cn("h-5 w-5", card.text)} />
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Content grid */}
+        {/* Main Dashboard Content */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Org table — 2/3 */}
+          {/* Organizations Table (2/3) */}
           <div className="xl:col-span-2">
-            <Card className="overflow-hidden">
-              <CardHeader className="px-4 py-4 border-b border-border flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base font-semibold">Organisations récentes</CardTitle>
+            <Card className="h-full flex flex-col overflow-hidden border-border/50">
+              <CardHeader className="px-5 py-4 border-b border-border/50 flex-row items-center justify-between space-y-0 bg-muted/20">
+                <CardTitle className="text-base font-semibold">Dernières organisations</CardTitle>
                 <Link href="/admin/organizations">
-                  <Button variant="ghost" size="sm" className="h-8 gap-1 text-muted-foreground text-xs">
-                    Voir toutes ({orgs?.length ?? "…"})
-                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  <Button variant="ghost" size="sm" className="h-8 gap-1 text-muted-foreground text-xs hover:text-foreground">
+                    Voir la flotte ({orgs?.length ?? "…"})
+                    <ArrowUpRight className="h-3 w-3" />
                   </Button>
                 </Link>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="p-0 flex-1">
                 {orgsLoading ? (
                   <div className="p-4 space-y-3">
-                    {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12" />)}
+                    {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-border bg-muted/30">
-                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Organisation</th>
-                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Statut</th>
-                          <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">Utilisateurs</th>
-                          <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">Sièges</th>
-                          <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">Revenus</th>
-                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Dernière activité</th>
+                        <tr className="border-b border-border bg-muted/10">
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Organisation</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Statut</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Offre</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Conformité</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Santé</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Dern. Act.</th>
                           <th className="px-4 py-2.5 w-10" />
                         </tr>
                       </thead>
                       <tbody>
                         {recentOrgs.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="text-center text-sm text-muted-foreground py-12">
+                            <td colSpan={7} className="text-center text-sm text-muted-foreground py-16">
                               Aucune organisation enregistrée.
                             </td>
                           </tr>
@@ -346,49 +312,77 @@ export function AdminDashboard() {
                         )}
                       </tbody>
                     </table>
-                    {recentOrgs.length > 0 && (
-                      <div className="border-t border-border px-4 py-3 text-center">
-                        <Link href="/admin/organizations">
-                          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1">
-                            Voir toutes les organisations
-                            <ArrowUpRight className="h-3 w-3" />
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Activity feed — 1/3 */}
-          <div>
-            <Card className="overflow-hidden">
-              <CardHeader className="px-4 py-4 border-b border-border flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base font-semibold">Activité récente</CardTitle>
-                {!orgsLoading && (
-                  <Button variant="ghost" size="sm" className="h-8 gap-1 text-muted-foreground text-xs">
-                    Voir tout
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Button>
-                )}
+          {/* Alerts Panel (1/3) */}
+          <div className="xl:col-span-1">
+            <Card className="h-full flex flex-col overflow-hidden border-border/50">
+              <CardHeader className="px-5 py-4 border-b border-border/50 flex-row items-center justify-between space-y-0 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base font-semibold">Alertes actives</CardTitle>
+                  {!alertsLoading && alerts.length > 0 && (
+                    <Badge className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-2 py-0 h-5 text-xs">
+                      {alerts.length}
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent className="p-4">
-                {orgsLoading ? (
-                  <div className="space-y-4">
+              <CardContent className="p-0 flex-1 overflow-y-auto">
+                {alertsLoading ? (
+                  <div className="p-4 space-y-4">
                     {[1, 2, 3, 4].map((i) => (
                       <div key={i} className="flex gap-3">
-                        <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-                        <div className="flex-1 space-y-1">
+                        <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                        <div className="flex-1 space-y-2 py-1">
                           <Skeleton className="h-3.5 w-full" />
                           <Skeleton className="h-3 w-2/3" />
                         </div>
                       </div>
                     ))}
                   </div>
+                ) : alerts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full py-16 text-center px-4">
+                    <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+                      <ShieldAlert className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Aucune alerte</p>
+                    <p className="text-xs text-muted-foreground mt-1">Tous les indicateurs sont au vert.</p>
+                  </div>
                 ) : (
-                  <ActivityFeed orgs={orgs} />
+                  <div className="divide-y divide-border/50">
+                    {alerts.map((alert, i) => {
+                      const config = getAlertConfig(alert.type);
+                      return (
+                        <Link key={i} href={`/admin/organizations/${alert.organizationId}`}>
+                          <div className="group flex items-start gap-3 p-4 hover:bg-muted/30 transition-colors cursor-pointer">
+                            <div className={cn("h-9 w-9 rounded-full flex items-center justify-center shrink-0 mt-0.5", config.bg)}>
+                              <config.icon className={cn("h-4.5 w-4.5", config.color)} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                                  {alert.organizationName}
+                                </p>
+                                {alert.severity === 'critical' && (
+                                  <Badge className="bg-rose-500/10 text-rose-600 border-rose-200/50 hover:bg-rose-500/20 text-[9px] px-1.5 py-0 h-4 shrink-0">
+                                    Critique
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-[13px] font-medium text-foreground mt-0.5">{config.label}</p>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                                {alert.message}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
               </CardContent>
             </Card>

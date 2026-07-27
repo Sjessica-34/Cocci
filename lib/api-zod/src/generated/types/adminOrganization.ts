@@ -5,6 +5,9 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminCompliance } from './adminCompliance';
+import type { AdminOrganizationType } from './adminOrganizationType';
+import type { AdminSubscription } from './adminSubscription';
 
 export interface AdminOrganization {
   id: number;
@@ -12,11 +15,34 @@ export interface AdminOrganization {
   /** @nullable */
   legalName?: string | null;
   /** @nullable */
+  siren?: string | null;
+  /** @nullable */
   siret?: string | null;
+  /** @nullable */
+  address?: string | null;
   /** @nullable */
   sector?: string | null;
   /** @nullable */
   size?: string | null;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  /** @nullable */
+  employeeCount?: number | null;
+  type: AdminOrganizationType;
+  /** @nullable */
+  parentId?: number | null;
+  /** @nullable */
+  groupMode?: string | null;
   memberCount: number;
+  /** @nullable */
+  lastActivityAt?: Date | null;
   createdAt: Date;
+  subscription?: AdminSubscription | null;
+  compliance?: AdminCompliance;
+  /** Score 0–100 calculé automatiquement */
+  healthScore: number;
 }

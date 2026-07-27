@@ -418,7 +418,13 @@ export const AdvanceExerciseResponse = zod.object({
 export const GetAdminStatsResponse = zod.object({
   "organizationCount": zod.number(),
   "userCount": zod.number(),
-  "memberCount": zod.number()
+  "memberCount": zod.number(),
+  "activeCount": zod.number(),
+  "trialCount": zod.number(),
+  "suspendedCount": zod.number(),
+  "groupCount": zod.number(),
+  "subsidiaryCount": zod.number(),
+  "alertCount": zod.number()
 })
 
 
@@ -429,11 +435,51 @@ export const ListAdminOrganizationsResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "legalName": zod.string().nullish(),
+  "siren": zod.string().nullish(),
   "siret": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "sector": zod.string().nullish(),
   "size": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "employeeCount": zod.number().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']),
+  "parentId": zod.number().nullish(),
+  "groupMode": zod.string().nullish(),
   "memberCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "lastActivityAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "subscription": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "mode": zod.enum(['stripe', 'invoice', 'free', 'demo']),
+  "status": zod.enum(['active', 'trial', 'suspended', 'expired']),
+  "offerName": zod.string().nullish(),
+  "maxEmployees": zod.number().nullish(),
+  "maxUsers": zod.number().nullish(),
+  "startAt": zod.coerce.date().nullish(),
+  "endAt": zod.coerce.date().nullish(),
+  "trialStartAt": zod.coerce.date().nullish(),
+  "trialEndAt": zod.coerce.date().nullish(),
+  "autoRenew": zod.boolean(),
+  "stripeSubscriptionId": zod.string().nullish(),
+  "stripeCustomerId": zod.string().nullish(),
+  "modules": zod.array(zod.string()).nullish(),
+  "notes": zod.string().nullish(),
+  "overrideMaxEmployees": zod.number().nullish(),
+  "overrideMaxUsers": zod.number().nullish(),
+  "overrideNote": zod.string().nullish(),
+  "overrideExpiresAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).nullish(),
+  "compliance": zod.object({
+  "status": zod.enum(['ok', 'overflow', 'missing', 'na']),
+  "message": zod.string().nullish(),
+  "overflow": zod.number().nullish()
+}).optional(),
+  "healthScore": zod.number().describe('Score 0–100 calculé automatiquement')
 })
 export const ListAdminOrganizationsResponse = zod.array(ListAdminOrganizationsResponseItem)
 
@@ -630,6 +676,395 @@ export const PublishAdminResourceResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
+
+
+/**
+ * @summary Get a single organization with full detail (superadmin)
+ */
+export const GetAdminOrganizationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminOrganizationResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "legalName": zod.string().nullish(),
+  "siren": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "sector": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "employeeCount": zod.number().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']),
+  "parentId": zod.number().nullish(),
+  "groupMode": zod.string().nullish(),
+  "memberCount": zod.number(),
+  "lastActivityAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "subscription": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "mode": zod.enum(['stripe', 'invoice', 'free', 'demo']),
+  "status": zod.enum(['active', 'trial', 'suspended', 'expired']),
+  "offerName": zod.string().nullish(),
+  "maxEmployees": zod.number().nullish(),
+  "maxUsers": zod.number().nullish(),
+  "startAt": zod.coerce.date().nullish(),
+  "endAt": zod.coerce.date().nullish(),
+  "trialStartAt": zod.coerce.date().nullish(),
+  "trialEndAt": zod.coerce.date().nullish(),
+  "autoRenew": zod.boolean(),
+  "stripeSubscriptionId": zod.string().nullish(),
+  "stripeCustomerId": zod.string().nullish(),
+  "modules": zod.array(zod.string()).nullish(),
+  "notes": zod.string().nullish(),
+  "overrideMaxEmployees": zod.number().nullish(),
+  "overrideMaxUsers": zod.number().nullish(),
+  "overrideNote": zod.string().nullish(),
+  "overrideExpiresAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).nullish(),
+  "compliance": zod.object({
+  "status": zod.enum(['ok', 'overflow', 'missing', 'na']),
+  "message": zod.string().nullish(),
+  "overflow": zod.number().nullish()
+}).optional(),
+  "healthScore": zod.number().describe('Score 0–100 calculé automatiquement')
+})
+
+
+/**
+ * @summary Update organization info (superadmin)
+ */
+export const UpdateAdminOrganizationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateAdminOrganizationBody = zod.object({
+  "name": zod.string().optional(),
+  "legalName": zod.string().nullish(),
+  "siren": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "sector": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "employeeCount": zod.number().nullish()
+})
+
+export const UpdateAdminOrganizationResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "legalName": zod.string().nullish(),
+  "siren": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "sector": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "employeeCount": zod.number().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']),
+  "parentId": zod.number().nullish(),
+  "groupMode": zod.string().nullish(),
+  "memberCount": zod.number(),
+  "lastActivityAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "subscription": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "mode": zod.enum(['stripe', 'invoice', 'free', 'demo']),
+  "status": zod.enum(['active', 'trial', 'suspended', 'expired']),
+  "offerName": zod.string().nullish(),
+  "maxEmployees": zod.number().nullish(),
+  "maxUsers": zod.number().nullish(),
+  "startAt": zod.coerce.date().nullish(),
+  "endAt": zod.coerce.date().nullish(),
+  "trialStartAt": zod.coerce.date().nullish(),
+  "trialEndAt": zod.coerce.date().nullish(),
+  "autoRenew": zod.boolean(),
+  "stripeSubscriptionId": zod.string().nullish(),
+  "stripeCustomerId": zod.string().nullish(),
+  "modules": zod.array(zod.string()).nullish(),
+  "notes": zod.string().nullish(),
+  "overrideMaxEmployees": zod.number().nullish(),
+  "overrideMaxUsers": zod.number().nullish(),
+  "overrideNote": zod.string().nullish(),
+  "overrideExpiresAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).nullish(),
+  "compliance": zod.object({
+  "status": zod.enum(['ok', 'overflow', 'missing', 'na']),
+  "message": zod.string().nullish(),
+  "overflow": zod.number().nullish()
+}).optional(),
+  "healthScore": zod.number().describe('Score 0–100 calculé automatiquement')
+})
+
+
+/**
+ * @summary Get subscription for an organization (superadmin)
+ */
+export const GetAdminSubscriptionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminSubscriptionResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "mode": zod.enum(['stripe', 'invoice', 'free', 'demo']),
+  "status": zod.enum(['active', 'trial', 'suspended', 'expired']),
+  "offerName": zod.string().nullish(),
+  "maxEmployees": zod.number().nullish(),
+  "maxUsers": zod.number().nullish(),
+  "startAt": zod.coerce.date().nullish(),
+  "endAt": zod.coerce.date().nullish(),
+  "trialStartAt": zod.coerce.date().nullish(),
+  "trialEndAt": zod.coerce.date().nullish(),
+  "autoRenew": zod.boolean(),
+  "stripeSubscriptionId": zod.string().nullish(),
+  "stripeCustomerId": zod.string().nullish(),
+  "modules": zod.array(zod.string()).nullish(),
+  "notes": zod.string().nullish(),
+  "overrideMaxEmployees": zod.number().nullish(),
+  "overrideMaxUsers": zod.number().nullish(),
+  "overrideNote": zod.string().nullish(),
+  "overrideExpiresAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Create or update subscription for an organization (superadmin)
+ */
+export const UpsertAdminSubscriptionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpsertAdminSubscriptionBody = zod.object({
+  "mode": zod.enum(['stripe', 'invoice', 'free', 'demo']).optional(),
+  "status": zod.enum(['active', 'trial', 'suspended', 'expired']).optional(),
+  "offerName": zod.string().nullish(),
+  "maxEmployees": zod.number().nullish(),
+  "maxUsers": zod.number().nullish(),
+  "startAt": zod.coerce.date().nullish(),
+  "endAt": zod.coerce.date().nullish(),
+  "trialStartAt": zod.coerce.date().nullish(),
+  "trialEndAt": zod.coerce.date().nullish(),
+  "autoRenew": zod.boolean().optional(),
+  "stripeSubscriptionId": zod.string().nullish(),
+  "stripeCustomerId": zod.string().nullish(),
+  "modules": zod.array(zod.string()).nullish(),
+  "notes": zod.string().nullish(),
+  "overrideMaxEmployees": zod.number().nullish(),
+  "overrideMaxUsers": zod.number().nullish(),
+  "overrideNote": zod.string().nullish(),
+  "overrideExpiresAt": zod.coerce.date().nullish()
+})
+
+export const UpsertAdminSubscriptionResponse = zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "mode": zod.enum(['stripe', 'invoice', 'free', 'demo']),
+  "status": zod.enum(['active', 'trial', 'suspended', 'expired']),
+  "offerName": zod.string().nullish(),
+  "maxEmployees": zod.number().nullish(),
+  "maxUsers": zod.number().nullish(),
+  "startAt": zod.coerce.date().nullish(),
+  "endAt": zod.coerce.date().nullish(),
+  "trialStartAt": zod.coerce.date().nullish(),
+  "trialEndAt": zod.coerce.date().nullish(),
+  "autoRenew": zod.boolean(),
+  "stripeSubscriptionId": zod.string().nullish(),
+  "stripeCustomerId": zod.string().nullish(),
+  "modules": zod.array(zod.string()).nullish(),
+  "notes": zod.string().nullish(),
+  "overrideMaxEmployees": zod.number().nullish(),
+  "overrideMaxUsers": zod.number().nullish(),
+  "overrideNote": zod.string().nullish(),
+  "overrideExpiresAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Suspend an organization account (superadmin)
+ */
+export const SuspendAdminOrganizationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SuspendAdminOrganizationResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "legalName": zod.string().nullish(),
+  "siren": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "sector": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "employeeCount": zod.number().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']),
+  "parentId": zod.number().nullish(),
+  "groupMode": zod.string().nullish(),
+  "memberCount": zod.number(),
+  "lastActivityAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "subscription": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "mode": zod.enum(['stripe', 'invoice', 'free', 'demo']),
+  "status": zod.enum(['active', 'trial', 'suspended', 'expired']),
+  "offerName": zod.string().nullish(),
+  "maxEmployees": zod.number().nullish(),
+  "maxUsers": zod.number().nullish(),
+  "startAt": zod.coerce.date().nullish(),
+  "endAt": zod.coerce.date().nullish(),
+  "trialStartAt": zod.coerce.date().nullish(),
+  "trialEndAt": zod.coerce.date().nullish(),
+  "autoRenew": zod.boolean(),
+  "stripeSubscriptionId": zod.string().nullish(),
+  "stripeCustomerId": zod.string().nullish(),
+  "modules": zod.array(zod.string()).nullish(),
+  "notes": zod.string().nullish(),
+  "overrideMaxEmployees": zod.number().nullish(),
+  "overrideMaxUsers": zod.number().nullish(),
+  "overrideNote": zod.string().nullish(),
+  "overrideExpiresAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).nullish(),
+  "compliance": zod.object({
+  "status": zod.enum(['ok', 'overflow', 'missing', 'na']),
+  "message": zod.string().nullish(),
+  "overflow": zod.number().nullish()
+}).optional(),
+  "healthScore": zod.number().describe('Score 0–100 calculé automatiquement')
+})
+
+
+/**
+ * @summary Reactivate a suspended organization (superadmin)
+ */
+export const ReactivateAdminOrganizationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReactivateAdminOrganizationResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "legalName": zod.string().nullish(),
+  "siren": zod.string().nullish(),
+  "siret": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "sector": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "contactName": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "employeeCount": zod.number().nullish(),
+  "type": zod.enum(['entreprise', 'groupe']),
+  "parentId": zod.number().nullish(),
+  "groupMode": zod.string().nullish(),
+  "memberCount": zod.number(),
+  "lastActivityAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "subscription": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "mode": zod.enum(['stripe', 'invoice', 'free', 'demo']),
+  "status": zod.enum(['active', 'trial', 'suspended', 'expired']),
+  "offerName": zod.string().nullish(),
+  "maxEmployees": zod.number().nullish(),
+  "maxUsers": zod.number().nullish(),
+  "startAt": zod.coerce.date().nullish(),
+  "endAt": zod.coerce.date().nullish(),
+  "trialStartAt": zod.coerce.date().nullish(),
+  "trialEndAt": zod.coerce.date().nullish(),
+  "autoRenew": zod.boolean(),
+  "stripeSubscriptionId": zod.string().nullish(),
+  "stripeCustomerId": zod.string().nullish(),
+  "modules": zod.array(zod.string()).nullish(),
+  "notes": zod.string().nullish(),
+  "overrideMaxEmployees": zod.number().nullish(),
+  "overrideMaxUsers": zod.number().nullish(),
+  "overrideNote": zod.string().nullish(),
+  "overrideExpiresAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).nullish(),
+  "compliance": zod.object({
+  "status": zod.enum(['ok', 'overflow', 'missing', 'na']),
+  "message": zod.string().nullish(),
+  "overflow": zod.number().nullish()
+}).optional(),
+  "healthScore": zod.number().describe('Score 0–100 calculé automatiquement')
+})
+
+
+/**
+ * @summary List all platform alerts (superadmin)
+ */
+export const ListAdminAlertsResponseItem = zod.object({
+  "organizationId": zod.number(),
+  "organizationName": zod.string(),
+  "type": zod.enum(['employee_overflow', 'expired_subscription', 'no_admin', 'missing_data', 'trial_expiring', 'suspended']),
+  "severity": zod.enum(['critical', 'warning', 'info']),
+  "message": zod.string(),
+  "detail": zod.string().nullish()
+})
+export const ListAdminAlertsResponse = zod.array(ListAdminAlertsResponseItem)
+
+
+/**
+ * @summary Update a member's role or status (superadmin)
+ */
+export const UpdateAdminMemberParams = zod.object({
+  "memberId": zod.coerce.number()
+})
+
+export const UpdateAdminMemberBody = zod.object({
+  "role": zod.enum(['owner', 'admin', 'member', 'viewer']).optional(),
+  "status": zod.enum(['active', 'suspended']).optional()
+})
+
+export const UpdateAdminMemberResponse = zod.object({
+  "id": zod.number(),
+  "role": zod.enum(['owner', 'admin', 'member', 'viewer']),
+  "status": zod.enum(['active', 'invited', 'suspended']),
+  "createdAt": zod.coerce.date(),
+  "user": zod.object({
+  "id": zod.number(),
+  "email": zod.string().email(),
+  "firstName": zod.string().nullish(),
+  "lastName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "isSuperAdmin": zod.boolean()
+})
+})
+
+
+/**
+ * @summary Remove a member from their organization (superadmin)
+ */
+export const DeleteAdminMemberParams = zod.object({
+  "memberId": zod.coerce.number()
+})
+
+export const DeleteAdminMemberResponse = zod.void()
 
 
 /**
