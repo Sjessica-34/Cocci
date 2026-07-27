@@ -9,6 +9,7 @@ import {
 import {
   computeScores, PILLARS, MACRO_PILLARS, maturityLabel, computeMacroPillarData,
 } from "../../numerique-responsable/data";
+import { TabCalculateur } from "../../numerique-responsable/tabs/TabCalculateur";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
 
@@ -288,6 +289,15 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
 
       {/* Numérique Responsable — section complète */}
       <NrSection nrRaw={nrRaw} ai={ai.nr ?? null} />
+
+      {/* Mini calculateur NR — toujours affiché */}
+      <SectionTitle>Numérique responsable — Mini calculateur</SectionTitle>
+      <ExplainerText>
+        Estimez l'empreinte numérique de votre parc informatique et calculez votre score de sobriété numérique. Outil indicatif — modifiez les valeurs pour affiner l'estimation.
+      </ExplainerText>
+      <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, backgroundColor: "#fff" }}>
+        <TabCalculateur />
+      </div>
 
     </ChapterWrapper>
   );
