@@ -19,8 +19,8 @@ import { Sparkles, Grid3X3, List, Info, Loader2, Trash2 } from "lucide-react";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type View     = "matrix" | "list";
-type Filter   = "all" | "in-situ" | "amont" | "aval";
-type ChainPos = "in-situ" | "amont" | "aval";
+type Filter   = "all" | "amont" | "in-situ" | "aval";
+type ChainPos = "amont" | "in-situ" | "aval";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,8 +50,8 @@ function cellBg(x: number, y: number): string {
 }
 
 const CHAIN_CFG: Record<ChainPos, { label: string; subtitle: string; icon: string; color: string }> = {
-  "in-situ": { label: "IN SITU", subtitle: "Sur vos sites et opérations directes",  icon: "🌿", color: "#16a34a" },
   "amont":   { label: "AMONT",   subtitle: "Chez vos fournisseurs et partenaires",   icon: "🏭", color: "#0284c7" },
+  "in-situ": { label: "IN SITU", subtitle: "Sur vos sites et opérations directes",  icon: "🌿", color: "#16a34a" },
   "aval":    { label: "AVAL",    subtitle: "Chez vos clients et en fin de vie",      icon: "📦", color: "#7c3aed" },
 };
 
