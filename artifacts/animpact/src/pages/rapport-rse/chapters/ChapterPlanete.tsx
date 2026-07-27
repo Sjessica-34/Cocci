@@ -27,7 +27,16 @@ function NrSection({ nrRaw, ai }: {
   const { globalScore, pillarPcts, totalChecked, totalPossible } = computeScores(responsesMap);
   const globalPct = totalPossible > 0 ? Math.round((totalChecked / totalPossible) * 100) : 0;
 
-  if (totalChecked === 0) return null;
+  if (totalChecked === 0) {
+    return (
+      <>
+        <SectionTitle>Numérique responsable — Diagnostic</SectionTitle>
+        <p style={{ fontSize: 13, color: "#94A3B8", fontStyle: "italic", fontFamily: "sans-serif" }}>
+          Le diagnostic Numérique Responsable n'a pas encore été complété.
+        </p>
+      </>
+    );
+  }
 
   const maturity = maturityLabel(globalPct);
   const certLabel = nrRaw.meta?.certificationLabel;

@@ -134,7 +134,10 @@ function HighlightEditor({ items, onChange, orgId }: {
     onChange(items.map((h) => h.id === id ? { ...h, [field]: value } : h));
   const updPhoto = (id: string, url: string) =>
     onChange(items.map((h) => h.id === id ? { ...h, photos: url ? [url] : [] } : h));
-  const { uploadFile, isUploading } = useStorageUpload();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const { uploadFile, isUploading } = useStorageUpload({
+    onError: (err) => setUploadError(err.message ?? "Échec de l'envoi"),
+  });
 
   return (
     <div className="space-y-3">
@@ -194,33 +197,56 @@ function HighlightEditor({ items, onChange, orgId }: {
                 </button>
               </div>
             ) : (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <span className={cn(
-                  "inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium transition-colors",
-                  isUploading
-                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-background hover:bg-muted text-foreground",
-                )}>
-                  {isUploading ? (
-                    <><Loader2 className="h-3 w-3 animate-spin" /> Envoi…</>
-                  ) : (
-                    <>📷 Ajouter une photo</>
-                  )}
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  disabled={isUploading}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const result = await uploadFile(file);
-                    if (result) updPhoto(hl.id, result.fileUrl);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer">
+                    <span className={cn(
+                      "inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium transition-colors",
+                      isUploading
+                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                        : "bg-background hover:bg-muted text-foreground",
+                    )}>
+                      {isUploading ? (
+                        <><Loader2 className="h-3 w-3 animate-spin" /> Envoi…</>
+                      ) : (
+                        <>📷 Importer</>
+                      )}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      disabled={isUploading}
+                      onChange={async (e) => {
+                        setUploadError(null);
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const result = await uploadFile(file);
+                        if (result) updPhoto(hl.id, result.fileUrl);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  <span className="text-xs text-muted-foreground">ou coller une URL :</span>
+                  <Input
+                    className="h-8 text-xs flex-1"
+                    placeholder="https://..."
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v) { updPhoto(hl.id, v); e.target.value = ""; }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const v = (e.target as HTMLInputElement).value.trim();
+                        if (v) { updPhoto(hl.id, v); (e.target as HTMLInputElement).value = ""; }
+                      }
+                    }}
+                  />
+                </div>
+                {uploadError && (
+                  <p className="text-xs text-destructive">{uploadError}</p>
+                )}
+              </div>
             )}
           </div>
         </div>

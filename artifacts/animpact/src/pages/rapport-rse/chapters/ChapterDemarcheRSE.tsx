@@ -94,14 +94,10 @@ function DepFlowReport({
   deps: Array<Record<string, unknown>>;
   conns: Array<Record<string, unknown>>;
 }) {
-  const { nodes, edges } = useMemo(() => {
-    const bgNodes: Node[] = ZONE_CFG.map((z, i) => ({
-      id: `bg-${z.key}`, type: "zonePanel",
-      position: { x: i * ZONE_W, y: ZONE_Y_START },
-      data: { label: z.label, bg: z.bg, border: z.border, textColor: z.textColor, height: ZONE_H_PANEL },
-      zIndex: -10, selectable: false, draggable: false, connectable: false,
-    }));
+  const { nodes, edges, containerH } = useMemo(() => {
+    if (deps.length === 0) return { nodes: [], edges: [], containerH: 0 };
 
+    // Build item nodes first so we can compute max rows per zone
     const zoneCounts: Record<string, number> = {};
     const itemNodes: Node[] = deps.map(dep => {
       const zone = (dep.chainPosition as string) ?? "amont";
@@ -119,6 +115,18 @@ function DepFlowReport({
       };
     });
 
+    // Compute dynamic zone panel height from actual content
+    const maxInZone = Math.max(...Object.values(zoneCounts), 1);
+    const rows      = Math.ceil(maxInZone / 2);
+    const zoneH     = Math.max(280, 60 + rows * 140 + 60); // min 280, grows with content
+
+    const bgNodes: Node[] = ZONE_CFG.map((z, i) => ({
+      id: `bg-${z.key}`, type: "zonePanel",
+      position: { x: i * ZONE_W, y: ZONE_Y_START },
+      data: { label: z.label, bg: z.bg, border: z.border, textColor: z.textColor, height: zoneH },
+      zIndex: -10, selectable: false, draggable: false, connectable: false,
+    }));
+
     const edgeList: Edge[] = conns.map(conn => ({
       id:     String(conn.id),
       source: String(conn.fromElementId),
@@ -133,20 +141,20 @@ function DepFlowReport({
       style:      { stroke: "#94a3b8", strokeWidth: 1.5 },
     }));
 
-    return { nodes: [...bgNodes, ...itemNodes], edges: edgeList };
+    return { nodes: [...bgNodes, ...itemNodes], edges: edgeList, containerH: zoneH + 80 };
   }, [deps, conns]);
 
   if (deps.length === 0) return null;
 
   return (
-    <div style={{ height: 400, border: "1px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
+    <div style={{ height: containerH, border: "1px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
       <ReactFlow
         nodes={nodes} edges={edges}
         nodeTypes={depFlowNodeTypes}
-        fitView fitViewOptions={{ padding: 0.12 }}
+        fitView fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
         nodesDraggable={false} nodesConnectable={false} elementsSelectable={false}
         panOnDrag={true} zoomOnScroll={false}
-        minZoom={0.25} maxZoom={1.5}
+        minZoom={0.2} maxZoom={1.5}
         proOptions={{ hideAttribution: true }}
       >
         <Background color="#e2e8f0" gap={18} size={0.5} />
