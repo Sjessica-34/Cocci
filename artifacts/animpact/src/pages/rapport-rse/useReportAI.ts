@@ -106,33 +106,92 @@ function buildContexts(data: ReportData): Record<string, string> {
   if (wf) {
     const div = diversity;
     const tr = training;
+    const n   = wf.totalHeadcount ? Number(wf.totalHeadcount) : null;
+    const pct = (val: unknown) => (n && val != null) ? `${Math.round(Number(val) / n * 100)}%` : "N/A";
+    const fmt = (val: unknown) => val != null ? String(val) : "N/A";
 
-    // Synthèse effectifs
+    // ── Synthèse effectifs ──────────────────────────────────────────────────
+    const depLines: string[] = [];
+    depLines.push(`Effectif total : ${fmt(wf.totalHeadcount)}`);
+    if (wf.nbCdi    != null) depLines.push(`CDI : ${wf.nbCdi} (${pct(wf.nbCdi)})`);
+    if (wf.nbCdd    != null) depLines.push(`CDD : ${wf.nbCdd} (${pct(wf.nbCdd)})`);
+    if (wf.nbAlternants != null) depLines.push(`Alternants : ${wf.nbAlternants} (${pct(wf.nbAlternants)})`);
+    if (wf.nbApprentis  != null) depLines.push(`Apprentis : ${wf.nbApprentis}`);
+    if (wf.nbStagiaires != null) depLines.push(`Stagiaires : ${wf.nbStagiaires} (${pct(wf.nbStagiaires)})`);
+    if (wf.nbInterimaires != null) depLines.push(`Intérimaires : ${wf.nbInterimaires}`);
+    if (wf.nbTempsPlein  != null) depLines.push(`Temps plein : ${wf.nbTempsPlein} (${pct(wf.nbTempsPlein)})`);
+    if (wf.nbTempsPartiel != null) depLines.push(`Temps partiel : ${wf.nbTempsPartiel} (${pct(wf.nbTempsPartiel)})`);
+    if (wf.nbRecrutements != null) depLines.push(`Recrutements : ${wf.nbRecrutements}`);
+    if (wf.nbDeparts      != null) {
+      const turnover = n ? `${Math.round(Number(wf.nbDeparts) / n * 100)}%` : "N/A";
+      depLines.push(`Départs : ${wf.nbDeparts} (turn-over ${turnover})`);
+    }
+    if (wf.avgAge != null) depLines.push(`Âge moyen : ${Math.round(Number(wf.avgAge) * 10) / 10} ans`);
+    const agePyramid: string[] = [];
+    if (wf.ageUnder25 != null) agePyramid.push(`< 25 ans : ${wf.ageUnder25}`);
+    if (wf.age25to34  != null) agePyramid.push(`25-34 ans : ${wf.age25to34}`);
+    if (wf.age35to44  != null) agePyramid.push(`35-44 ans : ${wf.age35to44}`);
+    if (wf.age45to54  != null) agePyramid.push(`45-54 ans : ${wf.age45to54}`);
+    if (wf.age55plus  != null) agePyramid.push(`55+ ans : ${wf.age55plus}`);
+    if (agePyramid.length) depLines.push(`Pyramide des âges : ${agePyramid.join(", ")}`);
+    if (wf.avgSeniority != null) depLines.push(`Ancienneté moyenne : ${Math.round(Number(wf.avgSeniority) * 10) / 10} ans`);
+    const seniorityBreakdown: string[] = [];
+    if (wf.seniorityUnder2 != null) seniorityBreakdown.push(`< 2 ans : ${wf.seniorityUnder2}`);
+    if (wf.seniority2to5   != null) seniorityBreakdown.push(`2-5 ans : ${wf.seniority2to5}`);
+    if (wf.seniority5to10  != null) seniorityBreakdown.push(`5-10 ans : ${wf.seniority5to10}`);
+    if (wf.seniorityOver10 != null) seniorityBreakdown.push(`> 10 ans : ${wf.seniorityOver10}`);
+    if (seniorityBreakdown.length) depLines.push(`Répartition ancienneté : ${seniorityBreakdown.join(", ")}`);
+
     contexts.wf_effectifs =
-      `Capital humain — Effectif total : ${wf.totalHeadcount ?? "N/A"}, CDI : ${wf.nbCdi ?? "N/A"}, CDD : ${wf.nbCdd ?? "N/A"}, ` +
-      `Alternants : ${wf.nbAlternants ?? "N/A"}, Recrutements : ${wf.nbRecrutements ?? "N/A"}, Départs : ${wf.nbDeparts ?? "N/A"}. ` +
-      `Analyse la composition et la dynamique des effectifs, identifie les tendances clés et formule des recommandations RH concrètes.`;
+      depLines.join(". ") + ". " +
+      "Analyse la composition et la dynamique des effectifs, identifie les tendances structurelles (pyramide des âges, stabilité, rotation) et formule des recommandations RH concrètes.";
 
-    // Synthèse diversité & inclusion
+    // ── Synthèse diversité & inclusion ──────────────────────────────────────
     if (div) {
-      const feminRate = wf.totalHeadcount && div.nbFemmes
-        ? Math.round(Number(div.nbFemmes) / Number(wf.totalHeadcount) * 100) : null;
+      const divLines: string[] = [];
+      if (div.nbFemmes  != null) divLines.push(`Femmes : ${div.nbFemmes} (${pct(div.nbFemmes)})`);
+      if (div.nbHommes  != null) divLines.push(`Hommes : ${div.nbHommes} (${pct(div.nbHommes)})`);
+      if (div.nbNonBinaire != null && Number(div.nbNonBinaire) > 0) divLines.push(`Non-binaires : ${div.nbNonBinaire}`);
+      if (div.nbHandicap != null) divLines.push(`Situations de handicap : ${div.nbHandicap} (${pct(div.nbHandicap)})`);
+      if (div.nbNationaliteFrancaise != null) divLines.push(`Nationalité française : ${div.nbNationaliteFrancaise}`);
+      if (div.nbNationaliteUe     != null && Number(div.nbNationaliteUe) > 0)    divLines.push(`UE : ${div.nbNationaliteUe}`);
+      if (div.nbNationaliteHorsUe != null && Number(div.nbNationaliteHorsUe) > 0) divLines.push(`Hors UE : ${div.nbNationaliteHorsUe}`);
+      const policies: string[] = [];
+      if (div.politiqueDiversite)          policies.push("politique diversité");
+      if (div.referentHandicap)            policies.push("référent handicap");
+      if (div.sensibilisationDiversite)    policies.push("sensibilisation diversité");
+      if (div.politiqueContreDiscriminations) policies.push("politique anti-discrimination");
+      if (div.politiqueEgaliteProfessionnelle) policies.push("égalité professionnelle");
+      if (div.charteDiversite)             policies.push("charte diversité");
+      if (div.teletravailAutorise)         policies.push("télétravail autorisé");
+      if (policies.length) divLines.push(`Engagements actifs : ${policies.join(", ")}`);
       contexts.wf_diversite =
-        `Diversité & Inclusion — Femmes : ${div.nbFemmes ?? "N/A"}, Hommes : ${div.nbHommes ?? "N/A"}, ` +
-        `Taux de féminisation : ${feminRate != null ? `${feminRate}%` : "N/A"}, ` +
-        `Situations de handicap : ${div.nbHandicap ?? "N/A"}. ` +
-        `Évalue le niveau d'inclusion et d'égalité professionnelle, identifie les axes de progression et les bonnes pratiques à renforcer.`;
+        divLines.join(". ") + ". " +
+        "Évalue le niveau d'inclusion et d'égalité professionnelle, mesure l'écart par rapport aux bonnes pratiques sectorielles et formule des recommandations concrètes pour progresser.";
     }
 
-    // Synthèse formation
+    // ── Synthèse formation ──────────────────────────────────────────────────
     if (tr) {
-      const trainingRate = wf.totalHeadcount && tr.nbCollaborateursFormes
-        ? Math.round(Number(tr.nbCollaborateursFormes) / Number(wf.totalHeadcount) * 100) : null;
+      const trLines: string[] = [];
+      if (tr.nbCollaborateursFormes != null) {
+        const trainingRate = n ? Math.round(Number(tr.nbCollaborateursFormes) / n * 100) : null;
+        trLines.push(`Collaborateurs formés : ${tr.nbCollaborateursFormes} (${trainingRate != null ? `${trainingRate}%` : "N/A"} de l'effectif)`);
+      }
+      if (tr.nbHeuresFormation != null) {
+        const hPerCollab = n && Number(tr.nbHeuresFormation) > 0 ? Math.round(Number(tr.nbHeuresFormation) / n * 10) / 10 : null;
+        trLines.push(`Heures de formation : ${tr.nbHeuresFormation}${hPerCollab != null ? ` (${hPerCollab} h/collab.)` : ""}`);
+      }
+      if (tr.budgetFormation != null) {
+        const budgetPerCollab = n ? Math.round(Number(tr.budgetFormation) / n) : null;
+        trLines.push(`Budget formation : ${Number(tr.budgetFormation).toLocaleString("fr-FR")} €${budgetPerCollab != null ? ` (${budgetPerCollab} €/collab.)` : ""}`);
+      }
+      if (tr.nbEntretiensAnnuels        != null) trLines.push(`Entretiens annuels : ${tr.nbEntretiensAnnuels} (${pct(tr.nbEntretiensAnnuels)})`);
+      if (tr.nbEntretiensProfessionnels != null) trLines.push(`Entretiens professionnels : ${tr.nbEntretiensProfessionnels}`);
+      if (tr.nbCertifications           != null) trLines.push(`Certifications obtenues : ${tr.nbCertifications}`);
+      if (tr.nbEvolutionsInternes       != null) trLines.push(`Évolutions internes : ${tr.nbEvolutionsInternes}`);
       contexts.wf_formation =
-        `Formation & Développement — Collaborateurs formés : ${tr.nbCollaborateursFormes ?? "N/A"} ` +
-        `(${trainingRate != null ? `${trainingRate}%` : "N/A"} de l'effectif), ` +
-        `Heures de formation : ${tr.nbHeuresFormation ?? "N/A"}. ` +
-        `Évalue l'investissement dans le développement des compétences, compare aux bonnes pratiques sectorielles et formule des recommandations.`;
+        trLines.join(". ") + ". " +
+        "Évalue l'investissement dans le développement des compétences, compare aux bonnes pratiques sectorielles (taux de formation ≥ 80%, ≥ 20 h/collab./an) et formule des recommandations ciblées.";
     }
   }
 
