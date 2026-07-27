@@ -193,15 +193,30 @@ router.delete(
   requireWritableExerciseScope,
   async (req, res): Promise<void> => {
     const id = parseId(req.params.id);
+
+    // Campaign may belong to a subsidiary org — build the allowed (orgId, exerciseId) pairs
+    const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
+    const allowedPairs: { orgId: number; exerciseId: number }[] =
+      subExercises.length > 0
+        ? subExercises
+        : [{ orgId: req.orgId!, exerciseId: req.exercise!.id }];
+
     const [campaign] = await db
       .select()
       .from(barometreCampaignsTable)
-      .where(scopeToExercise(barometreCampaignsTable, req, eq(barometreCampaignsTable.id, id)))
+      .where(eq(barometreCampaignsTable.id, id))
       .limit(1);
-    if (!campaign) {
+
+    if (
+      !campaign ||
+      !allowedPairs.some(
+        (p) => p.orgId === campaign.organizationId && p.exerciseId === campaign.exerciseId,
+      )
+    ) {
       res.status(404).json({ error: "Not found" });
       return;
     }
+
     await db.delete(barometreCampaignsTable).where(eq(barometreCampaignsTable.id, id));
     res.status(204).end();
   },
