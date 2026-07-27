@@ -22,14 +22,19 @@ export function ChapterCaptation({ data, ai }: { data: ReportData; ai: AiAnalyse
     : null;
 
   return (
-    <ChapterWrapper num={10} title="Captation carbone &amp; Séquestration">
-      <ExplainerText>
-        La captation carbone désigne la capacité d'un écosystème (forêts, haies, prairies, etc.) à absorber et stocker le dioxyde de carbone atmosphérique. Son estimation permet à l'organisation de compléter son bilan carbone par une dimension de séquestration naturelle, et de progresser vers une trajectoire bas-carbone.
-      </ExplainerText>
+    <ChapterWrapper num={10} title="Notre captation carbone">
 
       <NoteBox>
-        ⚠ Les estimations de captation présentées ici sont indicatives et ne constituent pas un bilan carbone certifié. Elles sont basées sur des coefficients moyens de séquestration par type d'espace végétal et ne sauraient se substituer à une évaluation réalisée par un organisme accrédité.
+        Rappel : la captation carbone intervient en dernier recours, après avoir réduit au maximum les émissions.
       </NoteBox>
+
+      <ExplainerText>
+        La captation carbone correspond à la quantité de dioxyde de carbone (CO₂) retirée de l'atmosphère par des puits de carbone naturels ou gérés, tels que les forêts, les haies, les prairies ou certains sols. Son estimation permet d'apprécier la contribution potentielle de ces écosystèmes au stockage du carbone et de compléter l'analyse des émissions de gaz à effet de serre dans une logique de gestion durable.
+      </ExplainerText>
+
+      <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
+        Les estimations de captation carbone associées aux espaces naturels renseignés dans la plateforme sont présentées ci-dessous.
+      </p>
 
       {!cap && (
         <p style={{ fontSize: 13, color: "#94A3B8", fontStyle: "italic", fontFamily: "sans-serif" }}>
@@ -81,11 +86,15 @@ export function ChapterCaptation({ data, ai }: { data: ReportData; ai: AiAnalyse
             </>
           )}
 
-          {cap.notes && (
+          {cap.notes != null && (
             <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
-              {cap.notes as string}
+              {String(cap.notes)}
             </p>
           )}
+
+          <NoteBox>
+            Note méthodologique : Les valeurs présentées sont des estimations calculées à partir des données renseignées dans la plateforme Cocci et de références scientifiques disponibles. Elles ont une vocation informative et d'aide au pilotage et ne constituent pas une mesure certifiée de séquestration carbone.
+          </NoteBox>
 
           <AiBlock text={ai.captation ?? null} label="Analyse de la captation carbone" />
         </>

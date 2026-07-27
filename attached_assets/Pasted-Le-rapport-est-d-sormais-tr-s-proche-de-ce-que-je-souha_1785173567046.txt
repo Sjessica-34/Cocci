@@ -1,0 +1,97 @@
+Le rapport est désormais très proche de ce que je souhaite. Merci, on arrive au résultat attendu.
+
+Il reste cependant quelques corrections importantes avant de considérer ce module comme terminé.
+
+Je ne souhaite plus modifier la structure générale du rapport, uniquement corriger les points suivants.
+
+## 1. Respect strict des textes fixes
+
+Les textes fixes de mon document modèle ne sont toujours pas repris exactement.
+
+Je parle notamment :
+
+- des introductions ;
+- des explications méthodologiques ;
+- des phrases de transition ;
+- des descriptions des indicateurs.
+
+Ces textes doivent être repris mot pour mot.
+
+Ils ne doivent jamais être reformulés, résumés ou réécrits par l'IA.
+
+L'IA intervient uniquement pour les analyses, les comparaisons N/N-1, les synthèses, les points forts, les axes d'amélioration, les perspectives et la conclusion.
+
+## 2. Dépendances à la biodiversité
+
+Il manque toujours cette partie.
+
+Je souhaite retrouver :
+
+- la cartographie des dépendances à la biodiversité ;
+- la cartographie des enjeux biodiversité.
+
+Je veux reprendre exactement les composants graphiques du module, et non une version simplifiée.
+
+## 3. Calculateur Numérique Responsable
+
+Il manque le calculateur Numérique Responsable.
+
+Je ne parle pas du diagnostic NR mais bien du calculateur.
+
+Je souhaite reprendre automatiquement les graphiques et indicateurs issus de ce module, comme dans l'application.
+
+## 4. Édition dans Cocci
+
+Le rapport n'est toujours pas éditable.
+
+Après la génération, je souhaite pouvoir modifier directement dans Cocci :
+
+- l'éditorial ;
+- toutes les analyses IA ;
+- les perspectives ;
+- la conclusion ;
+- tous les blocs de texte générés.
+
+L'objectif est de pouvoir personnaliser le rapport avant son export.
+
+## 5. Bloc de texte libre
+
+Je souhaite ajouter, à la fin du rapport, un bloc de texte libre.
+
+Ce bloc permettra à l'utilisateur d'ajouter les remarques, informations ou commentaires de son choix.
+
+Ce contenu sera entièrement libre et éditable.
+
+## 6. Temps forts
+
+Les photos des temps forts ne sont toujours pas intégrées.
+
+Je souhaite que chaque événement affiche automatiquement :
+
+- la date ;
+- le titre ;
+- la catégorie ;
+- la description ;
+- les photos enregistrées dans Cocci.
+
+## 7. Baromètre social
+
+Les résultats du Baromètre social ne sont pas repris.
+
+Je souhaite retrouver automatiquement :
+
+- les graphiques ;
+- les indicateurs ;
+- les résultats ;
+- les analyses IA ;
+- les comparaisons N/N-1 lorsqu'elles existent.
+
+Comme pour les autres modules, je souhaite réutiliser directement les composants existants du module Baromètre social.
+
+## Important
+
+Nous sommes désormais dans une phase de finalisation.
+
+Je ne souhaite plus modifier la structure générale du rapport.
+
+Je souhaite uniquement intégrer les éléments manquants et corriger les derniers écarts afin que le rapport soit conforme au document modèle et réutilise correctement l'ensemble des composants déjà disponibles dans Cocci.

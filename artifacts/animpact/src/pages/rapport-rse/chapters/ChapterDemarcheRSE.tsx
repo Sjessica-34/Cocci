@@ -323,7 +323,7 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
       {/* Méthodologie */}
       <SectionTitle>Méthodologie</SectionTitle>
       <ExplainerText>
-        Le présent rapport a été élaboré à partir des données renseignées et collectées au sein de la plateforme Cocci. Il repose sur une méthodologie simplifiée destinée à structurer et valoriser la démarche RSE dans une logique de pilotage et d'amélioration continue. Les informations présentées ne constituent pas un reporting réglementaire au sens de la CSRD, des ESRS, de la GRI ou de tout autre cadre normatif.
+        Le présent rapport a été élaboré à partir des données renseignées et collectées au sein de la plateforme Cocci. Il repose sur une méthodologie simplifiée destinée à structurer et valoriser la démarche RSE de l'organisation, dans une logique de pilotage et d'amélioration continue. Les informations présentées ne constituent pas un reporting réglementaire et, sauf mention contraire, ce rapport n'est pas établi conformément aux exigences de référentiels tels que la CSRD, les ESRS, la GRI ou tout autre cadre normatif.
       </ExplainerText>
       {methodology && (
         <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, fontFamily: "sans-serif" }}>{methodology}</p>
@@ -426,8 +426,11 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
         <>
           <SectionTitle>Dépendances à la biodiversité</SectionTitle>
           <ExplainerText>
-            L'analyse des dépendances à la biodiversité permet d'identifier les ressources naturelles, les écosystèmes et les activités dont dépend l'organisation pour exercer ses activités. Cette cartographie facilite la compréhension des interactions avec le vivant et constitue un outil d'aide à la décision pour préserver les services écosystémiques.
+            L'analyse des dépendances à la biodiversité permet d'identifier les ressources naturelles, les écosystèmes, les acteurs et les activités dont dépend l'organisation pour exercer ses activités. Cette cartographie facilite la compréhension des interactions avec le vivant et constitue un outil d'aide à la décision pour mieux anticiper les risques, préserver les services écosystémiques et renforcer la résilience de l'organisation.
           </ExplainerText>
+          <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
+            Les principales dépendances de l'organisation à la biodiversité sont présentées ci-dessous, selon leur nature et leur position au sein de la chaîne de valeur.
+          </p>
 
           <KpiGrid items={[
             { label: "Dépendances identifiées", value: String(bioDeps.length), color: "#22c55e" },
@@ -510,8 +513,11 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
         <>
           <SectionTitle>Cartographie des enjeux biodiversité</SectionTitle>
           <ExplainerText>
-            La cartographie des enjeux biodiversité positionne les enjeux identifiés selon leur importance pour la biodiversité (axe horizontal) et leur importance pour l'organisation (axe vertical). Les enjeux situés dans le quadrant supérieur droit (importance élevée sur les deux axes) sont considérés comme critiques et nécessitent une attention prioritaire.
+            La cartographie des enjeux permet de hiérarchiser les principaux enjeux identifiés au regard de leur importance et de leur position dans la chaîne de valeur. Elle offre une vision synthétique des priorités de l'organisation et facilite la définition des actions à mettre en œuvre dans le cadre de sa démarche RSE et biodiversité.
           </ExplainerText>
+          <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
+            Les enjeux identifiés sont présentés ci-dessous selon leur niveau de priorité et leur position au sein de la chaîne de valeur.
+          </p>
 
           <BioIssuesMatrix issues={bioIssues} />
 

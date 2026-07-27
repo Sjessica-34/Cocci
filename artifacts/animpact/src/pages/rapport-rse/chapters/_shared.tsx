@@ -3,6 +3,7 @@
  * Optimisés pour l'affichage écran ET l'impression/PDF (print CSS).
  */
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { useReportEdit } from "../ReportEditContext";
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 export const R = {
@@ -423,4 +424,125 @@ export function NoteBox({ children }: { children: React.ReactNode }) {
 
 export function Divider() {
   return <hr style={{ border: "none", borderTop: `1px solid #E2E8F0`, margin: "16px 0" }} />;
+}
+
+// ─── Bloc IA éditable ─────────────────────────────────────────────────────────
+// Identique à AiBlock mais devient un textarea en mode édition.
+
+export function EditableAiBlock({
+  id,
+  text,
+  label = "Analyse",
+}: {
+  id: string;
+  text: string | null;
+  label?: string;
+}) {
+  const { editMode, overrides, setOverride } = useReportEdit();
+  const value = overrides[id] ?? text ?? "";
+
+  if (!value && !editMode) return null;
+
+  if (editMode) {
+    return (
+      <div style={{
+        borderLeft: `4px solid ${R.aiBorder}`,
+        backgroundColor: R.aiBg,
+        borderRadius: "0 8px 8px 0",
+        padding: "12px 16px",
+        margin: "12px 0",
+      }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: R.green,
+          textTransform: "uppercase", letterSpacing: "0.05em",
+          marginBottom: 6, fontFamily: "sans-serif",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          ✦ {label}
+          <span style={{ fontSize: 9, color: "#64748b", fontWeight: 400, textTransform: "none" }}>
+            (mode édition)
+          </span>
+        </div>
+        <textarea
+          value={value}
+          onChange={(e) => setOverride(id, e.target.value)}
+          placeholder={`Saisir l'analyse "${label}"…`}
+          style={{
+            width: "100%", minHeight: 100,
+            fontSize: 13, color: "#1E3A2F", lineHeight: 1.65,
+            fontStyle: "italic", fontFamily: "sans-serif",
+            border: "1px solid #86EFAC", borderRadius: 6,
+            padding: "8px 10px", resize: "vertical",
+            backgroundColor: "white", boxSizing: "border-box",
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      borderLeft: `4px solid ${R.aiBorder}`,
+      backgroundColor: R.aiBg,
+      borderRadius: "0 8px 8px 0",
+      padding: "12px 16px",
+      margin: "12px 0",
+    }}>
+      <div style={{
+        fontSize: 11, fontWeight: 700, color: R.green,
+        textTransform: "uppercase", letterSpacing: "0.05em",
+        marginBottom: 6, fontFamily: "sans-serif",
+      }}>
+        ✦ {label}
+      </div>
+      <p style={{
+        fontSize: 13, color: "#1E3A2F", lineHeight: 1.65,
+        margin: 0, fontStyle: "italic", fontFamily: "sans-serif",
+      }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+// ─── Texte libre éditable ────────────────────────────────────────────────────
+
+export function EditableText({
+  id,
+  defaultText,
+  placeholder,
+}: {
+  id: string;
+  defaultText: string;
+  placeholder?: string;
+}) {
+  const { editMode, overrides, setOverride } = useReportEdit();
+  const value = overrides[id] ?? defaultText;
+
+  if (editMode) {
+    return (
+      <textarea
+        value={value}
+        onChange={(e) => setOverride(id, e.target.value)}
+        placeholder={placeholder ?? "Saisir votre texte…"}
+        style={{
+          width: "100%", minHeight: 80,
+          fontSize: 14, color: "#1C2340", lineHeight: 1.7,
+          fontFamily: "sans-serif",
+          border: "1px solid #86EFAC", borderRadius: 6,
+          padding: "8px 10px", resize: "vertical",
+          backgroundColor: "#f0fdf4", boxSizing: "border-box",
+        }}
+      />
+    );
+  }
+
+  return (
+    <p style={{
+      fontSize: 14, lineHeight: 1.8, color: "#1C2340",
+      textAlign: "justify", fontFamily: "sans-serif",
+    }}>
+      {value}
+    </p>
+  );
 }

@@ -1,5 +1,5 @@
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, KpiGrid,
+  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, EditableAiBlock, KpiGrid,
   ScoreDonut, AxisDonutReport, R, SCORE_COLOR,
 } from "./_shared";
 import {
@@ -9,10 +9,11 @@ import {
 import {
   computeScores, PILLARS, MACRO_PILLARS, maturityLabel, computeMacroPillarData,
 } from "../../numerique-responsable/data";
+import { TabCalculateur } from "../../numerique-responsable/tabs/TabCalculateur";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
 
-// ─── Composant NR : section complète ─────────────────────────────────────────
+// ─── Section NR complète ──────────────────────────────────────────────────────
 
 function NrSection({ nrRaw, ai }: {
   nrRaw: { meta?: { certificationLabel?: string; certificationOther?: string | null }; responses?: Array<{ criterionId: string; checked: boolean }> } | null;
@@ -35,19 +36,20 @@ function NrSection({ nrRaw, ai }: {
 
   return (
     <>
-      <SectionTitle>Numérique responsable</SectionTitle>
+      <SectionTitle>Numérique responsable — Diagnostic</SectionTitle>
       <ExplainerText>
-        Le numérique responsable vise à réduire l'empreinte environnementale, sociale et économique des usages numériques au sein de l'organisation. Il couvre des pratiques telles que l'allongement de la durée de vie des équipements, la réduction de la consommation d'énergie numérique, l'accessibilité des services digitaux et la gestion des déchets électroniques (DEEE).
+        Le diagnostic Numérique Responsable évalue le niveau de maturité de l'organisation au regard des bonnes pratiques visant à réduire les impacts environnementaux, sociaux et économiques du numérique. Il permet d'identifier les actions déjà engagées, les axes d'amélioration et les priorités pour construire une démarche numérique plus sobre et durable.
       </ExplainerText>
+      <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
+        Les résultats du diagnostic Numérique Responsable sont présentés ci-dessous, par pilier, afin d'évaluer le niveau de maturité de l'organisation et d'identifier les principaux axes de progression.
+      </p>
 
-      {/* KPIs globaux */}
       <KpiGrid items={[
         { label: "Score global", value: String(globalScore), unit: "/500", color: "#10b981" },
         { label: "Niveau de maturité", value: maturity.label, color: "#3b82f6" },
         { label: "Critères validés", value: `${totalChecked}`, unit: `/${totalPossible}`, color: "#8b5cf6" },
       ]} />
 
-      {/* Badge certification */}
       {certLabel && certLabel !== "none" && (
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 8,
@@ -61,7 +63,7 @@ function NrSection({ nrRaw, ai }: {
         </div>
       )}
 
-      {/* Radar global — 7 piliers */}
+      {/* Radar global */}
       <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: "12px 8px" }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: R.dark, margin: "0 0 4px 8px", fontFamily: "sans-serif" }}>
           Vue d'ensemble — radar des 7 piliers
@@ -76,11 +78,9 @@ function NrSection({ nrRaw, ai }: {
         </ResponsiveContainer>
       </div>
 
-      {/* Score par pilier — barres horizontales */}
+      {/* Barres par pilier */}
       <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: R.dark, margin: "0 0 4px", fontFamily: "sans-serif" }}>
-          Résultats par pilier
-        </p>
+        <p style={{ fontSize: 12, fontWeight: 700, color: R.dark, margin: "0 0 4px", fontFamily: "sans-serif" }}>Résultats par pilier</p>
         {PILLARS.map(p => {
           const pct = pillarPcts[p.id] ?? 0;
           const mat = maturityLabel(pct);
@@ -90,7 +90,7 @@ function NrSection({ nrRaw, ai }: {
                 <span style={{ fontSize: 12, color: "#374151", fontFamily: "sans-serif" }}>{p.shortTitle}</span>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ fontSize: 11, color: mat.color, fontFamily: "sans-serif" }}>{mat.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "sans-serif" }} dangerouslySetInnerHTML={{ __html: `<span style="color:${p.color}">${pct}%</span>` }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: p.color, fontFamily: "sans-serif" }}>{pct}%</span>
                 </div>
               </div>
               <div style={{ height: 8, borderRadius: 4, backgroundColor: "#F1F5F9", overflow: "hidden" }}>
@@ -110,21 +110,14 @@ function NrSection({ nrRaw, ai }: {
         const weaknesses = sorted.filter(d => d.value < 100).slice(-2).reverse();
 
         return (
-          <div key={mp.id} style={{
-            border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden",
-          }}>
-            {/* En-tête */}
+          <div key={mp.id} style={{ border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden" }}>
             <div style={{
-              borderLeft: `4px solid ${mp.color}`,
-              padding: "10px 14px",
-              backgroundColor: "#FAFAFA",
-              display: "flex", alignItems: "center", gap: 10,
+              borderLeft: `4px solid ${mp.color}`, padding: "10px 14px",
+              backgroundColor: "#FAFAFA", display: "flex", alignItems: "center", gap: 10,
             }}>
               <span style={{ fontSize: 18 }}>{mp.emoji}</span>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: R.dark, margin: "0 0 4px", fontFamily: "sans-serif" }}>
-                  {mp.title}
-                </p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: R.dark, margin: "0 0 4px", fontFamily: "sans-serif" }}>{mp.title}</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ flex: 1, maxWidth: 160, height: 7, borderRadius: 4, backgroundColor: "#E2E8F0", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${pct}%`, backgroundColor: mp.color, borderRadius: 4 }} />
@@ -134,10 +127,7 @@ function NrSection({ nrRaw, ai }: {
                 </div>
               </div>
             </div>
-
-            {/* Corps : radar + barres */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", padding: "8px 0" }}>
-              {/* Mini radar */}
               <div style={{ padding: "4px 8px" }}>
                 <ResponsiveContainer width="100%" height={180}>
                   <RadarChart data={radarData}>
@@ -148,8 +138,6 @@ function NrSection({ nrRaw, ai }: {
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* Barres par axe + points forts / à améliorer */}
               <div style={{ padding: "8px 12px 8px 4px", display: "flex", flexDirection: "column", gap: 3 }}>
                 {radarData.map(d => (
                   <div key={d.name}>
@@ -162,15 +150,9 @@ function NrSection({ nrRaw, ai }: {
                     </div>
                   </div>
                 ))}
-
                 {strengths.length > 0 && (
-                  <div style={{
-                    marginTop: 6, borderRadius: 6, padding: "6px 8px",
-                    backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0",
-                  }}>
-                    <p style={{ fontSize: 9, fontWeight: 700, color: "#15803d", margin: "0 0 3px", fontFamily: "sans-serif" }}>
-                      ↑ Points forts
-                    </p>
+                  <div style={{ marginTop: 6, borderRadius: 6, padding: "6px 8px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                    <p style={{ fontSize: 9, fontWeight: 700, color: "#15803d", margin: "0 0 3px", fontFamily: "sans-serif" }}>↑ Points forts</p>
                     {strengths.map(s => (
                       <div key={s.name} style={{ display: "flex", justifyContent: "space-between" }}>
                         <span style={{ fontSize: 9, color: "#374151", fontFamily: "sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 110 }}>{s.name}</span>
@@ -179,15 +161,9 @@ function NrSection({ nrRaw, ai }: {
                     ))}
                   </div>
                 )}
-
                 {weaknesses.length > 0 && (
-                  <div style={{
-                    borderRadius: 6, padding: "6px 8px",
-                    backgroundColor: "#fffbeb", border: "1px solid #fde68a",
-                  }}>
-                    <p style={{ fontSize: 9, fontWeight: 700, color: "#92400e", margin: "0 0 3px", fontFamily: "sans-serif" }}>
-                      ↓ À améliorer
-                    </p>
+                  <div style={{ borderRadius: 6, padding: "6px 8px", backgroundColor: "#fffbeb", border: "1px solid #fde68a" }}>
+                    <p style={{ fontSize: 9, fontWeight: 700, color: "#92400e", margin: "0 0 3px", fontFamily: "sans-serif" }}>↓ À améliorer</p>
                     {weaknesses.map(w => (
                       <div key={w.name} style={{ display: "flex", justifyContent: "space-between" }}>
                         <span style={{ fontSize: 9, color: "#374151", fontFamily: "sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 110 }}>{w.name}</span>
@@ -202,7 +178,19 @@ function NrSection({ nrRaw, ai }: {
         );
       })}
 
-      <AiBlock text={ai} label="Analyse Numérique Responsable" />
+      <EditableAiBlock id="nr" text={ai} label="Analyse Numérique Responsable" />
+
+      {/* ── Calculateur NR ─────────────────────────────────────────────────── */}
+      <SectionTitle>Calculateur Numérique Responsable</SectionTitle>
+      <ExplainerText>
+        Le calculateur Numérique Responsable fournit une estimation de l'empreinte environnementale du parc numérique de l'organisation à partir des informations renseignées dans la plateforme. Les résultats présentés permettent d'identifier les principales sources d'émissions et de disposer d'indicateurs d'aide à la décision pour orienter les actions de réduction de l'impact du numérique.
+      </ExplainerText>
+      <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
+        Les indicateurs estimés du parc numérique et de son impact environnemental sont présentés ci-dessous.
+      </p>
+      <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: 16 }}>
+        <TabCalculateur />
+      </div>
     </>
   );
 }
@@ -215,9 +203,7 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
   const envScores  = diagScores.filter((s) => s.categoryId === "ENV");
   const nrRaw      = data.nrData as { meta?: { certificationLabel?: string; certificationOther?: string | null }; responses?: Array<{ criterionId: string; checked: boolean }> } | null;
   const carbon     = data.carbon as Record<string, unknown> | null;
-  const suppliers  = (data as any).suppliers as Array<Record<string, unknown>> ?? [];
 
-  // Carbon
   const carbonFields = ["energie1","energie2","horsEnergie1","horsEnergie2",
     "intrantsBiens","intrantsServices","futursEmballages","fret","deplacements",
     "dechetsDirects","immobilisations","utilisation","finDeVie"];
@@ -229,16 +215,16 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
   return (
     <ChapterWrapper num={4} title="Agir pour la planète">
 
-      {/* 3 grands donuts ENV */}
+      {/* Diagnostic ENV */}
       {envScores.length > 0 && (
         <>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <AxisDonutReport categoryId="ENV" scores={diagScores as any} />
           </div>
 
-          <SectionTitle>Diagnostic environnemental — Résultats détaillés</SectionTitle>
+          <SectionTitle>Diagnostic environnement — Résultats détaillés</SectionTitle>
           <ExplainerText>
-            Le diagnostic environnemental évalue la maturité de l'organisation sur l'ensemble des thématiques environnementales : gestion de l'énergie, réduction des émissions, protection des ressources naturelles, gestion des déchets et mobilité durable. Chaque sous-thème est noté de 0 à 100 % selon le niveau de pratiques observées.
+            Le diagnostic environnemental évalue le niveau de maturité de l'organisation sur l'ensemble des thématiques environnementales : gestion de l'énergie, réduction des émissions, protection des ressources naturelles, gestion des déchets et mobilité durable. Chaque sous-thème est noté de 0 à 100 % selon le niveau de pratiques observées.
           </ExplainerText>
 
           <div style={{
@@ -259,7 +245,7 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
             ))}
           </div>
 
-          <AiBlock text={ai.diag_env ?? null} label="Analyse environnementale" />
+          <EditableAiBlock id="diag_env" text={ai.diag_env ?? null} label="Analyse environnementale" />
         </>
       )}
 
@@ -278,37 +264,13 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
             { label: "Scope 3", value: s3 > 0 ? `${Math.round(s3)}` : "—", unit: s3 > 0 ? "tCO₂e" : "", color: "#eab308" },
           ]} />
 
-          {carbonTotal > 0 && (
-            <div style={{ margin: "12px 0 4px" }}>
-              <div style={{ height: 24, borderRadius: 8, overflow: "hidden", display: "flex" }}>
-                {s1 > 0 && (
-                  <div style={{ width: `${(s1 / carbonTotal) * 100}%`, backgroundColor: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 10, color: "white", fontWeight: 700, fontFamily: "sans-serif" }}>{Math.round((s1 / carbonTotal) * 100)}%</span>
-                  </div>
-                )}
-                {s2 > 0 && (
-                  <div style={{ width: `${(s2 / carbonTotal) * 100}%`, backgroundColor: "#f97316", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 10, color: "white", fontWeight: 700, fontFamily: "sans-serif" }}>{Math.round((s2 / carbonTotal) * 100)}%</span>
-                  </div>
-                )}
-                {s3 > 0 && (
-                  <div style={{ width: `${(s3 / carbonTotal) * 100}%`, backgroundColor: "#eab308", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 10, color: "white", fontWeight: 700, fontFamily: "sans-serif" }}>{Math.round((s3 / carbonTotal) * 100)}%</span>
-                  </div>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
-                {[{l:"Scope 1",c:"#ef4444"},{l:"Scope 2",c:"#f97316"},{l:"Scope 3",c:"#eab308"}].map(({l,c}) => (
-                  <div key={l} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: c }} />
-                    <span style={{ fontSize: 11, color: "#5B6878", fontFamily: "sans-serif" }}>{l}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div style={{ height: 24, borderRadius: 8, overflow: "hidden", display: "flex", margin: "8px 0 4px" }}>
+            {s1 > 0 && <div style={{ width: `${(s1/carbonTotal)*100}%`, backgroundColor: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 10, color: "white", fontWeight: 700, fontFamily: "sans-serif" }}>{Math.round((s1/carbonTotal)*100)}%</span></div>}
+            {s2 > 0 && <div style={{ width: `${(s2/carbonTotal)*100}%`, backgroundColor: "#f97316", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 10, color: "white", fontWeight: 700, fontFamily: "sans-serif" }}>{Math.round((s2/carbonTotal)*100)}%</span></div>}
+            {s3 > 0 && <div style={{ flex: 1, backgroundColor: "#eab308", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 10, color: "white", fontWeight: 700, fontFamily: "sans-serif" }}>{Math.round((s3/carbonTotal)*100)}%</span></div>}
+          </div>
 
-          <AiBlock text={ai.carbon ?? null} label="Analyse du bilan carbone" />
+          <EditableAiBlock id="carbon" text={ai.carbon ?? null} label="Analyse du bilan carbone" />
         </>
       )}
 

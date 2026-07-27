@@ -3,34 +3,37 @@
  * Charge toutes les données en parallèle, génère les analyses IA,
  * puis assemble tous les chapitres dans une mise en page print-optimisée.
  */
-import { useRef } from "react";
 import { Link } from "wouter";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { useReportData } from "./useReportData";
 import { useReportAI } from "./useReportAI";
+import { ReportEditProvider, useReportEdit } from "./ReportEditContext";
 
 // Chapitres
-import { ChapterCover }             from "./chapters/ChapterCover";
-import { ChapterEditorial }         from "./chapters/ChapterEditorial";
-import { ChapterQuiSommesNous }     from "./chapters/ChapterQuiSommesNous";
-import { ChapterDemarcheRSE }       from "./chapters/ChapterDemarcheRSE";
-import { ChapterPlanete }           from "./chapters/ChapterPlanete";
+import { ChapterCover }              from "./chapters/ChapterCover";
+import { ChapterEditorial }          from "./chapters/ChapterEditorial";
+import { ChapterQuiSommesNous }      from "./chapters/ChapterQuiSommesNous";
+import { ChapterDemarcheRSE }        from "./chapters/ChapterDemarcheRSE";
+import { ChapterPlanete }            from "./chapters/ChapterPlanete";
 import { ChapterAchatsResponsables } from "./chapters/ChapterAchatsResponsables";
-import { ChapterHumain }            from "./chapters/ChapterHumain";
-import { ChapterGouvernance }       from "./chapters/ChapterGouvernance";
-import { ChapterFeuilleDeRoute }    from "./chapters/ChapterFeuilleDeRoute";
-import { ChapterImpactScore }       from "./chapters/ChapterImpactScore";
-import { ChapterLabels }            from "./chapters/ChapterLabels";
-import { ChapterCaptation }         from "./chapters/ChapterCaptation";
-import { ChapterTempsForts }        from "./chapters/ChapterTempsForts";
-import { ChapterPerspectives }      from "./chapters/ChapterPerspectives";
-import { ChapterAnnexes }           from "./chapters/ChapterAnnexes";
+import { ChapterHumain }             from "./chapters/ChapterHumain";
+import { ChapterGouvernance }        from "./chapters/ChapterGouvernance";
+import { ChapterFeuilleDeRoute }     from "./chapters/ChapterFeuilleDeRoute";
+import { ChapterImpactScore }        from "./chapters/ChapterImpactScore";
+import { ChapterLabels }             from "./chapters/ChapterLabels";
+import { ChapterCaptation }          from "./chapters/ChapterCaptation";
+import { ChapterTempsForts }         from "./chapters/ChapterTempsForts";
+import { ChapterPerspectives }       from "./chapters/ChapterPerspectives";
+import { ChapterAnnexes }            from "./chapters/ChapterAnnexes";
+import { ChapterNotesLibres }        from "./chapters/ChapterNotesLibres";
 
 const YEAR = new Date().getFullYear();
 
 // ─── Barre d'outils ────────────────────────────────────────────────────────────
 
-function Toolbar() {
+function Toolbar({ orgId }: { orgId: number | null }) {
+  const { editMode, toggleEditMode } = useReportEdit();
+
   return (
     <div
       id="report-toolbar"
@@ -54,25 +57,53 @@ function Toolbar() {
       </Link>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{
-          fontSize: 12, color: "#5B6878", fontFamily: "sans-serif",
-          backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0",
-          padding: "4px 10px", borderRadius: 6,
-        }}>
-          Rapport illustré
-        </span>
+        {/* Bouton édition */}
         <button
-          onClick={() => window.print()}
+          onClick={toggleEditMode}
           style={{
-            backgroundColor: "#1F6B3A", color: "white",
-            border: "none", borderRadius: 8,
-            padding: "9px 20px", fontSize: 14, fontWeight: 600,
-            cursor: "pointer", fontFamily: "sans-serif",
-            display: "flex", alignItems: "center", gap: 6,
+            backgroundColor: editMode ? "#1F6B3A" : "white",
+            color: editMode ? "white" : "#1F6B3A",
+            border: "1px solid #1F6B3A",
+            borderRadius: 8,
+            padding: "9px 18px",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "sans-serif",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
           }}
+          title={editMode ? "Quitter le mode édition" : "Modifier les blocs de texte"}
         >
-          🖨 Imprimer / Exporter PDF
+          {editMode ? "✓ Terminer l'édition" : "✏ Modifier le rapport"}
         </button>
+
+        {editMode && (
+          <span style={{
+            fontSize: 11, color: "#f97316",
+            backgroundColor: "#fff7ed", border: "1px solid #fed7aa",
+            padding: "4px 10px", borderRadius: 6,
+            fontFamily: "sans-serif",
+          }}>
+            Les modifications sont sauvegardées automatiquement
+          </span>
+        )}
+
+        {!editMode && (
+          <button
+            onClick={() => window.print()}
+            style={{
+              backgroundColor: "#1F6B3A", color: "white",
+              border: "none", borderRadius: 8,
+              padding: "9px 20px", fontSize: 14, fontWeight: 600,
+              cursor: "pointer", fontFamily: "sans-serif",
+              display: "flex", alignItems: "center", gap: 6,
+            }}
+          >
+            🖨 Imprimer / Exporter PDF
+          </button>
+        )}
       </div>
     </div>
   );
@@ -87,22 +118,23 @@ function TableOfContents({
   hasTempsForts: boolean;
   hasAchats: boolean;
 }) {
-  let num = 1;
+  let n = 1;
   const chapters = [
-    { num: num++, title: "Éditorial" },
-    { num: num++, title: "Qui sommes-nous ?" },
-    { num: num++, title: "Notre démarche RSE" },
-    { num: num++, title: "Agir pour la planète" },
-    ...(hasAchats ? [{ num: num++, title: "Achats responsables" }] : []),
-    { num: num++, title: "Placer l'humain au cœur" },
-    { num: num++, title: "Piloter une entreprise responsable" },
-    { num: num++, title: "Notre feuille de route" },
-    { num: num++, title: "Mon Impact Score" },
-    { num: num++, title: "Labels & Certifications" },
-    ...(hasCaptation ? [{ num: num++, title: "Captation carbone" }] : []),
-    ...(hasTempsForts ? [{ num: num++, title: "Temps forts & Engagements" }] : []),
-    { num: num++, title: "Perspectives & Ambitions" },
-    { num: num++, title: "Annexes & Glossaire" },
+    { num: n++, title: "Éditorial" },
+    { num: n++, title: "Qui sommes-nous ?" },
+    { num: n++, title: "Notre démarche RSE" },
+    { num: n++, title: "Agir pour la planète" },
+    ...(hasAchats ? [{ num: n++, title: "Achats responsables" }] : []),
+    { num: n++, title: "Placer l'humain au cœur de notre développement" },
+    { num: n++, title: "Piloter une entreprise responsable" },
+    { num: n++, title: "Notre feuille de route" },
+    { num: n++, title: "Mon Impact Score" },
+    { num: n++, title: "Nos labels et engagements" },
+    ...(hasCaptation ? [{ num: n++, title: "Notre captation carbone" }] : []),
+    ...(hasTempsForts ? [{ num: n++, title: "Les temps forts de l'année" }] : []),
+    { num: n++, title: "Perspectives" },
+    { num: n++, title: "Annexes" },
+    { num: n++, title: "Notes complémentaires" },
   ];
 
   return (
@@ -157,12 +189,11 @@ function LoadingReport() {
   );
 }
 
-// ─── Composant principal ───────────────────────────────────────────────────────
+// ─── Contenu du rapport ────────────────────────────────────────────────────────
 
-export function ReportViewer() {
-  const { effectiveOrgId } = useModuleContext("group");
-  const data = useReportData(effectiveOrgId ?? null);
-  const ai   = useReportAI(data, effectiveOrgId ?? null);
+function ReportContent({ orgId }: { orgId: number | null }) {
+  const data = useReportData(orgId ?? null);
+  const ai   = useReportAI(data, orgId ?? null);
 
   const hasCaptation = !!(data.captation as Record<string, unknown> | null)?.captationKgPerYear;
   const draft = data.draft as Record<string, unknown> | null;
@@ -172,131 +203,90 @@ export function ReportViewer() {
     ((draft?.goals as unknown[]) ?? []).length > 0;
   const hasAchats = ((data as any).suppliers as unknown[] ?? []).length > 0;
 
-  // Numéros de chapitres dynamiques
-  let chapterNum = 4; // après Planète (4)
-  if (hasAchats)    chapterNum++; // Achats = 5 si présent
-  chapterNum++; // Humain
-  chapterNum++; // Gouvernance
-  chapterNum++; // Feuille de route
-  chapterNum++; // Impact Score
-  chapterNum++; // Labels
+  // Numéros dynamiques
+  let n = 4;
+  const achatsNum     = hasAchats ? ++n : null;
+  const humainNum     = ++n;
+  const gouv          = ++n;
+  const fdr           = ++n;
+  const impact        = ++n;
+  const labels        = ++n;
+  const captNum       = hasCaptation  ? ++n : null;
+  const tempsNum      = hasTempsForts ? ++n : null;
+  const perspNum      = ++n;
+  const annexesNum    = ++n;
+  const notesNum      = ++n;
 
-  // Chapitres optionnels après Labels
-  let floatingNum = chapterNum + 1;
-  const captationNum    = hasCaptation  ? floatingNum++ : null;
-  const tempsFortNum    = hasTempsForts ? floatingNum++ : null;
-  const perspectivesNum = floatingNum++;
-  const annexesNum      = floatingNum;
-
-  if (data.isLoading) {
-    return (
-      <div style={{ minHeight: "100vh", backgroundColor: "#FAFAFA" }}>
-        <Toolbar />
-        <LoadingReport />
-      </div>
-    );
-  }
+  if (data.isLoading) return <LoadingReport />;
 
   return (
-    <div style={{ backgroundColor: "#FAFAFA", minHeight: "100vh" }}>
-      <Toolbar />
+    <>
+      <ChapterCover data={data} year={YEAR} />
+      <TableOfContents hasCaptation={hasCaptation} hasTempsForts={hasTempsForts} hasAchats={hasAchats} />
 
-      <div
-        id="report-content"
-        style={{
-          maxWidth: 900,
-          margin: "0 auto",
-          padding: "0 40px 80px",
-          backgroundColor: "white",
-          boxShadow: "0 0 40px rgba(0,0,0,0.06)",
-        }}
-      >
-        {/* Couverture */}
-        <ChapterCover data={data} year={YEAR} />
+      <ChapterEditorial data={data} />
+      <ChapterQuiSommesNous data={data} />
+      <ChapterDemarcheRSE data={data} ai={ai} />
+      <ChapterPlanete data={data} ai={ai} />
 
-        {/* Sommaire */}
-        <TableOfContents
-          hasCaptation={hasCaptation}
-          hasTempsForts={hasTempsForts}
-          hasAchats={hasAchats}
-        />
+      {hasAchats && achatsNum !== null && (
+        <ChapterAchatsResponsables data={data} ai={ai} chapterNum={achatsNum} />
+      )}
 
-        {/* Chapitres */}
-        <ChapterEditorial       data={data} />
-        <ChapterQuiSommesNous   data={data} />
-        <ChapterDemarcheRSE     data={data} ai={ai} />
-        <ChapterPlanete         data={data} ai={ai} />
+      <ChapterHumain data={data} ai={ai} />
+      <ChapterGouvernance data={data} ai={ai} />
+      <ChapterFeuilleDeRoute data={data} ai={ai} />
+      <ChapterImpactScore data={data} ai={ai} />
+      <ChapterLabels data={data} />
 
-        {/* Achats responsables (conditionnel) */}
-        {hasAchats && (
-          <ChapterAchatsResponsables
-            data={data}
-            ai={ai}
-            chapterNum={5}
-          />
-        )}
+      {hasCaptation && captNum !== null && <ChapterCaptation data={data} ai={ai} />}
+      {hasTempsForts && tempsNum !== null && <ChapterTempsForts data={data} chapterNum={tempsNum} />}
 
-        <ChapterHumain          data={data} ai={ai} />
-        <ChapterGouvernance     data={data} ai={ai} />
-        <ChapterFeuilleDeRoute  data={data} ai={ai} />
-        <ChapterImpactScore     data={data} ai={ai} />
-        <ChapterLabels          data={data} />
+      <ChapterPerspectives data={data} chapterNum={perspNum} />
+      <ChapterAnnexes data={data} chapterNum={annexesNum} />
+      <ChapterNotesLibres chapterNum={notesNum} />
+    </>
+  );
+}
 
-        {hasCaptation && captationNum !== null && (
-          <ChapterCaptation data={data} ai={ai} />
-        )}
-        {hasTempsForts && tempsFortNum !== null && (
-          <ChapterTempsForts data={data} chapterNum={tempsFortNum} />
-        )}
+// ─── Composant principal ───────────────────────────────────────────────────────
 
-        <ChapterPerspectives data={data} chapterNum={perspectivesNum} />
-        <ChapterAnnexes      data={data} chapterNum={annexesNum} />
+export function ReportViewer() {
+  const { effectiveOrgId } = useModuleContext("group");
+
+  return (
+    <ReportEditProvider orgId={effectiveOrgId ?? null}>
+      <div style={{ backgroundColor: "#FAFAFA", minHeight: "100vh" }}>
+        <Toolbar orgId={effectiveOrgId ?? null} />
+
+        <div
+          id="report-content"
+          style={{
+            maxWidth: 900,
+            margin: "0 auto",
+            padding: "0 40px 80px",
+            backgroundColor: "white",
+            boxShadow: "0 0 40px rgba(0,0,0,0.06)",
+          }}
+        >
+          <ReportContent orgId={effectiveOrgId ?? null} />
+        </div>
+
+        {/* CSS print global */}
+        <style>{`
+          @media print {
+            @page { size: A4; margin: 1.8cm 1.5cm; }
+            #report-toolbar { display: none !important; }
+            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #report-content { max-width: 100% !important; padding: 0 !important; box-shadow: none !important; }
+            .chapter-section { break-before: page; page-break-before: always; }
+            .chapter-section > div > * { break-inside: avoid; page-break-inside: avoid; }
+            tr { break-inside: avoid; page-break-inside: avoid; }
+            * { box-shadow: none !important; }
+            textarea { display: none !important; }
+          }
+        `}</style>
       </div>
-
-      {/* CSS print global */}
-      <style>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 1.8cm 1.5cm;
-          }
-
-          #report-toolbar {
-            display: none !important;
-          }
-
-          body {
-            background: white !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          #report-content {
-            max-width: 100% !important;
-            padding: 0 !important;
-            box-shadow: none !important;
-          }
-
-          .chapter-section {
-            break-before: page;
-            page-break-before: always;
-          }
-
-          .chapter-section > div > * {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-
-          tr {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-
-          * {
-            box-shadow: none !important;
-          }
-        }
-      `}</style>
-    </div>
+    </ReportEditProvider>
   );
 }

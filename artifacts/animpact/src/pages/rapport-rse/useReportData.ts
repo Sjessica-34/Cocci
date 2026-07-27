@@ -23,6 +23,7 @@ import {
   useGetNrData,
   useListOrganizations,
   useListSuppliers,
+  useListPlanSlots,
 } from "@workspace/api-client-react";
 
 // Helper pour passer `enabled` sans avoir à importer les queryKey functions
@@ -52,10 +53,11 @@ export function useReportData(orgId: number | null) {
   const orgs         = useListOrganizations(q(enabled));
   const bioIssues    = useListBioIssues(id, q(enabled));
   const suppliers    = useListSuppliers(id, q(enabled));
+  const planSlots    = useListPlanSlots(id, q(enabled));
 
-  // Baromètre synthèse — nécessite le premier campaign ID
+  // Baromètre synthèse + résultats — nécessitent le premier campaign ID
   const campaignId   = baroList.data?.items?.[0]?.id ?? 0;
-  const baroSynthese = useGetBarometreSynthese(campaignId, q(enabled && campaignId > 0));
+  const baroSynthese = useGetBarometreSynthese(id, campaignId, q(enabled && campaignId > 0));
 
   const isLoading =
     draft.isLoading || diagScores.isLoading || carbon.isLoading ||
@@ -85,6 +87,7 @@ export function useReportData(orgId: number | null) {
     orgs:          ((orgs.data as unknown as Array<unknown>) ?? []),
     bioIssues:     (bioIssues.data?.items ?? []) as unknown[],
     suppliers:     (suppliers.data?.items ?? []) as unknown[],
+    planSlots:     ((planSlots.data ?? []) as unknown[]),
   };
 }
 

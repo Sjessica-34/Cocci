@@ -17,6 +17,7 @@ function buildContexts(data: ReportData): Record<string, string> {
     impactScore, carbon, captation, nrData, workforce, diversity,
     training, actions,
   } = data;
+  const planSlots = (data as any).planSlots as AnyObj[] ?? [];
 
   const ds = diagScores as AnyObj[];
   const envScores = ds.filter((s) => s.categoryId === "ENV" && s.scorePercent != null);
@@ -113,12 +114,16 @@ function buildContexts(data: ReportData): Record<string, string> {
       ` Évalue la dynamique RH et formule des recommandations.`;
   }
 
-  if (acts.length > 0) {
-    const cats = [...new Set(acts.map((a) => String(a.category ?? "")).filter(Boolean))].slice(0, 5);
+  const donePlanSlots = planSlots.filter((s) => s.isDone);
+  if (acts.length > 0 || planSlots.length > 0) {
+    const cats = [...new Set(acts.map((a) => String(a.actionCategory ?? a.category ?? "")).filter(Boolean))].slice(0, 5);
+    const slotCats = [...new Set(planSlots.map((s) => String(s.actionCategory ?? "")).filter(Boolean))].slice(0, 5);
     contexts.actions =
-      `Plan d'actions RSE — ${acts.length} actions au total, ${doneActions} réalisées (${actionRate}%). ` +
-      `Catégories : ${cats.join(", ") || "diverses"}. ` +
-      `Évalue la dynamique de mise en œuvre et identifie les priorités d'action.`;
+      `Catalogue d'actions RSE — ${acts.length} actions totales, ${doneActions} réalisées (${actionRate}%). ` +
+      (cats.length ? `Catégories catalogue : ${cats.join(", ")}. ` : "") +
+      `Feuille de route — ${planSlots.length} actions planifiées, ${donePlanSlots.length} réalisées. ` +
+      (slotCats.length ? `Catégories feuille de route : ${slotCats.join(", ")}. ` : "") +
+      `Évalue séparément l'avancement du catalogue et de la feuille de route, identifie les priorités et les axes de progression.`;
   }
 
   const is_ = impactScore;

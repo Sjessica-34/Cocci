@@ -1,9 +1,26 @@
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, ReportTable, KpiGrid,
-  ScoreDonut, AxisDonutReport, R,
+  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, EditableAiBlock, ReportTable,
+  KpiGrid, ScoreDonut, AxisDonutReport, R,
 } from "./_shared";
+import { TrendingUp, TrendingDown, ThumbsUp, ThumbsDown, AlertTriangle } from "lucide-react";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
+
+function TrendBadge({ current, previous }: { current: number | null; previous: number | null }) {
+  if (current == null || previous == null) return null;
+  const delta = current - previous;
+  if (Math.abs(delta) < 0.05) return null;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 3,
+      fontSize: 11, color: delta > 0 ? "#16a34a" : "#dc2626",
+      fontFamily: "sans-serif",
+    }}>
+      {delta > 0 ? "↑" : "↓"}
+      {delta > 0 ? "+" : ""}{delta.toFixed(1)}
+    </span>
+  );
+}
 
 export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }) {
   type AnyItem = Record<string, unknown>;
@@ -13,6 +30,7 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
   const div        = data.diversity as Record<string, unknown> | null;
   const tr         = data.training  as Record<string, unknown> | null;
   const baro       = data.baroSynthese as Record<string, unknown> | null;
+  const campaign   = data.baroCampaign as Record<string, unknown> | null;
 
   const feminRate = wf?.totalHeadcount && div?.nbFemmes
     ? Math.round(Number(div.nbFemmes) / Number(wf.totalHeadcount) * 100)
@@ -23,6 +41,13 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
   const hPerCollab = wf?.totalHeadcount && tr?.nbHeuresFormation
     ? Math.round(Number(tr.nbHeuresFormation) / Number(wf.totalHeadcount))
     : null;
+
+  // Baromètre synthèse
+  const themeScores = (baro?.themeScores as Array<Record<string, unknown>>) ?? [];
+  const pointsForts = (baro?.pointsForts as string[]) ?? [];
+  const pointsFaibles = (baro?.pointsFaibles as string[]) ?? [];
+  const themesASurveiller = (baro?.themesASurveiller as string[]) ?? [];
+  const aiSummary = baro?.aiSummary as Record<string, unknown> | null;
 
   return (
     <ChapterWrapper num={5} title="Placer l'humain au cœur de notre développement">
@@ -38,8 +63,10 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
           <ExplainerText>
             Le diagnostic social évalue la maturité de l'organisation sur les thématiques liées au capital humain, à la qualité de vie au travail, à l'égalité professionnelle, à la formation et au dialogue social. Chaque sous-thème est noté de 0 à 100 % selon le niveau de pratiques observées.
           </ExplainerText>
+          <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
+            Les résultats du diagnostic social sont présentés ci-dessous, par thématique, afin d'identifier le niveau de maturité de l'organisation et les principaux axes de progression.
+          </p>
 
-          {/* Grille de donuts SOC */}
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
@@ -57,7 +84,7 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
               />
             ))}
           </div>
-          <AiBlock text={ai.diag_soc ?? null} label="Analyse du diagnostic social" />
+          <EditableAiBlock id="diag_soc" text={ai.diag_soc ?? null} label="Analyse du diagnostic social" />
         </>
       )}
 
@@ -141,19 +168,158 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
         </>
       )}
 
-      <AiBlock text={ai.workforce ?? null} label="Analyse du capital humain & social" />
+      <EditableAiBlock id="workforce" text={ai.workforce ?? null} label="Analyse du capital humain &amp; social" />
 
-      {/* Baromètre social */}
-      {baro && (
+      {/* ── BAROMÈTRE SOCIAL ──────────────────────────────────────────────── */}
+      {baro && (baro.nbRepondants as number ?? 0) > 0 && (
         <>
           <SectionTitle>Baromètre Social</SectionTitle>
           <ExplainerText>
             Le baromètre social permet de mesurer régulièrement le niveau d'engagement, de bien-être et de satisfaction des collaborateurs. Il constitue un outil précieux pour orienter les politiques RH et favoriser un dialogue social constructif au sein de l'organisation.
           </ExplainerText>
-          {(baro.summary as string | null) && (
-            <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
-              {baro.summary as string}
+
+          {campaign != null && (
+            <p style={{ fontSize: 12, color: "#5B6878", fontFamily: "sans-serif", marginBottom: 4 }}>
+              Campagne : <strong>{String(campaign.title ?? campaign.name ?? "")}</strong>
+              {campaign.year != null && ` — ${String(campaign.year)}`}
             </p>
+          )}
+
+          {/* KPIs Baromètre */}
+          <KpiGrid items={[
+            ...(baro.satisfactionGlobale != null ? [{
+              label: "Satisfaction globale",
+              value: `${(baro.satisfactionGlobale as number).toFixed(1)}/5`,
+              color: (baro.satisfactionGlobale as number) >= 3.5 ? R.green : "#f97316",
+            }] : []),
+            { label: "Répondants", value: String(baro.nbRepondants), unit: `/${baro.nbCollaborateurs}`, color: "#3b82f6" },
+            { label: "Participation", value: `${(baro.tauxParticipation as number).toFixed(0)}`, unit: "%", color: "#8b5cf6" },
+          ]} />
+
+          {/* Scores par thématique */}
+          {themeScores.length > 0 && (
+            <>
+              <p style={{ fontSize: 13, fontWeight: 600, color: R.dark, margin: "8px 0 4px", fontFamily: "sans-serif" }}>
+                Résultats par thématique
+              </p>
+              <div style={{
+                border: "1px solid #E2E8F0", borderRadius: 10,
+                overflow: "hidden",
+              }}>
+                {themeScores.map((t, i) => {
+                  const avg = t.average as number | null;
+                  const prev = t.previousAverage as number | null;
+                  const pct = avg != null ? Math.round((avg / 5) * 100) : null;
+                  const scoreColor = avg != null
+                    ? (avg >= 4 ? "#10b981" : avg >= 3 ? "#3b82f6" : avg >= 2 ? "#f97316" : "#ef4444")
+                    : "#94a3b8";
+                  return (
+                    <div key={i} style={{
+                      padding: "10px 14px",
+                      backgroundColor: i % 2 === 0 ? "#FAFAFA" : "white",
+                      borderBottom: i < themeScores.length - 1 ? "1px solid #F1F5F9" : "none",
+                      display: "flex", alignItems: "center", gap: 12,
+                    }}>
+                      <span style={{ fontSize: 12, color: R.dark, fontFamily: "sans-serif", flex: "1 1 140px" }}>
+                        {String(t.theme ?? "")}
+                      </span>
+                      <div style={{ flex: "2 1 120px", height: 7, borderRadius: 4, backgroundColor: "#E2E8F0", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct ?? 0}%`, backgroundColor: scoreColor, borderRadius: 4 }} />
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor, fontFamily: "sans-serif", minWidth: 36 }}>
+                        {avg != null ? `${avg.toFixed(1)}/5` : "—"}
+                      </span>
+                      <TrendBadge current={avg} previous={prev} />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Points forts / Points faibles */}
+          {(pointsForts.length > 0 || pointsFaibles.length > 0) && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {pointsForts.length > 0 && (
+                <div style={{
+                  border: "1px solid #bbf7d0", borderRadius: 10,
+                  backgroundColor: "#f0fdf4", padding: "12px 14px",
+                }}>
+                  <p style={{
+                    fontSize: 12, fontWeight: 700, color: "#15803d",
+                    margin: "0 0 8px", fontFamily: "sans-serif",
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    👍 Points forts
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                    {pointsForts.map((p, i) => (
+                      <li key={i} style={{ fontSize: 12, color: "#166534", lineHeight: 1.5, fontFamily: "sans-serif", marginBottom: 3 }}>
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {pointsFaibles.length > 0 && (
+                <div style={{
+                  border: "1px solid #fecaca", borderRadius: 10,
+                  backgroundColor: "#fef2f2", padding: "12px 14px",
+                }}>
+                  <p style={{
+                    fontSize: 12, fontWeight: 700, color: "#dc2626",
+                    margin: "0 0 8px", fontFamily: "sans-serif",
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    👎 Points faibles
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                    {pointsFaibles.map((p, i) => (
+                      <li key={i} style={{ fontSize: 12, color: "#991b1b", lineHeight: 1.5, fontFamily: "sans-serif", marginBottom: 3 }}>
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Thématiques à surveiller */}
+          {themesASurveiller.length > 0 && (
+            <div style={{
+              border: "1px solid #fde68a", borderRadius: 10,
+              backgroundColor: "#fffbeb", padding: "10px 14px",
+              display: "flex", alignItems: "flex-start", gap: 10,
+            }}>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#92400e", margin: "0 0 6px", fontFamily: "sans-serif" }}>
+                  Thématiques à surveiller
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {themesASurveiller.map((t, i) => (
+                    <span key={i} style={{
+                      fontSize: 11, color: "#92400e",
+                      backgroundColor: "#fef3c7", border: "1px solid #fde68a",
+                      borderRadius: 6, padding: "2px 8px",
+                      fontFamily: "sans-serif",
+                    }}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Synthèse IA baromètre */}
+          {aiSummary?.summary != null && (
+            <EditableAiBlock
+              id="baro_social"
+              text={String(aiSummary.summary)}
+              label="Synthèse du Baromètre Social"
+            />
           )}
         </>
       )}
