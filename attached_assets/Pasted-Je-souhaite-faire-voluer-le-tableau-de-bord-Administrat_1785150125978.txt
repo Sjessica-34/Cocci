@@ -1,0 +1,209 @@
+Je souhaite faire évoluer le tableau de bord Administrateur afin qu'il devienne un véritable back-office de gestion de Cocci.
+
+L'objectif est que je puisse administrer entièrement mes clients sans avoir besoin d'intervenir directement en base de données.
+
+## Tableau de bord
+
+Je souhaite disposer d'une vue d'ensemble avec notamment :
+
+- Nombre total de clients
+- Clients actifs
+- Clients en période d'essai
+- Clients suspendus
+- Chiffre d'affaires mensuel (MRR)
+- Nombre total d'utilisateurs
+- Nombre de groupes
+- Nombre de filiales
+
+## Liste des clients
+
+Je souhaite un tableau affichant notamment :
+
+- Nom de l'entreprise
+- Statut
+- Offre souscrite
+- Effectif déclaré
+- Nombre d'utilisateurs
+- Dernière connexion
+- État de conformité de l'abonnement
+
+Je souhaite pouvoir rechercher un client et filtrer la liste.
+
+## Vérification automatique de l'abonnement
+
+Je souhaite que Cocci compare automatiquement :
+
+- l'effectif autorisé par l'abonnement ;
+- l'effectif renseigné dans les paramètres de l'entreprise.
+
+Exemple :
+
+Abonnement : jusqu'à 50 salariés
+
+Effectif déclaré : 38
+
+→ Conforme
+
+Autre exemple :
+
+Abonnement : jusqu'à 50 salariés
+
+Effectif déclaré : 71
+
+→ Dépassement de 21 salariés
+
+Je souhaite voir immédiatement cette anomalie dans le tableau de bord.
+
+Je souhaite également pouvoir filtrer les entreprises :
+
+- Toutes
+- Conformes
+- Dépassement d'effectif
+- Informations manquantes
+
+## Fiche client
+
+En cliquant sur une entreprise, je souhaite accéder à une fiche complète.
+
+### Informations générales
+
+Je souhaite pouvoir consulter et modifier :
+
+- Nom de l'entreprise
+- SIREN
+- Adresse
+- Contact principal
+- Email
+- Téléphone
+
+### Gestion de l'abonnement
+
+Je souhaite que Cocci puisse gérer plusieurs modes de facturation.
+
+Le mode de facturation doit être configurable parmi :
+
+- Stripe
+- Facture
+- Gratuit
+- Démonstration
+
+Le fonctionnement doit être le suivant :
+
+### Mode Stripe
+
+L'abonnement est synchronisé avec Stripe.
+
+Stripe reste la référence pour :
+
+- les paiements ;
+- le renouvellement ;
+- les factures ;
+- le statut de l'abonnement.
+
+Je souhaite pouvoir visualiser ces informations dans Cocci.
+
+### Mode Facture
+
+L'abonnement est entièrement géré dans Cocci.
+
+Je souhaite pouvoir modifier manuellement :
+
+- l'offre
+- la date de début
+- la date de fin
+- le renouvellement automatique (oui/non)
+- la période d'essai
+- le nombre d'utilisateurs inclus
+- l'effectif maximum autorisé
+- les modules/options activés
+- le statut (Actif, Suspendu, Expiré)
+
+Ce mode est destiné aux clients facturés autrement que via Stripe (virement, mandat administratif, etc.).
+
+### Mode Gratuit
+
+Je souhaite pouvoir offrir un abonnement sans paiement.
+
+### Mode Démonstration
+
+Je souhaite pouvoir créer un compte de démonstration avec une date d'expiration automatique.
+
+## Dérogations administrateur
+
+Même lorsqu'un abonnement est synchronisé avec Stripe, je souhaite pouvoir appliquer des dérogations sans modifier l'abonnement Stripe.
+
+Par exemple :
+
+- autoriser davantage d'utilisateurs ;
+- augmenter temporairement l'effectif autorisé ;
+- activer un module supplémentaire ;
+- prolonger une période d'essai.
+
+Ces dérogations doivent être clairement identifiées comme des exceptions administrateur.
+
+## Gestion des utilisateurs
+
+Je souhaite pouvoir :
+
+- consulter la liste des utilisateurs ;
+- modifier leur rôle ;
+- désactiver un compte ;
+- supprimer un utilisateur ;
+- créer un nouvel utilisateur.
+
+## Gestion des données
+
+Je souhaite pouvoir modifier directement certaines informations de l'entreprise sans devoir me connecter à son espace.
+
+Par exemple :
+
+- effectif ;
+- chiffre d'affaires ;
+- secteur d'activité ;
+- description ;
+- paramètres généraux ;
+- labels ;
+- informations RSE.
+
+## Historique
+
+Je souhaite consulter :
+
+- la date de création du compte ;
+- la dernière connexion ;
+- les dernières modifications importantes ;
+- le dernier rapport généré ;
+- les derniers paiements.
+
+## Alertes automatiques
+
+Je souhaite que le tableau de bord fasse apparaître automatiquement les anomalies importantes, par exemple :
+
+- dépassement d'effectif par rapport à l'abonnement ;
+- absence d'utilisateur administrateur ;
+- abonnement expiré ;
+- paiement en attente ;
+- données obligatoires manquantes.
+
+## Actions rapides
+
+Depuis la fiche client, je souhaite pouvoir :
+
+- ouvrir une session en tant que ce client (mode administrateur sécurisé avec journalisation de l'action) ;
+- modifier l'abonnement ;
+- modifier l'effectif autorisé ;
+- ajouter ou retirer des utilisateurs autorisés ;
+- suspendre le compte ;
+- réactiver le compte ;
+- exporter les données de l'entreprise ;
+- supprimer le compte.
+
+## Score de santé
+
+Je souhaite qu'un score de santé soit calculé automatiquement pour chaque client afin d'identifier rapidement :
+
+- les clients qui utilisent activement Cocci ;
+- les comptes peu utilisés ;
+- les comptes nécessitant un accompagnement.
+
+Ce score doit être visible dans le tableau de bord administrateur et dans la fiche de chaque client.
