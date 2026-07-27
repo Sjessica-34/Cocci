@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useUpload } from "@workspace/object-storage-web";
+import { useStorageUpload } from "@/hooks/useStorageUpload";
 import { useParams, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "./layout";
@@ -659,10 +659,9 @@ function ResourceDialog({ orgId, resource, open, onClose }: { orgId: number; res
   const isEditing = !!resource;
   const isPending = createResource.isPending || updateResource.isPending;
 
-  const { uploadFile, isUploading, progress } = useUpload({
-    onSuccess: (res: { objectPath: string }) => {
-      const url = `/api/storage${res.objectPath}`;
-      setForm((f: any) => ({ ...f, fileUrl: url }));
+  const { uploadFile, isUploading, progress } = useStorageUpload({
+    onSuccess: (res) => {
+      setForm((f: any) => ({ ...f, fileUrl: res.fileUrl }));
       toast({ title: "Fichier téléversé." });
     },
     onError: () => toast({ title: "Échec du téléversement.", variant: "destructive" }),

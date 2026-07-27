@@ -58,7 +58,7 @@ import {
   File,
   Upload,
 } from "lucide-react";
-import { useUpload } from "@workspace/object-storage-web";
+import { useStorageUpload } from "@/hooks/useStorageUpload";
 import { cn } from "@/lib/utils";
 
 const DOC_TYPE_OPTIONS = [
@@ -170,9 +170,9 @@ function ResourceDialog({ open, onClose, resource }: ResourceDialogProps) {
 
   const isPending = createResource.isPending || updateResource.isPending;
 
-  const { uploadFile, isUploading, progress } = useUpload({
-    onSuccess: (res: { objectPath: string }) => {
-      setForm((f) => ({ ...f, fileUrl: `/api/storage${res.objectPath}` }));
+  const { uploadFile, isUploading, progress } = useStorageUpload({
+    onSuccess: (res) => {
+      setForm((f) => ({ ...f, fileUrl: res.fileUrl }));
       toast({ title: "Fichier téléversé." });
     },
     onError: () => toast({ title: "Échec du téléversement.", variant: "destructive" }),
