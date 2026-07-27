@@ -1,5 +1,5 @@
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, KpiGrid, ReportTable, R,
+  ChapterWrapper, SectionTitle, ExplainerText, KpiGrid, R,
 } from "./_shared";
 import type { ReportData } from "../useReportData";
 
@@ -80,14 +80,61 @@ export function ChapterQuiSommesNous({ data }: { data: ReportData }) {
         </>
       )}
 
+      {/* Frise chronologique */}
       {timeline.length > 0 && (
         <>
           <SectionTitle>Notre historique</SectionTitle>
-          <ReportTable
-            headers={["Date", "Événement", "Description"]}
-            rows={timeline.map((e) => [e.date ?? "", e.title ?? "", e.description ?? ""])}
-            widths={["15%", "25%", "60%"]}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, marginTop: 8 }}>
+            {timeline.map((event, i) => (
+              <div key={event.id ?? i} style={{ display: "flex", gap: 16 }}>
+                {/* Ligne verticale + point */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 48 }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: "50%",
+                    backgroundColor: R.green,
+                    border: `3px solid ${R.greenBg}`,
+                    boxShadow: `0 0 0 2px ${R.green}`,
+                    flexShrink: 0, zIndex: 1,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "white" }} />
+                  </div>
+                  {i < timeline.length - 1 && (
+                    <div style={{ width: 2, flex: 1, backgroundColor: R.greenBorder, minHeight: 20 }} />
+                  )}
+                </div>
+
+                {/* Contenu de l'événement */}
+                <div style={{
+                  flex: 1, paddingBottom: 20,
+                  borderBottom: i < timeline.length - 1 ? "none" : undefined,
+                }}>
+                  {event.date && (
+                    <p style={{
+                      fontSize: 11, color: R.green, fontWeight: 700, margin: "2px 0 3px",
+                      fontFamily: "sans-serif", textTransform: "uppercase", letterSpacing: "0.05em",
+                    }}>
+                      {event.date}
+                    </p>
+                  )}
+                  <p style={{
+                    fontSize: 14, fontWeight: 700, color: R.dark,
+                    margin: "0 0 4px", fontFamily: "sans-serif",
+                  }}>
+                    {event.title}
+                  </p>
+                  {event.description && (
+                    <p style={{
+                      fontSize: 13, color: "#4B5563", lineHeight: 1.65,
+                      margin: 0, fontFamily: "sans-serif",
+                    }}>
+                      {event.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </>
       )}
 

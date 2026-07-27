@@ -80,6 +80,25 @@ export function ChapterImpactScore({ data, ai }: { data: ReportData; ai: AiAnaly
           {mat}
         </span>
 
+        {/* Jauge horizontale */}
+        <div style={{ width: "100%", maxWidth: 320, marginTop: 8 }}>
+          <div style={{ height: 12, borderRadius: 6, backgroundColor: "#E2E8F0", overflow: "hidden" }}>
+            <div style={{
+              height: "100%", borderRadius: 6,
+              width: `${score}%`,
+              backgroundColor: scoreColor,
+              transition: "width 0.5s",
+            }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+            <span style={{ fontSize: 9, color: "#CBD5E1", fontFamily: "sans-serif" }}>0</span>
+            <span style={{ fontSize: 9, color: "#CBD5E1", fontFamily: "sans-serif" }}>25</span>
+            <span style={{ fontSize: 9, color: "#CBD5E1", fontFamily: "sans-serif" }}>50</span>
+            <span style={{ fontSize: 9, color: "#CBD5E1", fontFamily: "sans-serif" }}>75</span>
+            <span style={{ fontSize: 9, color: "#CBD5E1", fontFamily: "sans-serif" }}>100</span>
+          </div>
+        </div>
+
         {is_.dateRealisation != null && (
           <p style={{ fontSize: 12, color: "#94A3B8", margin: "6px 0 0", fontFamily: "sans-serif" }}>
             Date de réalisation : {String(is_.dateRealisation)}

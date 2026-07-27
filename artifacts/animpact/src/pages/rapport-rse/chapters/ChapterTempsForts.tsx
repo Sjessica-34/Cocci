@@ -3,7 +3,7 @@ import type { ReportData } from "../useReportData";
 
 export function ChapterTempsForts({ data, chapterNum }: { data: ReportData; chapterNum: number }) {
   const draft = data.draft as Record<string, unknown> | null;
-  const highlights = (draft?.highlights as Array<Record<string, string>>) ?? [];
+  const highlights = (draft?.highlights as Array<Record<string, unknown>>) ?? [];
   const commitment = draft?.engagementStatement as string | null;
   const goals      = (draft?.goals as string[]) ?? [];
 
@@ -47,43 +47,80 @@ export function ChapterTempsForts({ data, chapterNum }: { data: ReportData; chap
             Cette section présente les temps forts de l'année en matière de RSE : initiatives lancées, projets réalisés, événements auxquels l'organisation a participé, et actions emblématiques qui illustrent concrètement l'engagement de l'entreprise.
           </ExplainerText>
 
-          {/* Timeline visuelle */}
+          {/* Frise chronologique */}
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {highlights.map((h, i) => (
-              <div key={i} style={{ display: "flex", gap: 16 }}>
-                {/* Timeligne gauche */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 40 }}>
-                  <div style={{
-                    width: 20, height: 20, borderRadius: "50%",
-                    backgroundColor: R.green, border: `3px solid ${R.greenBg}`,
-                    boxShadow: `0 0 0 2px ${R.green}`,
-                    flexShrink: 0, zIndex: 1,
-                  }} />
-                  {i < highlights.length - 1 && (
-                    <div style={{ width: 2, flex: 1, backgroundColor: R.greenBorder, minHeight: 24 }} />
-                  )}
-                </div>
+            {highlights.map((h, i) => {
+              const photos = (h.photos as string[]) ?? [];
+              return (
+                <div key={i} style={{ display: "flex", gap: 16 }}>
+                  {/* Ligne de frise gauche */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 40 }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: "50%",
+                      backgroundColor: R.green, border: `3px solid ${R.greenBg}`,
+                      boxShadow: `0 0 0 2px ${R.green}`,
+                      flexShrink: 0, zIndex: 1,
+                    }} />
+                    {i < highlights.length - 1 && (
+                      <div style={{ width: 2, flex: 1, backgroundColor: R.greenBorder, minHeight: 24 }} />
+                    )}
+                  </div>
 
-                {/* Contenu */}
-                <div style={{
-                  flex: 1, padding: "2px 0 20px",
-                }}>
-                  {h.date && (
-                    <p style={{ fontSize: 11, color: R.green, fontWeight: 700, margin: "0 0 2px", fontFamily: "sans-serif", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                      {h.date}
+                  {/* Contenu */}
+                  <div style={{ flex: 1, padding: "2px 0 24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
+                      {h.date != null && h.date !== "" && (
+                        <span style={{
+                          fontSize: 11, color: R.green, fontWeight: 700,
+                          fontFamily: "sans-serif", textTransform: "uppercase", letterSpacing: "0.04em",
+                        }}>
+                          {String(h.date)}
+                        </span>
+                      )}
+                      {h.category != null && h.category !== "" && (
+                        <span style={{
+                          fontSize: 10, color: "#8b5cf6",
+                          backgroundColor: "#F5F3FF", border: "1px solid #DDD6FE",
+                          borderRadius: 4, padding: "2px 8px",
+                          fontFamily: "sans-serif",
+                        }}>
+                          {String(h.category)}
+                        </span>
+                      )}
+                    </div>
+
+                    <p style={{ fontSize: 14, fontWeight: 700, color: R.dark, margin: "0 0 4px", fontFamily: "sans-serif" }}>
+                      {String(h.title ?? "")}
                     </p>
-                  )}
-                  <p style={{ fontSize: 14, fontWeight: 700, color: R.dark, margin: "0 0 4px", fontFamily: "sans-serif" }}>
-                    {h.title}
-                  </p>
-                  {h.description && (
-                    <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, margin: 0, fontFamily: "sans-serif" }}>
-                      {h.description}
-                    </p>
-                  )}
+
+                    {h.description != null && h.description !== "" && (
+                      <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, margin: "0 0 8px", fontFamily: "sans-serif" }}>
+                        {String(h.description)}
+                      </p>
+                    )}
+
+                    {/* Photos */}
+                    {photos.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                        {photos.filter(Boolean).map((url, pi) => (
+                          <img
+                            key={pi}
+                            src={url}
+                            alt={`Photo ${pi + 1}`}
+                            style={{
+                              height: 140, width: "auto", maxWidth: "48%",
+                              borderRadius: 8, objectFit: "cover",
+                              border: "1px solid #E2E8F0",
+                            }}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

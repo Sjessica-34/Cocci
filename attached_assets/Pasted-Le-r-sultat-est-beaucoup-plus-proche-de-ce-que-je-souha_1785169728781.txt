@@ -1,0 +1,153 @@
+Le résultat est beaucoup plus proche de ce que je souhaite. En revanche, il reste plusieurs corrections importantes avant que le rapport corresponde réellement à mes attentes.
+
+Je ne souhaite pas refaire la structure du rapport. Je souhaite uniquement appliquer les corrections ci-dessous.
+
+## 1. Respect strict des textes fixes
+
+Tous les textes fixes présents dans mon document modèle doivent être repris STRICTEMENT à l'identique.
+
+Cela concerne notamment :
+
+- les textes d'introduction ;
+- les explications méthodologiques ;
+- les phrases de transition ;
+- les descriptions des indicateurs ;
+- les textes pédagogiques.
+
+Ils ne doivent jamais être reformulés.
+
+Ils ne doivent jamais être résumés.
+
+Ils ne doivent jamais être remplacés par un texte généré par l'IA.
+
+L'IA intervient uniquement pour les analyses, les comparaisons N/N-1, les synthèses, les points forts, les axes d'amélioration, les perspectives et la conclusion.
+
+## 2. Historique
+
+Je souhaite remplacer le tableau actuel par une véritable frise chronologique.
+
+Chaque événement doit afficher :
+
+- la date ou l'année ;
+- le titre ;
+- la description.
+
+La frise doit être visuelle et cohérente avec le design du rapport.
+
+## 3. Dépendances à la biodiversité
+
+Cette partie est absente.
+
+Je souhaite retrouver le chapitre complet prévu dans mon modèle.
+
+Il doit contenir :
+
+- le texte fixe d'introduction ;
+- la cartographie des dépendances à la biodiversité ;
+- la cartographie des enjeux biodiversité ;
+- l'analyse IA ;
+- les perspectives si disponibles.
+
+## 4. Numérique Responsable
+
+Je ne veux pas un simple donut.
+
+Je souhaite reprendre tout ce qui est disponible dans le module "Numérique Responsable".
+
+Le rapport doit afficher automatiquement tous les graphiques disponibles dans ce module.
+
+Par exemple :
+
+- score global ;
+- répartition par pilier ;
+- radar ;
+- histogrammes ;
+- indicateurs détaillés ;
+- évolutions N/N-1 ;
+- tableaux ;
+- tous les graphiques disponibles.
+
+Le rapport doit réutiliser directement les composants graphiques du module Numérique Responsable.
+
+## 5. Achats Responsables
+
+Le module Achats Responsables est absent.
+
+Je souhaite ajouter un chapitre complet dédié aux Achats Responsables.
+
+Il doit reprendre automatiquement toutes les données disponibles dans le module :
+
+- graphiques ;
+- tableaux ;
+- indicateurs ;
+- analyses ;
+- comparaisons N/N-1 ;
+- perspectives.
+
+## 6. Feuille de route
+
+Le rapport affiche uniquement des compteurs.
+
+Je souhaite également afficher automatiquement :
+
+- le plan d'action complet ;
+- les actions réalisées ;
+- les actions en cours ;
+- les statuts ;
+- les dates ;
+- les responsables si disponibles ;
+- les graphiques d'avancement ;
+- les analyses IA.
+
+## 7. Impact Score
+
+L'Impact Score est incomplet.
+
+Je souhaite retrouver l'ensemble des éléments disponibles dans le module Impact Score.
+
+Notamment :
+
+- le score global ;
+- la répartition par pilier ;
+- les graphiques ;
+- les indicateurs détaillés ;
+- les analyses IA ;
+- les comparaisons N/N-1 lorsque disponibles.
+
+Le rapport doit réutiliser directement les composants graphiques du module Impact Score.
+
+## 8. Temps forts
+
+Les photos ne sont pas affichées.
+
+Je souhaite que chaque temps fort affiche automatiquement :
+
+- la date ;
+- le titre ;
+- la catégorie ;
+- la description ;
+- la ou les photos enregistrées dans Cocci.
+
+Les photos doivent être réellement intégrées dans le rapport.
+
+## 9. Règle générale
+
+Le rapport ne doit jamais recréer des graphiques sous forme de tableaux lorsqu'un composant graphique existe déjà dans Cocci.
+
+Il doit réutiliser automatiquement les composants visuels des différents modules :
+
+- donuts ;
+- graphiques ;
+- radars ;
+- histogrammes ;
+- matrices ;
+- cartographies ;
+- timelines ;
+- indicateurs visuels ;
+- photos.
+
+L'objectif est que le rapport soit une compilation intelligente des différents modules de Cocci, avec les analyses IA associées, et non une simple succession de tableaux et de textes.
+
+Ne modifie pas la structure générale actuelle du rapport.
+
+Applique uniquement les corrections ci-dessus.

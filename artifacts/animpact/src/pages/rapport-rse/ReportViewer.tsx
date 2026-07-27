@@ -10,24 +10,25 @@ import { useReportData } from "./useReportData";
 import { useReportAI } from "./useReportAI";
 
 // Chapitres
-import { ChapterCover }       from "./chapters/ChapterCover";
-import { ChapterEditorial }   from "./chapters/ChapterEditorial";
-import { ChapterQuiSommesNous } from "./chapters/ChapterQuiSommesNous";
-import { ChapterDemarcheRSE } from "./chapters/ChapterDemarcheRSE";
-import { ChapterPlanete }     from "./chapters/ChapterPlanete";
-import { ChapterHumain }      from "./chapters/ChapterHumain";
-import { ChapterGouvernance } from "./chapters/ChapterGouvernance";
-import { ChapterFeuilleDeRoute } from "./chapters/ChapterFeuilleDeRoute";
-import { ChapterImpactScore } from "./chapters/ChapterImpactScore";
-import { ChapterLabels }      from "./chapters/ChapterLabels";
-import { ChapterCaptation }   from "./chapters/ChapterCaptation";
-import { ChapterTempsForts }  from "./chapters/ChapterTempsForts";
-import { ChapterPerspectives } from "./chapters/ChapterPerspectives";
-import { ChapterAnnexes }     from "./chapters/ChapterAnnexes";
+import { ChapterCover }             from "./chapters/ChapterCover";
+import { ChapterEditorial }         from "./chapters/ChapterEditorial";
+import { ChapterQuiSommesNous }     from "./chapters/ChapterQuiSommesNous";
+import { ChapterDemarcheRSE }       from "./chapters/ChapterDemarcheRSE";
+import { ChapterPlanete }           from "./chapters/ChapterPlanete";
+import { ChapterAchatsResponsables } from "./chapters/ChapterAchatsResponsables";
+import { ChapterHumain }            from "./chapters/ChapterHumain";
+import { ChapterGouvernance }       from "./chapters/ChapterGouvernance";
+import { ChapterFeuilleDeRoute }    from "./chapters/ChapterFeuilleDeRoute";
+import { ChapterImpactScore }       from "./chapters/ChapterImpactScore";
+import { ChapterLabels }            from "./chapters/ChapterLabels";
+import { ChapterCaptation }         from "./chapters/ChapterCaptation";
+import { ChapterTempsForts }        from "./chapters/ChapterTempsForts";
+import { ChapterPerspectives }      from "./chapters/ChapterPerspectives";
+import { ChapterAnnexes }           from "./chapters/ChapterAnnexes";
 
 const YEAR = new Date().getFullYear();
 
-// ─── Barre d'outils (masquée à l'impression) ─────────────────────────────────
+// ─── Barre d'outils ────────────────────────────────────────────────────────────
 
 function Toolbar() {
   return (
@@ -77,33 +78,35 @@ function Toolbar() {
   );
 }
 
-// ─── Table des matières ───────────────────────────────────────────────────────
+// ─── Table des matières ────────────────────────────────────────────────────────
 
-function TableOfContents({ hasHigh, hasCaptation, hasTempsForts }: {
-  hasHigh: boolean; hasCaptation: boolean; hasTempsForts: boolean;
+function TableOfContents({
+  hasCaptation, hasTempsForts, hasAchats,
+}: {
+  hasCaptation: boolean;
+  hasTempsForts: boolean;
+  hasAchats: boolean;
 }) {
+  let num = 1;
   const chapters = [
-    { num: 1, title: "Éditorial" },
-    { num: 2, title: "Qui sommes-nous ?" },
-    { num: 3, title: "Notre démarche RSE" },
-    { num: 4, title: "Agir pour la planète" },
-    { num: 5, title: "Placer l'humain au cœur" },
-    { num: 6, title: "Piloter une entreprise responsable" },
-    { num: 7, title: "Notre feuille de route" },
-    { num: 8, title: "Mon Impact Score" },
-    { num: 9, title: "Labels & Certifications" },
-    ...(hasCaptation ? [{ num: 10, title: "Captation carbone" }] : []),
-    ...(hasTempsForts ? [{ num: 11, title: "Temps forts & Engagements" }] : []),
-    { num: 12, title: "Perspectives & Ambitions" },
-    { num: 13, title: "Annexes & Glossaire" },
+    { num: num++, title: "Éditorial" },
+    { num: num++, title: "Qui sommes-nous ?" },
+    { num: num++, title: "Notre démarche RSE" },
+    { num: num++, title: "Agir pour la planète" },
+    ...(hasAchats ? [{ num: num++, title: "Achats responsables" }] : []),
+    { num: num++, title: "Placer l'humain au cœur" },
+    { num: num++, title: "Piloter une entreprise responsable" },
+    { num: num++, title: "Notre feuille de route" },
+    { num: num++, title: "Mon Impact Score" },
+    { num: num++, title: "Labels & Certifications" },
+    ...(hasCaptation ? [{ num: num++, title: "Captation carbone" }] : []),
+    ...(hasTempsForts ? [{ num: num++, title: "Temps forts & Engagements" }] : []),
+    { num: num++, title: "Perspectives & Ambitions" },
+    { num: num++, title: "Annexes & Glossaire" },
   ];
 
   return (
-    <div style={{
-      breakAfter: "page",
-      pageBreakAfter: "always",
-      padding: "40px 0",
-    }}>
+    <div style={{ breakAfter: "page", pageBreakAfter: "always", padding: "40px 0" }}>
       <h2 style={{
         fontSize: 22, fontWeight: 700, color: "#1C2340",
         marginBottom: 24, fontFamily: "sans-serif",
@@ -113,9 +116,7 @@ function TableOfContents({ hasHigh, hasCaptation, hasTempsForts }: {
       </h2>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {chapters.map((ch) => (
-          <div key={ch.num} style={{
-            display: "flex", alignItems: "center", gap: 10,
-          }}>
+          <div key={ch.num} style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{
               width: 28, height: 28, borderRadius: "50%",
               backgroundColor: "#1F6B3A", color: "white",
@@ -135,7 +136,7 @@ function TableOfContents({ hasHigh, hasCaptation, hasTempsForts }: {
   );
 }
 
-// ─── Loading state ────────────────────────────────────────────────────────────
+// ─── Loading ───────────────────────────────────────────────────────────────────
 
 function LoadingReport() {
   return (
@@ -156,7 +157,7 @@ function LoadingReport() {
   );
 }
 
-// ─── Composant principal ──────────────────────────────────────────────────────
+// ─── Composant principal ───────────────────────────────────────────────────────
 
 export function ReportViewer() {
   const { effectiveOrgId } = useModuleContext("group");
@@ -169,13 +170,23 @@ export function ReportViewer() {
     ((draft?.highlights as unknown[]) ?? []).length > 0 ||
     !!(draft?.engagementStatement) ||
     ((draft?.goals as unknown[]) ?? []).length > 0;
+  const hasAchats = ((data as any).suppliers as unknown[] ?? []).length > 0;
 
   // Numéros de chapitres dynamiques
-  let chapterNum = 10;
-  const captationNum    = hasCaptation ? chapterNum++ : null;
-  const tempsFortNum    = hasTempsForts ? chapterNum++ : null;
-  const perspectivesNum = chapterNum++;
-  const annexesNum      = chapterNum;
+  let chapterNum = 4; // après Planète (4)
+  if (hasAchats)    chapterNum++; // Achats = 5 si présent
+  chapterNum++; // Humain
+  chapterNum++; // Gouvernance
+  chapterNum++; // Feuille de route
+  chapterNum++; // Impact Score
+  chapterNum++; // Labels
+
+  // Chapitres optionnels après Labels
+  let floatingNum = chapterNum + 1;
+  const captationNum    = hasCaptation  ? floatingNum++ : null;
+  const tempsFortNum    = hasTempsForts ? floatingNum++ : null;
+  const perspectivesNum = floatingNum++;
+  const annexesNum      = floatingNum;
 
   if (data.isLoading) {
     return (
@@ -188,10 +199,8 @@ export function ReportViewer() {
 
   return (
     <div style={{ backgroundColor: "#FAFAFA", minHeight: "100vh" }}>
-      {/* Barre outils */}
       <Toolbar />
 
-      {/* Corps du rapport */}
       <div
         id="report-content"
         style={{
@@ -207,9 +216,9 @@ export function ReportViewer() {
 
         {/* Sommaire */}
         <TableOfContents
-          hasHigh={hasTempsForts}
           hasCaptation={hasCaptation}
           hasTempsForts={hasTempsForts}
+          hasAchats={hasAchats}
         />
 
         {/* Chapitres */}
@@ -217,6 +226,16 @@ export function ReportViewer() {
         <ChapterQuiSommesNous   data={data} />
         <ChapterDemarcheRSE     data={data} ai={ai} />
         <ChapterPlanete         data={data} ai={ai} />
+
+        {/* Achats responsables (conditionnel) */}
+        {hasAchats && (
+          <ChapterAchatsResponsables
+            data={data}
+            ai={ai}
+            chapterNum={5}
+          />
+        )}
+
         <ChapterHumain          data={data} ai={ai} />
         <ChapterGouvernance     data={data} ai={ai} />
         <ChapterFeuilleDeRoute  data={data} ai={ai} />
@@ -263,19 +282,16 @@ export function ReportViewer() {
             page-break-before: always;
           }
 
-          /* Avoid breaks inside important blocks */
           .chapter-section > div > * {
             break-inside: avoid;
             page-break-inside: avoid;
           }
 
-          /* Tables should not split mid-row */
           tr {
             break-inside: avoid;
             page-break-inside: avoid;
           }
 
-          /* Remove shadows and backgrounds that don't print well */
           * {
             box-shadow: none !important;
           }

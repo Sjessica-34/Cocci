@@ -8,6 +8,7 @@ import {
   useGetCarbonBilan,
   useGetCaptationCarbone,
   useListBioDependencies,
+  useListBioIssues,
   useGetIssues,
   useGetIssueAnalysis,
   useListStakeholders,
@@ -21,6 +22,7 @@ import {
   useGetBarometreSynthese,
   useGetNrData,
   useListOrganizations,
+  useListSuppliers,
 } from "@workspace/api-client-react";
 
 // Helper pour passer `enabled` sans avoir à importer les queryKey functions
@@ -48,6 +50,8 @@ export function useReportData(orgId: number | null) {
   const baroList     = useListBarometreCampaigns(id, q(enabled));
   const nrData       = useGetNrData(id, q(enabled));
   const orgs         = useListOrganizations(q(enabled));
+  const bioIssues    = useListBioIssues(id, q(enabled));
+  const suppliers    = useListSuppliers(id, q(enabled));
 
   // Baromètre synthèse — nécessite le premier campaign ID
   const campaignId   = baroList.data?.items?.[0]?.id ?? 0;
@@ -79,6 +83,8 @@ export function useReportData(orgId: number | null) {
     baroSynthese:  (baroSynthese.data ?? null) as Record<string, unknown> | null,
     nrData:        (nrData.data ?? null) as Record<string, unknown> | null,
     orgs:          ((orgs.data as unknown as Array<unknown>) ?? []),
+    bioIssues:     (bioIssues.data?.items ?? []) as unknown[],
+    suppliers:     (suppliers.data?.items ?? []) as unknown[],
   };
 }
 
