@@ -194,12 +194,13 @@ router.delete(
   async (req, res): Promise<void> => {
     const id = parseId(req.params.id);
 
-    // Campaign may belong to a subsidiary org — build the allowed (orgId, exerciseId) pairs
+    // Campaign may belong to a subsidiary org — build the allowed (orgId, exerciseId) pairs.
+    // Always include the current org + all subsidiaries.
     const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
-    const allowedPairs: { orgId: number; exerciseId: number }[] =
-      subExercises.length > 0
-        ? subExercises
-        : [{ orgId: req.orgId!, exerciseId: req.exercise!.id }];
+    const allowedPairs: { orgId: number; exerciseId: number }[] = [
+      { orgId: req.orgId!, exerciseId: req.exercise!.id },
+      ...subExercises,
+    ];
 
     const [campaign] = await db
       .select()
