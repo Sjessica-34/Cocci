@@ -24,7 +24,7 @@ interface ParcData {
   elecKwhYear:    number;
 }
 
-const DEFAULTS: ParcData = {
+export const DEFAULTS_NR: ParcData = {
   employees:     25,
   laptops:       20,
   desktops:      5,
@@ -60,7 +60,7 @@ function num(v: string | number) {
   return isNaN(n) ? 0 : n;
 }
 
-function useCalc(data: ParcData) {
+export function useCalc(data: ParcData) {
   return useMemo(() => {
     const reconditFactor = 1 - (data.reconditPct / 100) * 0.7; // reconditioning saves 70%
     const ageFactor = Math.min(1.5, Math.max(0.5, 5 / Math.max(1, data.lifespanYears)));
@@ -107,7 +107,7 @@ function useCalc(data: ParcData) {
 }
 
 export function TabCalculateur() {
-  const [data, setData] = useState<ParcData>(DEFAULTS);
+  const [data, setData] = useState<ParcData>(DEFAULTS_NR);
   const calc = useCalc(data);
 
   const set = (key: keyof ParcData, value: number) =>

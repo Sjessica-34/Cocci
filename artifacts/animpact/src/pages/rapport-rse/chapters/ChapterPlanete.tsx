@@ -9,7 +9,10 @@ import {
 import {
   computeScores, PILLARS, MACRO_PILLARS, maturityLabel, computeMacroPillarData,
 } from "../../numerique-responsable/data";
-import { TabCalculateur } from "../../numerique-responsable/tabs/TabCalculateur";
+import { useCalc as useCalcNr, DEFAULTS_NR } from "../../numerique-responsable/tabs/TabCalculateur";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip as RBarTooltip, ResponsiveContainer as RBR, Cell,
+} from "recharts";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
 
@@ -208,6 +211,74 @@ function NrSection({ nrRaw, ai }: {
   );
 }
 
+// ─── Synthèse mini-calculateur NR ─────────────────────────────────────────────
+
+function NrCalcSummary() {
+  const calc = useCalcNr(DEFAULTS_NR);
+  const sobColor = calc.sobriete >= 65 ? "#10b981" : calc.sobriete >= 40 ? "#f59e0b" : "#ef4444";
+  return (
+    <>
+      <SectionTitle>Numérique responsable — Empreinte estimée</SectionTitle>
+      <ExplainerText>
+        Estimation indicative de l'empreinte numérique basée sur les valeurs par défaut du parc. Modifiez les données dans le module "Ma démarche Numérique Responsable" pour affiner ces chiffres.
+      </ExplainerText>
+
+      {/* KPI cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+        {[
+          { label: "Émissions estimées", value: `${calc.eqCo2Tons} t CO₂e`, sub: "par an (indicatif)", color: "#ef4444" },
+          { label: "Par personne",        value: `${calc.eqCo2KgPerson} kg CO₂e`, sub: "par employé / an",    color: "#f97316" },
+          { label: "Parc total",          value: `${calc.totalDevices}`,           sub: "équipements",          color: "#3b82f6" },
+          { label: "Score de sobriété",   value: `${calc.sobriete}/100`,           sub: "estimation qualitative", color: sobColor },
+        ].map((k) => (
+          <div key={k.label} style={{
+            border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 8px",
+            textAlign: "center", backgroundColor: "#fff",
+          }}>
+            <p style={{ fontSize: 10, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.04em", margin: "0 0 4px", fontFamily: "sans-serif" }}>{k.label}</p>
+            <p style={{ fontSize: 18, fontWeight: 700, color: k.color, margin: "0 0 2px", fontFamily: "sans-serif" }}>{k.value}</p>
+            <p style={{ fontSize: 10, color: "#9CA3AF", margin: 0, fontFamily: "sans-serif" }}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Bar chart */}
+      <div style={{ border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 8px", backgroundColor: "#fff" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", margin: "0 0 8px 4px", fontFamily: "sans-serif" }}>
+          Répartition des émissions (t CO₂e/an)
+        </p>
+        <RBR width="100%" height={150}>
+          <BarChart data={calc.chartData} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} unit=" t" width={32} />
+            <RBarTooltip formatter={(v: number) => [`${v} t CO₂e`, ""]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              {calc.chartData.map((d, i) => <Cell key={i} fill={d.color} />)}
+            </Bar>
+          </BarChart>
+        </RBR>
+      </div>
+
+      {/* Recommandations */}
+      <div style={{
+        border: "1px solid #D1FAE5", borderRadius: 10,
+        backgroundColor: "#F0FDF4", padding: "12px 16px",
+      }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", margin: "0 0 8px", fontFamily: "sans-serif" }}>Recommandations</p>
+        {DEFAULTS_NR.reconditPct >= 20 && DEFAULTS_NR.lifespanYears >= 4 && DEFAULTS_NR.printYearly <= 5000 ? (
+          <p style={{ fontSize: 12, color: "#059669", margin: 0, fontFamily: "sans-serif" }}>✓ Les pratiques actuelles sont dans la bonne direction.</p>
+        ) : (
+          <>
+            {DEFAULTS_NR.reconditPct < 20 && <p style={{ fontSize: 12, color: "#374151", margin: "0 0 4px", fontFamily: "sans-serif" }}>→ Augmenter la part de matériel reconditionné réduirait l'impact fabrication.</p>}
+            {DEFAULTS_NR.lifespanYears < 4 && <p style={{ fontSize: 12, color: "#374151", margin: "0 0 4px", fontFamily: "sans-serif" }}>→ Allonger la durée de vie des équipements est le levier le plus efficace.</p>}
+            {DEFAULTS_NR.printYearly > 5000 && <p style={{ fontSize: 12, color: "#374151", margin: "0 0 4px", fontFamily: "sans-serif" }}>→ Volume d'impressions élevé — un plan de réduction est recommandé.</p>}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ─── Chapitre principal ────────────────────────────────────────────────────────
 
 export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses }) {
@@ -290,14 +361,8 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
       {/* Numérique Responsable — section complète */}
       <NrSection nrRaw={nrRaw} ai={ai.nr ?? null} />
 
-      {/* Mini calculateur NR — toujours affiché */}
-      <SectionTitle>Numérique responsable — Mini calculateur</SectionTitle>
-      <ExplainerText>
-        Estimez l'empreinte numérique de votre parc informatique et calculez votre score de sobriété numérique. Outil indicatif — modifiez les valeurs pour affiner l'estimation.
-      </ExplainerText>
-      <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, backgroundColor: "#fff" }}>
-        <TabCalculateur />
-      </div>
+      {/* Mini calculateur NR — synthèse uniquement */}
+      <NrCalcSummary />
 
     </ChapterWrapper>
   );
