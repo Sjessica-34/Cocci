@@ -88,6 +88,9 @@ export function BarometreSocial() {
                       setSelectedCampaignId(id);
                       setActiveTab("questionnaire");
                     }}
+                    onCampaignCreated={(id) => {
+                      setSelectedCampaignId(id);
+                    }}
                   />
                 </TabsContent>
 

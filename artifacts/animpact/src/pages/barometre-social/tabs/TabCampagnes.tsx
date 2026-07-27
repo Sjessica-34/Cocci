@@ -44,6 +44,7 @@ interface Props {
   isLoading: boolean;
   selectedCampaignId: number | null;
   onSelectCampaign: (id: number) => void;
+  onCampaignCreated: (id: number) => void;
 }
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -56,7 +57,7 @@ function publicUrl(token: string): string {
   return `${window.location.origin}/repondre/${token}`;
 }
 
-export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, onSelectCampaign }: Props) {
+export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, onSelectCampaign, onCampaignCreated }: Props) {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [qrToken, setQrToken] = useState<string | null>(null);
@@ -96,7 +97,7 @@ export function TabCampagnes({ orgId, campaigns, isLoading, selectedCampaignId, 
         setNbCollaborateurs("");
         setCustomQuestions([]);
         setNewQuestion("");
-        onSelectCampaign(campaign.id);
+        onCampaignCreated(campaign.id);
       },
     },
   });
