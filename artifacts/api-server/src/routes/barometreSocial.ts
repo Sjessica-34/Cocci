@@ -59,12 +59,16 @@ router.get(
   requireOrgMembership,
   requireExerciseScope,
   async (req, res): Promise<void> => {
-    // Consolidation: group with subsidiaries → LIST all subsidiary campaigns
+    // Consolidation: group with subsidiaries → LIST campaigns from parent + all subsidiaries
     const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
     if (subExercises.length > 0) {
+      const allSources = [
+        { orgId: req.orgId!, exerciseId: req.exercise!.id },
+        ...subExercises,
+      ];
       const allRows = (
         await Promise.all(
-          subExercises.map(({ orgId, exerciseId }) =>
+          allSources.map(({ orgId, exerciseId }) =>
             db
               .select()
               .from(barometreCampaignsTable)
