@@ -1,0 +1,102 @@
+Le rapport RSE a régressé.
+
+Le résultat actuel ne correspond pas du tout à ce que je souhaite.
+
+Je ne souhaite pas un rapport minimaliste qui se contente d'afficher les données de Cocci.
+
+Je souhaite retrouver un véritable rapport RSE, riche, illustré et agréable à lire.
+
+Le document que je joins est une MAQUETTE de ce que j'attends.
+
+Il ne faut pas le reproduire mot pour mot.
+
+Il faut en reprendre la philosophie.
+
+### Les textes explicatifs
+
+Tous les textes explicatifs présents dans la maquette doivent être conservés.
+
+Ils sont fixes.
+
+Ils expliquent les indicateurs, les diagnostics, les méthodologies et les graphiques.
+
+Ils ne doivent jamais être générés par l'IA.
+
+Dans la maquette ils sont en bleu uniquement pour que je puisse les distinguer.
+
+Dans le rapport final ils devront utiliser la charte graphique normale du document.
+
+### Les illustrations
+
+Le rapport doit rester très visuel.
+
+Je souhaite retrouver :
+
+- les donuts ;
+- les graphiques ;
+- les matrices ;
+- les cartographies ;
+- les tableaux ;
+- les chronologies ;
+- les indicateurs ;
+- les images.
+
+Les rectangles bleus présents dans la maquette représentent uniquement des emplacements d'images.
+
+Ils devront être remplacés par les vraies images disponibles dans Cocci.
+
+### Les donuts
+
+Je n'ai volontairement pas représenté tous les donuts dans cette maquette.
+
+Si je les avais tous dessinés, le document aurait fait plusieurs dizaines de pages.
+
+En revanche, le rapport final doit intégrer automatiquement TOUS les donuts disponibles dans Cocci.
+
+Pour chacun d'eux, je souhaite retrouver la même logique :
+
+• une explication fixe du thème
+
+• le donut
+
+• les données correspondantes
+
+• une analyse IA basée sur les résultats
+
+• une comparaison N/N-1 lorsque des données historiques existent
+
+• des perspectives lorsque cela est pertinent
+
+Cette logique doit être appliquée à tous les diagnostics.
+
+### L'IA
+
+Je ne souhaite pas que l'IA rédige le rapport.
+
+Le rapport est construit automatiquement avec :
+
+- les textes fixes ;
+- les données de Cocci ;
+- les graphiques ;
+- les visualisations.
+
+L'IA intervient uniquement pour analyser les résultats.
+
+Elle rédige :
+
+- l'éditorial (si demandé) ;
+- les analyses ;
+- les comparaisons N/N-1 ;
+- les synthèses ;
+- les points forts ;
+- les axes d'amélioration ;
+- les perspectives ;
+- la conclusion.
+
+Elle ne doit jamais inventer de données.
+
+### Important
+
+Je ne souhaite pas modifier la page de préparation du rapport.
+
+Je souhaite uniquement refaire la génération du rapport lui-même afin de retrouver un document beaucoup plus riche, illustré et professionnel que celui généré actuellement.

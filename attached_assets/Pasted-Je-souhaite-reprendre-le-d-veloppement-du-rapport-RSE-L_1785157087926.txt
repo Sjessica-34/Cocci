@@ -1,0 +1,155 @@
+Je souhaite reprendre le développement du rapport RSE.
+
+Le rapport actuel ne correspond plus à ce que j'attends.
+
+Je joins une maquette qui représente la structure que je souhaite retrouver.
+
+⚠️ Avant toute modification du rapport, réalise des captures d'écran de l'ensemble du rapport actuel ainsi que des interfaces associées. Ces captures serviront de référence pendant le développement afin d'éviter de perdre des fonctionnalités ou une mise en page qui fonctionne déjà.
+
+Je souhaite notamment des captures de :
+
+- la couverture ;
+- le sommaire ;
+- chaque grand chapitre ;
+- les pages contenant les donuts ;
+- les pages contenant les graphiques ;
+- les analyses IA ;
+- les annexes ;
+- l'aperçu du rapport ;
+- toutes les interfaces liées au rapport.
+
+⚠️ Je ne souhaite PAS modifier la page de préparation du rapport. Elle me convient et doit rester telle qu'elle est aujourd'hui.
+
+# La maquette
+
+Le document que je joins est uniquement une maquette.
+
+Il sert à montrer la structure attendue du rapport.
+
+Je n'ai volontairement pas représenté tous les éléments afin de garder un document lisible.
+
+Il ne faut donc pas considérer que seuls les éléments présents dans cette maquette doivent apparaître dans le rapport final.
+
+## Les textes en bleu
+
+Les textes apparaissant en bleu dans la maquette servent uniquement à identifier les contenus fixes.
+
+Ils ne devront PAS apparaître en bleu dans le rapport final.
+
+Ils devront être intégrés normalement avec la charte graphique du rapport.
+
+Ces textes correspondent aux explications pédagogiques et méthodologiques de chaque indicateur.
+
+Ils sont fixes.
+
+Ils ne doivent jamais être générés par l'IA.
+
+## Les rectangles bleus
+
+Les rectangles bleus présents dans la maquette représentent des emplacements d'images.
+
+Ils devront être remplacés automatiquement par les images réellement disponibles dans Cocci (photos, illustrations, événements, etc.).
+
+## Les donuts
+
+Je n'ai volontairement pas intégré tous les donuts dans cette maquette.
+
+Si je l'avais fait, le document serait devenu beaucoup trop long.
+
+En revanche, dans le rapport final, je souhaite que tous les donuts disponibles dans Cocci soient automatiquement intégrés.
+
+Pour chacun d'eux, je souhaite retrouver exactement la même logique :
+
+- le graphique (donut) ;
+- les données automatiques ;
+- un texte fixe expliquant l'indicateur ;
+- une analyse IA des résultats ;
+- une comparaison N / N-1 lorsqu'elle existe ;
+- des perspectives lorsque cela est pertinent.
+
+Cette logique doit être appliquée à tous les diagnostics du rapport.
+
+## Contenus automatiques
+
+Tous les éléments provenant de Cocci doivent être insérés automatiquement :
+
+- graphiques ;
+- donuts ;
+- tableaux ;
+- cartographies ;
+- matrices ;
+- chiffres clés ;
+- indicateurs ;
+- listes ;
+- données de l'entreprise ;
+- historique ;
+- labels ;
+- feuilles de route ;
+- Impact Score ;
+- Numérique Responsable ;
+- captation carbone ;
+- etc.
+
+## Rôle de l'IA
+
+Je ne souhaite pas que l'IA rédige le rapport.
+
+Le rapport doit être composé principalement :
+
+- des données de Cocci ;
+- des textes fixes ;
+- des graphiques et visualisations.
+
+L'IA intervient uniquement pour :
+
+- rédiger l'éditorial (si demandé) ;
+- analyser les résultats présentés ;
+- réaliser les comparaisons N / N-1 ;
+- rédiger les synthèses ;
+- mettre en avant les points forts ;
+- identifier les axes d'amélioration ;
+- rédiger les perspectives ;
+- rédiger la conclusion.
+
+L'IA ne doit jamais inventer des données.
+
+Elle doit uniquement analyser les informations présentes dans Cocci.
+
+## Génération du rapport
+
+Un rapport ne doit être généré qu'une seule fois.
+
+Lors de cette première génération :
+
+- toutes les données sont figées ;
+- les analyses IA sont générées ;
+- le rapport est enregistré.
+
+Par la suite, l'utilisateur doit pouvoir :
+
+- consulter le rapport ;
+- télécharger le PDF ;
+- télécharger le DOCX.
+
+Ces actions ne doivent jamais relancer l'IA.
+
+## Nouvelles versions
+
+Si l'utilisateur souhaite générer un nouveau rapport, une nouvelle version doit être créée (V2, V3, etc.).
+
+Les anciennes versions doivent être conservées.
+
+Aucune version ne doit être écrasée.
+
+## Administration
+
+À chaque nouvelle génération d'un rapport, je souhaite recevoir une alerte dans mon espace Administrateur.
+
+Je souhaite pouvoir consulter :
+
+- l'entreprise concernée ;
+- la date de génération ;
+- le numéro de version ;
+- l'utilisateur ayant lancé la génération.
+
+L'objectif est de conserver un historique des générations et de maîtriser la consommation de l'IA.
