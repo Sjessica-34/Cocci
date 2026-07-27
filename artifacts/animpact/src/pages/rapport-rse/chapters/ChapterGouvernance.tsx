@@ -1,5 +1,5 @@
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, ScoreDonut, AxisDonutReport,
+  ChapterWrapper, SectionTitle, ExplainerText, EditableAiBlock, ScoreDonut, AxisDonutReport,
 } from "./_shared";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
@@ -46,7 +46,7 @@ export function ChapterGouvernance({ data, ai }: { data: ReportData; ai: AiAnaly
             ))}
           </div>
 
-          <AiBlock text={ai.diag_gov ?? null} label="Analyse du diagnostic de gouvernance" />
+          <EditableAiBlock id="diag_gov" text={ai.diag_gov ?? null} label="Analyse du diagnostic de gouvernance" />
         </>
       )}
 

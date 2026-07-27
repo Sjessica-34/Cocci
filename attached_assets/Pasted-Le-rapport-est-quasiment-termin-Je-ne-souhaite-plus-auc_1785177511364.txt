@@ -1,0 +1,89 @@
+Le rapport est quasiment terminé. Je ne souhaite plus aucune évolution fonctionnelle ni de nouvelle mise en page.
+
+Il reste uniquement quelques corrections avant validation.
+
+1. Dépendances à la biodiversité
+
+Cette partie n'est toujours pas conforme au module.
+
+Je souhaite reprendre exactement les composants présents dans le module "Dépendances à la biodiversité".
+
+Il manque encore :
+
+- la cartographie des dépendances ;
+- la cartographie des enjeux biodiversité.
+
+Je ne souhaite pas de remplacement par des tableaux ou des versions simplifiées.
+
+Le rapport doit réutiliser exactement les mêmes composants graphiques que ceux affichés dans le module.
+
+2. Édition du rapport
+
+La fonction d'édition ne fonctionne pas partout.
+
+Toutes les analyses générées par l'IA doivent être modifiables directement dans Cocci.
+
+Cela comprend notamment :
+
+- les analyses de chaque chapitre ;
+- les comparaisons N/N-1 ;
+- les points forts ;
+- les axes d'amélioration ;
+- les perspectives ;
+- la conclusion ;
+- tous les autres textes générés par l'IA.
+
+À l'inverse, les textes fixes du rapport ne doivent pas être modifiables.
+
+3. Calculateur Numérique Responsable
+
+Le calculateur n'est pas conforme.
+
+Je ne souhaite pas afficher un calculateur interactif.
+
+Je souhaite simplement afficher une image (ou une capture du composant) représentant les résultats du calculateur, exactement comme ils apparaissent dans le module Numérique Responsable.
+
+Cette image ne doit pas être modifiable.
+
+4. Temps forts
+
+Les photos ne remontent toujours pas.
+
+Chaque temps fort doit afficher automatiquement :
+
+- la date ;
+- le titre ;
+- la description ;
+- les photos associées.
+
+Les photos sont obligatoires lorsqu'elles existent.
+
+5. Baromètre social
+
+Le chapitre Baromètre social est toujours absent.
+
+Je souhaite intégrer automatiquement les données du module :
+
+- graphiques ;
+- indicateurs ;
+- résultats ;
+- analyses IA ;
+- comparaisons N/N-1.
+
+Comme pour les autres chapitres, le rapport doit réutiliser les composants déjà présents dans le module.
+
+6. Mise en forme
+
+Merci de supprimer tous les titres de type :
+
+###
+
+Ils ne doivent plus apparaître dans le rapport.
+
+Utiliser uniquement la mise en forme normale du document.
+
+Nous sommes dans la phase finale.
+
+Je ne souhaite plus modifier l'architecture du rapport.
+
+Je souhaite uniquement corriger ces derniers écarts afin que le rapport reprenne fidèlement l'ensemble des composants existants dans Cocci et soit conforme au document modèle.

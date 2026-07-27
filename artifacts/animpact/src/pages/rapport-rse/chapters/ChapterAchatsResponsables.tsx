@@ -3,7 +3,7 @@
  * du module Achats Responsables.
  */
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, KpiGrid, R, ReportTable,
+  ChapterWrapper, SectionTitle, ExplainerText, EditableAiBlock, KpiGrid, R, ReportTable,
 } from "./_shared";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -199,7 +199,7 @@ export function ChapterAchatsResponsables({
         </>
       )}
 
-      <AiBlock text={(ai as any).suppliers ?? null} label="Analyse des achats responsables" />
+      <EditableAiBlock id="suppliers" text={(ai as any).suppliers ?? null} label="Analyse des achats responsables" />
     </ChapterWrapper>
   );
 }

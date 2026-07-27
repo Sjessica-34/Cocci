@@ -1,5 +1,5 @@
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, ReportTable, R, KpiGrid,
+  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, EditableAiBlock, ReportTable, R, KpiGrid,
 } from "./_shared";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -86,92 +86,154 @@ function MatriceStatique({ issues, top12Keys }: {
   );
 }
 
-// ─── Cartographie des enjeux biodiversité (SVG statique 5×5) ──────────────────
+// ─── Cartographie des enjeux biodiversité (3 panneaux Amont/In situ/Aval) ───────
 
-const BIO_SVG_W = 420, BIO_SVG_H = 360;
-const BPAD = { top: 25, right: 20, bottom: 48, left: 48 };
-const BPW  = BIO_SVG_W - BPAD.left - BPAD.right;
-const BPH  = BIO_SVG_H - BPAD.top - BPAD.bottom;
-function bpx(v: number) { return BPAD.left + ((v - 1) / 4) * BPW; }
-function bpy(v: number) { return BPAD.top  + BPH - ((v - 1) / 4) * BPH; }
-
-const CHAIN_COLORS: Record<string, string> = {
-  "amont": "#3b82f6", "in-situ": "#10b981", "aval": "#8b5cf6",
-};
 const CHAIN_LABELS: Record<string, string> = {
   "amont": "Amont", "in-situ": "In situ", "aval": "Aval",
 };
 
-function BioIssuesMatrix({ issues }: { issues: Array<Record<string, unknown>> }) {
+const BIO_CHAIN_CFG: Record<string, { label: string; subtitle: string; icon: string; color: string }> = {
+  "amont":   { label: "AMONT",   subtitle: "Fournisseurs et partenaires",  icon: "🏭", color: "#0284c7" },
+  "in-situ": { label: "IN SITU", subtitle: "Sites et opérations directes", icon: "🌿", color: "#16a34a" },
+  "aval":    { label: "AVAL",    subtitle: "Clients et fin de vie",         icon: "📦", color: "#7c3aed" },
+};
+
+function bioCellBg(x: number, y: number): string {
+  const s = (x + y) / 2;
+  if (s >= 4) return "#fee2e2";
+  if (s >= 3) return "#ffedd5";
+  if (s >= 2) return "#fef9c3";
+  return "#dcfce7";
+}
+
+function bioMatLabel(bio: number | null, org: number | null): { color: string; bg: string; border: string } {
+  if (!bio || !org) return { color: "#94a3b8", bg: "#f8fafc", border: "#e2e8f0" };
+  const s = (bio + org) / 2;
+  if (s >= 4) return { color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" };
+  if (s >= 3) return { color: "#ea580c", bg: "#fff7ed", border: "#fdba74" };
+  if (s >= 2) return { color: "#ca8a04", bg: "#fefce8", border: "#fde047" };
+  return { color: "#16a34a", bg: "#dcfce7", border: "#86efac" };
+}
+
+function BioMatrixReport({ issues }: { issues: Array<Record<string, unknown>> }) {
   const rated = issues.filter(i => i.importanceBio != null && i.importanceOrg != null);
   if (rated.length === 0) return null;
 
-  const chains = [...new Set(rated.map(i => i.chainPosition as string).filter(Boolean))];
+  const issueNum = (id: unknown) => issues.findIndex(i => i.id === id) + 1;
+  const positions = ["amont", "in-situ", "aval"] as const;
 
   return (
-    <div>
-      <svg viewBox={`0 0 ${BIO_SVG_W} ${BIO_SVG_H}`} width="100%" style={{ maxHeight: 360, display: "block" }}>
-        {/* Quadrant backgrounds */}
-        <rect x={BPAD.left} y={BPAD.top} width={BPW / 2} height={BPH / 2} fill="#f0fdf4" opacity={0.6} />
-        <rect x={BPAD.left + BPW / 2} y={BPAD.top} width={BPW / 2} height={BPH / 2} fill="#fef2f2" opacity={0.6} />
-        <rect x={BPAD.left} y={BPAD.top + BPH / 2} width={BPW / 2} height={BPH / 2} fill="#f8fafc" opacity={0.6} />
-        <rect x={BPAD.left + BPW / 2} y={BPAD.top + BPH / 2} width={BPW / 2} height={BPH / 2} fill="#fff7ed" opacity={0.6} />
+    <>
+      <div style={{ display: "flex", gap: 8 }}>
+        {positions.map(pos => {
+          const cfg = BIO_CHAIN_CFG[pos];
+          const posIssues = rated.filter(i => (i.chainPosition as string) === pos);
 
-        {/* Quadrant labels */}
-        <text x={BPAD.left + 5} y={BPAD.top + 13} fontSize={7.5} fill="#94a3b8">Faible</text>
-        <text x={BPAD.left + BPW / 2 + 5} y={BPAD.top + 13} fontSize={7.5} fill="#dc2626">Critique</text>
-        <text x={BPAD.left + BPW / 2 + 5} y={BPAD.top + BPH - 5} fontSize={7.5} fill="#ea580c">À surveiller</text>
+          const cellMap = new Map<string, Array<Record<string, unknown>>>();
+          for (const iss of posIssues) {
+            const key = `${iss.importanceBio}-${iss.importanceOrg}`;
+            cellMap.set(key, [...(cellMap.get(key) ?? []), iss]);
+          }
 
-        {/* Grid */}
-        {[1, 2, 3, 4, 5].map((v) => (
-          <g key={v}>
-            <line x1={bpx(v)} y1={BPAD.top} x2={bpx(v)} y2={BPAD.top + BPH} stroke="#e2e8f0" strokeWidth={0.5} />
-            <line x1={BPAD.left} y1={bpy(v)} x2={BPAD.left + BPW} y2={bpy(v)} stroke="#e2e8f0" strokeWidth={0.5} />
-            <text x={bpx(v)} y={BPAD.top + BPH + 13} textAnchor="middle" fontSize={8.5} fill="#94a3b8">{v}</text>
-            <text x={BPAD.left - 8} y={bpy(v)} textAnchor="middle" dominantBaseline="middle" fontSize={8.5} fill="#94a3b8">{v}</text>
-          </g>
-        ))}
-        <line x1={bpx(3)} y1={BPAD.top} x2={bpx(3)} y2={BPAD.top + BPH} stroke="#cbd5e1" strokeWidth={1.5} />
-        <line x1={BPAD.left} y1={bpy(3)} x2={BPAD.left + BPW} y2={bpy(3)} stroke="#cbd5e1" strokeWidth={1.5} />
-
-        {/* Axis labels */}
-        <text x={BPAD.left + BPW / 2} y={BIO_SVG_H - 6} textAnchor="middle" fontSize={9.5} fill="#475569" fontWeight={600}>
-          Importance pour la biodiversité →
-        </text>
-        <text x={12} y={BPAD.top + BPH / 2} textAnchor="middle" dominantBaseline="middle" fontSize={9.5} fill="#475569" fontWeight={600}
-          transform={`rotate(-90, 12, ${BPAD.top + BPH / 2})`}>
-          Importance pour l'organisation →
-        </text>
-
-        {/* Points */}
-        {rated.map((iss, idx) => {
-          const cx = bpx(iss.importanceBio as number);
-          const cy = bpy(iss.importanceOrg as number);
-          const color = CHAIN_COLORS[iss.chainPosition as string] ?? "#94a3b8";
-          const isCritical = (iss.importanceBio as number) >= 3 && (iss.importanceOrg as number) >= 3;
           return (
-            <g key={idx}>
-              {isCritical && <circle cx={cx} cy={cy} r={13} fill="none" stroke={color} strokeWidth={1.5} opacity={0.5} />}
-              <circle cx={cx} cy={cy} r={isCritical ? 7 : 5} fill={color} opacity={0.8} />
-            </g>
+            <div key={pos} style={{
+              flex: 1, minWidth: 0, backgroundColor: "white",
+              borderRadius: 10, border: "1px solid #E2E8F0",
+            }}>
+              {/* Header */}
+              <div style={{
+                padding: "7px 10px 6px", borderBottom: "1px solid #F1F5F9", textAlign: "center",
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: cfg.color, letterSpacing: "0.07em", fontFamily: "sans-serif" }}>
+                  {cfg.icon} {cfg.label}
+                </div>
+                <div style={{ fontSize: 8, color: "#94a3b8", marginTop: 1, fontFamily: "sans-serif" }}>{cfg.subtitle}</div>
+              </div>
+              {/* Grid */}
+              <div style={{ padding: 7 }}>
+                <div style={{ display: "flex", gap: 2, alignItems: "stretch" }}>
+                  {/* Y-axis */}
+                  <div style={{
+                    flexShrink: 0, fontSize: 7, color: "#94a3b8", fontFamily: "sans-serif",
+                    writingMode: "vertical-rl", transform: "rotate(180deg)",
+                    display: "flex", alignItems: "center", justifyContent: "center", minHeight: 120,
+                  }}>
+                    Importance org.
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    {[5, 4, 3, 2, 1].map(y => (
+                      <div key={y} style={{ display: "flex", gap: 1.5, marginBottom: 1.5 }}>
+                        <div style={{
+                          width: 9, fontSize: 7, color: "#94a3b8", fontFamily: "sans-serif",
+                          display: "flex", alignItems: "center", justifyContent: "flex-end",
+                          paddingRight: 1, flexShrink: 0,
+                        }}>{y}</div>
+                        {[1, 2, 3, 4, 5].map(x => {
+                          const cellIssues = cellMap.get(`${x}-${y}`) ?? [];
+                          return (
+                            <div key={x} style={{
+                              flex: 1, borderRadius: 2,
+                              backgroundColor: bioCellBg(x, y), minHeight: 26,
+                              display: "flex", flexWrap: "wrap",
+                              alignItems: "center", justifyContent: "center", gap: 1.5, padding: 1.5,
+                            }}>
+                              {cellIssues.map(iss => {
+                                const ml = bioMatLabel(iss.importanceBio as number, iss.importanceOrg as number);
+                                return (
+                                  <div key={String(iss.id)} style={{
+                                    width: 16, height: 16, borderRadius: "50%",
+                                    fontSize: 7, fontWeight: 700,
+                                    border: `1.5px solid ${ml.border}`,
+                                    backgroundColor: ml.bg, color: ml.color,
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontFamily: "sans-serif",
+                                  }}>
+                                    {issueNum(iss.id)}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                    {/* X-axis */}
+                    <div style={{ display: "flex", gap: 1.5, marginTop: 2, marginLeft: 11 }}>
+                      {[1, 2, 3, 4, 5].map(x => (
+                        <div key={x} style={{ flex: 1, textAlign: "center", fontSize: 7, color: "#94a3b8", fontFamily: "sans-serif" }}>{x}</div>
+                      ))}
+                    </div>
+                    <div style={{ textAlign: "center", fontSize: 7, color: "#94a3b8", marginTop: 1, fontFamily: "sans-serif" }}>
+                      Impact biodiversité
+                    </div>
+                  </div>
+                </div>
+                {posIssues.length === 0 && (
+                  <p style={{ textAlign: "center", fontSize: 9, color: "#94a3b8", margin: "6px 0 2px", fontFamily: "sans-serif" }}>
+                    Aucun enjeu positionné
+                  </p>
+                )}
+              </div>
+            </div>
           );
         })}
-      </svg>
-
+      </div>
       {/* Légende */}
-      {chains.length > 0 && (
-        <div style={{ display: "flex", gap: 16, marginTop: 6, flexWrap: "wrap" }}>
-          {chains.map(c => (
-            <div key={c} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: CHAIN_COLORS[c] ?? "#94a3b8" }} />
-              <span style={{ fontSize: 10, color: "#64748b", fontFamily: "sans-serif" }}>
-                {CHAIN_LABELS[c] ?? c}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 6 }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: "#64748b", fontFamily: "sans-serif" }}>Matérialité :</span>
+        {[
+          { label: "Faible (1-2)",    color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+          { label: "Modéré (2-3)",    color: "#ca8a04", bg: "#fef9c3", border: "#fde047" },
+          { label: "Important (3-4)", color: "#ea580c", bg: "#ffedd5", border: "#fdba74" },
+          { label: "Critique (4-5)",  color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+        ].map(l => (
+          <span key={l.label} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: l.color, fontFamily: "sans-serif" }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, display: "inline-block", border: `1px solid ${l.border}`, backgroundColor: l.bg }} />
+            {l.label}
+          </span>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -370,7 +432,7 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
             ])}
             widths={["35%", "30%", "17%", "18%"]}
           />
-          <AiBlock text={ai.stakeholders ?? null} label="Analyse des parties prenantes" />
+          <EditableAiBlock id="stakeholders" text={ai.stakeholders ?? null} label="Analyse des parties prenantes" />
         </>
       )}
 
@@ -419,7 +481,7 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
         </div>
       )}
 
-      <AiBlock text={ai.materiality ?? null} label="Analyse des enjeux prioritaires" />
+      <EditableAiBlock id="materiality" text={ai.materiality ?? null} label="Analyse des enjeux prioritaires" />
 
       {/* ── BIODIVERSITÉ ──────────────────────────────────────────────────────── */}
       {bioDeps.length > 0 && (
@@ -519,7 +581,7 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
             Les enjeux identifiés sont présentés ci-dessous selon leur niveau de priorité et leur position au sein de la chaîne de valeur.
           </p>
 
-          <BioIssuesMatrix issues={bioIssues} />
+          <BioMatrixReport issues={bioIssues} />
 
           {/* Liste des enjeux critiques */}
           {bioIssues.filter(i => (i.importanceBio as number ?? 0) >= 3 && (i.importanceOrg as number ?? 0) >= 3).length > 0 && (
@@ -571,7 +633,7 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
       )}
 
       {(bioDeps.length > 0 || bioIssues.length > 0) && (
-        <AiBlock text={ai.biodiversity ?? null} label="Analyse des dépendances à la biodiversité" />
+        <EditableAiBlock id="biodiversity" text={ai.biodiversity ?? null} label="Analyse des dépendances à la biodiversité" />
       )}
     </ChapterWrapper>
   );

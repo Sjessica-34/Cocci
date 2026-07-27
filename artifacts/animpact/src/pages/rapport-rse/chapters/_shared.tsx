@@ -139,6 +139,17 @@ export function ExplainerText({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── Nettoyage du texte IA (suppression du markdown ### ** * etc.) ─────────────
+
+function cleanAiText(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+/gm, "")         // ### Titre → retrait du préfixe
+    .replace(/\*\*(.*?)\*\*/gs, "$1")    // **gras** → texte
+    .replace(/\*([^*\n]+)\*/g, "$1")     // *italique* → texte
+    .replace(/`([^`]+)`/g, "$1")         // `code` → texte
+    .trim();
+}
+
 // ─── Bloc IA ──────────────────────────────────────────────────────────────────
 
 export function AiBlock({ text, label = "Analyse" }: { text: string | null; label?: string }) {
@@ -162,7 +173,7 @@ export function AiBlock({ text, label = "Analyse" }: { text: string | null; labe
         fontSize: 13, color: "#1E3A2F", lineHeight: 1.65,
         margin: 0, fontStyle: "italic", fontFamily: "sans-serif",
       }}>
-        {text}
+        {cleanAiText(text)}
       </p>
     </div>
   );
@@ -499,7 +510,7 @@ export function EditableAiBlock({
         fontSize: 13, color: "#1E3A2F", lineHeight: 1.65,
         margin: 0, fontStyle: "italic", fontFamily: "sans-serif",
       }}>
-        {value}
+        {cleanAiText(value)}
       </p>
     </div>
   );

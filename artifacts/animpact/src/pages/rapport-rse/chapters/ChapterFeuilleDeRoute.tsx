@@ -1,5 +1,5 @@
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, KpiGrid, R,
+  ChapterWrapper, SectionTitle, ExplainerText, EditableAiBlock, KpiGrid, R,
 } from "./_shared";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -677,7 +677,7 @@ export function ChapterFeuilleDeRoute({ data, ai }: { data: ReportData; ai: AiAn
 
       {/* ── Analyse IA ────────────────────────────────────────────────────── */}
       {!isEmpty && (
-        <AiBlock text={ai.actions ?? null} label="Analyse du plan d'actions RSE" />
+        <EditableAiBlock id="actions" text={ai.actions ?? null} label="Analyse du plan d'actions RSE" />
       )}
     </ChapterWrapper>
   );

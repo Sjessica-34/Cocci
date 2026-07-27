@@ -171,7 +171,7 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
       <EditableAiBlock id="workforce" text={ai.workforce ?? null} label="Analyse du capital humain &amp; social" />
 
       {/* ── BAROMÈTRE SOCIAL ──────────────────────────────────────────────── */}
-      {baro && (baro.nbRepondants as number ?? 0) > 0 && (
+      {baro != null && (
         <>
           <SectionTitle>Baromètre Social</SectionTitle>
           <ExplainerText>

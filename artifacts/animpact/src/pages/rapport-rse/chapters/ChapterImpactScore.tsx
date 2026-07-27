@@ -1,5 +1,5 @@
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, KpiGrid, R,
+  ChapterWrapper, SectionTitle, ExplainerText, EditableAiBlock, KpiGrid, R,
   SCORE_COLOR, SCORE_BG, MATURITY_LABEL,
 } from "./_shared";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
@@ -138,7 +138,7 @@ export function ChapterImpactScore({ data, ai }: { data: ReportData; ai: AiAnaly
         </p>
       )}
 
-      <AiBlock text={ai.impact ?? null} label="Analyse de l'Impact Score" />
+      <EditableAiBlock id="impact" text={ai.impact ?? null} label="Analyse de l'Impact Score" />
     </ChapterWrapper>
   );
 }

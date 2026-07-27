@@ -1,5 +1,5 @@
 import {
-  ChapterWrapper, SectionTitle, ExplainerText, AiBlock, KpiGrid, NoteBox, R,
+  ChapterWrapper, SectionTitle, ExplainerText, EditableAiBlock, KpiGrid, NoteBox, R,
 } from "./_shared";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
@@ -96,7 +96,7 @@ export function ChapterCaptation({ data, ai }: { data: ReportData; ai: AiAnalyse
             Note méthodologique : Les valeurs présentées sont des estimations calculées à partir des données renseignées dans la plateforme Cocci et de références scientifiques disponibles. Elles ont une vocation informative et d'aide au pilotage et ne constituent pas une mesure certifiée de séquestration carbone.
           </NoteBox>
 
-          <AiBlock text={ai.captation ?? null} label="Analyse de la captation carbone" />
+          <EditableAiBlock id="captation" text={ai.captation ?? null} label="Analyse de la captation carbone" />
         </>
       )}
     </ChapterWrapper>

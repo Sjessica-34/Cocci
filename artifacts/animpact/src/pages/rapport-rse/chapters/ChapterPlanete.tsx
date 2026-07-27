@@ -9,7 +9,6 @@ import {
 import {
   computeScores, PILLARS, MACRO_PILLARS, maturityLabel, computeMacroPillarData,
 } from "../../numerique-responsable/data";
-import { TabCalculateur } from "../../numerique-responsable/tabs/TabCalculateur";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
 
@@ -180,17 +179,6 @@ function NrSection({ nrRaw, ai }: {
 
       <EditableAiBlock id="nr" text={ai} label="Analyse Numérique Responsable" />
 
-      {/* ── Calculateur NR ─────────────────────────────────────────────────── */}
-      <SectionTitle>Calculateur Numérique Responsable</SectionTitle>
-      <ExplainerText>
-        Le calculateur Numérique Responsable fournit une estimation de l'empreinte environnementale du parc numérique de l'organisation à partir des informations renseignées dans la plateforme. Les résultats présentés permettent d'identifier les principales sources d'émissions et de disposer d'indicateurs d'aide à la décision pour orienter les actions de réduction de l'impact du numérique.
-      </ExplainerText>
-      <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, fontFamily: "sans-serif" }}>
-        Les indicateurs estimés du parc numérique et de son impact environnemental sont présentés ci-dessous.
-      </p>
-      <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: 16 }}>
-        <TabCalculateur />
-      </div>
     </>
   );
 }
