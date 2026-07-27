@@ -7,7 +7,8 @@ import {
   resourcesTable,
   subscriptionsTable,
 } from "@workspace/db";
-import { eq, desc, count, max, and, isNull, isNotNull, sql } from "drizzle-orm";
+import { cocciFeedbackTable, cocciRatingsTable } from "@workspace/db";
+import { eq, desc, count, max, and, isNull, isNotNull, sql, avg } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
 
@@ -807,6 +808,171 @@ router.patch("/admin/users/:id/superadmin", async (req, res): Promise<void> => {
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   res.json(updated);
+});
+
+// ─── GET /admin/echanges/feedback ────────────────────────────────────────────
+router.get("/admin/echanges/feedback", async (req, res) => {
+  const rows = await db
+    .select({
+      id: cocciFeedbackTable.id,
+      organizationId: cocciFeedbackTable.organizationId,
+      organizationName: organizationsTable.name,
+      userId: cocciFeedbackTable.userId,
+      userFirstName: usersTable.firstName,
+      userLastName: usersTable.lastName,
+      userEmail: usersTable.email,
+      subject: cocciFeedbackTable.subject,
+      requestType: cocciFeedbackTable.requestType,
+      message: cocciFeedbackTable.message,
+      attachmentUrl: cocciFeedbackTable.attachmentUrl,
+      wantsCallback: cocciFeedbackTable.wantsCallback,
+      status: cocciFeedbackTable.status,
+      history: cocciFeedbackTable.history,
+      createdAt: cocciFeedbackTable.createdAt,
+      updatedAt: cocciFeedbackTable.updatedAt,
+    })
+    .from(cocciFeedbackTable)
+    .innerJoin(organizationsTable, eq(cocciFeedbackTable.organizationId, organizationsTable.id))
+    .innerJoin(usersTable, eq(cocciFeedbackTable.userId, usersTable.id))
+    .orderBy(desc(cocciFeedbackTable.createdAt));
+
+  res.json(rows.map((r) => ({
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  })));
+});
+
+// ─── PATCH /admin/echanges/feedback/:id ──────────────────────────────────────
+router.patch("/admin/echanges/feedback/:id", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = Number(rawId);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const { status, note } = req.body as Record<string, unknown>;
+  if (!status || typeof status !== "string") {
+    res.status(400).json({ error: "status requis" });
+    return;
+  }
+
+  const VALID_STATUSES = ["nouveau", "en_cours", "traite", "ferme"];
+  if (!VALID_STATUSES.includes(status)) {
+    res.status(400).json({ error: "Statut invalide" });
+    return;
+  }
+
+  const [existing] = await db
+    .select({ history: cocciFeedbackTable.history })
+    .from(cocciFeedbackTable)
+    .where(eq(cocciFeedbackTable.id, id));
+
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+  const historyEntry: Record<string, unknown> = {
+    date: new Date().toISOString(),
+    status,
+  };
+  if (typeof note === "string" && note.trim()) historyEntry.note = note.trim();
+
+  const newHistory = [
+    ...((existing.history as unknown[]) ?? []),
+    historyEntry,
+  ];
+
+  const [updated] = await db
+    .update(cocciFeedbackTable)
+    .set({ status, history: newHistory, updatedAt: new Date() })
+    .where(eq(cocciFeedbackTable.id, id))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Return enriched row
+  const [enriched] = await db
+    .select({
+      id: cocciFeedbackTable.id,
+      organizationId: cocciFeedbackTable.organizationId,
+      organizationName: organizationsTable.name,
+      userId: cocciFeedbackTable.userId,
+      userFirstName: usersTable.firstName,
+      userLastName: usersTable.lastName,
+      userEmail: usersTable.email,
+      subject: cocciFeedbackTable.subject,
+      requestType: cocciFeedbackTable.requestType,
+      message: cocciFeedbackTable.message,
+      attachmentUrl: cocciFeedbackTable.attachmentUrl,
+      wantsCallback: cocciFeedbackTable.wantsCallback,
+      status: cocciFeedbackTable.status,
+      history: cocciFeedbackTable.history,
+      createdAt: cocciFeedbackTable.createdAt,
+      updatedAt: cocciFeedbackTable.updatedAt,
+    })
+    .from(cocciFeedbackTable)
+    .innerJoin(organizationsTable, eq(cocciFeedbackTable.organizationId, organizationsTable.id))
+    .innerJoin(usersTable, eq(cocciFeedbackTable.userId, usersTable.id))
+    .where(eq(cocciFeedbackTable.id, id));
+
+  res.json({
+    ...enriched,
+    createdAt: enriched.createdAt.toISOString(),
+    updatedAt: enriched.updatedAt.toISOString(),
+  });
+});
+
+// ─── GET /admin/echanges/ratings ─────────────────────────────────────────────
+router.get("/admin/echanges/ratings", async (req, res) => {
+  const rows = await db
+    .select({
+      id: cocciRatingsTable.id,
+      organizationId: cocciRatingsTable.organizationId,
+      organizationName: organizationsTable.name,
+      userId: cocciRatingsTable.userId,
+      userFirstName: usersTable.firstName,
+      userLastName: usersTable.lastName,
+      userEmail: usersTable.email,
+      stars: cocciRatingsTable.stars,
+      comment: cocciRatingsTable.comment,
+      createdAt: cocciRatingsTable.createdAt,
+    })
+    .from(cocciRatingsTable)
+    .innerJoin(organizationsTable, eq(cocciRatingsTable.organizationId, organizationsTable.id))
+    .innerJoin(usersTable, eq(cocciRatingsTable.userId, usersTable.id))
+    .orderBy(desc(cocciRatingsTable.createdAt));
+
+  res.json(rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })));
+});
+
+// ─── GET /admin/echanges/stats ────────────────────────────────────────────────
+router.get("/admin/echanges/stats", async (req, res) => {
+  const [ratingStats] = await db
+    .select({
+      total: count(),
+      average: avg(cocciRatingsTable.stars),
+    })
+    .from(cocciRatingsTable);
+
+  const dist = await db
+    .select({ stars: cocciRatingsTable.stars, cnt: count() })
+    .from(cocciRatingsTable)
+    .groupBy(cocciRatingsTable.stars);
+
+  const distribution: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+  for (const d of dist) {
+    distribution[String(d.stars)] = Number(d.cnt);
+  }
+
+  const [newFeedback] = await db
+    .select({ cnt: count() })
+    .from(cocciFeedbackTable)
+    .where(eq(cocciFeedbackTable.status, "nouveau"));
+
+  res.json({
+    totalRatings: Number(ratingStats?.total ?? 0),
+    averageStars: ratingStats?.average ? Math.round(Number(ratingStats.average) * 10) / 10 : 0,
+    distribution,
+    newFeedbackCount: Number(newFeedback?.cnt ?? 0),
+    newRatingCount: 0, // ratings are always "new" since they have no status
+  });
 });
 
 export default router;

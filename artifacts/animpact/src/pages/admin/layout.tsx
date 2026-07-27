@@ -17,11 +17,14 @@ import {
   Check,
   ArrowLeft,
   BookOpen,
+  MessageSquare,
 } from "lucide-react";
 import { useUser, useClerk } from "@clerk/react";
 import {
   useListAdminOrganizations,
   getListAdminOrganizationsQueryKey,
+  useGetAdminEchangesStats,
+  getAdminEchangesStatsQueryKey,
 } from "@workspace/api-client-react";
 import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
 import { setAdminViewOrg } from "@/hooks/useAdminView";
@@ -43,6 +46,7 @@ const NAV_ITEMS = [
   { href: "/admin/organizations", label: "Organisations", icon: Building2, exact: false },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, exact: false },
   { href: "/admin/resources", label: "Bibliothèque globale", icon: BookOpen, exact: false },
+  { href: "/admin/echanges", label: "Échanges avec Cocci", icon: MessageSquare, exact: false },
   { href: null, label: "Factures", icon: CreditCard },
   { href: null, label: "Abonnements", icon: Receipt },
   { href: null, label: "Analytics", icon: BarChart3 },
@@ -208,6 +212,11 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const { signOut } = useClerk();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+  const { data: echangesStats } = useGetAdminEchangesStats({
+    query: { queryKey: getAdminEchangesStatsQueryKey() },
+  });
+  const newFeedbackCount = echangesStats?.newFeedbackCount ?? 0;
+
   const displayName = user?.fullName || user?.firstName || "Utilisateur";
   const email = user?.emailAddresses[0]?.emailAddress ?? "";
   const initial = displayName.charAt(0).toUpperCase();
@@ -257,7 +266,12 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.href === "/admin/echanges" && newFeedbackCount > 0 && (
+                    <span className="ml-auto h-4 min-w-[1rem] rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center px-1 shrink-0">
+                      {newFeedbackCount}
+                    </span>
+                  )}
                 </button>
               </Link>
             );

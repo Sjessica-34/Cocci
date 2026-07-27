@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { useListExercises, useListOrganizations } from "@workspace/api-client-react";
+import { useListExercises, useListOrganizations, useGetMe } from "@workspace/api-client-react";
 import {
   LayoutDashboard,
   Settings,
@@ -27,6 +27,7 @@ import {
   GraduationCap,
   ListChecks,
   TreePine,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,6 +89,9 @@ const navGroups: NavItem[][] = [
     { href: "/mes-documents", label: "Mes documents", icon: FolderOpen },
   ],
   [
+    { href: "/echanges", label: "Échanges avec Cocci", icon: MessageSquare },
+  ],
+  [
     { href: "/settings", label: "Mes paramètres", icon: Settings },
   ],
 ];
@@ -112,6 +116,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAdminRoute = location.startsWith("/admin");
   const isOnboardingRoute = location.startsWith("/onboarding");
   const showExerciseUi = !isAdminRoute && !isOnboardingRoute && exerciseOrgId != null;
+
+  const { data: dbUser } = useGetMe();
+  const displayName =
+    [dbUser?.firstName, dbUser?.lastName].filter(Boolean).join(" ") ||
+    user?.fullName ||
+    "Utilisateur";
+  const displayInitial =
+    dbUser?.firstName?.charAt(0) ||
+    user?.firstName?.charAt(0) ||
+    user?.emailAddresses[0]?.emailAddress?.charAt(0) ||
+    "U";
 
   const { currentExerciseId } = useCurrentExercise();
   const { data: exercises } = useListExercises(exerciseOrgId ?? 0, {
@@ -206,14 +221,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <Avatar className="h-8 w-8 mr-3 border border-sidebar-border shrink-0">
                 <AvatarImage src={user?.imageUrl} />
                 <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
-                  {user?.firstName?.charAt(0) ||
-                    user?.emailAddresses[0]?.emailAddress?.charAt(0) ||
-                    "U"}
+                  {displayInitial}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start flex-1 overflow-hidden min-w-0">
                 <span className="text-sm font-medium text-sidebar-foreground truncate w-full text-left">
-                  {user?.fullName || "Utilisateur"}
+                  {displayName}
                 </span>
                 <span className="text-xs text-sidebar-foreground/50 truncate w-full text-left">
                   {user?.emailAddresses[0]?.emailAddress}
