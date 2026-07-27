@@ -185,9 +185,12 @@ function sumTrainings(rows: EmploymentTraining[]): EmploymentTraining {
 router.get("/organizations/:orgId/employment/workforce", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res) => {
   const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
   if (subExercises.length > 0) {
-    const rows = (await Promise.all(subExercises.map(({ orgId, exerciseId }) => loadWorkforceByIds(orgId, exerciseId))))
-      .filter((r): r is EmploymentWorkforce => r !== null);
-    res.json({ data: rows.length > 0 ? sumWorkforces(rows) : null });
+    const [rootData, ...subRows] = await Promise.all([
+      loadWorkforce(req),
+      ...subExercises.map(({ orgId, exerciseId }) => loadWorkforceByIds(orgId, exerciseId)),
+    ]);
+    const allRows = ([rootData, ...subRows] as Array<EmploymentWorkforce | null>).filter((r): r is EmploymentWorkforce => r !== null);
+    res.json({ data: allRows.length > 0 ? sumWorkforces(allRows) : null });
     return;
   }
   res.json({ data: await loadWorkforce(req) });
@@ -213,9 +216,12 @@ router.put("/organizations/:orgId/employment/workforce", requireAuth, requireOrg
 router.get("/organizations/:orgId/employment/diversity", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res) => {
   const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
   if (subExercises.length > 0) {
-    const rows = (await Promise.all(subExercises.map(({ orgId, exerciseId }) => loadDiversityByIds(orgId, exerciseId))))
-      .filter((r): r is EmploymentDiversity => r !== null);
-    res.json({ data: rows.length > 0 ? sumDiversities(rows) : null });
+    const [rootData, ...subRows] = await Promise.all([
+      loadDiversity(req),
+      ...subExercises.map(({ orgId, exerciseId }) => loadDiversityByIds(orgId, exerciseId)),
+    ]);
+    const allRows = ([rootData, ...subRows] as Array<EmploymentDiversity | null>).filter((r): r is EmploymentDiversity => r !== null);
+    res.json({ data: allRows.length > 0 ? sumDiversities(allRows) : null });
     return;
   }
   res.json({ data: await loadDiversity(req) });
@@ -241,9 +247,12 @@ router.put("/organizations/:orgId/employment/diversity", requireAuth, requireOrg
 router.get("/organizations/:orgId/employment/training", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res) => {
   const subExercises = await getSubsidiaryExercises(req.orgId!, req.exercise!.year);
   if (subExercises.length > 0) {
-    const rows = (await Promise.all(subExercises.map(({ orgId, exerciseId }) => loadTrainingByIds(orgId, exerciseId))))
-      .filter((r): r is EmploymentTraining => r !== null);
-    res.json({ data: rows.length > 0 ? sumTrainings(rows) : null });
+    const [rootData, ...subRows] = await Promise.all([
+      loadTraining(req),
+      ...subExercises.map(({ orgId, exerciseId }) => loadTrainingByIds(orgId, exerciseId)),
+    ]);
+    const allRows = ([rootData, ...subRows] as Array<EmploymentTraining | null>).filter((r): r is EmploymentTraining => r !== null);
+    res.json({ data: allRows.length > 0 ? sumTrainings(allRows) : null });
     return;
   }
   res.json({ data: await loadTraining(req) });
