@@ -137,6 +137,8 @@ export function PublicRsePage() {
   const [data, setData] = useState<PublicData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [expandedAxis, setExpandedAxis] = useState<string>("ENV");
+  const [showAllSubs, setShowAllSubs] = useState<Record<string, boolean>>({});
   const pageUrl = window.location.href;
 
   useEffect(() => {
@@ -382,15 +384,16 @@ export function PublicRsePage() {
 
         {/* ── Résultats détaillés ── */}
         <Card style={{ marginBottom: 16 }}>
-          <SectionTitle>Nos résultats détaillés par critère</SectionTitle>
-
-          {/* Légende */}
-          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginBottom: 16, flexWrap: "wrap" }}>
-            {([["Excellent", C.green], ["Très bien", C.greenMid], ["Bien", C.env], ["Moyen", C.gray400]] as [string, string][]).map(([lbl, col]) => (
-              <span key={lbl} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.gray600 }}>
-                <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: col }} />{lbl}
-              </span>
-            ))}
+          {/* En-tête + légende */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 8 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: C.gray800, margin: 0 }}>Nos résultats détaillés par critère</h2>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {([["Excellent", C.green], ["Très bien", C.greenMid], ["Bien", C.env], ["Moyen", C.gray200]] as [string, string][]).map(([lbl, col]) => (
+                <span key={lbl} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.gray600 }}>
+                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: col }} />{lbl}
+                </span>
+              ))}
+            </div>
           </div>
 
           {subcategoryScores.length === 0 ? (
@@ -398,115 +401,177 @@ export function PublicRsePage() {
               Le diagnostic RSE n'a pas encore été réalisé pour cet exercice.
             </p>
           ) : (
-            [
-              { label: "Environnement", score: scores.env, color: C.env, icon: "🌱", catId: "ENV" },
-              { label: "Social", score: scores.soc, color: C.soc, icon: "👥", catId: "SOC" },
-              { label: "Gouvernance", score: scores.gov, color: C.gov, icon: "🏛", catId: "GOV" },
-            ].map(({ label, score, color, icon, catId }) => {
-              const subs = subcategoryScores.filter((s) => s.categoryId === catId && s.score !== null);
-              const total = subs.length;
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {([
+                { label: "Environnement", score: scores.env, color: C.env, icon: "🌱", catId: "ENV" },
+                { label: "Social",        score: scores.soc, color: C.soc, icon: "👥", catId: "SOC" },
+                { label: "Gouvernance",   score: scores.gov, color: C.gov, icon: "🏛",  catId: "GOV" },
+              ] as const).map(({ label, score, color, icon, catId }) => {
+                const allSubs   = subcategoryScores.filter((s) => s.categoryId === catId);
+                const scoredSubs = allSubs.filter((s) => s.score !== null).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+                const totalCount = allSubs.length;
+                const isExpanded = expandedAxis === catId;
+                const showAll = showAllSubs[catId] ?? false;
+                const displaySubs = showAll ? scoredSubs : scoredSubs.slice(0, 4);
 
-              // Répartition par bande
-              const bands = [
-                { lbl: "Excellent", col: C.green, test: (v: number) => v >= 75 },
-                { lbl: "Très bien", col: C.greenMid, test: (v: number) => v >= 50 && v < 75 },
-                { lbl: "Bien", col: C.env, test: (v: number) => v >= 25 && v < 50 },
-                { lbl: "Moyen", col: C.gray400, test: (v: number) => v < 25 },
-              ];
-              const distribution = bands.map((b) => ({
-                ...b,
-                count: subs.filter((s) => b.test(s.score!)).length,
-                pct: total > 0 ? Math.round((subs.filter((s) => b.test(s.score!)).length / total) * 100) : 0,
-              }));
-              const pieData = distribution.map((d) => ({ v: d.pct || 0, col: d.col }));
+                const bands = [
+                  { lbl: "Excellent (75-100)", col: C.green,   test: (v: number) => v >= 75 },
+                  { lbl: "Très bien (50-75)",  col: C.greenMid, test: (v: number) => v >= 50 && v < 75 },
+                  { lbl: "Bien (25-50)",        col: C.env,     test: (v: number) => v >= 25 && v < 50 },
+                  { lbl: "Moyen (0-25)",        col: C.gray400, test: (v: number) => v < 25 },
+                ];
+                const distribution = bands.map((b) => ({
+                  ...b,
+                  count: scoredSubs.filter((s) => b.test(s.score!)).length,
+                  pct: scoredSubs.length > 0 ? Math.round((scoredSubs.filter((s) => b.test(s.score!)).length / scoredSubs.length) * 100) : 0,
+                }));
+                const pieData = distribution.map((d) => ({ v: d.pct || 0, col: d.col }));
 
-              return (
-                <div key={label} style={{ borderTop: `1px solid ${C.gray100}`, paddingTop: 20, marginTop: 20 }}>
-                  {/* Ligne titre */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16 }}>{icon}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: C.gray800 }}>{label}</span>
+                const scoreColor = (v: number) =>
+                  v >= 75 ? C.green : v >= 50 ? C.greenMid : v >= 25 ? C.env : C.gray400;
+
+                // ── Ligne réduite ───────────────────────────────────────────
+                if (!isExpanded) {
+                  return (
+                    <div
+                      key={catId}
+                      style={{ borderTop: `1px solid ${C.gray100}`, paddingTop: 14, paddingBottom: 14, display: "flex", alignItems: "center", gap: 16, cursor: "pointer" }}
+                      onClick={() => setExpandedAxis(catId)}
+                    >
+                      {/* Icône + label + score */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 200 }}>
+                        <span style={{ fontSize: 18 }}>{icon}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: C.gray800 }}>{label}</span>
+                        {score !== null && (
+                          <span style={{ fontSize: 18, fontWeight: 800, color, marginLeft: 4 }}>
+                            {score}<span style={{ fontSize: 11, fontWeight: 500, color: C.gray400 }}>/100</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Barre + comptage */}
+                      <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          <ProgressBar value={score ?? 0} color={color} />
+                        </div>
+                        <span style={{ fontSize: 11, color: C.gray400, whiteSpace: "nowrap" }}>
+                          {totalCount} critère{totalCount > 1 ? "s" : ""} évalué{totalCount > 1 ? "s" : ""}
+                        </span>
+                      </div>
+
+                      {/* Voir le détail */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: C.green, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                        Voir le détail
+                        <span style={{ fontSize: 14, lineHeight: 1 }}>›</span>
+                        <span style={{ fontSize: 11, color: C.gray400, marginLeft: 2 }}>∨</span>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 22, fontWeight: 800, color }}>
-                      {score !== null ? score : "–"}
-                      <span style={{ fontSize: 12, fontWeight: 500, color: C.gray400 }}>/100</span>
-                    </span>
-                  </div>
+                  );
+                }
 
-                  <div style={{ display: "grid", gridTemplateColumns: total > 0 ? "180px 1fr" : "1fr", gap: 20, alignItems: "start" }}>
-                    {/* Donut + répartition */}
-                    {total > 0 && (
-                      <div>
-                        <p style={{ fontSize: 11, fontWeight: 600, color: C.gray600, marginBottom: 8 }}>
-                          Répartition des scores
-                        </p>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ width: 80, height: 80, flexShrink: 0 }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie data={pieData} dataKey="v" innerRadius={24} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
-                                  {pieData.map((d, i) => <Cell key={i} fill={d.v > 0 ? d.col : C.gray100} />)}
-                                </Pie>
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                            {distribution.filter((d) => d.count > 0).map((d) => (
-                              <div key={d.lbl} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11 }}>
-                                <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: d.col, flexShrink: 0 }} />
-                                <span style={{ color: C.gray700 }}>{d.lbl}</span>
-                                <span style={{ color: C.gray400, marginLeft: "auto", paddingLeft: 8 }}>{d.pct}%</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <p style={{ fontSize: 10, color: C.gray400, marginTop: 6 }}>{total} critère{total > 1 ? "s" : ""} évalué{total > 1 ? "s" : ""}</p>
+                // ── Section dépliée ─────────────────────────────────────────
+                return (
+                  <div
+                    key={catId}
+                    style={{ borderTop: `1px solid ${C.gray100}`, paddingTop: 20, paddingBottom: 20, background: C.gray50, borderRadius: 10, padding: 20, marginTop: 4, marginBottom: 4 }}
+                  >
+                    {score === null && totalCount === 0 ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 18 }}>{icon}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: C.gray800 }}>{label}</span>
+                        <span style={{ fontSize: 12, color: C.gray400, fontStyle: "italic" }}>— Diagnostic non réalisé pour cet axe.</span>
                       </div>
-                    )}
+                    ) : (
+                      <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 1fr", gap: 24, alignItems: "start" }}>
 
-                    {/* Aperçu des sous-catégories */}
-                    {subs.length > 0 && (
-                      <div>
-                        <p style={{ fontSize: 11, fontWeight: 600, color: C.gray600, marginBottom: 8 }}>
-                          Aperçu des critères
-                        </p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {subs
-                            .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-                            .slice(0, 5)
-                            .map((sub) => (
-                              <div key={sub.id}>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                                  <span style={{ fontSize: 11, color: C.gray700, maxWidth: "75%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {sub.name}
-                                  </span>
-                                  <span style={{ fontSize: 11, fontWeight: 600, color }}>
-                                    {sub.score}%
-                                  </span>
+                        {/* Colonne gauche : score + barre + comptage */}
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                            <span style={{ fontSize: 16 }}>{icon}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.gray800 }}>{label}</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 10 }}>
+                            <span style={{ fontSize: 42, fontWeight: 800, color, lineHeight: 1 }}>
+                              {score !== null ? score : "–"}
+                            </span>
+                            <span style={{ fontSize: 14, fontWeight: 500, color: C.gray400 }}>/100</span>
+                          </div>
+                          <ProgressBar value={score ?? 0} color={color} />
+                          <p style={{ fontSize: 11, color: C.gray400, marginTop: 8 }}>
+                            {totalCount} critère{totalCount > 1 ? "s" : ""} évalué{totalCount > 1 ? "s" : ""}
+                          </p>
+                          <button
+                            onClick={() => setExpandedAxis("")}
+                            style={{ marginTop: 8, background: "none", border: "none", color: C.gray400, fontSize: 11, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}
+                          >
+                            Réduire ∧
+                          </button>
+                        </div>
+
+                        {/* Colonne centrale : donut + légende */}
+                        {scoredSubs.length > 0 && (
+                          <div>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: C.gray600, marginBottom: 12 }}>Répartition des scores</p>
+                            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                              <div style={{ width: 120, height: 120, flexShrink: 0 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie data={pieData} dataKey="v" innerRadius={34} outerRadius={54} startAngle={90} endAngle={-270} strokeWidth={0}>
+                                      {pieData.map((d, i) => <Cell key={i} fill={d.v > 0 ? d.col : C.gray100} />)}
+                                    </Pie>
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                {distribution.filter((d) => d.count > 0).map((d) => (
+                                  <div key={d.lbl} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
+                                    <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: d.col, flexShrink: 0 }} />
+                                    <span style={{ color: C.gray700 }}>{d.lbl}</span>
+                                    <span style={{ fontWeight: 700, color: C.gray800, marginLeft: "auto", paddingLeft: 12 }}>{d.pct}%</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Colonne droite : barres par critère */}
+                        {scoredSubs.length > 0 && (
+                          <div>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: C.gray600, marginBottom: 12 }}>Aperçu des critères</p>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                              {displaySubs.map((sub) => (
+                                <div key={sub.id}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, gap: 8 }}>
+                                    <span style={{ fontSize: 11, color: C.gray700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                      {sub.name}
+                                    </span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: scoreColor(sub.score!), flexShrink: 0 }}>
+                                      {sub.score}%
+                                    </span>
+                                  </div>
+                                  <ProgressBar value={sub.score ?? 0} color={scoreColor(sub.score!)} />
                                 </div>
-                                <ProgressBar value={sub.score ?? 0} color={
-                                  (sub.score ?? 0) >= 75 ? C.green
-                                  : (sub.score ?? 0) >= 50 ? C.greenMid
-                                  : (sub.score ?? 0) >= 25 ? C.env
-                                  : C.gray400
-                                } />
-                              </div>
-                            ))}
-                        </div>
+                              ))}
+                            </div>
+                            {scoredSubs.length > 4 && (
+                              <button
+                                onClick={() => setShowAllSubs((prev) => ({ ...prev, [catId]: !showAll }))}
+                                style={{ marginTop: 12, background: "none", border: "none", color: C.green, fontSize: 11, fontWeight: 600, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}
+                              >
+                                {showAll
+                                  ? `Voir moins ∧`
+                                  : `Voir les ${scoredSubs.length} critères évalués →`}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
-
-                    {/* Si score null mais des réponses partielles */}
-                    {total === 0 && score === null && (
-                      <p style={{ fontSize: 12, color: C.gray400, fontStyle: "italic" }}>
-                        Diagnostic non réalisé pour cet axe.
-                      </p>
-                    )}
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </Card>
 
