@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout";
 import { customFetch } from "@workspace/api-client-react";
-import { useModuleContext } from "@/hooks/useModuleContext";
+import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,8 @@ type LinkData = {
 };
 
 export function PagePubliqueRse() {
-  const { effectiveOrgId: orgId, isReadOnly } = useModuleContext("group");
+  const { currentOrgId: orgId } = useCurrentOrganization();
+  const isReadOnly = false;
 
   const [link, setLink] = useState<LinkData | null | undefined>(undefined);
   const [loading, setLoading] = useState(false);
