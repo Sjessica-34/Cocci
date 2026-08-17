@@ -75,7 +75,7 @@ const sections = {
         <h2 className="text-base font-semibold">Hébergement</h2>
         <p>La plateforme Cocci est hébergée par</p>
         <h2 className="text-base font-semibold">Propriété intellectuelle</h2>
-        <p>L'ensemble des contenus de la plateforme (textes, graphismes, logiciels) est la propriété exclusive de Cocci SAS.</p>
+        <p>L'ensemble des contenus de la plateforme (textes, graphismes, logiciels) est la propriété exclusive de A-NIM-PACT SAS.</p>
         <h2 className="text-base font-semibold">Contact</h2>
         <p><a href="mailto:bonjour@a-nim-pact.fr" className="text-primary underline">bonjour@a-nim-pact.fr</a></p>
       </div>
