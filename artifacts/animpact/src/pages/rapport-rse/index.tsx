@@ -33,7 +33,7 @@ import {
   AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles,
   Plus, Trash2, ChevronDown, ChevronRight, FileText,
   Building2, Users2, Leaf, Award, LayoutList, BookOpen, Target,
-  PenLine, Info, ExternalLink,
+  PenLine, Info, ExternalLink, Link2, Copy, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getGetReportDraftQueryKey } from "@workspace/api-client-react";
@@ -309,6 +309,54 @@ export function RapportRse() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Lien de partage public ──────────────────────────────────────────────────
+  const [publicToken, setPublicToken] = useState<string | null | undefined>(undefined);
+  const [shareLinkLoading, setShareLinkLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const publicUrl = publicToken
+    ? `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/p/${publicToken}`
+    : null;
+
+  useEffect(() => {
+    if (!orgId) return;
+    customFetch(`/api/organizations/${orgId}/public-link`, { method: "GET" })
+      .then((r) => r.json())
+      .then((data) => setPublicToken(data?.token ?? null))
+      .catch(() => setPublicToken(null));
+  }, [orgId]);
+
+  const generateShareLink = async () => {
+    if (!orgId) return;
+    setShareLinkLoading(true);
+    try {
+      const r = await customFetch(`/api/organizations/${orgId}/public-link`, { method: "POST" });
+      const data = await r.json();
+      setPublicToken(data.token);
+    } finally {
+      setShareLinkLoading(false);
+    }
+  };
+
+  const revokeShareLink = async () => {
+    if (!orgId) return;
+    setShareLinkLoading(true);
+    try {
+      await customFetch(`/api/organizations/${orgId}/public-link`, { method: "DELETE" });
+      setPublicToken(null);
+    } finally {
+      setShareLinkLoading(false);
+    }
+  };
+
+  const copyShareLink = () => {
+    if (!publicUrl) return;
+    navigator.clipboard.writeText(publicUrl).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  };
 
   useEffect(() => {
     if (draft && Object.keys(local).length === 0) {
@@ -947,6 +995,63 @@ export function RapportRse() {
                 );
               })()}
 
+            </div>
+
+            {/* ── Lien public de partage ── */}
+            <div className="rounded-xl border bg-card p-5 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-primary" />
+                  Page publique de partage
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Partagez votre démarche RSE via un lien public sécurisé — sans compte requis, mis à jour automatiquement.
+                </p>
+              </div>
+
+              {publicToken === undefined ? (
+                <div className="h-8 w-full bg-muted animate-pulse rounded" />
+              ) : publicToken ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={publicUrl ?? ""}
+                      className="flex-1 h-8 rounded-md border border-input bg-muted px-3 text-xs text-muted-foreground truncate"
+                    />
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={copyShareLink}>
+                      {shareCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                      {shareCopied ? "Copié !" : "Copier"}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={revokeShareLink} disabled={shareLinkLoading}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Révoquer
+                    </Button>
+                  </div>
+                  <a
+                    href={publicUrl ?? ""}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Ouvrir la page publique
+                  </a>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 text-xs"
+                  onClick={generateShareLink}
+                  disabled={shareLinkLoading || isReadOnly}
+                >
+                  {shareLinkLoading
+                    ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Génération…</>
+                    : <><Link2 className="h-3.5 w-3.5" /> Générer le lien de partage</>
+                  }
+                </Button>
+              )}
             </div>
 
             <div className="rounded-xl border bg-card p-5">

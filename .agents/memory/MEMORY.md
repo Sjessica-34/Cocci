@@ -1,2 +1,3 @@
 - [inert-boolean-attr](inert-boolean-attr.md) — React exige boolean pour `inert`, jamais string vide ; utiliser `inert={isReadOnly || undefined}`
 - [subsidiary-exercise-isolation](subsidiary-exercise-isolation.md) — chaque org (racine ET filiale) doit avoir son propre exercice ; pas de fallback parent dans resolveExercise.
+- [public-rse-page](public-rse-page.md) — page publique /p/:token : utiliser pool.query() pas db.execute(sql``), barometre sans nb_repondants en DB, normaliser snake_case→camelCase des labels.

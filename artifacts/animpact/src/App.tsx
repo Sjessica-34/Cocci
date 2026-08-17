@@ -44,6 +44,7 @@ import { MesLabels } from "@/pages/mes-labels";
 import { CaptationCarbone } from "@/pages/captation-carbone";
 import { BarometreSocial } from "@/pages/barometre-social";
 import { BarometreSocialPublic } from "@/pages/barometre-social/public";
+import { PublicRsePage } from "@/pages/public-rse";
 import { CapitalHumain } from "@/pages/employment";
 import { MesActions } from "@/pages/mes-actions";
 import { GuideRSE } from "@/pages/guide-rse";
@@ -344,6 +345,11 @@ function AppRoutes() {
       <Route path="/repondre/:token">
         <QueryClientProvider client={queryClient}>
           <BarometreSocialPublic />
+        </QueryClientProvider>
+      </Route>
+      <Route path="/p/:token">
+        <QueryClientProvider client={queryClient}>
+          <PublicRsePage />
         </QueryClientProvider>
       </Route>
       <Route>

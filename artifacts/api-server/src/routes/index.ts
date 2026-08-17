@@ -26,6 +26,7 @@ import diagnosticRouter from "./diagnostic";
 import reportDraftRouter from "./reportDraft";
 import echangesRouter from "./echanges";
 import auditRouter from "./audit";
+import publicRseRouter from "./publicRse";
 
 const router: IRouter = Router();
 
@@ -56,5 +57,6 @@ router.use(diagnosticRouter);
 router.use(reportDraftRouter);
 router.use(echangesRouter);
 router.use(auditRouter);
+router.use(publicRseRouter);
 
 export default router;
