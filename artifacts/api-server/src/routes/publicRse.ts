@@ -5,6 +5,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope } from "../middlewares/exerciseScope";
 import { logger } from "../lib/logger";
 import { ALL_SUBCATEGORIES, COMPLETENESS_THRESHOLD, getMaturityLabel } from "@workspace/rse-referentials";
+import { generateReport } from "../lib/generateReport";
 import crypto from "crypto";
 
 const router = Router();
@@ -300,6 +301,41 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
   } catch (e) {
     logger.error({ err: e, msg: (e as Error)?.message, stack: (e as Error)?.stack }, "public-rse error");
     res.status(500).json({ error: "Internal server error", detail: (e as Error)?.message });
+  }
+});
+
+// ── GET /api/public/rse/:token/report — téléchargement public du rapport DOCX ──
+
+router.get("/public/rse/:token/report", async (req, res): Promise<void> => {
+  const { token } = req.params;
+  try {
+    const [link] = await db
+      .select()
+      .from(publicLinksTable)
+      .where(eq(publicLinksTable.token, token))
+      .limit(1);
+
+    if (!link) { res.status(404).json({ error: "Link not found" }); return; }
+    if (!link.showReport) { res.status(403).json({ error: "Report not accessible" }); return; }
+
+    // Récupérer l'année de l'exercice
+    const exRow = await pool.query<{ year: number }>(
+      "SELECT year FROM exercises WHERE id = $1 LIMIT 1",
+      [link.exerciseId],
+    );
+    const year = exRow.rows[0]?.year ?? new Date().getFullYear();
+
+    // Générer le DOCX à la volée
+    const buffer = await generateReport(link.organizationId, link.exerciseId, year);
+    const filename = `rapport-rse-${year}.docx`;
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+    // Permettre l'accès depuis le viewer Office Online
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.send(buffer);
+  } catch (e) {
+    logger.error({ err: (e as Error)?.message }, "public-report error");
+    res.status(500).json({ error: "Report generation failed" });
   }
 });
 

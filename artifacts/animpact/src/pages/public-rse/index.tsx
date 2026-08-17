@@ -618,50 +618,75 @@ export function PublicRsePage() {
           </Card>
         )}
 
-        {/* ── Rapport + Méthode ── */}
-        <div style={{ display: "grid", gridTemplateColumns: showReport ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 16 }}>
-          {showReport && (
-          <Card>
-            <SectionTitle>Notre rapport RSE</SectionTitle>
-            {reportGenerationCount > 0 ? (
-              <div>
-                <div style={{ background: C.greenLight, borderRadius: 8, padding: "12px 16px", marginBottom: 12, display: "flex", gap: 12, alignItems: "center" }}>
-                  <div style={{ fontSize: 32 }}>📄</div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 12, color: C.green }}>RAPPORT RSE</div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: C.gray800 }}>{exercise.year}</div>
-                    <div style={{ fontSize: 10, color: C.gray400 }}>Document public</div>
-                  </div>
-                </div>
-                <p style={{ fontSize: 12, color: C.gray600, lineHeight: 1.5 }}>
-                  Consultez notre rapport RSE pour découvrir en détail notre stratégie, nos actions et nos résultats.
-                </p>
-              </div>
-            ) : (
-              <p style={{ fontSize: 12, color: C.gray400 }}>Le rapport RSE pour cet exercice n'a pas encore été généré.</p>
-            )}
-          </Card>
-          )}
+        {/* ── Rapport RSE en ligne ── */}
+        {showReport && reportGenerationCount > 0 && (() => {
+          const base = window.location.origin;
+          const previewBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+          // URL publique du DOCX (sans auth)
+          const reportUrl = `${base}${previewBase.startsWith("/animpact") ? "" : previewBase}/api/public/rse/${token}/report`;
+          const isLocalhost = base.includes("localhost") || base.includes("127.0.0.1");
+          // Office Online viewer (fonctionne uniquement si l'URL est accessible publiquement)
+          const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(reportUrl)}`;
 
-          <Card>
-            <SectionTitle>Notre méthode</SectionTitle>
-            <p style={{ fontSize: 12, color: C.gray600, lineHeight: 1.5, marginBottom: 12 }}>
-              Notre démarche s'appuie sur les référentiels et bonnes pratiques reconnus au niveau international.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                { icon: "📋", label: "ISO 26000" },
-                { icon: "🌐", label: "Les 17 Objectifs de Développement Durable (ODD)" },
-                { icon: "✅", label: "Bonnes pratiques de responsabilité sociétale" },
-              ].map(({ icon, label }) => (
-                <div key={label} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 16 }}>{icon}</span>
-                  <span style={{ fontSize: 11, color: C.gray600, lineHeight: 1.4 }}>{label}</span>
+          return (
+            <Card style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <SectionTitle style={{ margin: 0 }}>Notre rapport RSE {exercise.year}</SectionTitle>
+                <a
+                  href={reportUrl}
+                  download={`rapport-rse-${exercise.year}.docx`}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.green, textDecoration: "none", background: C.greenLight, border: `1px solid ${C.green}30`, borderRadius: 8, padding: "6px 14px" }}
+                >
+                  ⬇ Télécharger le rapport
+                </a>
+              </div>
+
+              {isLocalhost ? (
+                /* En développement : aperçu non disponible (URL non publique) */
+                <div style={{ background: C.gray50, border: `1px dashed ${C.gray200}`, borderRadius: 10, padding: 24, textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: C.gray700, marginBottom: 4 }}>Aperçu disponible sur le site publié</p>
+                  <p style={{ fontSize: 12, color: C.gray400 }}>
+                    En production, le rapport s'affiche directement dans la page.<br />
+                    Utilisez le bouton "Télécharger" pour consulter le document.
+                  </p>
                 </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+              ) : (
+                /* En production : viewer Microsoft Office Online */
+                <div style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${C.gray200}`, background: C.gray50 }}>
+                  <iframe
+                    src={officeViewerUrl}
+                    width="100%"
+                    height="600"
+                    style={{ border: "none", display: "block" }}
+                    title={`Rapport RSE ${exercise.year}`}
+                    onError={() => {/* silencieux */}}
+                  />
+                </div>
+              )}
+            </Card>
+          );
+        })()}
+
+        {/* ── Méthode ── */}
+        <Card style={{ marginBottom: 16 }}>
+          <SectionTitle>Notre méthode</SectionTitle>
+          <p style={{ fontSize: 12, color: C.gray600, lineHeight: 1.5, marginBottom: 12 }}>
+            Notre démarche s'appuie sur les référentiels et bonnes pratiques reconnus au niveau international.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[
+              { icon: "📋", label: "ISO 26000" },
+              { icon: "🌐", label: "Les 17 Objectifs de Développement Durable (ODD)" },
+              { icon: "✅", label: "Bonnes pratiques de responsabilité sociétale" },
+            ].map(({ icon, label }) => (
+              <div key={label} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 16 }}>{icon}</span>
+                <span style={{ fontSize: 11, color: C.gray600, lineHeight: 1.4 }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
 
         {/* ── Footer ── */}
         <div style={{ borderTop: `1px solid ${C.gray200}`, paddingTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
