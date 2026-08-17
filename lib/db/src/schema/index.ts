@@ -23,3 +23,5 @@ export * from "./diagnosticResponses";
 export * from "./rseReportDrafts";
 export * from "./subscriptions";
 export * from "./echanges";
+export * from "./audit";
+export * from "./consents";

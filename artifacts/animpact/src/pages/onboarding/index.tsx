@@ -1,14 +1,18 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useCreateOrganization, getListOrganizationsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Leaf, Building, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
+
+// Version des documents légaux en vigueur
+const LEGAL_VERSION = "2025-01";
 
 export function Onboarding() {
   const [, setLocation] = useLocation();
@@ -17,6 +21,7 @@ export function Onboarding() {
 
   const [name, setName] = useState("");
   const [type, setType] = useState<"entreprise" | "groupe">("entreprise");
+  const [consentChecked, setConsentChecked] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -25,11 +30,33 @@ export function Onboarding() {
       setError("Le nom doit contenir au moins 2 caractères.");
       return;
     }
+    if (!consentChecked) {
+      setError("Vous devez accepter les CGU et la politique de confidentialité pour continuer.");
+      return;
+    }
     setError("");
 
     const org = await createOrg.mutateAsync({ data: { name: name.trim(), type } });
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
     setCurrentOrg(org.id);
+
+    // Enregistrement du consentement côté backend
+    try {
+      await fetch("/api/users/me/consents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ documentType: "cgu", documentVersion: LEGAL_VERSION }),
+      });
+      await fetch("/api/users/me/consents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ documentType: "privacy", documentVersion: LEGAL_VERSION }),
+      });
+    } catch {
+      // L'enregistrement du consentement ne bloque pas l'onboarding
+    }
 
     if (type === "groupe") {
       setLocation("/onboarding/filiales");
@@ -65,7 +92,6 @@ export function Onboarding() {
               onChange={(e) => { setName(e.target.value); setError(""); }}
               autoFocus
             />
-            {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
 
           {/* Type */}
@@ -118,7 +144,37 @@ export function Onboarding() {
             </RadioGroup>
           </div>
 
-          <Button type="submit" className="w-full" disabled={createOrg.isPending}>
+          {/* Consentement CGU — obligatoire, non précoché (RGPD art. 7) */}
+          <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3">
+            <Checkbox
+              id="consent"
+              checked={consentChecked}
+              onCheckedChange={(v) => {
+                setConsentChecked(!!v);
+                setError("");
+              }}
+              className="mt-0.5"
+            />
+            <label htmlFor="consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
+              J'ai lu et j'accepte les{" "}
+              <Link href="/legal?section=cgu" className="underline text-foreground hover:text-primary">
+                Conditions Générales d'Utilisation
+              </Link>{" "}
+              et la{" "}
+              <Link href="/legal?section=confidentialite" className="underline text-foreground hover:text-primary">
+                Politique de confidentialité
+              </Link>{" "}
+              de cocci.
+            </label>
+          </div>
+
+          {error && <p className="text-xs text-destructive">{error}</p>}
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={createOrg.isPending || !consentChecked}
+          >
             {createOrg.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {type === "groupe" ? "Créer le groupe →" : "Commencer →"}
           </Button>

@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "node:crypto";
 import { eq, and, desc } from "drizzle-orm";
+import { barometreLimiter } from "../middlewares/rateLimit";
 import {
   db,
   barometreCampaignsTable,
@@ -465,7 +466,7 @@ router.post(
 
 // ─── PUBLIC (no auth — employees never have Cocci accounts) ──────────────────
 
-router.get("/public/barometre/:token", async (req, res): Promise<void> => {
+router.get("/public/barometre/:token", barometreLimiter, async (req, res): Promise<void> => {
   const token = req.params.token as string;
   const [campaign] = await db.select().from(barometreCampaignsTable).where(eq(barometreCampaignsTable.publicToken, token)).limit(1);
   if (!campaign) {
@@ -494,7 +495,7 @@ router.get("/public/barometre/:token", async (req, res): Promise<void> => {
   });
 });
 
-router.post("/public/barometre/:token/responses", async (req, res): Promise<void> => {
+router.post("/public/barometre/:token/responses", barometreLimiter, async (req, res): Promise<void> => {
   const token = req.params.token as string;
   const [campaign] = await db.select().from(barometreCampaignsTable).where(eq(barometreCampaignsTable.publicToken, token)).limit(1);
   if (!campaign) {

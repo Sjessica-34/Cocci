@@ -47,6 +47,7 @@ const NAV_ITEMS = [
   { href: "/admin/users", label: "Utilisateurs", icon: Users, exact: false },
   { href: "/admin/resources", label: "Bibliothèque globale", icon: BookOpen, exact: false },
   { href: "/admin/echanges", label: "Échanges avec Cocci", icon: MessageSquare, exact: false },
+  { href: "/admin/securite", label: "Sécurité & journalisation", icon: Shield, exact: false },
   { href: null, label: "Factures", icon: CreditCard },
   { href: null, label: "Abonnements", icon: Receipt },
   { href: null, label: "Analytics", icon: BarChart3 },

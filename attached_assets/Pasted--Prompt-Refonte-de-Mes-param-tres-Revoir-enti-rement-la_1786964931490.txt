@@ -1,0 +1,130 @@
+# Prompt — Refonte de « Mes paramètres »
+
+Revoir entièrement la page **Mes paramètres** tout en conservant la charte graphique actuelle de Cocci et les composants existants.
+
+## 1. Structure générale
+
+La page « Mes paramètres » doit comporter une navigation par onglets :
+
+* **Mon profil**
+* **Mon organisation**
+* **Confidentialité & données**
+* **Sécurité**
+
+L'utilisateur doit pouvoir changer d'onglet sans quitter la page « Mes paramètres ».
+
+---
+
+## 2. Onglet « Mon profil »
+
+Conserver les informations actuellement présentes mais améliorer leur présentation.
+
+Afficher :
+
+* Avatar avec l'initiale du prénom
+* Prénom
+* Nom
+* Adresse e-mail réelle du compte
+* Date d'inscription : « Membre depuis le … »
+* Bouton « Enregistrer »
+
+### Important concernant l'identifiant technique
+
+Ne jamais afficher dans l'interface utilisateur un identifiant technique Clerk ou une adresse technique du type :
+
+`user_xxxxxxxxx@pending.local`
+
+Cette information doit rester strictement interne.
+
+À la place :
+
+* afficher l'adresse e-mail réelle de l'utilisateur lorsqu'elle existe ;
+* si aucune adresse e-mail réelle n'est disponible, ne rien afficher à cet emplacement plutôt que d'afficher `pending.local`.
+
+Ne pas modifier le fonctionnement interne de Clerk uniquement pour des raisons d'affichage : masquer simplement les identifiants techniques côté interface.
+
+---
+
+## 3. Onglet « Mon organisation »
+
+Afficher les informations relatives à l'organisation actuellement sélectionnée :
+
+* Nom de l'organisation
+* SIREN/SIRET si renseigné
+* Effectif
+* Secteur d'activité
+* Adresse
+* Rôle de l'utilisateur dans l'organisation
+
+Prévoir un bouton « Enregistrer les modifications ».
+
+Respecter strictement le système multi-tenant existant : un utilisateur ne doit jamais pouvoir consulter ou modifier les informations d'une autre organisation.
+
+---
+
+## 4. Onglet « Confidentialité & données »
+
+Créer un espace permettant à l'utilisateur de gérer ses données personnelles.
+
+Afficher une section **Documents légaux** avec des liens vers :
+
+* Politique de confidentialité
+* Conditions Générales d'Utilisation
+* Mentions légales
+
+Créer une section **Mes données** permettant :
+
+* de demander/télécharger un export de ses données personnelles ;
+* de demander la suppression de son compte et de ses données personnelles.
+
+La suppression doit demander une confirmation explicite avant toute action irréversible.
+
+Créer également une section **Consentements** indiquant, lorsque l'information est disponible :
+
+* le document accepté ;
+* sa version ;
+* la date d'acceptation.
+
+Ces informations doivent être enregistrées côté backend et ne pas être uniquement stockées dans le navigateur.
+
+---
+
+## 5. Onglet « Sécurité »
+
+Afficher les fonctionnalités de sécurité réellement disponibles pour le compte, notamment :
+
+* gestion/modification du mot de passe si le mode d'authentification le permet ;
+* sessions ou appareils connectés si Clerk permet de récupérer ces informations ;
+* possibilité de déconnecter les autres sessions si cette fonctionnalité est disponible.
+
+Ne pas créer de faux réglages de sécurité qui ne seraient pas réellement fonctionnels.
+
+---
+
+## 6. Contraintes de sécurité
+
+Toutes les routes API utilisées par cette page doivent :
+
+* nécessiter une authentification ;
+* vérifier l'organisation de l'utilisateur lorsque des données d'organisation sont manipulées ;
+* valider les données reçues côté serveur avec Zod ;
+* ne jamais retourner inutilement des données sensibles ou des objets DB complets ;
+* ne jamais exposer de token, secret ou identifiant interne dans l'interface.
+
+Les opérations sensibles, notamment export et suppression des données, doivent être journalisées dans le système d'audit prévu par la tâche #17.
+
+---
+
+## 7. Design
+
+Conserver exactement l'identité visuelle actuelle de Cocci :
+
+* mêmes couleurs ;
+* mêmes cartes ;
+* mêmes arrondis ;
+* mêmes espacements ;
+* mêmes styles de boutons et de formulaires.
+
+La page doit rester simple et lisible. Ne pas transformer les paramètres en nouveau tableau de bord.
+
+Sur mobile, les onglets doivent rester facilement accessibles et l'ensemble doit être responsive.

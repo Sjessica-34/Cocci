@@ -25,6 +25,7 @@ import planSlotsRouter from "./planSlots";
 import diagnosticRouter from "./diagnostic";
 import reportDraftRouter from "./reportDraft";
 import echangesRouter from "./echanges";
+import auditRouter from "./audit";
 
 const router: IRouter = Router();
 
@@ -54,5 +55,6 @@ router.use(planSlotsRouter);
 router.use(diagnosticRouter);
 router.use(reportDraftRouter);
 router.use(echangesRouter);
+router.use(auditRouter);
 
 export default router;

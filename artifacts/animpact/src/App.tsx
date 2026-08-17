@@ -17,12 +17,14 @@ import { OrganizationDetail } from "@/pages/organizations/detail";
 import { OrganizationSettings } from "@/pages/organizations/settings";
 import { OrganizationMembers } from "@/pages/organizations/members";
 import { UserSettings } from "@/pages/settings";
+import { LegalPage } from "@/pages/legal";
 import { AdminDashboard } from "@/pages/admin/index";
 import { AdminOrganizations } from "@/pages/admin/organizations";
 import { AdminOrganizationDetail } from "@/pages/admin/organization-detail";
 import { AdminUsers } from "@/pages/admin/users";
 import { AdminResources } from "@/pages/admin/resources";
 import { AdminEchanges } from "@/pages/admin/echanges";
+import { AdminSecurite } from "@/pages/admin/securite";
 import { EchangesCocci } from "@/pages/echanges/index";
 import { Resources } from "@/pages/resources";
 import { DiagnosticRse } from "@/pages/diagnostic/index";
@@ -305,6 +307,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/mes-actions"><WorkspaceGuard component={MesActions} /></Route>
             <Route path="/resources"><WorkspaceGuard component={Resources} /></Route>
             <Route path="/settings"><ProtectedRoute component={UserSettings} /></Route>
+            <Route path="/legal" component={LegalPage} />
 
             {/* Org management (settings, members) */}
             <Route path="/organizations"><ProtectedRoute component={OrganizationsList} /></Route>
@@ -320,6 +323,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/admin/users"><AdminRoute component={AdminUsers} /></Route>
             <Route path="/admin/resources"><AdminRoute component={AdminResources} /></Route>
             <Route path="/admin/echanges"><AdminRoute component={AdminEchanges} /></Route>
+            <Route path="/admin/securite"><AdminRoute component={AdminSecurite} /></Route>
 
             <Route path="/echanges"><WorkspaceGuard component={EchangesCocci} /></Route>
 

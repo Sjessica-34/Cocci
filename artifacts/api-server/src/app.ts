@@ -1,40 +1,106 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
+import { generalLimiter } from "./middlewares/rateLimit";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
+// ─── Origines autorisées ──────────────────────────────────────────────────────
+// En développement : Replit dev-domains + localhost
+// En production    : ALLOWED_ORIGINS (CSV) obligatoire
+function buildCorsOrigin(): cors.CorsOptions["origin"] {
+  const isProd = process.env.NODE_ENV === "production";
+
+  const extra: string[] = (process.env.ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  const devPatterns: RegExp[] = [
+    /^https?:\/\/localhost(:\d+)?$/,
+    /\.replit\.dev$/,
+    /\.repl\.co$/,
+    /\.replit\.app$/,
+  ];
+
+  return (origin, callback) => {
+    // Requêtes sans header Origin (server-to-server, curl en dev)
+    if (!origin) return callback(null, !isProd);
+
+    // Origines explicitement listées
+    if (extra.includes(origin)) return callback(null, true);
+
+    // En dev : accepter les domaines Replit et localhost
+    if (!isProd && devPatterns.some((p) => p.test(origin))) {
+      return callback(null, true);
+    }
+
+    callback(new Error("CORS: origine non autorisée"));
+  };
+}
+
 const app: Express = express();
 
+// ─── Logging HTTP ─────────────────────────────────────────────────────────────
 app.use(
   pinoHttp({
     logger,
     serializers: {
       req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
+        // Masquer les tokens dans le path (ex: /public/barometre/TOKEN)
+        const rawUrl: string = req.url ?? "";
+        const sanitizedUrl = rawUrl
+          .replace(/\/public\/barometre\/[^/?]+/g, "/public/barometre/[REDACTED]")
+          .split("?")[0]; // supprimer les query params des logs
+        return { id: req.id, method: req.method, url: sanitizedUrl };
       },
       res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
+        return { statusCode: res.statusCode };
       },
     },
   }),
 );
 
+// ─── Clerk proxy ──────────────────────────────────────────────────────────────
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ─── Sécurité HTTP ────────────────────────────────────────────────────────────
+app.use(
+  helmet({
+    // CSP désactivé ici car le frontend est une SPA sur un autre domaine ;
+    // le configurer à ce niveau bloquerait les réponses API JSON.
+    contentSecurityPolicy: false,
+    // Headers activés par Helmet par défaut :
+    // X-Content-Type-Options: nosniff
+    // X-Frame-Options: SAMEORIGIN
+    // Strict-Transport-Security (HSTS)
+    // X-Download-Options
+    // X-Permitted-Cross-Domain-Policies
+    // Referrer-Policy: no-referrer
+    crossOriginEmbedderPolicy: false, // évite de bloquer les assets Clerk
+  }),
+);
 
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+app.use(
+  cors({
+    origin: buildCorsOrigin(),
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    maxAge: 86400, // 24h preflight cache
+  }),
+);
+
+// ─── Body parsing ─────────────────────────────────────────────────────────────
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+
+// ─── Clerk ───────────────────────────────────────────────────────────────────
 app.use(
   clerkMiddleware((req) => ({
     publishableKey: publishableKeyFromHost(
@@ -44,6 +110,10 @@ app.use(
   })),
 );
 
+// ─── Rate limiting général (/api/*) ──────────────────────────────────────────
+app.use("/api", generalLimiter);
+
+// ─── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api", router);
 
 export default app;

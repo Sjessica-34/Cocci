@@ -1,0 +1,412 @@
+# Prompt — Implémentation des tâches #15, #16 et #17 : Sécurité & RGPD
+
+Implémente maintenant les tâches **#15, #16 et #17** issues de l'audit de sécurité.
+
+L'objectif est de rendre l'application Cocci suffisamment robuste pour accueillir de vrais clients et leurs données.
+
+Il ne s'agit pas uniquement d'ajouter des éléments visuels : les protections doivent être réellement appliquées **côté backend**, au niveau des routes API, de l'authentification, de la base de données et du serveur.
+
+Avant toute modification importante, vérifie l'architecture existante afin de ne pas casser le fonctionnement actuel, Clerk, le multi-tenant, Drizzle ou les modules déjà développés.
+
+---
+
+# #15 — Sécurité réseau & contrôle d'accès
+
+Cette tâche est prioritaire.
+
+## 1. Corriger CORS
+
+Supprimer le CORS ouvert à toutes les origines.
+
+Créer une configuration avec une liste explicite des origines autorisées selon l'environnement :
+
+* développement ;
+* preview/staging ;
+* production.
+
+En production, seules les origines officielles de Cocci doivent être autorisées.
+
+Ne jamais utiliser `*` avec des requêtes authentifiées.
+
+Les credentials ne doivent être autorisés que lorsque cela est nécessaire.
+
+---
+
+## 2. Ajouter du rate limiting
+
+Mettre en place un rate limiting côté serveur.
+
+Prévoir au minimum :
+
+* une limite générale sur `/api/*` ;
+* une limite plus stricte sur les routes sensibles ;
+* une protection renforcée sur les opérations coûteuses ou pouvant être abusées.
+
+Exemples :
+
+* authentification ou opérations liées au compte ;
+* export de données ;
+* suppression de compte ;
+* uploads ;
+* endpoints utilisant des services externes ;
+* Baromètre Social si nécessaire.
+
+Retourner un HTTP **429 Too Many Requests** lorsque la limite est dépassée.
+
+La configuration doit être compatible avec le déploiement réel de l'application et tenir compte du fonctionnement derrière un proxy.
+
+---
+
+## 3. Ajouter Helmet
+
+Installer/configurer Helmet sur Express.
+
+Configurer des headers de sécurité adaptés à l'application, notamment :
+
+* Content-Security-Policy lorsque compatible ;
+* X-Content-Type-Options ;
+* Referrer-Policy ;
+* protections contre l'intégration non autorisée dans une iframe ;
+* autres headers recommandés par Helmet.
+
+Ne pas désactiver globalement une protection simplement parce qu'un composant pose problème : adapter précisément la configuration.
+
+---
+
+## 4. Corriger le token du Baromètre Social
+
+Le token actuellement transmis dans l'URL ne doit plus apparaître :
+
+* dans les query parameters ;
+* dans l'historique navigateur ;
+* dans les logs serveur ;
+* dans les outils analytics.
+
+Utiliser un mécanisme sécurisé adapté à l'architecture existante : header d'autorisation, session authentifiée ou autre mécanisme serveur approprié.
+
+Ne jamais exposer de secret côté frontend.
+
+---
+
+## 5. Sécuriser `/resources`
+
+La route `/resources` doit impérativement vérifier :
+
+1. que l'utilisateur est authentifié ;
+2. qu'il appartient bien à l'organisation demandée ;
+3. qu'il dispose des droits nécessaires.
+
+Toutes les requêtes DB doivent être filtrées par `organizationId` lorsque les données appartiennent à une organisation.
+
+Un utilisateur de l'organisation A ne doit jamais pouvoir récupérer, modifier ou supprimer les ressources de l'organisation B, même en modifiant manuellement une requête API.
+
+Appliquer cette logique à toutes les routes similaires identifiées pendant l'audit.
+
+---
+
+## 6. Contrôler les abonnements côté backend
+
+Ne jamais se contenter de masquer les fonctionnalités dans le frontend.
+
+Lorsqu'une fonctionnalité nécessite un abonnement actif, le backend doit également vérifier :
+
+* le statut de l'abonnement ;
+* les éventuelles périodes de grâce prévues ;
+* les droits correspondant à l'offre.
+
+Un utilisateur ne doit pas pouvoir contourner une restriction en appelant directement l'API.
+
+---
+
+## 7. Validation Zod
+
+Toutes les données provenant du client doivent être considérées comme non fiables.
+
+Compléter les schémas Zod pour les routes API :
+
+* body ;
+* params ;
+* query parameters.
+
+Refuser les données invalides avec une réponse HTTP cohérente.
+
+Ne jamais faire confiance à un `organizationId`, `userId`, rôle ou droit transmis directement par le frontend lorsqu'il peut être déterminé depuis la session authentifiée.
+
+---
+
+## 8. Réponses Drizzle
+
+Ne plus retourner directement les objets complets provenant de Drizzle lorsqu'ils contiennent davantage d'informations que nécessaire.
+
+Créer des projections explicites.
+
+Chaque endpoint doit retourner uniquement les champs nécessaires au frontend.
+
+Éviter notamment d'exposer :
+
+* identifiants techniques inutiles ;
+* données internes ;
+* informations sensibles ;
+* champs liés à la sécurité ;
+* métadonnées non nécessaires.
+
+---
+
+## 9. Sécuriser les uploads
+
+Ajouter :
+
+* taille maximale autorisée ;
+* liste blanche de types MIME ;
+* contrôle de l'extension lorsque pertinent ;
+* nom de fichier généré côté serveur ;
+* rejet des fichiers non autorisés.
+
+Ne jamais faire confiance uniquement au type MIME déclaré par le navigateur.
+
+Empêcher qu'un fichier uploadé puisse être interprété/exécuté comme du code par le serveur.
+
+---
+
+# #16 — RGPD et droits des utilisateurs
+
+Utiliser le nouvel onglet :
+
+**Mes paramètres → Confidentialité & données**
+
+pour centraliser les fonctions RGPD destinées à l'utilisateur.
+
+## 1. Documents légaux
+
+Créer les pages :
+
+* Mentions légales ;
+* Politique de confidentialité ;
+* Conditions Générales d'Utilisation.
+
+Prévoir une architecture permettant de modifier leur contenu facilement.
+
+Chaque document doit posséder :
+
+* un identifiant/version ;
+* une date de mise à jour.
+
+Les documents doivent également être accessibles sans connexion depuis les écrans publics appropriés, notamment inscription et connexion.
+
+Ne pas inventer les informations juridiques manquantes concernant l'entreprise. Utiliser des placeholders clairement identifiés lorsque des informations doivent encore être renseignées.
+
+---
+
+## 2. Consentement lors de l'inscription
+
+Lors de la création du compte, afficher une validation explicite du type :
+
+« J'ai lu et j'accepte les Conditions Générales d'Utilisation et la Politique de confidentialité. »
+
+Les liens doivent permettre de consulter les documents avant validation.
+
+Ne pas précocher la case.
+
+Enregistrer côté serveur :
+
+* userId ;
+* type de document ;
+* version acceptée ;
+* date et heure ;
+* informations techniques strictement nécessaires à la preuve du consentement.
+
+Ne pas collecter davantage de données que nécessaire.
+
+---
+
+## 3. Historique des consentements
+
+Dans :
+
+**Mes paramètres → Confidentialité & données → Consentements**
+
+afficher les consentements enregistrés :
+
+* document ;
+* version ;
+* date d'acceptation.
+
+Conserver les anciennes acceptations lorsqu'une nouvelle version est publiée afin de disposer d'une traçabilité.
+
+---
+
+## 4. Export des données
+
+Créer une fonction :
+
+**Télécharger mes données**
+
+permettant à l'utilisateur d'obtenir une copie structurée des données personnelles le concernant.
+
+L'export doit être généré côté serveur après vérification de l'identité et des autorisations.
+
+Ne jamais permettre à un utilisateur d'exporter les données personnelles d'un autre utilisateur ou d'une autre organisation.
+
+Journaliser la demande.
+
+---
+
+## 5. Suppression du compte
+
+Créer :
+
+**Supprimer mon compte**
+
+avec une procédure de confirmation explicite.
+
+Afficher clairement les conséquences avant validation.
+
+La suppression doit prendre en compte :
+
+* le compte utilisateur ;
+* les données personnelles associées ;
+* les données qui doivent légalement ou techniquement être conservées ;
+* les données appartenant à l'organisation et non personnellement à l'utilisateur.
+
+Attention au multi-tenant :
+
+la suppression du compte d'un utilisateur ne doit jamais supprimer arbitrairement les données de toute une organisation.
+
+Prévoir un traitement particulier lorsqu'il s'agit du dernier administrateur/propriétaire de l'organisation.
+
+Journaliser l'opération.
+
+---
+
+# #17 — Journalisation et sécurité administrateur
+
+Créer dans :
+
+**Administration → Sécurité & journalisation**
+
+un espace réservé aux administrateurs autorisés.
+
+Cet espace ne doit jamais être accessible à un utilisateur standard, même en appelant directement les routes API.
+
+## 1. Audit log
+
+Créer un système de journalisation des événements importants.
+
+Journaliser notamment :
+
+* connexions lorsque l'information est disponible ;
+* modifications importantes du compte ;
+* modifications de rôles/droits ;
+* changements liés aux organisations ;
+* export RGPD ;
+* demande/suppression de compte ;
+* modifications importantes des paramètres ;
+* opérations administratives ;
+* événements de sécurité pertinents.
+
+Chaque événement doit pouvoir contenir :
+
+* date/heure ;
+* utilisateur concerné ;
+* organisation concernée si applicable ;
+* type d'action ;
+* résultat succès/échec ;
+* informations contextuelles utiles.
+
+Ne jamais enregistrer dans les logs :
+
+* mots de passe ;
+* tokens ;
+* secrets API ;
+* cookies de session ;
+* contenu sensible inutile.
+
+---
+
+## 2. Tableau de bord sécurité
+
+Créer une interface simple permettant aux administrateurs autorisés de consulter :
+
+* événements récents ;
+* événements de sécurité ;
+* échecs importants ;
+* exports RGPD ;
+* suppressions de comptes ;
+* actions administratives.
+
+Ajouter des filtres :
+
+* période ;
+* organisation ;
+* utilisateur ;
+* catégorie d'événement ;
+* succès/échec.
+
+Prévoir pagination côté serveur.
+
+Ne pas charger l'intégralité des logs dans le navigateur.
+
+---
+
+## 3. Contrôle des droits
+
+Créer un middleware ou mécanisme centralisé pour les routes d'administration.
+
+La simple présence d'un bouton « Administration » dans le frontend ne constitue évidemment pas une protection.
+
+Chaque endpoint administratif doit vérifier les permissions côté serveur.
+
+---
+
+# Règles générales
+
+Respecter l'architecture existante et éviter les duplications.
+
+Centraliser autant que possible :
+
+* authentification ;
+* contrôle d'organisation ;
+* contrôle des rôles ;
+* contrôle d'abonnement ;
+* validation ;
+* journalisation.
+
+Ne jamais baser une protection uniquement sur le frontend.
+
+Ajouter ou mettre à jour les tests nécessaires pour vérifier notamment :
+
+* accès sans authentification → refusé ;
+* accès à une autre organisation → refusé ;
+* utilisateur standard vers administration → refusé ;
+* abonnement expiré vers fonctionnalité protégée → refusé ;
+* payload invalide → refusé ;
+* rate limit → HTTP 429 ;
+* export d'un autre utilisateur → impossible ;
+* suppression d'un autre utilisateur → impossible.
+
+Après implémentation, relancer :
+
+* audit des dépendances ;
+* SAST ;
+* tests ;
+* TypeScript/lint ;
+* vérifications de sécurité disponibles.
+
+Corriger les régressions introduites.
+
+---
+
+# Compte rendu final obligatoire
+
+À la fin, ne réponds pas simplement « terminé ».
+
+Fournis un compte rendu séparé pour **#15, #16 et #17** indiquant :
+
+1. ce qui a réellement été implémenté ;
+2. les fichiers/routes modifiés ;
+3. les protections backend ajoutées ;
+4. les tests effectués et leurs résultats ;
+5. les éléments restant éventuellement à configurer manuellement ;
+6. les informations juridiques ou métier que tu ne pouvais pas déterminer sans les inventer.
+
+Ne marque une tâche comme terminée que si les protections correspondantes sont réellement fonctionnelles côté backend et pas seulement visibles dans l'interface.
