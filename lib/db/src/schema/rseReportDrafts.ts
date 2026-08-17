@@ -67,6 +67,9 @@ export const rseReportDraftsTable = pgTable("rse_report_drafts", {
   reportScope:       text("report_scope"),
   reportMethodology: text("report_methodology"),
 
+  // Quota de générations (rapport illustré)
+  generationCount: integer("generation_count").notNull().default(0),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [

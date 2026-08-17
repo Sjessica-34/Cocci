@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useStorageUpload } from "@/hooks/useStorageUpload";
 import { useAuth } from "@clerk/react";
+import { useLocation } from "wouter";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import {
   useGetReportDraft, useUpdateReportDraft, useGenerateReportAiSection,
+  customFetch,
 } from "@workspace/api-client-react";
 import type { ReportDraftUpdate, ReportHighlight } from "@workspace/api-client-react";
+import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
 import { AppLayout } from "@/components/layout";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,10 +20,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles, Download,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles,
   Plus, Trash2, ChevronDown, ChevronRight, FileText,
   Building2, Users2, Leaf, Award, LayoutList, BookOpen, Target,
-  PenLine, Info,
+  PenLine, Info, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getGetReportDraftQueryKey } from "@workspace/api-client-react";
@@ -278,7 +291,7 @@ function SaveStatus({ status }: { status: "idle" | "saving" | "saved" | "error" 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function RapportRse() {
-  const { getToken } = useAuth();
+  useAuth(); // conserve l'import pour les hooks d'auth futurs
   const { effectiveOrgId, isReadOnly } = useModuleContext("group");
   const orgId = effectiveOrgId;
 
@@ -288,11 +301,13 @@ export function RapportRse() {
   const { mutateAsync: saveDraft } = useUpdateReportDraft();
   const { mutateAsync: generateAiSection } = useGenerateReportAiSection();
 
+  const [, navigate] = useLocation();
   const [local, setLocal] = useState<LocalDraft>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [showGenConfirm, setShowGenConfirm] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -391,34 +406,25 @@ export function RapportRse() {
   };
 
 
-  const handleDownloadReport = async () => {
-    if (!orgId || downloading) return;
-    setDownloading(true);
-    setDownloadError(null);
+  const handleConfirmGenerate = async () => {
+    if (!orgId || generating) return;
+    setShowGenConfirm(false);
+    setGenerating(true);
+    setGenerateError(null);
     try {
-      const token = await getToken();
-      const exerciseId = getCurrentExerciseId();
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      if (exerciseId != null) headers["X-Exercise-Id"] = String(exerciseId);
-      const res = await fetch(`/api/organizations/${orgId}/report/generate`, { headers });
-      if (!res.ok) throw new Error(await res.text());
-      const blob = await res.blob();
-      const disposition = res.headers.get("Content-Disposition") ?? "";
-      const match = /filename="([^"]+)"/.exec(disposition);
-      const filename = match?.[1] ?? "rapport-rse.docx";
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      setDownloadError("La génération du rapport a échoué. Réessayez dans quelques instants.");
+      await customFetch(`/api/organizations/${orgId}/report/register-generation`, {
+        method: "POST",
+      });
+      navigate("/rapport-rse/viewer");
+    } catch (err: unknown) {
+      const status = (err as { status?: number })?.status;
+      if (status === 429) {
+        setGenerateError("Quota de générations atteint pour cet exercice.");
+      } else {
+        setGenerateError("Une erreur est survenue. Réessayez dans quelques instants.");
+      }
     } finally {
-      setDownloading(false);
+      setGenerating(false);
     }
   };
 
@@ -851,7 +857,7 @@ export function RapportRse() {
           <TabsContent value="generer" className="mt-2 space-y-4">
             <div className="rounded-xl border bg-card p-6 space-y-5">
               <div>
-                <h2 className="text-base font-semibold">Générer votre rapport DOCX</h2>
+                <h2 className="text-base font-semibold">Générer votre rapport RSE</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Le rapport intègre automatiquement toutes vos données RSE (bilan carbone, capital humain, diagnostic, plan d'actions, labels, impact score…) ainsi que le contenu éditorial préparé ci-dessus.
                 </p>
@@ -882,32 +888,64 @@ export function RapportRse() {
                 </p>
               </div>
 
-              {/* ─── Télécharger le rapport DOCX ─── */}
-              <Button
-                type="button"
-                onClick={handleDownloadReport}
-                disabled={downloading}
-                className="w-full gap-2 h-11 text-sm font-semibold"
-              >
-                {downloading
-                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Génération du rapport en cours…</>
-                  : <><Download className="h-4 w-4" /> Télécharger le rapport (DOCX)</>}
-              </Button>
-              {downloadError && (
-                <p className="text-xs text-destructive flex items-center gap-1.5">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {downloadError}
-                </p>
-              )}
+              {/* ─── Quota de générations ─── */}
+              {(() => {
+                const count = (draft as { generationCount?: number } | undefined)?.generationCount ?? 0;
+                const limitReached = count >= MAX_REPORT_GENERATIONS;
+                return (
+                  <div className="space-y-3">
+                    {/* Indicateur de quota */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Générations utilisées</span>
+                      <span className={cn(
+                        "font-semibold",
+                        limitReached ? "text-destructive" : "text-foreground",
+                      )}>
+                        {count} / {MAX_REPORT_GENERATIONS}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          limitReached ? "bg-destructive" : "bg-green-500",
+                        )}
+                        style={{ width: `${Math.min((count / MAX_REPORT_GENERATIONS) * 100, 100)}%` }}
+                      />
+                    </div>
 
-              {/* ─── Rapport illustré (impression / export PDF) ─── */}
-              <a
-                href="/rapport-rse/viewer"
-                className="flex items-center justify-center gap-2 w-full rounded-lg px-4 py-3 text-sm font-semibold border-2 border-green-600 text-green-700 bg-green-50 hover:bg-green-100 transition-colors"
-                style={{ textDecoration: "none" }}
-              >
-                <span>🌿</span>
-                Voir le rapport illustré (avec graphiques)
-              </a>
+                    {limitReached ? (
+                      /* ── Limite atteinte ── */
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-1">
+                        <p className="text-sm font-semibold text-destructive">
+                          Vous avez atteint le nombre maximum de générations pour cet exercice ({MAX_REPORT_GENERATIONS}).
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Si vous souhaitez bénéficier d'une génération supplémentaire, merci de contacter l'équipe Cocci.
+                        </p>
+                      </div>
+                    ) : (
+                      /* ── Bouton de génération ── */
+                      <Button
+                        type="button"
+                        onClick={() => setShowGenConfirm(true)}
+                        disabled={generating}
+                        className="w-full gap-2 h-11 text-sm font-semibold bg-green-700 hover:bg-green-800"
+                      >
+                        {generating
+                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Génération en cours…</>
+                          : <><ExternalLink className="h-4 w-4" /> Générer le rapport</>}
+                      </Button>
+                    )}
+
+                    {generateError && (
+                      <p className="text-xs text-destructive flex items-center gap-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {generateError}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
             </div>
 
@@ -921,6 +959,26 @@ export function RapportRse() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ── Dialog de confirmation avant génération ── */}
+      <AlertDialog open={showGenConfirm} onOpenChange={setShowGenConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la génération</AlertDialogTitle>
+            <AlertDialogDescription>
+              Attention : chaque exercice est limité à{" "}
+              <strong>{MAX_REPORT_GENERATIONS} générations</strong> de rapport. Cette génération sera
+              décomptée de votre quota. Souhaitez-vous continuer ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmGenerate}>
+              Continuer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db, rseReportDraftsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope } from "../middlewares/exerciseScope";
 import { generateReport } from "../lib/generateReport";
 import { logger } from "../lib/logger";
+import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
 
 const router = Router();
 
@@ -39,6 +40,8 @@ function serializeDraft(row: typeof rseReportDraftsTable.$inferSelect) {
     perspectivesContent: row.perspectivesContent ?? null,
     reportScope: row.reportScope ?? null,
     reportMethodology: row.reportMethodology ?? null,
+    generationCount: row.generationCount ?? 0,
+    maxGenerations: MAX_REPORT_GENERATIONS,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -253,6 +256,59 @@ router.post("/organizations/:orgId/report/ai-section", requireAuth, requireOrgMe
   } catch (e) {
     logger.error({ e }, "AI section generation error");
     res.status(502).json({ error: "AI generation failed" });
+  }
+});
+
+// POST /organizations/:orgId/report/register-generation
+// Incrémente le compteur de générations après une génération réussie.
+// Renvoie 429 si la limite est atteinte.
+router.post("/organizations/:orgId/report/register-generation", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const orgId = req.orgId!;
+  const exercise = req.exercise!;
+
+  try {
+    // Récupérer le brouillon actuel pour lire le compteur
+    const [existing] = await db
+      .select({ id: rseReportDraftsTable.id, generationCount: rseReportDraftsTable.generationCount })
+      .from(rseReportDraftsTable)
+      .where(and(
+        eq(rseReportDraftsTable.organizationId, orgId),
+        eq(rseReportDraftsTable.exerciseId, exercise.id),
+      ))
+      .limit(1);
+
+    const currentCount = existing?.generationCount ?? 0;
+
+    if (currentCount >= MAX_REPORT_GENERATIONS) {
+      res.status(429).json({
+        error: "generation_limit_reached",
+        generationCount: currentCount,
+        maxGenerations: MAX_REPORT_GENERATIONS,
+      });
+      return;
+    }
+
+    // Incrémenter le compteur
+    if (existing) {
+      await db
+        .update(rseReportDraftsTable)
+        .set({ generationCount: sql`${rseReportDraftsTable.generationCount} + 1` })
+        .where(eq(rseReportDraftsTable.id, existing.id));
+    } else {
+      // Créer le brouillon s'il n'existe pas encore
+      await db
+        .insert(rseReportDraftsTable)
+        .values({ organizationId: orgId, exerciseId: exercise.id, generationCount: 1 })
+        .onConflictDoUpdate({
+          target: [rseReportDraftsTable.organizationId, rseReportDraftsTable.exerciseId],
+          set: { generationCount: sql`${rseReportDraftsTable.generationCount} + 1` },
+        });
+    }
+
+    res.json({ generationCount: currentCount + 1, maxGenerations: MAX_REPORT_GENERATIONS });
+  } catch (e) {
+    logger.error({ e }, "register-generation error");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
