@@ -4,143 +4,245 @@ import {
   CheckCircle2,
   ArrowRight,
   Leaf,
-  BarChart3,
-  Users,
-  ClipboardList,
-  Star,
-  FileText,
   FolderOpen,
+  FileText,
+  Star,
   Building2,
   Layers,
 } from "lucide-react";
 
 // ─── App Mockup ───────────────────────────────────────────────────────────────
 
-function AppMockup() {
+function RingGauge({ pct, color }: { pct: number; color: string }) {
+  const r = 18;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
   return (
-    <div className="relative w-full max-w-[540px] mx-auto select-none pointer-events-none">
-      {/* Drop shadow card */}
-      <div className="rounded-2xl overflow-hidden border border-border/60 shadow-2xl bg-white text-[10px] leading-tight font-sans">
-        {/* Top bar */}
-        <div className="flex items-stretch border-b border-gray-100">
-          {/* Sidebar */}
-          <aside className="w-[130px] shrink-0 bg-[#163028] text-white flex flex-col">
-            {/* Logo */}
-            <div className="px-3 py-2.5 flex items-center gap-1.5 border-b border-white/10">
-              <Leaf className="h-3 w-3 text-green-400" />
-              <span className="font-bold text-[11px]">Cocci</span>
-            </div>
-            {/* Nav sections */}
-            <div className="px-2 pt-2 pb-1">
-              <p className="text-[8px] uppercase tracking-widest text-green-400/70 mb-1 px-1">Démarche RSE</p>
-              {["Tableau de bord", "Parties prenantes", "Matrice de matérialité", "Dépendances & impacts", "Achats Responsables"].map((item) => (
-                <div key={item} className={`px-2 py-1 rounded text-white/70 text-[9px] ${item === "Tableau de bord" ? "bg-white/10 text-white" : ""}`}>{item}</div>
-              ))}
-            </div>
-            <div className="px-2 pt-1 pb-1">
-              <p className="text-[8px] uppercase tracking-widest text-green-400/70 mb-1 px-1">Pilotage & suivi</p>
-              {["Bilan carbone", "Numérique responsable", "Baromètre social", "Capital humain", "Actions RSE", "Impact Score"].map((item) => (
-                <div key={item} className="px-2 py-1 rounded text-white/70 text-[9px]">{item}</div>
-              ))}
-            </div>
-            <div className="px-2 pt-1 pb-1">
-              <p className="text-[8px] uppercase tracking-widest text-green-400/70 mb-1 px-1">Reporting</p>
-              {["Diagnostic RSE", "Rapport RSE"].map((item) => (
-                <div key={item} className="px-2 py-1 rounded text-white/70 text-[9px]">{item}</div>
-              ))}
-            </div>
-            <div className="px-2 pt-1 pb-1">
-              <p className="text-[8px] uppercase tracking-widest text-green-400/70 mb-1 px-1">Ressources</p>
-              {["Documents & ressources"].map((item) => (
-                <div key={item} className="px-2 py-1 rounded text-white/70 text-[9px]">{item}</div>
-              ))}
-            </div>
-            <div className="mt-auto px-2 py-2 border-t border-white/10">
-              <div className="px-2 py-1 text-white/50 text-[9px]">Paramètres</div>
-            </div>
-          </aside>
+    <svg width="48" height="48" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r={r} fill="none" stroke="#e5e7eb" strokeWidth="5" />
+      <circle
+        cx="24" cy="24" r={r} fill="none"
+        stroke={color} strokeWidth="5"
+        strokeDasharray={`${dash} ${circ}`}
+        strokeLinecap="round"
+        transform="rotate(-90 24 24)"
+      />
+      <text x="24" y="28" textAnchor="middle" fontSize="9" fontWeight="700" fill={color}>{pct}%</text>
+    </svg>
+  );
+}
 
-          {/* Main content */}
-          <div className="flex-1 bg-gray-50 overflow-hidden">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-gray-900 text-[10px]">Bonjour, Jessica 🌿</p>
-                <p className="text-gray-400 text-[8px]">martin.gro · Agriculture &amp; Agro-alimentaire</p>
+function AppMockup() {
+  const sidebarItems = [
+    "Tableau de bord",
+    "Mes parties prenantes",
+    "Matrice de matérialité",
+    "Mes dépendances à…",
+    "Achats & Fournisseur…",
+    "Mon bilan carbone",
+    "Ma démarche Numéri…",
+    "Baromètre Social",
+    "Capital Humain",
+    "Mes actions RSE",
+    "Mon Impact Score",
+    "Mes labels",
+    "Ma captation carbone",
+    "Mon diagnostic RSE",
+    "Mon rapport RSE",
+    "Mes ressources",
+    "Mes documents",
+    "Échanges avec Cocci",
+    "Administration",
+  ];
+
+  return (
+    <div className="relative w-full max-w-[560px] mx-auto select-none pointer-events-none">
+      <div className="rounded-xl overflow-hidden border border-gray-200 shadow-2xl bg-white flex text-[9px] leading-tight font-sans">
+
+        {/* ── Sidebar ── */}
+        <aside className="w-[130px] shrink-0 bg-[#163028] text-white flex flex-col overflow-hidden">
+          {/* Logo */}
+          <div className="px-3 py-2.5 flex items-center gap-1.5 border-b border-white/10">
+            <Leaf className="h-3 w-3 text-green-400" />
+            <span className="font-bold text-[11px] tracking-tight">Cocci</span>
+          </div>
+
+          {/* Org header */}
+          <div className="px-3 py-2 border-b border-white/10">
+            <p className="text-[7px] uppercase tracking-widest text-green-400/70 mb-0.5">Martin GRP</p>
+            <p className="text-white/90 font-semibold text-[9px]">Vue Groupe</p>
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-white/40 text-[7.5px]">Exercic…</span>
+              <span className="bg-emerald-500/20 text-emerald-300 text-[6.5px] px-1 py-0.5 rounded font-semibold">En cours</span>
+            </div>
+          </div>
+
+          {/* Nav */}
+          <div className="flex-1 overflow-hidden py-1">
+            {sidebarItems.map((item) => (
+              <div
+                key={item}
+                className={`px-3 py-[3.5px] text-[8.5px] truncate flex items-center gap-1.5 ${
+                  item === "Tableau de bord"
+                    ? "bg-emerald-600/30 text-white font-semibold border-l-2 border-emerald-400"
+                    : "text-white/55 hover:text-white/80"
+                }`}
+              >
+                {item}
               </div>
+            ))}
+          </div>
+
+          {/* User footer */}
+          <div className="border-t border-white/10 px-3 py-2">
+            <p className="text-white/90 font-semibold text-[8.5px]">Martin SUTRA</p>
+            <p className="text-white/40 text-[7px] truncate">sutra.jessica@gmail…</p>
+          </div>
+        </aside>
+
+        {/* ── Main ── */}
+        <div className="flex-1 min-w-0 bg-gray-50 flex flex-col">
+
+          {/* Top bar */}
+          <div className="bg-white border-b border-gray-100 px-4 py-2.5">
+            <p className="font-bold text-[13px] text-gray-900">Bonjour, Martin 🌿</p>
+            <p className="text-gray-400 text-[8px] mt-0.5">martin grp · Agriculture &amp; Agro-alimentaire</p>
+          </div>
+
+          <div className="p-3 space-y-3 overflow-hidden">
+
+            {/* KPI row */}
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                {
+                  label: "Impact Score",
+                  icon: "🌿",
+                  value: "80",
+                  suffix: "/100",
+                  sub: "Score renseigné",
+                  color: "text-emerald-600",
+                  accent: "bg-emerald-50",
+                },
+                {
+                  label: "Maturité RSE",
+                  icon: "🌱",
+                  value: "64%",
+                  suffix: "",
+                  sub: "Score global ENV · SOC · GOV",
+                  color: "text-emerald-700",
+                  accent: "bg-emerald-50",
+                },
+                {
+                  label: "Plan d'action",
+                  icon: "📋",
+                  value: "100%",
+                  suffix: "",
+                  sub: "11 / 11 actions",
+                  color: "text-blue-600",
+                  accent: "bg-blue-50",
+                  bar: true,
+                },
+                {
+                  label: "Labels & Certifications",
+                  icon: "🏅",
+                  value: "1",
+                  suffix: "",
+                  sub: "label obtenu",
+                  color: "text-amber-600",
+                  accent: "bg-amber-50",
+                },
+              ].map((kpi) => (
+                <div key={kpi.label} className={`${kpi.accent} rounded-lg border border-gray-100 p-2`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[7.5px] text-gray-500 leading-snug">{kpi.label}</span>
+                    <span className="text-[9px]">{kpi.icon}</span>
+                  </div>
+                  <p className={`font-extrabold leading-none ${kpi.color}`} style={{ fontSize: 15 }}>
+                    {kpi.value}<span className="text-[8px] font-normal text-gray-400">{kpi.suffix}</span>
+                  </p>
+                  {kpi.bar && (
+                    <div className="h-1 bg-blue-200 rounded-full mt-1 mb-0.5">
+                      <div className="h-full w-full bg-blue-500 rounded-full" />
+                    </div>
+                  )}
+                  <p className="text-gray-400 text-[7px] mt-0.5 leading-snug">{kpi.sub}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="p-3 space-y-2.5">
-              {/* KPI row */}
-              <div className="grid grid-cols-4 gap-1.5">
+            {/* DIAGNOSTIC RSE */}
+            <div>
+              <p className="text-[7.5px] uppercase tracking-widest text-gray-400 font-semibold mb-1.5">Diagnostic RSE</p>
+              <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { label: "Impact Score", value: "80", sub: "Score écologique", color: "text-emerald-600" },
-                  { label: "Maturité RSE", value: "64%", sub: "Score global ENV · SOC · GOV", color: "text-blue-600" },
-                  { label: "Plan d'action", value: "100%", sub: "11 / 11 actions", color: "text-violet-600" },
-                  { label: "Labels & Certifications", value: "1", sub: "label obtenu", color: "text-amber-600" },
-                ].map((kpi) => (
-                  <div key={kpi.label} className="bg-white rounded-lg border border-gray-100 p-2">
-                    <p className="text-gray-400 text-[7.5px] mb-0.5">{kpi.label}</p>
-                    <p className={`font-bold text-[14px] leading-none ${kpi.color}`}>{kpi.value}</p>
-                    <p className="text-gray-400 text-[7px] mt-0.5">{kpi.sub}</p>
+                  { label: "Environnement", emoji: "🌿", pct: 79, color: "#10b981" },
+                  { label: "Social",        emoji: "👥", pct: 58, color: "#3b82f6" },
+                  { label: "Gouvernance",   emoji: "🏛️", pct: 58, color: "#8b5cf6" },
+                ].map((d) => (
+                  <div key={d.label} className="bg-white rounded-lg border border-gray-100 p-2 flex flex-col items-center gap-1">
+                    <div className="w-full flex items-center justify-between">
+                      <span className="text-[8px] font-semibold text-gray-700">{d.emoji} {d.label}</span>
+                      <span className="text-gray-300 text-[8px]">›</span>
+                    </div>
+                    <RingGauge pct={d.pct} color={d.color} />
+                    <p className="text-[7px] text-gray-400">Score maturité</p>
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* Diagnostic RSE */}
-              <div className="bg-white rounded-lg border border-gray-100 p-2.5">
-                <p className="font-semibold text-[9px] text-gray-700 mb-2">DIAGNOSTIC RSE</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: "Environnement", icon: "🌿", score: "79%", color: "text-emerald-600" },
-                    { label: "Social", icon: "👥", score: "58%", color: "text-blue-600" },
-                    { label: "Gouvernance", icon: "🏛️", score: "58%", color: "text-violet-600" },
-                  ].map((item) => (
-                    <div key={item.label} className="text-center">
-                      <div className="text-[8px] text-gray-500 mb-1">{item.icon} {item.label}</div>
-                      {/* Ring chart placeholder */}
-                      <div className="w-10 h-10 mx-auto rounded-full border-4 border-gray-100 flex items-center justify-center relative">
-                        <div className="absolute inset-0 rounded-full" style={{
-                          background: `conic-gradient(${item.color === "text-emerald-600" ? "#10b981" : item.color === "text-blue-600" ? "#3b82f6" : "#8b5cf6"} ${parseInt(item.score) * 3.6}deg, #f3f4f6 0deg)`
-                        }} />
-                        <span className={`relative z-10 font-bold text-[8px] ${item.color}`}>{item.score}</span>
+            {/* MODULES RSE */}
+            <div>
+              <p className="text-[7.5px] uppercase tracking-widest text-gray-400 font-semibold mb-1.5">Modules RSE</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  {
+                    label: "Bilan carbone", emoji: "🌍",
+                    rows: [["Émissions totales", "43 tCO₂e"], ["Exercice", "2026"]],
+                  },
+                  {
+                    label: "Dépendances biodiversité", emoji: "🌿",
+                    rows: [["Éléments cartographiés", "14"], ["Ressources", "8"], ["Activités", "2"]],
+                  },
+                  {
+                    label: "Parties prenantes", emoji: "👥",
+                    rows: [["Parties prenantes identifiées", "1"]],
+                  },
+                  {
+                    label: "Achats responsables", emoji: "🛒",
+                    rows: [["Fournisseurs", "3"], ["Évalués RSE", "1"], ["Avec certification", "33% (1)"]],
+                  },
+                  {
+                    label: "Numérique responsable", emoji: "💻",
+                    rows: [["Score", "100%"], ["Niveau", "inr"]],
+                  },
+                  {
+                    label: "Capital humain", emoji: "👤",
+                    rows: [["Effectif", "9 pers."], ["Heures de formation", "4 h"]],
+                  },
+                ].map((m) => (
+                  <div key={m.label} className="bg-white rounded-lg border border-gray-100 p-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[8px] font-semibold text-gray-700">{m.emoji} {m.label}</span>
+                      <span className="text-gray-300 text-[7px]">↗</span>
+                    </div>
+                    {m.rows.map(([k, v]) => (
+                      <div key={k} className="flex justify-between items-baseline gap-1">
+                        <span className="text-[7px] text-gray-400 truncate">{k}</span>
+                        <span className="text-[8px] font-bold text-gray-800 shrink-0">{v}</span>
                       </div>
-                      <p className="text-[7px] text-gray-400 mt-0.5">Score maturité</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Suivi & indicateurs */}
-              <div className="bg-white rounded-lg border border-gray-100 p-2.5">
-                <p className="font-semibold text-[9px] text-gray-700 mb-2">SUIVI &amp; INDICATEURS</p>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[
-                    { label: "Bilan carbone", value: "43 tCO₂e", sub: "Émissions totales\nExercice 2025" },
-                    { label: "Actions RSE", value: "11", sub: "Actions en cours" },
-                    { label: "Baromètre social", value: "76%", sub: "Satisfaction globale" },
-                    { label: "Capital humain", value: "9 pers.", sub: "Effectif total" },
-                  ].map((item) => (
-                    <div key={item.label} className="border border-gray-100 rounded p-1.5">
-                      <p className="text-[7px] text-gray-400">{item.label}</p>
-                      <p className="font-bold text-[11px] text-gray-800 mt-0.5">{item.value}</p>
-                      <p className="text-[6.5px] text-gray-400 mt-0.5 whitespace-pre-line">{item.sub}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer banner */}
-              <div className="bg-[#163028] rounded-lg px-3 py-2 flex items-center justify-between">
-                <div>
-                  <span className="text-green-300 text-[8px] font-semibold">📄 Rapport RSE</span>
-                  <span className="text-white/50 text-[7px] ml-2">Généré automatiquement · Dernière mise à jour : aujourd'hui</span>
-                </div>
-                <div className="bg-white text-[#163028] text-[8px] font-semibold px-2 py-1 rounded">
-                  Voir le rapport
-                </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
+
+            {/* Contact footer */}
+            <div className="text-center pt-1 pb-0.5">
+              <p className="text-[7.5px] text-gray-400">Besoin d'un accompagnement ?</p>
+              <p className="text-[8px] font-semibold text-emerald-700">bonjour@a-nim-pact.fr</p>
+            </div>
+
           </div>
         </div>
       </div>
@@ -148,7 +250,7 @@ function AppMockup() {
   );
 }
 
-// ─── Home page ────────────────────────────────────────────────────────────────
+// ─── Features ─────────────────────────────────────────────────────────────────
 
 const features = [
   {
@@ -184,49 +286,54 @@ const features = [
   },
 ];
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export function Home() {
   return (
     <div className="min-h-screen bg-white flex flex-col text-gray-900">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* ── Header ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Leaf className="h-5 w-5 text-[#163028]" />
             <span className="font-bold text-lg text-[#163028] tracking-tight">Cocci</span>
           </div>
-          <Link href="/sign-in">
-            <Button variant="ghost" size="sm" className="text-gray-600 font-medium">
-              Se connecter
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/sign-in">
+              <Button variant="ghost" size="sm" className="text-gray-600 font-medium">
+                Se connecter
+              </Button>
+            </Link>
+            <Link href="/sign-up">
+              <Button size="sm" className="bg-[#163028] hover:bg-[#1e4438] text-white font-medium">
+                Commencer
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
       <main className="flex-1">
 
-        {/* ── Hero ───────────────────────────────────────────────────────────── */}
+        {/* ── Hero ── */}
         <section className="max-w-6xl mx-auto px-6 pt-16 pb-20 grid lg:grid-cols-2 gap-12 items-center">
           {/* Left */}
           <div className="space-y-6">
-            {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
               <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse shrink-0" />
               La plateforme RSE des TPE, PME et ETI françaises
             </div>
 
-            {/* Headline */}
             <h1 className="text-[2.6rem] leading-[1.15] font-extrabold text-gray-900">
               Construisez votre démarche RSE en toute{" "}
               <span className="text-[#163028]">autonomie</span>, suivez vos engagements et mesurez votre impact.
             </h1>
 
-            {/* Sub */}
             <p className="text-base text-gray-500 leading-relaxed max-w-md">
               Cocci vous donne tous les outils pour structurer, piloter et valoriser votre stratégie RSE simplement.
             </p>
 
-            {/* Trust badges */}
             <div className="flex items-center gap-6 text-sm font-medium text-gray-700">
               {["Simple", "Complet", "Pensé pour les PME"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5">
@@ -236,13 +343,9 @@ export function Home() {
               ))}
             </div>
 
-            {/* CTA */}
             <div className="space-y-2">
               <Link href="/sign-up">
-                <Button
-                  size="lg"
-                  className="h-12 px-7 text-sm font-semibold bg-[#163028] hover:bg-[#1e4438] text-white rounded-lg"
-                >
+                <Button size="lg" className="h-12 px-7 text-sm font-semibold bg-[#163028] hover:bg-[#1e4438] text-white rounded-lg">
                   Demander une démo <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -252,13 +355,13 @@ export function Home() {
             </div>
           </div>
 
-          {/* Right — App mockup */}
+          {/* Right — Mockup */}
           <div className="hidden lg:block">
             <AppMockup />
           </div>
         </section>
 
-        {/* ── Features 1-6 ───────────────────────────────────────────────────── */}
+        {/* ── Features 1-6 ── */}
         <section className="border-t border-gray-100 bg-white py-20">
           <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-x-10 gap-y-14">
             {features.map((f) => (
@@ -277,13 +380,15 @@ export function Home() {
           </div>
         </section>
 
-        {/* ── Centralisez vos ressources ─────────────────────────────────────── */}
+        {/* ── Centralisez vos ressources ── */}
         <section className="bg-gray-50 border-t border-gray-100 py-16">
           <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-3">Centralisez vos ressources</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Déposez vos documents, preuves et justificatifs au même endroit. Retrouvez-les facilement, utilisez-les pour alimenter automatiquement votre rapport RSE et accédez à des guides, modèles et ressources pratiques pour vous accompagner tout au long de votre démarche.
+                Déposez vos documents, preuves et justificatifs au même endroit. Retrouvez-les facilement,
+                utilisez-les pour alimenter automatiquement votre rapport RSE et accédez à des guides,
+                modèles et ressources pratiques pour vous accompagner tout au long de votre démarche.
               </p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -302,13 +407,14 @@ export function Home() {
           </div>
         </section>
 
-        {/* ── Conçu pour les PME comme pour les groupes ──────────────────────── */}
+        {/* ── PME / Groupes ── */}
         <section className="bg-white border-t border-gray-100 py-16">
           <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-3">Conçu pour les PME comme pour les groupes</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Gérez plusieurs entités, filiales ou sites depuis une interface unique. Suivez chaque entité individuellement ou consolidez l'ensemble pour avoir une vision globale de votre démarche.
+                Gérez plusieurs entités, filiales ou sites depuis une interface unique. Suivez chaque entité
+                individuellement ou consolidez l'ensemble pour avoir une vision globale de votre démarche.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -326,7 +432,7 @@ export function Home() {
           </div>
         </section>
 
-        {/* ── Bottom CTA ─────────────────────────────────────────────────────── */}
+        {/* ── Bottom CTA ── */}
         <section className="bg-gray-50 border-t border-gray-200 py-14">
           <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
             <div>
@@ -338,10 +444,7 @@ export function Home() {
               </p>
             </div>
             <Link href="/sign-up" className="shrink-0">
-              <Button
-                size="lg"
-                className="h-12 px-7 text-sm font-semibold bg-[#163028] hover:bg-[#1e4438] text-white rounded-lg"
-              >
+              <Button size="lg" className="h-12 px-7 text-sm font-semibold bg-[#163028] hover:bg-[#1e4438] text-white rounded-lg">
                 Demander une démo <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -350,7 +453,7 @@ export function Home() {
 
       </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────────────── */}
+      {/* ── Footer ── */}
       <footer className="border-t border-gray-100 bg-white py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -363,6 +466,7 @@ export function Home() {
           </Link>
         </div>
       </footer>
+
     </div>
   );
 }
