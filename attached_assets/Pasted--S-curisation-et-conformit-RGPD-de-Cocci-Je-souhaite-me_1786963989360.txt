@@ -1,0 +1,145 @@
+# Sécurisation et conformité RGPD de Cocci
+
+Je souhaite mettre Cocci au niveau attendu d'un SaaS professionnel en matière de sécurité, de confidentialité et de conformité RGPD.
+
+Je ne souhaite pas uniquement ajouter des pages juridiques.
+
+Je souhaite également vérifier l'architecture technique afin que la sécurité soit réellement appliquée.
+
+## 1. Audit complet
+
+Avant toute modification, réalise un audit de sécurité complet du projet.
+
+Identifie notamment :
+
+* les données personnelles collectées ;
+* les données sensibles ;
+* les risques de sécurité ;
+* les accès insuffisamment protégés ;
+* les routes API non sécurisées ;
+* les risques OWASP ;
+* les traitements non conformes au RGPD.
+
+Présente ensuite un plan d'action.
+
+---
+
+## 2. Authentification
+
+Vérifier que :
+
+* toutes les routes API sensibles sont protégées ;
+* les autorisations sont contrôlées côté backend et pas uniquement dans le frontend ;
+* un utilisateur ne peut accéder qu'aux données de son organisation ;
+* un utilisateur d'une filiale ne peut accéder qu'aux données autorisées.
+
+---
+
+## 3. Gestion des abonnements
+
+Le contrôle de l'abonnement doit être effectué côté backend.
+
+Une organisation dont le statut est :
+
+* suspended
+* expired
+
+ne doit plus accéder aux fonctionnalités payantes.
+
+---
+
+## 4. Protection des données
+
+Vérifier que :
+
+* aucune donnée sensible n'est transmise dans les URL ;
+* toutes les communications utilisent HTTPS ;
+* les données sensibles sont protégées ;
+* les mots de passe ne sont jamais stockés (Clerk reste la source d'authentification) ;
+* les fichiers uploadés sont sécurisés.
+
+---
+
+## 5. Journalisation
+
+Créer une journalisation des événements importants :
+
+* connexion
+* suppression
+* export
+* génération d'un rapport
+* modification des abonnements
+* actions administrateur
+
+Les logs ne doivent jamais contenir de données personnelles inutiles.
+
+---
+
+## 6. RGPD
+
+Ajouter dans Cocci les pages suivantes :
+
+* Politique de confidentialité
+* Conditions Générales d'Utilisation (CGU)
+* Conditions Générales de Vente (CGV)
+* Politique de cookies
+* Mentions légales
+
+Ajouter également :
+
+* une case d'acceptation des CGU lors de l'inscription ;
+* une case d'information sur la politique de confidentialité ;
+* un bandeau cookies conforme si des cookies non essentiels sont utilisés.
+
+---
+
+## 7. Droits RGPD
+
+Permettre à un utilisateur de :
+
+* télécharger ses données ;
+* demander la suppression de son compte ;
+* modifier ses informations personnelles.
+
+Prévoir également la suppression ou l'anonymisation des données lorsque cela est nécessaire.
+
+---
+
+## 8. Sécurité applicative
+
+Vérifier notamment :
+
+* protections XSS ;
+* protections CSRF si nécessaires ;
+* injections SQL ;
+* validation des entrées ;
+* limitation du nombre de requêtes ;
+* taille maximale des fichiers uploadés ;
+* contrôle des types de fichiers.
+
+---
+
+## 9. Sauvegardes
+
+Prévoir une stratégie de sauvegarde documentée.
+
+---
+
+## 10. Administration
+
+Créer un tableau de bord Sécurité permettant de visualiser :
+
+* derniers événements ;
+* erreurs ;
+* connexions récentes ;
+* alertes éventuelles.
+
+---
+
+## Important
+
+Je souhaite privilégier des solutions simples, robustes et adaptées à un SaaS destiné aux TPE et PME.
+
+Je ne souhaite pas ajouter de complexité inutile.
+
+Je souhaite que Cocci respecte les bonnes pratiques actuelles en matière de sécurité et de protection des données tout en restant maintenable.
