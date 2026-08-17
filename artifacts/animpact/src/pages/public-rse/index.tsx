@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "wouter";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { QRCodeSVG } from "qrcode.react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -240,10 +239,6 @@ export function PublicRsePage() {
             <p style={{ fontSize: 12, color: C.gray400, margin: 0 }}>
               Cette page présente les principaux indicateurs de notre démarche, mis à jour automatiquement depuis Cocci.
             </p>
-          </div>
-          <div style={{ textAlign: "center", padding: "16px", background: "#fff", borderRadius: 12, border: `1px solid ${C.gray200}`, minWidth: 120 }}>
-            <p style={{ fontSize: 10, color: C.gray400, margin: "0 0 8px", lineHeight: 1.4, textAlign: "center" }}>Scannez pour découvrir<br />notre engagement RSE</p>
-            <QRCodeSVG value={pageUrl} size={100} fgColor={C.green} level="M" />
           </div>
         </div>
 
