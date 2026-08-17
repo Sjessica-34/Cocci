@@ -51,14 +51,14 @@ export function useAuditLogs(params: AuditLogsParams = {}) {
 
   return useQuery<AuditLogsResponse>({
     queryKey: getAuditLogsQueryKey(params),
-    queryFn: () => customFetch<AuditLogsResponse>(`/admin/audit-logs?${query.toString()}`),
+    queryFn: () => customFetch<AuditLogsResponse>(`/api/admin/audit-logs?${query.toString()}`),
   });
 }
 
 export function useAuditLogActions() {
   return useQuery<string[]>({
     queryKey: ["admin", "audit-log-actions"],
-    queryFn: () => customFetch<string[]>("/admin/audit-logs/actions"),
+    queryFn: () => customFetch<string[]>("/api/admin/audit-logs/actions"),
     staleTime: 60_000,
   });
 }
