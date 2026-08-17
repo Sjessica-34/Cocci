@@ -19,7 +19,7 @@ const sections = {
         <h2 className="text-base font-semibold">5. Vos droits</h2>
         <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, de suppression, de portabilité et d'opposition. Exercez ces droits depuis la page <strong>Mes paramètres → Confidentialité &amp; données</strong>.</p>
         <h2 className="text-base font-semibold">6. Contact</h2>
-        <p>Pour toute question : <a href="mailto:privacy@cocci.fr" className="text-primary underline">privacy@cocci.fr</a></p>
+        <p>Pour toute question : <a href="mailto:bonjour@a-nim-pact.fr" className="text-primary underline">bonjour@a-nim-pact.fr</a></p>
       </div>
     ),
   },
@@ -77,7 +77,7 @@ const sections = {
         <h2 className="text-base font-semibold">Propriété intellectuelle</h2>
         <p>L'ensemble des contenus de la plateforme (textes, graphismes, logiciels) est la propriété exclusive de Cocci SAS.</p>
         <h2 className="text-base font-semibold">Contact</h2>
-        <p><a href="mailto:contact@cocci.fr" className="text-primary underline">contact@cocci.fr</a></p>
+        <p><a href="mailto:bonjour@a-nim-pact.fr" className="text-primary underline">bonjour@a-nim-pact.fr</a></p>
       </div>
     ),
   },
