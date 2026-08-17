@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles,
+  AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles, Download,
   Plus, Trash2, ChevronDown, ChevronRight, FileText,
   Building2, Users2, Leaf, Award, LayoutList, BookOpen, Target,
   PenLine, Info,
@@ -291,6 +291,8 @@ export function RapportRse() {
   const [local, setLocal] = useState<LocalDraft>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -388,6 +390,37 @@ export function RapportRse() {
     }
   };
 
+
+  const handleDownloadReport = async () => {
+    if (!orgId || downloading) return;
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const token = await getToken();
+      const exerciseId = getCurrentExerciseId();
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (exerciseId != null) headers["X-Exercise-Id"] = String(exerciseId);
+      const res = await fetch(`/api/organizations/${orgId}/report/generate`, { headers });
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const match = /filename="([^"]+)"/.exec(disposition);
+      const filename = match?.[1] ?? "rapport-rse.docx";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setDownloadError("La génération du rapport a échoué. Réessayez dans quelques instants.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const TONES = ["institutionnel", "inspirant", "humain", "technique", "ambitieux", "transparent"];
   const EDITORIAL_THEMES = [
@@ -849,7 +882,24 @@ export function RapportRse() {
                 </p>
               </div>
 
-              {/* ─── Rapport illustré ─── */}
+              {/* ─── Télécharger le rapport DOCX ─── */}
+              <Button
+                type="button"
+                onClick={handleDownloadReport}
+                disabled={downloading}
+                className="w-full gap-2 h-11 text-sm font-semibold"
+              >
+                {downloading
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Génération du rapport en cours…</>
+                  : <><Download className="h-4 w-4" /> Télécharger le rapport (DOCX)</>}
+              </Button>
+              {downloadError && (
+                <p className="text-xs text-destructive flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {downloadError}
+                </p>
+              )}
+
+              {/* ─── Rapport illustré (impression / export PDF) ─── */}
               <a
                 href="/rapport-rse/viewer"
                 className="flex items-center justify-center gap-2 w-full rounded-lg px-4 py-3 text-sm font-semibold border-2 border-green-600 text-green-700 bg-green-50 hover:bg-green-100 transition-colors"

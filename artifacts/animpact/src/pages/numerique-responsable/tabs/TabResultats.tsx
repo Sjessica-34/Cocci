@@ -3,6 +3,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip,
 } from "recharts";
 import { PILLARS, MACRO_PILLARS, maturityLabel, computeMacroPillarData } from "../data";
+import { exportNrResultsPdf } from "../exportPdf";
 import { Button } from "@/components/ui/button";
 import { Download, TrendingUp, AlertTriangle } from "lucide-react";
 
@@ -96,9 +97,14 @@ export function TabResultats({ scores, responsesMap }: Props) {
 
       {/* Export */}
       <div className="flex justify-end">
-        <Button variant="outline" className="gap-2 text-sm" disabled title="Export PDF — disponible prochainement">
+        <Button
+          variant="outline"
+          className="gap-2 text-sm"
+          onClick={() => exportNrResultsPdf(scores, responsesMap)}
+          title="Télécharger les résultats en PDF"
+        >
           <Download className="h-4 w-4" />
-          Exporter les résultats
+          Exporter les résultats (PDF)
         </Button>
       </div>
     </div>
