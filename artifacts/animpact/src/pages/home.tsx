@@ -327,7 +327,7 @@ export function Home() {
 
             <h1 className="text-[2.6rem] leading-[1.15] font-extrabold text-gray-900">
               Construisez votre démarche RSE en toute{" "}
-              <span className="text-[#163028]">autonomie</span>, suivez vos engagements et mesurez <span className="text-[#163028]">votre impact</span>.
+              <span className="text-[#16a34a]">autonomie</span>, suivez vos engagements et mesurez <span className="text-[#16a34a]">votre impact</span>.
             </h1>
 
             <p className="text-base text-gray-500 leading-relaxed max-w-md">
@@ -367,7 +367,7 @@ export function Home() {
             {features.map((f) => (
               <div key={f.n}>
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="text-2xl font-extrabold text-[#163028] leading-none">{f.n}.</span>
+                  <span className="text-2xl font-extrabold text-[#16a34a] leading-none">{f.n}.</span>
                   <div>
                     <h3 className="text-base font-bold text-gray-900 leading-snug">{f.title}</h3>
                     <div className="w-8 h-0.5 bg-[#163028] mt-1.5" />
@@ -384,7 +384,7 @@ export function Home() {
         <section className="bg-gray-50 border-t border-gray-100 py-16">
           <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-xl font-bold text-[#163028] mb-3">Centralisez vos ressources</h2>
+              <h2 className="text-xl font-bold text-[#16a34a] mb-3">Centralisez vos ressources</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
                 Déposez vos documents, preuves et justificatifs au même endroit. Retrouvez-les facilement,
                 utilisez-les pour alimenter automatiquement votre rapport RSE et accédez à des guides,
@@ -411,7 +411,7 @@ export function Home() {
         <section className="bg-white border-t border-gray-100 py-16">
           <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-xl font-bold text-[#163028] mb-3">Conçu pour les PME comme pour les groupes</h2>
+              <h2 className="text-xl font-bold text-[#16a34a] mb-3">Conçu pour les PME comme pour les groupes</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
                 Gérez plusieurs entités, filiales ou sites depuis une interface unique. Suivez chaque entité
                 individuellement ou consolidez l'ensemble pour avoir une vision globale de votre démarche.
