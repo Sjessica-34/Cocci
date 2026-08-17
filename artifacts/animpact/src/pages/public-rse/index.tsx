@@ -177,7 +177,7 @@ export function PublicRsePage() {
     );
   }
 
-  const { organization, exercise, updatedAt, scores, actionPlan, labels, stakeholderCount, barometre, progression, reportGenerationCount, subcategoryScores = [], customDescription, showReport } = data;
+  const { organization, exercise, updatedAt, scores, actionPlan, labels, stakeholderCount, barometre, progression, subcategoryScores = [], customDescription } = data;
   const pctDone = actionPlan.total > 0 ? Math.round((actionPlan.done / actionPlan.total) * 100) : 0;
 
   const progressionSteps = [
@@ -618,55 +618,6 @@ export function PublicRsePage() {
           </Card>
         )}
 
-        {/* ── Rapport RSE en ligne ── */}
-        {showReport && reportGenerationCount > 0 && (() => {
-          const base = window.location.origin;
-          const previewBase = import.meta.env.BASE_URL.replace(/\/$/, "");
-          // URL publique du DOCX (sans auth)
-          const reportUrl = `${base}${previewBase.startsWith("/animpact") ? "" : previewBase}/api/public/rse/${token}/report`;
-          const isLocalhost = base.includes("localhost") || base.includes("127.0.0.1");
-          // Office Online viewer (fonctionne uniquement si l'URL est accessible publiquement)
-          const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(reportUrl)}`;
-
-          return (
-            <Card style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <SectionTitle style={{ margin: 0 }}>Notre rapport RSE {exercise.year}</SectionTitle>
-                <a
-                  href={reportUrl}
-                  download={`rapport-rse-${exercise.year}.docx`}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.green, textDecoration: "none", background: C.greenLight, border: `1px solid ${C.green}30`, borderRadius: 8, padding: "6px 14px" }}
-                >
-                  ⬇ Télécharger le rapport
-                </a>
-              </div>
-
-              {isLocalhost ? (
-                /* En développement : aperçu non disponible (URL non publique) */
-                <div style={{ background: C.gray50, border: `1px dashed ${C.gray200}`, borderRadius: 10, padding: 24, textAlign: "center" }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: C.gray700, marginBottom: 4 }}>Aperçu disponible sur le site publié</p>
-                  <p style={{ fontSize: 12, color: C.gray400 }}>
-                    En production, le rapport s'affiche directement dans la page.<br />
-                    Utilisez le bouton "Télécharger" pour consulter le document.
-                  </p>
-                </div>
-              ) : (
-                /* En production : viewer Microsoft Office Online */
-                <div style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${C.gray200}`, background: C.gray50 }}>
-                  <iframe
-                    src={officeViewerUrl}
-                    width="100%"
-                    height="600"
-                    style={{ border: "none", display: "block" }}
-                    title={`Rapport RSE ${exercise.year}`}
-                    onError={() => {/* silencieux */}}
-                  />
-                </div>
-              )}
-            </Card>
-          );
-        })()}
 
         {/* ── Méthode ── */}
         <Card style={{ marginBottom: 16 }}>

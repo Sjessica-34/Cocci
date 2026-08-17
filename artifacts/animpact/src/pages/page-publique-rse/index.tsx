@@ -203,23 +203,6 @@ export function PagePubliqueRse() {
                 <p className="text-xs text-muted-foreground text-right">{description.length}/600</p>
               </div>
 
-              {/* Afficher le rapport RSE */}
-              <div className="flex items-start gap-3 rounded-lg border p-4 bg-muted/30">
-                <Switch
-                  id="show-report"
-                  checked={showReport}
-                  onCheckedChange={handleShowReportChange}
-                  disabled={isReadOnly}
-                />
-                <div>
-                  <Label htmlFor="show-report" className="text-sm font-medium cursor-pointer">
-                    Afficher le rapport RSE en ligne
-                  </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Quand cette option est activée, la section "Notre rapport RSE" est visible sur votre page publique. Les visiteurs peuvent le consulter directement.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* QR code */}
