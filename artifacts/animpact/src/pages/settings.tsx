@@ -420,7 +420,7 @@ function ConsentHistory() {
       <CardContent className="pt-4">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Chargement…</p>
-        ) : !consents?.length ? (
+        ) : !Array.isArray(consents) || !consents.length ? (
           <p className="text-sm text-muted-foreground">
             Aucun consentement enregistré. Votre utilisation de la plateforme vaut acceptation des CGU en vigueur.
           </p>

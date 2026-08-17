@@ -77,6 +77,6 @@ export function getUserConsentsQueryKey() {
 export function useMyConsents() {
   return useQuery<UserConsent[]>({
     queryKey: getUserConsentsQueryKey(),
-    queryFn: () => customFetch<UserConsent[]>("/users/me/consents"),
+    queryFn: () => customFetch<UserConsent[]>("/api/users/me/consents"),
   });
 }
