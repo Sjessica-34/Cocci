@@ -252,6 +252,24 @@ function ReportContent({ orgId }: { orgId: number | null }) {
       <ChapterPerspectives data={data} chapterNum={perspNum} />
       <ChapterAnnexes data={data} chapterNum={annexesNum} />
       <ChapterNotesLibres chapterNum={notesNum} />
+
+      {/* ─── Pied de rapport ─────────────────────────────────────────── */}
+      <div style={{
+        marginTop: 64,
+        paddingTop: 24,
+        borderTop: "1px solid #e5e7eb",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        color: "#9ca3af",
+        fontSize: 12,
+      }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.6 }}>
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor"/>
+        </svg>
+        <span>Rapport généré avec <strong style={{ color: "#6b7280" }}>Cocci</strong> · Plateforme RSE</span>
+      </div>
     </>
   );
 }
