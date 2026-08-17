@@ -83,6 +83,7 @@ const navGroups: NavItem[][] = [
   [
     { href: "/diagnostic", label: "Mon diagnostic RSE", icon: BarChart3 },
     { href: "/rapport-rse", label: "Mon rapport RSE", icon: FileText },
+    { href: "/page-publique-rse", label: "Ma page publique RSE", icon: Globe },
   ],
   [
     { href: "/resources", label: "Mes ressources", icon: BookOpen },

@@ -120,8 +120,26 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       return;
     }
 
-    // 3. Scores diagnostic
+    // 3. Scores diagnostic + scores par sous-catégorie
     const scores = computeScoresByAxis(diagnosticRows.rows);
+
+    const responseMap = new Map<string, number>(diagnosticRows.rows.map((r) => [r.question_id, r.level]));
+    const subcategoryScores: Array<{
+      id: string; name: string; categoryId: string;
+      score: number | null; answeredCount: number; totalCount: number;
+    }> = [];
+    for (const sub of ALL_SUBCATEGORIES) {
+      const totalQ = sub.questions.length;
+      const answered = sub.questions.filter((q) => responseMap.has(q.id)).length;
+      if (answered === 0) continue;
+      const completeness = answered / totalQ;
+      let score: number | null = null;
+      if (completeness >= COMPLETENESS_THRESHOLD) {
+        const sumLevels = sub.questions.reduce((acc, q) => acc + (responseMap.get(q.id) ?? 0), 0);
+        score = Math.round((sumLevels / (answered * 3)) * 100);
+      }
+      subcategoryScores.push({ id: sub.id, name: sub.label, categoryId: sub.categoryId, score, answeredCount: answered, totalCount: totalQ });
+    }
 
     // 4. Plan d'actions
     const actionItems = actionPlanRows.rows;
@@ -206,6 +224,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       barometre,
       progression,
       reportGenerationCount: reportDraft?.generation_count ?? 0,
+      subcategoryScores,
     });
   } catch (e) {
     logger.error({ e }, "public-rse error");

@@ -35,6 +35,7 @@ import {
   Building2, Users2, Leaf, Award, LayoutList, BookOpen, Target,
   PenLine, Info, ExternalLink, Link2, Copy, Globe,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { cn } from "@/lib/utils";
 import { getGetReportDraftQueryKey } from "@workspace/api-client-react";
 
@@ -1011,6 +1012,12 @@ export function RapportRse() {
                 <div className="h-8 w-full bg-muted animate-pulse rounded" />
               ) : publicToken ? (
                 <div className="space-y-3">
+                  {/* QR Code */}
+                  <div className="flex justify-center py-2">
+                    <div className="rounded-lg border p-2 bg-white">
+                      <QRCodeSVG value={publicUrl ?? ""} size={120} fgColor="#1d3a2f" />
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <input
                       readOnly
