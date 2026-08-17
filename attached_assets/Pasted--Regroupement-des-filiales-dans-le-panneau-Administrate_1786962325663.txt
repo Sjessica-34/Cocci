@@ -1,0 +1,141 @@
+# Regroupement des filiales dans le panneau Administrateur
+
+Je souhaite modifier uniquement l'affichage de la liste des clients dans le panneau Administrateur.
+
+Le fonctionnement métier actuel ne doit pas être modifié.
+
+## Objectif
+
+Aujourd'hui, chaque organisation est affichée comme un client indépendant.
+
+Ce n'est pas ce que je souhaite.
+
+Un **client** peut être :
+
+* une entreprise indépendante ;
+* ou un groupe composé d'un siège social et d'une ou plusieurs filiales.
+
+Je souhaite que la liste soit organisée de manière hiérarchique, comme l'explorateur Windows.
+
+---
+
+## Affichage attendu
+
+Au premier niveau, afficher uniquement :
+
+* les entreprises indépendantes ;
+* les groupes.
+
+Les filiales ne doivent plus apparaître au premier niveau.
+
+Exemple :
+
+▶ Martin Groupe
+
+▶ Lolotte
+
+---
+
+Lorsque je développe un groupe :
+
+▼ Martin Groupe
+
+ 🏢 Siège social
+
+ 🚚 Martin Transport
+
+ 🏭 Martin Industrie
+
+Les filiales sont simplement affichées en dessous du groupe avec une légère indentation.
+
+Le comportement doit être similaire à l'explorateur Windows (déplier / replier).
+
+---
+
+## Informations affichées sur la ligne du groupe
+
+La ligne du groupe doit présenter des informations consolidées.
+
+Par exemple :
+
+* nom du groupe ;
+* offre ;
+* statut ;
+* nombre total de filiales ;
+* nombre total d'utilisateurs ;
+* effectif consolidé ;
+* conformité de l'abonnement ;
+* score de santé.
+
+Toutes ces informations doivent être calculées sur l'ensemble du groupe.
+
+---
+
+## Informations affichées sur les filiales
+
+Les filiales affichent uniquement leurs propres informations :
+
+* nom ;
+* secteur ;
+* effectif ;
+* utilisateurs ;
+* statut éventuel.
+
+Elles ne doivent pas être considérées comme des clients indépendants.
+
+---
+
+## Recherche
+
+La recherche doit fonctionner sur :
+
+* le groupe ;
+* le siège social ;
+* les filiales.
+
+Si une filiale correspond à la recherche, son groupe doit être automatiquement développé afin de la rendre visible.
+
+---
+
+## Statistiques
+
+Le compteur en haut de page ne doit plus compter les filiales comme des clients.
+
+Je souhaite distinguer :
+
+* Nombre de clients
+* Nombre de groupes
+* Nombre d'entreprises indépendantes
+* Nombre total de filiales
+
+Exemple :
+
+Clients : 250
+
+dont :
+
+* 180 entreprises indépendantes
+* 70 groupes
+* 245 filiales
+
+---
+
+## Navigation
+
+Lorsque je clique sur un groupe, j'accède à la fiche du groupe.
+
+Lorsque je clique sur une filiale, j'accède directement à la fiche de cette filiale.
+
+---
+
+## Contraintes
+
+* Ne modifier ni la base de données ni la logique métier.
+* Ne modifier que l'affichage du panneau Administrateur.
+* Réutiliser les relations Groupe / Filiale déjà existantes.
+* Les performances doivent rester bonnes même avec plusieurs centaines de groupes et plusieurs milliers de filiales.
+* Les groupes doivent être repliés par défaut.
+* L'utilisateur peut développer ou replier chaque groupe individuellement.
+* Prévoir un bouton "Tout développer / Tout replier" pour faciliter la navigation lorsque le nombre de groupes devient important.
+
+L'objectif est que le panneau Administrateur affiche les **clients** et non une simple liste d'organisations, afin de rester lisible lorsque la plateforme comptera plusieurs centaines de clients.
