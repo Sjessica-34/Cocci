@@ -55,7 +55,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       return;
     }
 
-    const { organizationId: orgId, exerciseId } = link;
+    const { organizationId: orgId, exerciseId, customDescription, showReport } = link;
 
     // 2. Toutes les données en parallèle via pool.query
     const [
@@ -225,6 +225,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       progression,
       reportGenerationCount: reportDraft?.generation_count ?? 0,
       subcategoryScores,
+      customDescription: customDescription ?? null,
+      showReport: showReport ?? false,
     });
   } catch (e) {
     logger.error({ e }, "public-rse error");
@@ -239,12 +241,41 @@ router.get("/organizations/:orgId/public-link", requireAuth, requireOrgMembershi
   const exercise = req.exercise!;
 
   const [link] = await db
-    .select({ token: publicLinksTable.token, createdAt: publicLinksTable.createdAt })
+    .select({
+      token: publicLinksTable.token,
+      createdAt: publicLinksTable.createdAt,
+      customDescription: publicLinksTable.customDescription,
+      showReport: publicLinksTable.showReport,
+    })
     .from(publicLinksTable)
     .where(and(eq(publicLinksTable.organizationId, orgId), eq(publicLinksTable.exerciseId, exercise.id)))
     .limit(1);
 
   res.json(link ?? null);
+});
+
+// ── PATCH /organizations/:orgId/public-link — met à jour description/showReport
+
+router.patch("/organizations/:orgId/public-link", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+  const orgId = req.orgId!;
+  const exercise = req.exercise!;
+
+  const { customDescription, showReport } = req.body as { customDescription?: string | null; showReport?: boolean };
+
+  try {
+    await db
+      .update(publicLinksTable)
+      .set({
+        ...(customDescription !== undefined ? { customDescription: customDescription || null } : {}),
+        ...(showReport !== undefined ? { showReport } : {}),
+      })
+      .where(and(eq(publicLinksTable.organizationId, orgId), eq(publicLinksTable.exerciseId, exercise.id)));
+
+    res.json({ ok: true });
+  } catch (e) {
+    logger.error({ e }, "update public link error");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── POST /organizations/:orgId/public-link — génère ou retourne le token ──────

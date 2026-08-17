@@ -1,40 +1,94 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout";
 import { customFetch } from "@workspace/api-client-react";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Globe, Link2, Copy, CheckCircle2, Trash2,
-  ExternalLink, Loader2, Share2, Eye,
+  ExternalLink, Loader2, Share2, Eye, Save,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
+type LinkData = {
+  token: string;
+  customDescription: string | null;
+  showReport: boolean;
+};
 
 export function PagePubliqueRse() {
   const { orgId, isReadOnly } = useModuleContext();
 
-  const [token, setToken] = useState<string | null | undefined>(undefined);
+  const [link, setLink] = useState<LinkData | null | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Champs éditables
+  const [description, setDescription] = useState("");
+  const [showReport, setShowReport] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-  const publicUrl = token
-    ? `${window.location.origin}${base}/p/${token}`
+  const publicUrl = link?.token
+    ? `${window.location.origin}${base}/p/${link.token}`
     : null;
 
+  // Chargement initial
   useEffect(() => {
     if (!orgId) return;
-    customFetch<{ token: string } | null>(`/api/organizations/${orgId}/public-link`, { method: "GET" })
-      .then((d) => setToken(d?.token ?? null))
-      .catch(() => setToken(null));
+    customFetch<LinkData | null>(`/api/organizations/${orgId}/public-link`, { method: "GET" })
+      .then((d) => {
+        setLink(d ?? null);
+        if (d) {
+          setDescription(d.customDescription ?? "");
+          setShowReport(d.showReport ?? false);
+        }
+      })
+      .catch(() => setLink(null));
   }, [orgId]);
+
+  // Sauvegarde auto (débounce 800 ms)
+  const scheduleSave = (newDescription: string, newShowReport: boolean) => {
+    if (!orgId || !link) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving(true);
+      try {
+        await customFetch(`/api/organizations/${orgId}/public-link`, {
+          method: "PATCH",
+          body: JSON.stringify({ customDescription: newDescription, showReport: newShowReport }),
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } finally {
+        setSaving(false);
+      }
+    }, 800);
+  };
+
+  const handleDescriptionChange = (v: string) => {
+    setDescription(v);
+    scheduleSave(v, showReport);
+  };
+
+  const handleShowReportChange = (checked: boolean) => {
+    setShowReport(checked);
+    scheduleSave(description, checked);
+  };
 
   const generate = async () => {
     if (!orgId) return;
     setLoading(true);
     try {
-      const d = await customFetch<{ token: string }>(`/api/organizations/${orgId}/public-link`, { method: "POST" });
-      setToken(d.token);
+      const d = await customFetch<LinkData>(`/api/organizations/${orgId}/public-link`, { method: "POST" });
+      setLink(d);
+      setDescription(d.customDescription ?? "");
+      setShowReport(d.showReport ?? false);
     } finally {
       setLoading(false);
     }
@@ -45,7 +99,9 @@ export function PagePubliqueRse() {
     setLoading(true);
     try {
       await customFetch(`/api/organizations/${orgId}/public-link`, { method: "DELETE" });
-      setToken(null);
+      setLink(null);
+      setDescription("");
+      setShowReport(false);
     } finally {
       setLoading(false);
     }
@@ -71,13 +127,13 @@ export function PagePubliqueRse() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Ma page publique RSE</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Partagez votre démarche RSE avec vos clients, partenaires et parties prenantes — sans compte requis, mise à jour automatiquement depuis vos données Cocci.
+              Partagez votre démarche RSE avec vos clients, partenaires et parties prenantes — sans compte requis, mise à jour automatiquement.
             </p>
           </div>
         </div>
 
-        {/* ── Loading skeleton ── */}
-        {token === undefined && (
+        {/* ── Loading ── */}
+        {link === undefined && (
           <div className="rounded-xl border bg-card p-6 space-y-4 animate-pulse">
             <div className="h-4 bg-muted rounded w-1/3" />
             <div className="h-10 bg-muted rounded" />
@@ -86,7 +142,7 @@ export function PagePubliqueRse() {
         )}
 
         {/* ── Pas encore de lien ── */}
-        {token === null && (
+        {link === null && (
           <div className="rounded-xl border bg-card p-8 flex flex-col items-center gap-4 text-center">
             <div className="rounded-full bg-muted p-4">
               <Share2 className="h-8 w-8 text-muted-foreground" />
@@ -106,7 +162,7 @@ export function PagePubliqueRse() {
         )}
 
         {/* ── Lien actif ── */}
-        {token && publicUrl && (
+        {link && publicUrl && (
           <div className="space-y-5">
 
             {/* Statut */}
@@ -115,6 +171,55 @@ export function PagePubliqueRse() {
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
                 Page publique active
               </Badge>
+            </div>
+
+            {/* ── Personnalisation ── */}
+            <div className="rounded-xl border bg-card p-5 space-y-5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Personnalisation</h2>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  {saving
+                    ? <><Loader2 className="h-3 w-3 animate-spin" /> Enregistrement…</>
+                    : saved
+                    ? <><CheckCircle2 className="h-3 w-3 text-green-600" /> Enregistré</>
+                    : null}
+                </span>
+              </div>
+
+              {/* Texte d'introduction */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
+                  Texte d'introduction
+                </Label>
+                <Textarea
+                  placeholder={`Décrivez votre démarche RSE en quelques lignes…\nEx : ${link ? "" : ""}Notre entreprise s'engage pour réduire son impact environnemental et social au quotidien.`}
+                  value={description}
+                  onChange={(e) => handleDescriptionChange(e.target.value)}
+                  disabled={isReadOnly}
+                  rows={4}
+                  className="text-sm resize-none"
+                  maxLength={600}
+                />
+                <p className="text-xs text-muted-foreground text-right">{description.length}/600</p>
+              </div>
+
+              {/* Afficher le rapport RSE */}
+              <div className="flex items-start gap-3 rounded-lg border p-4 bg-muted/30">
+                <Switch
+                  id="show-report"
+                  checked={showReport}
+                  onCheckedChange={handleShowReportChange}
+                  disabled={isReadOnly}
+                />
+                <div>
+                  <Label htmlFor="show-report" className="text-sm font-medium cursor-pointer">
+                    Afficher le rapport RSE en ligne
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Quand cette option est activée, la section "Notre rapport RSE" est visible sur votre page publique. Les visiteurs peuvent le consulter directement.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* QR code */}
@@ -162,9 +267,7 @@ export function PagePubliqueRse() {
                   onClick={revoke}
                   disabled={loading}
                 >
-                  {loading
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <Trash2 className="h-3.5 w-3.5" />}
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   Révoquer le lien
                 </Button>
               </div>

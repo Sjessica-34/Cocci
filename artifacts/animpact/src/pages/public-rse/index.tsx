@@ -26,6 +26,8 @@ type PublicData = {
   progression: { diagnostic: boolean; stakeholders: boolean; materiality: boolean; actionPlan: boolean; actionsInProgress: boolean; reportGenerated: boolean };
   reportGenerationCount: number;
   subcategoryScores: SubcategoryScore[];
+  customDescription: string | null;
+  showReport: boolean;
 };
 
 // ─── Couleurs ─────────────────────────────────────────────────────────────────
@@ -173,7 +175,7 @@ export function PublicRsePage() {
     );
   }
 
-  const { organization, exercise, updatedAt, scores, actionPlan, labels, stakeholderCount, barometre, progression, reportGenerationCount, subcategoryScores = [] } = data;
+  const { organization, exercise, updatedAt, scores, actionPlan, labels, stakeholderCount, barometre, progression, reportGenerationCount, subcategoryScores = [], customDescription, showReport } = data;
   const pctDone = actionPlan.total > 0 ? Math.round((actionPlan.done / actionPlan.total) * 100) : 0;
 
   const progressionSteps = [
@@ -223,10 +225,16 @@ export function PublicRsePage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 32, alignItems: "start", marginBottom: 24 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 800, color: C.green, margin: "0 0 12px" }}>Notre engagement RSE</h1>
-            <p style={{ fontSize: 14, color: C.gray600, lineHeight: 1.6, margin: "0 0 8px" }}>
-              {organization.name} s'engage dans une démarche de responsabilité sociétale structurée et mesurable.
-              Nous agissons chaque jour pour créer de la valeur tout en prenant soin de l'humain et de l'environnement.
-            </p>
+            {customDescription ? (
+              <p style={{ fontSize: 14, color: C.gray600, lineHeight: 1.6, margin: "0 0 8px", whiteSpace: "pre-line" }}>
+                {customDescription}
+              </p>
+            ) : (
+              <p style={{ fontSize: 14, color: C.gray600, lineHeight: 1.6, margin: "0 0 8px" }}>
+                {organization.name} s'engage dans une démarche de responsabilité sociétale structurée et mesurable.
+                Nous agissons chaque jour pour créer de la valeur tout en prenant soin de l'humain et de l'environnement.
+              </p>
+            )}
             <p style={{ fontSize: 12, color: C.gray400, margin: 0 }}>
               Cette page présente les principaux indicateurs de notre démarche, mis à jour automatiquement depuis Cocci.
             </p>
@@ -546,7 +554,8 @@ export function PublicRsePage() {
         )}
 
         {/* ── Rapport + Méthode ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: showReport ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 16 }}>
+          {showReport && (
           <Card>
             <SectionTitle>Notre rapport RSE</SectionTitle>
             {reportGenerationCount > 0 ? (
@@ -567,6 +576,7 @@ export function PublicRsePage() {
               <p style={{ fontSize: 12, color: C.gray400 }}>Le rapport RSE pour cet exercice n'a pas encore été généré.</p>
             )}
           </Card>
+          )}
 
           <Card>
             <SectionTitle>Notre méthode</SectionTitle>
