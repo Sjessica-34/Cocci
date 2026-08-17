@@ -11,6 +11,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { organizationsTable } from "./organizations";
 import { exercisesTable } from "./exercises";
+import { usersTable } from "./users";
 import { actionLibraryTable } from "./actionPlan";
 
 // ─── PLAN D'ACTION COCCI ──────────────────────────────────────────────────────
@@ -34,6 +35,13 @@ export const planSlotsTable = pgTable(
     ),
     slotOrder: integer("slot_order").notNull().default(0),
     isDone: boolean("is_done").notNull().default(false),
+    // Suivi d'exécution : responsable, échéance, statut (todo/in_progress/blocked/done)
+    assignedToUserId: integer("assigned_to_user_id").references(
+      () => usersTable.id,
+      { onDelete: "set null" },
+    ),
+    dueDate: timestamp("due_date", { withTimezone: true }),
+    status: text("status").notNull().default("todo"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     comment: text("comment"),
     justificationUrl: text("justification_url"),

@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ChevronRight, Check } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Check, User, CalendarClock } from "lucide-react";
 import {
+  useListPlanSlots,
   useGetCarbonBilan,
   useListBioDependencies,
   useListStakeholders,
@@ -193,6 +194,7 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   // ── Ligne 1 ────────────────────────────────────────────────────────────────
   const { data: labels,  isLoading: labelsLoading  } = useListLabels(orgId);
   const { data: actions, isLoading: actionsLoading } = useListActionPlan(orgId);
+  const { data: planSlots, isLoading: slotsLoading } = useListPlanSlots(orgId);
 
   // ── Ligne 2 : scores diagnostic ───────────────────────────────────────────
   const { data: diagScores, isLoading: diagLoading } = useGetDiagnosticScores(orgId);
@@ -414,16 +416,16 @@ export function DashboardBody({ orgId }: { orgId: number }) {
       </div>
 
       {/* ══ Prochaines actions ═══════════════════════════════════════════════ */}
-      {!actionsLoading && totalActions > 0 && (
+      {!slotsLoading && (planSlots?.length ?? 0) > 0 && (
         <div>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
             Prochaines actions à réaliser
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(actions ?? [])
-              .filter(a => !a.isChecked)
+            {(planSlots ?? [])
+              .filter(s => !s.isDone)
               .slice(0, 6)
-              .map(action => {
+              .map(slot => {
                 const catColors: Record<string, string> = {
                   Environnement: "bg-emerald-100 text-emerald-800 border-emerald-200",
                   "Numérique responsable": "bg-sky-100 text-sky-800 border-sky-200",
@@ -437,19 +439,48 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                   Biodiversité: "🌿", Social: "👥",
                   "Achats responsables": "🤝", Gouvernance: "⚖️",
                 };
-                const cat = action.actionCategory ?? null;
+                const statusLabel: Record<string, string> = {
+                  in_progress: "En cours", blocked: "Bloquée",
+                };
+                const statusColor: Record<string, string> = {
+                  in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+                  blocked: "bg-red-100 text-red-800 border-red-200",
+                };
+                const cat = slot.actionCategory ?? null;
+                const overdue = slot.dueDate != null && new Date(slot.dueDate) < new Date();
                 return (
-                  <Link key={action.id} href="/mes-actions">
+                  <Link key={slot.id} href="/mes-actions">
                     <Card className="hover:shadow-md transition-all cursor-pointer group border-blue-50 hover:border-blue-200 h-full">
                       <CardContent className="p-4">
                         <p className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors">
-                          {action.actionName ?? action.customName ?? "Action personnalisée"}
+                          {slot.actionName ?? "Action personnalisée"}
                         </p>
-                        {cat && (
-                          <div className="mt-2">
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {cat && (
                             <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${catColors[cat] ?? ""}`}>
-                              {catEmoji[cat]} {action.actionSubcategory ?? cat}
+                              {catEmoji[cat]} {slot.actionSubcategory ?? cat}
                             </Badge>
+                          )}
+                          {slot.status && statusLabel[slot.status] && (
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusColor[slot.status] ?? ""}`}>
+                              {statusLabel[slot.status]}
+                            </Badge>
+                          )}
+                        </div>
+                        {(slot.assignedToName || slot.dueDate) && (
+                          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {slot.assignedToName && (
+                              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {slot.assignedToName}
+                              </span>
+                            )}
+                            {slot.dueDate && (
+                              <span className={`text-[11px] flex items-center gap-1 ${overdue ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+                                <CalendarClock className="h-3 w-3" />
+                                {new Date(slot.dueDate).toLocaleDateString("fr-FR")}
+                              </span>
+                            )}
                           </div>
                         )}
                       </CardContent>
@@ -457,7 +488,7 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                   </Link>
                 );
               })}
-            {(actions ?? []).filter(a => !a.isChecked).length === 0 && totalActions > 0 && (
+            {(planSlots ?? []).filter(s => !s.isDone).length === 0 && (
               <div className="col-span-full flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg px-4 py-3 border border-emerald-100">
                 <Check className="h-4 w-4 shrink-0" />
                 Toutes les actions du plan sont réalisées ! 🎉

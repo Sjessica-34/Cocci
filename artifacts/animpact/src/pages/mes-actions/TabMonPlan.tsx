@@ -10,11 +10,20 @@ import {
   useInitializePlanSlots,
   useUpdatePlanSlot,
   useAddActionToPlan,
+  useListMembers,
+  useGetMe,
   getListPlanSlotsQueryKey,
   getListActionPlanQueryKey,
   customFetch,
 } from "@workspace/api-client-react";
-import type { PlanSlot } from "@workspace/api-client-react";
+import type { PlanSlot, Member, PlanSlotStatus } from "@workspace/api-client-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@clerk/react";
 import {
   Loader2,
@@ -31,6 +40,9 @@ import {
   Download,
   Plus,
   Lightbulb,
+  User,
+  CalendarClock,
+  CircleDot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +74,26 @@ const LEVEL_LABEL: Record<string, string> = {
   engagement: "Engagement",
 };
 
-function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
+const STATUS_LABEL: Record<string, string> = {
+  todo: "À faire",
+  in_progress: "En cours",
+  blocked: "Bloquée",
+  done: "Terminée",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  todo: "bg-slate-100 text-slate-700 border-slate-200",
+  in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+  blocked: "bg-red-100 text-red-800 border-red-200",
+  done: "bg-emerald-100 text-emerald-800 border-emerald-200",
+};
+
+function memberDisplayName(m: Member): string {
+  const full = [m.user?.firstName, m.user?.lastName].filter(Boolean).join(" ");
+  return full || m.user?.email || `Membre #${m.userId}`;
+}
+
+function SlotRow({ slot, orgId, members }: { slot: PlanSlot; orgId: number; members: Member[] }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { getToken } = useAuth();
@@ -78,6 +109,13 @@ function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
   const [completedAt, setCompletedAt] = useState(
     slot.completedAt ? new Date(slot.completedAt).toISOString().slice(0, 10) : "",
   );
+  const [assignedTo, setAssignedTo] = useState<string>(
+    slot.assignedToUserId != null ? String(slot.assignedToUserId) : "none",
+  );
+  const [dueDate, setDueDate] = useState(
+    slot.dueDate ? new Date(slot.dueDate).toISOString().slice(0, 10) : "",
+  );
+  const [status, setStatus] = useState<string>(slot.status ?? "todo");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -114,6 +152,9 @@ function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
         data: {
           comment: comment || null,
           justificationUrl: justificationUrl || null,
+          assignedToUserId: assignedTo === "none" ? null : Number(assignedTo),
+          dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+          status: status as PlanSlotStatus,
           completedAt: completedAt
             ? new Date(completedAt).toISOString()
             : slot.isDone
@@ -220,6 +261,29 @@ function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
                 {LEVEL_LABEL[level] ?? level}
               </Badge>
             )}
+            {!slot.isDone && slot.status && slot.status !== "todo" && (
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${STATUS_COLOR[slot.status] ?? ""}`}>
+                <CircleDot className="h-2.5 w-2.5 mr-0.5" />
+                {STATUS_LABEL[slot.status] ?? slot.status}
+              </Badge>
+            )}
+            {slot.assignedToName && (
+              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                <User className="h-2.5 w-2.5" />
+                {slot.assignedToName}
+              </span>
+            )}
+            {!slot.isDone && slot.dueDate && (
+              <span
+                className={cn(
+                  "text-[10px] flex items-center gap-0.5",
+                  new Date(slot.dueDate) < new Date() ? "text-red-600 font-medium" : "text-muted-foreground",
+                )}
+              >
+                <CalendarClock className="h-2.5 w-2.5" />
+                {new Date(slot.dueDate).toLocaleDateString("fr-FR")}
+              </span>
+            )}
             {slot.isDone && slot.completedAt && (
               <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                 <Calendar className="h-2.5 w-2.5" />
@@ -252,6 +316,57 @@ function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
 
       {expanded && (
         <div className="border-t px-3 pb-3 pt-3 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                Responsable
+              </label>
+              <Select value={assignedTo} onValueChange={setAssignedTo}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Non assignée" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Non assignée</SelectItem>
+                  {members.map((m) => (
+                    <SelectItem key={m.userId} value={String(m.userId)}>
+                      {memberDisplayName(m)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+                Date cible
+              </label>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium flex items-center gap-1.5">
+                <CircleDot className="h-3.5 w-3.5 text-muted-foreground" />
+                Statut
+              </label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-medium flex items-center gap-1.5">
@@ -460,12 +575,17 @@ export function TabMonPlan({ orgId }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: slots, isLoading } = useListPlanSlots(orgId);
+  const { data: members } = useListMembers(orgId);
+  const { data: me } = useGetMe();
   const { mutateAsync: initSlots, isPending: initializing } = useInitializePlanSlots();
+  const [onlyMine, setOnlyMine] = useState(false);
 
   const allSlots = slots ?? [];
-  const activeSlots = allSlots.filter((s) => !s.isDone);
-  const doneSlots = allSlots.filter((s) => s.isDone);
-  const doneCount = doneSlots.length;
+  const visibleSlots =
+    onlyMine && me ? allSlots.filter((s) => s.assignedToUserId === me.id) : allSlots;
+  const activeSlots = visibleSlots.filter((s) => !s.isDone);
+  const doneSlots = visibleSlots.filter((s) => s.isDone);
+  const doneCount = allSlots.filter((s) => s.isDone).length;
   const totalCount = allSlots.length;
 
   const nextBatchAt = doneCount === 0 ? 5 : Math.ceil(doneCount / 5) * 5;
@@ -527,7 +647,22 @@ export function TabMonPlan({ orgId }: Props) {
             {totalCount ? Math.round((doneCount / totalCount) * 100) : 0} %
           </span>
         </div>
+        <Button
+          variant={onlyMine ? "default" : "outline"}
+          size="sm"
+          className="h-7 text-xs gap-1.5 self-start sm:self-auto"
+          onClick={() => setOnlyMine((v) => !v)}
+        >
+          <User className="h-3 w-3" />
+          Mes actions
+        </Button>
       </div>
+
+      {onlyMine && visibleSlots.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          Aucune action ne vous est assignée pour le moment.
+        </p>
+      )}
 
       {doneCount > 0 && remaining < 5 && (
         <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm">
@@ -549,7 +684,7 @@ export function TabMonPlan({ orgId }: Props) {
               À réaliser ({activeSlots.length})
             </h3>
             {activeSlots.map((slot) => (
-              <SlotRow key={slot.id} slot={slot} orgId={orgId} />
+              <SlotRow key={slot.id} slot={slot} orgId={orgId} members={members ?? []} />
             ))}
           </div>
         )}
@@ -562,7 +697,7 @@ export function TabMonPlan({ orgId }: Props) {
               Réalisées ({doneSlots.length})
             </h3>
             {doneSlots.map((slot) => (
-              <SlotRow key={slot.id} slot={slot} orgId={orgId} />
+              <SlotRow key={slot.id} slot={slot} orgId={orgId} members={members ?? []} />
             ))}
           </div>
         )}

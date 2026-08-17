@@ -5147,6 +5147,19 @@ components:
           type: integer
         isDone:
           type: boolean
+        assignedToUserId:
+          type: integer
+          nullable: true
+        assignedToName:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [todo, in_progress, blocked, done]
         completedAt:
           type: string
           format: date-time
@@ -5187,6 +5200,16 @@ components:
       properties:
         isDone:
           type: boolean
+        assignedToUserId:
+          type: integer
+          nullable: true
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [todo, in_progress, blocked, done]
         completedAt:
           type: string
           format: date-time
@@ -5215,6 +5238,16 @@ components:
           type: integer
         isDone:
           type: boolean
+        assignedToUserId:
+          type: integer
+          nullable: true
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [todo, in_progress, blocked, done]
         completedAt:
           type: string
           format: date-time

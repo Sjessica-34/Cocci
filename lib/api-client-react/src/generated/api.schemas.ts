@@ -2071,6 +2071,16 @@ export interface ActionPlanItemUpdate {
   justificationUrl?: string | null;
 }
 
+export type PlanSlotStatus = typeof PlanSlotStatus[keyof typeof PlanSlotStatus];
+
+
+export const PlanSlotStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  done: 'done',
+} as const;
+
 export interface PlanSlot {
   id: number;
   organizationId: number;
@@ -2078,6 +2088,10 @@ export interface PlanSlot {
   libraryActionId?: number | null;
   slotOrder: number;
   isDone: boolean;
+  assignedToUserId?: number | null;
+  assignedToName?: string | null;
+  dueDate?: string | null;
+  status?: PlanSlotStatus;
   completedAt?: string | null;
   comment?: string | null;
   justificationUrl?: string | null;
@@ -2091,12 +2105,35 @@ export interface PlanSlot {
   exerciseYear?: number | null;
 }
 
+export type PlanSlotUpdateStatus = typeof PlanSlotUpdateStatus[keyof typeof PlanSlotUpdateStatus];
+
+
+export const PlanSlotUpdateStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  done: 'done',
+} as const;
+
 export interface PlanSlotUpdate {
   isDone?: boolean;
+  assignedToUserId?: number | null;
+  dueDate?: string | null;
+  status?: PlanSlotUpdateStatus;
   completedAt?: string | null;
   comment?: string | null;
   justificationUrl?: string | null;
 }
+
+export type PlanSlotUpdateResultStatus = typeof PlanSlotUpdateResultStatus[keyof typeof PlanSlotUpdateResultStatus];
+
+
+export const PlanSlotUpdateResultStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  done: 'done',
+} as const;
 
 export interface PlanSlotUpdateResult {
   id: number;
@@ -2105,6 +2142,9 @@ export interface PlanSlotUpdateResult {
   libraryActionId?: number | null;
   slotOrder: number;
   isDone: boolean;
+  assignedToUserId?: number | null;
+  dueDate?: string | null;
+  status?: PlanSlotUpdateResultStatus;
   completedAt?: string | null;
   comment?: string | null;
   justificationUrl?: string | null;

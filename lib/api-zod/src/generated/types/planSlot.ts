@@ -5,6 +5,7 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { PlanSlotStatus } from './planSlotStatus';
 
 export interface PlanSlot {
   id: number;
@@ -13,6 +14,10 @@ export interface PlanSlot {
   libraryActionId?: number | null;
   slotOrder: number;
   isDone: boolean;
+  assignedToUserId?: number | null;
+  assignedToName?: string | null;
+  dueDate?: Date | null;
+  status?: PlanSlotStatus;
   completedAt?: Date | null;
   comment?: string | null;
   justificationUrl?: string | null;

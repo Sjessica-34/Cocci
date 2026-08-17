@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { eq, and, inArray, notInArray, asc } from "drizzle-orm";
-import { db, planSlotsTable, actionLibraryTable, exercisesTable } from "@workspace/db";
+import { db, planSlotsTable, actionLibraryTable, exercisesTable, usersTable, membersTable } from "@workspace/db";
+import { sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import {
   requireOrgMembership,
@@ -82,6 +83,10 @@ async function fetchSlotsForExercise(orgId: number, exerciseId: number) {
       libraryActionId: planSlotsTable.libraryActionId,
       slotOrder: planSlotsTable.slotOrder,
       isDone: planSlotsTable.isDone,
+      assignedToUserId: planSlotsTable.assignedToUserId,
+      assignedToName: sql<string | null>`nullif(trim(concat(coalesce(${usersTable.firstName}, ''), ' ', coalesce(${usersTable.lastName}, ''))), '')`,
+      dueDate: planSlotsTable.dueDate,
+      status: planSlotsTable.status,
       completedAt: planSlotsTable.completedAt,
       comment: planSlotsTable.comment,
       justificationUrl: planSlotsTable.justificationUrl,
@@ -95,6 +100,7 @@ async function fetchSlotsForExercise(orgId: number, exerciseId: number) {
     })
     .from(planSlotsTable)
     .leftJoin(actionLibraryTable, eq(planSlotsTable.libraryActionId, actionLibraryTable.id))
+    .leftJoin(usersTable, eq(planSlotsTable.assignedToUserId, usersTable.id))
     .where(
       and(
         eq(planSlotsTable.organizationId, orgId),
@@ -188,18 +194,49 @@ router.patch(
       return;
     }
 
-    const { isDone, completedAt, comment, justificationUrl } = req.body as {
-      isDone?: boolean;
-      completedAt?: string | null;
-      comment?: string | null;
-      justificationUrl?: string | null;
-    };
+    const { isDone, completedAt, comment, justificationUrl, assignedToUserId, dueDate, status } =
+      req.body as {
+        isDone?: boolean;
+        completedAt?: string | null;
+        comment?: string | null;
+        justificationUrl?: string | null;
+        assignedToUserId?: number | null;
+        dueDate?: string | null;
+        status?: string;
+      };
+
+    const VALID_STATUSES = ["todo", "in_progress", "blocked", "done"] as const;
+    if (status !== undefined && !VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
+      res.status(400).json({ error: "Invalid status" });
+      return;
+    }
+
+    // L'assigné doit être membre de l'organisation
+    if (assignedToUserId != null) {
+      const [membership] = await db
+        .select({ id: membersTable.id })
+        .from(membersTable)
+        .where(
+          and(
+            eq(membersTable.organizationId, req.orgId!),
+            eq(membersTable.userId, assignedToUserId),
+          ),
+        )
+        .limit(1);
+      if (!membership) {
+        res.status(400).json({ error: "Assignee is not a member of this organization" });
+        return;
+      }
+    }
 
     const updateData: Partial<{
       isDone: boolean;
       completedAt: Date | null;
       comment: string | null;
       justificationUrl: string | null;
+      assignedToUserId: number | null;
+      dueDate: Date | null;
+      status: string;
       updatedAt: Date;
     }> = { updatedAt: new Date() };
 
@@ -208,6 +245,21 @@ router.patch(
       updateData.completedAt = completedAt ? new Date(completedAt) : null;
     if (comment !== undefined) updateData.comment = comment ?? null;
     if (justificationUrl !== undefined) updateData.justificationUrl = justificationUrl ?? null;
+    if (assignedToUserId !== undefined) updateData.assignedToUserId = assignedToUserId ?? null;
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+    if (status !== undefined) updateData.status = status;
+
+    // Synchronisation statut ⇄ isDone
+    if (status !== undefined && isDone === undefined) {
+      updateData.isDone = status === "done";
+      if (status === "done" && !existing.completedAt && completedAt === undefined) {
+        updateData.completedAt = new Date();
+      }
+      if (status !== "done") updateData.completedAt = completedAt !== undefined ? updateData.completedAt : null;
+    }
+    if (isDone !== undefined && status === undefined) {
+      updateData.status = isDone ? "done" : existing.status === "done" ? "todo" : existing.status;
+    }
 
     const [updated] = await db
       .update(planSlotsTable)
@@ -217,7 +269,8 @@ router.patch(
 
     // ── Renouvellement par lot de 5 ───────────────────────────────────────────
     // Si on vient de marquer isDone=true, compter les done et ajouter 5 si multiple de 5
-    if (isDone === true && !existing.isDone) {
+    const becameDone = updateData.isDone === true && !existing.isDone;
+    if (becameDone) {
       const allSlots = await db
         .select({ id: planSlotsTable.id, isDone: planSlotsTable.isDone, libraryActionId: planSlotsTable.libraryActionId })
         .from(planSlotsTable)
