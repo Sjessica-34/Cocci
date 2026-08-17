@@ -1,7 +1,9 @@
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpRight, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight, ChevronRight, Check } from "lucide-react";
 import {
   useGetCarbonBilan,
   useListBioDependencies,
@@ -410,6 +412,67 @@ export function DashboardBody({ orgId }: { orgId: number }) {
           </Card>
         </Link>
       </div>
+
+      {/* ══ Prochaines actions ═══════════════════════════════════════════════ */}
+      {!actionsLoading && totalActions > 0 && (
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            Prochaines actions à réaliser
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {(actions ?? [])
+              .filter(a => !a.isChecked)
+              .slice(0, 6)
+              .map(action => {
+                const catColors: Record<string, string> = {
+                  Environnement: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                  "Numérique responsable": "bg-sky-100 text-sky-800 border-sky-200",
+                  Biodiversité: "bg-lime-100 text-lime-800 border-lime-200",
+                  Social: "bg-blue-100 text-blue-800 border-blue-200",
+                  "Achats responsables": "bg-orange-100 text-orange-800 border-orange-200",
+                  Gouvernance: "bg-purple-100 text-purple-800 border-purple-200",
+                };
+                const catEmoji: Record<string, string> = {
+                  Environnement: "🌍", "Numérique responsable": "💻",
+                  Biodiversité: "🌿", Social: "👥",
+                  "Achats responsables": "🤝", Gouvernance: "⚖️",
+                };
+                const cat = action.actionCategory ?? null;
+                return (
+                  <Link key={action.id} href="/mes-actions">
+                    <Card className="hover:shadow-md transition-all cursor-pointer group border-blue-50 hover:border-blue-200 h-full">
+                      <CardContent className="p-4">
+                        <p className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors">
+                          {action.actionName ?? action.customName ?? "Action personnalisée"}
+                        </p>
+                        {cat && (
+                          <div className="mt-2">
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${catColors[cat] ?? ""}`}>
+                              {catEmoji[cat]} {action.actionSubcategory ?? cat}
+                            </Badge>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            {(actions ?? []).filter(a => !a.isChecked).length === 0 && totalActions > 0 && (
+              <div className="col-span-full flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg px-4 py-3 border border-emerald-100">
+                <Check className="h-4 w-4 shrink-0" />
+                Toutes les actions du plan sont réalisées ! 🎉
+              </div>
+            )}
+          </div>
+          <div className="mt-2 flex justify-end">
+            <Link href="/mes-actions">
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1">
+                Voir tout le plan <ArrowUpRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ══ LIGNE 2 : Diagnostic RSE ═══════════════════════════════════════════ */}
       <div>

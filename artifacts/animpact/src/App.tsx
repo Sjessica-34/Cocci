@@ -25,6 +25,7 @@ import { AdminUsers } from "@/pages/admin/users";
 import { AdminResources } from "@/pages/admin/resources";
 import { AdminEchanges } from "@/pages/admin/echanges";
 import { AdminSecurite } from "@/pages/admin/securite";
+import { AdminReferentiel } from "@/pages/admin/referentiel";
 import { EchangesCocci } from "@/pages/echanges/index";
 import { Resources } from "@/pages/resources";
 import { DiagnosticRse } from "@/pages/diagnostic/index";
@@ -324,6 +325,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/admin/resources"><AdminRoute component={AdminResources} /></Route>
             <Route path="/admin/echanges"><AdminRoute component={AdminEchanges} /></Route>
             <Route path="/admin/securite"><AdminRoute component={AdminSecurite} /></Route>
+            <Route path="/admin/referentiel"><AdminRoute component={AdminReferentiel} /></Route>
 
             <Route path="/echanges"><WorkspaceGuard component={EchangesCocci} /></Route>
 

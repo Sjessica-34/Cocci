@@ -4,7 +4,9 @@ import {
   db,
   actionLibraryTable,
   organizationActionPlansTable,
+  diagnosticResponsesTable,
 } from "@workspace/db";
+import { ALL_SUBCATEGORIES } from "@workspace/rse-referentials";
 import { requireAuth } from "../middlewares/requireAuth";
 import {
   requireOrgMembership,
@@ -261,6 +263,112 @@ router.delete(
     }
 
     res.status(204).send();
+  },
+);
+
+// ─── SUGGESTIONS ──────────────────────────────────────────────────────────────
+// GET /organizations/:orgId/actions/suggestions
+// Retourne jusqu'à 8 actions recommandées selon les points faibles du diagnostic.
+router.get(
+  "/organizations/:orgId/actions/suggestions",
+  requireAuth,
+  requireOrgMembership,
+  requireExerciseScope,
+  async (req, res) => {
+    // Construire la map questionId → axe (ENV | SOC | GOV)
+    const questionAxisMap = new Map<string, string>();
+    for (const sub of ALL_SUBCATEGORIES) {
+      for (const q of sub.questions) {
+        questionAxisMap.set(q.id, sub.categoryId);
+      }
+    }
+
+    // Total de questions par axe
+    const axisTotals: Record<string, number> = { ENV: 0, SOC: 0, GOV: 0 };
+    for (const sub of ALL_SUBCATEGORIES) {
+      axisTotals[sub.categoryId] = (axisTotals[sub.categoryId] ?? 0) + sub.questions.length;
+    }
+
+    // Réponses diagnostiques de cet exercice
+    const responses = await db
+      .select({ questionId: diagnosticResponsesTable.questionId })
+      .from(diagnosticResponsesTable)
+      .where(
+        and(
+          eq(diagnosticResponsesTable.organizationId, req.orgId!),
+          eq(diagnosticResponsesTable.exerciseId, req.exercise!.id),
+        ),
+      );
+
+    const axisAnswered: Record<string, number> = { ENV: 0, SOC: 0, GOV: 0 };
+    for (const r of responses) {
+      const axis = questionAxisMap.get(r.questionId);
+      if (axis) axisAnswered[axis] = (axisAnswered[axis] ?? 0) + 1;
+    }
+
+    // Taux de complétion par axe (0–1)
+    const axisCompletion: Record<string, number> = {
+      ENV: axisTotals.ENV > 0 ? axisAnswered.ENV / axisTotals.ENV : 0,
+      SOC: axisTotals.SOC > 0 ? axisAnswered.SOC / axisTotals.SOC : 0,
+      GOV: axisTotals.GOV > 0 ? axisAnswered.GOV / axisTotals.GOV : 0,
+    };
+
+    // Pilier E/S/G → axe ENV/SOC/GOV
+    const pillarToAxis: Record<string, string> = { E: "ENV", S: "SOC", G: "GOV" };
+    const pillarLabel: Record<string, string> = { E: "Environnement", S: "Social", G: "Gouvernance" };
+
+    // Actions déjà au plan pour cet exercice
+    const currentPlan = await db
+      .select({ libraryActionId: organizationActionPlansTable.libraryActionId })
+      .from(organizationActionPlansTable)
+      .where(
+        and(
+          eq(organizationActionPlansTable.organizationId, req.orgId!),
+          eq(organizationActionPlansTable.exerciseId, req.exercise!.id),
+          isNotNull(organizationActionPlansTable.libraryActionId),
+        ),
+      );
+    const plannedIds = new Set(
+      currentPlan.map(p => p.libraryActionId).filter((id): id is number => id !== null),
+    );
+
+    // Référentiel actif, hors plan
+    const allLibrary = await db
+      .select()
+      .from(actionLibraryTable)
+      .where(eq(actionLibraryTable.isActive, true))
+      .orderBy(actionLibraryTable.sortOrder, actionLibraryTable.id);
+
+    const LEVEL_ORDER: Record<string, number> = {
+      starter: 0, quick: 0,
+      intermediate: 1, project: 1,
+      advanced: 2, engagement: 2,
+    };
+
+    const scored = allLibrary
+      .filter(a => !plannedIds.has(a.id))
+      .map(action => {
+        const axis = pillarToAxis[action.esgPillar] ?? "ENV";
+        const completion = axisCompletion[axis] ?? 0;
+        let weight = 1;
+        let reason = `Compléter votre démarche ${pillarLabel[action.esgPillar] ?? action.esgPillar}`;
+        if (completion < 0.3) {
+          weight = 3;
+          reason = `Axe ${pillarLabel[action.esgPillar] ?? action.esgPillar} peu avancé — priorité haute`;
+        } else if (completion < 0.6) {
+          weight = 2;
+          reason = `Axe ${pillarLabel[action.esgPillar] ?? action.esgPillar} en progression — action recommandée`;
+        }
+        const levelOrder = LEVEL_ORDER[action.level] ?? 1;
+        return {
+          ...action,
+          relevanceScore: weight * 10 - levelOrder,
+          relevanceReason: reason,
+        };
+      });
+
+    scored.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    res.json(scored.slice(0, 8));
   },
 );
 

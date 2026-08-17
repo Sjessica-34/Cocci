@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useRef } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,9 +9,13 @@ import {
   useListPlanSlots,
   useInitializePlanSlots,
   useUpdatePlanSlot,
+  useAddActionToPlan,
   getListPlanSlotsQueryKey,
+  getListActionPlanQueryKey,
+  customFetch,
 } from "@workspace/api-client-react";
 import type { PlanSlot } from "@workspace/api-client-react";
+import { useAuth } from "@clerk/react";
 import {
   Loader2,
   Check,
@@ -20,8 +24,13 @@ import {
   Sparkles,
   Calendar,
   MessageSquare,
-  Link as LinkIcon,
   RefreshCw,
+  Upload,
+  Paperclip,
+  FileText,
+  Download,
+  Plus,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,13 +65,21 @@ const LEVEL_LABEL: Record<string, string> = {
 function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { getToken } = useAuth();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [comment, setComment] = useState(slot.comment ?? "");
   const [justificationUrl, setJustificationUrl] = useState(slot.justificationUrl ?? "");
+  const [justificationName, setJustificationName] = useState<string | null>(() => {
+    if (!slot.justificationUrl) return null;
+    const seg = decodeURIComponent(slot.justificationUrl.split("/").pop() ?? "");
+    return seg || null;
+  });
   const [completedAt, setCompletedAt] = useState(
     slot.completedAt ? new Date(slot.completedAt).toISOString().slice(0, 10) : "",
   );
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const { mutateAsync: updateSlot } = useUpdatePlanSlot();
 
@@ -111,6 +128,57 @@ function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleFileUpload(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Fichier trop volumineux", description: "Maximum 10 Mo.", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const token = await getToken();
+      const form = new FormData();
+      form.append("file", file);
+      form.append("category", "mes-actions");
+      const res = await fetch(`/api/organizations/${orgId}/documents`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const doc = await res.json();
+      const url = `/api/organizations/${orgId}/documents/${doc.id}/download`;
+      setJustificationUrl(url);
+      setJustificationName(file.name);
+      await updateSlot({
+        orgId,
+        slotId: slot.id,
+        data: { justificationUrl: url },
+      });
+      await qc.invalidateQueries({ queryKey: getListPlanSlotsQueryKey(orgId) });
+      toast({ title: "Justificatif ajouté", description: "Disponible dans Mes documents → Mes actions RSE." });
+    } catch {
+      toast({ title: "Erreur upload", description: "Impossible d'uploader le fichier.", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDownload() {
+    if (!justificationUrl) return;
+    const token = await getToken();
+    const res = await fetch(justificationUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = justificationName ?? "justificatif";
+    a.click();
+    URL.revokeObjectURL(blobUrl);
   }
 
   return (
@@ -166,7 +234,7 @@ function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
             )}
             {slot.justificationUrl && (
               <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                <LinkIcon className="h-2.5 w-2.5" />
+                <Paperclip className="h-2.5 w-2.5" />
                 Justificatif
               </span>
             )}
@@ -199,15 +267,52 @@ function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium flex items-center gap-1.5">
-                <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                Lien justificatif (URL)
+                <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                Justificatif
               </label>
-              <Input
-                type="url"
-                placeholder="https://…"
-                value={justificationUrl}
-                onChange={(e) => setJustificationUrl(e.target.value)}
-                className="h-8 text-sm"
+              <div className="flex items-center gap-2 flex-wrap">
+                {justificationUrl && justificationName ? (
+                  <button
+                    onClick={handleDownload}
+                    className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span className="truncate max-w-[180px]">{justificationName}</span>
+                    <Download className="h-3 w-3 shrink-0" />
+                  </button>
+                ) : justificationUrl ? (
+                  <a
+                    href={justificationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline truncate max-w-[180px]"
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    Lien externe
+                  </a>
+                ) : null}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                  {justificationUrl ? "Remplacer" : "Importer"}
+                </Button>
+                <span className="text-[10px] text-muted-foreground">photo, PDF, attestation… (max 10 Mo)</span>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                className="sr-only"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.png,.jpg,.jpeg,.webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file);
+                  if (fileRef.current) fileRef.current.value = "";
+                }}
               />
             </div>
           </div>
@@ -232,6 +337,121 @@ function SlotRow({ slot, orgId }: { slot: PlanSlot; orgId: number }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Section Suggestions automatiques ────────────────────────────────────────
+
+type Suggestion = {
+  id: number;
+  name: string;
+  description: string | null;
+  category: string | null;
+  subcategory: string | null;
+  esgPillar: string;
+  level: string;
+  relevanceReason: string;
+};
+
+const PILLAR_LABEL: Record<string, string> = { E: "Environnement", S: "Social", G: "Gouvernance" };
+const PILLAR_COLOR: Record<string, string> = {
+  E: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  S: "bg-blue-100 text-blue-800 border-blue-200",
+  G: "bg-purple-100 text-purple-800 border-purple-200",
+};
+
+function SuggestionsSection({ orgId }: { orgId: number }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [adding, setAdding] = useState<number | null>(null);
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const { mutateAsync: addAction } = useAddActionToPlan();
+
+  const { data: suggestions, isLoading } = useQuery<Suggestion[]>({
+    queryKey: ["action-suggestions", orgId],
+    queryFn: () => customFetch(`/api/organizations/${orgId}/actions/suggestions`),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const visible = (suggestions ?? []).filter(s => !dismissed.has(s.id));
+
+  async function handleAdd(s: Suggestion) {
+    setAdding(s.id);
+    try {
+      await addAction({ orgId, data: { libraryActionId: s.id, source: "suggestion" } });
+      setDismissed(prev => new Set([...prev, s.id]));
+      await qc.invalidateQueries({ queryKey: getListActionPlanQueryKey(orgId) });
+      toast({ title: "Action ajoutée au plan" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "";
+      if (msg.includes("409") || msg.includes("already")) {
+        setDismissed(prev => new Set([...prev, s.id]));
+        toast({ title: "Action déjà dans le plan" });
+      } else {
+        toast({ title: "Erreur", description: "Impossible d'ajouter l'action.", variant: "destructive" });
+      }
+    } finally {
+      setAdding(null);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (!visible.length) return null;
+
+  return (
+    <div className="space-y-3 pt-2">
+      <div className="flex items-center gap-2">
+        <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Actions suggérées selon votre diagnostic ({visible.length})
+        </h3>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {visible.map(s => (
+          <div
+            key={s.id}
+            className="flex flex-col gap-2 rounded-lg border border-amber-100 bg-amber-50/60 p-3"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium leading-snug line-clamp-2">{s.name}</p>
+              {s.description && (
+                <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">{s.description}</p>
+              )}
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${PILLAR_COLOR[s.esgPillar] ?? ""}`}>
+                  {PILLAR_LABEL[s.esgPillar] ?? s.esgPillar}
+                </Badge>
+                {s.subcategory && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-muted/60">
+                    {s.subcategory}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[10px] gap-1 self-end border-amber-200 hover:bg-amber-100"
+              onClick={() => handleAdd(s)}
+              disabled={adding === s.id}
+            >
+              {adding === s.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
+              Ajouter au plan
+            </Button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -333,6 +553,8 @@ export function TabMonPlan({ orgId }: Props) {
             ))}
           </div>
         )}
+
+        <SuggestionsSection orgId={orgId} />
 
         {doneSlots.length > 0 && (
           <div className="space-y-2">

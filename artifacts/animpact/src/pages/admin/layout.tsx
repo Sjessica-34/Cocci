@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   BookOpen,
   MessageSquare,
+  ListChecks,
 } from "lucide-react";
 import { useUser, useClerk } from "@clerk/react";
 import {
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
   { href: "/admin/organizations", label: "Organisations", icon: Building2, exact: false },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, exact: false },
   { href: "/admin/resources", label: "Bibliothèque globale", icon: BookOpen, exact: false },
+  { href: "/admin/referentiel", label: "Référentiel d'actions", icon: ListChecks, exact: false },
   { href: "/admin/echanges", label: "Échanges avec Cocci", icon: MessageSquare, exact: false },
   { href: "/admin/securite", label: "Sécurité & journalisation", icon: Shield, exact: false },
   { href: null, label: "Factures", icon: CreditCard },

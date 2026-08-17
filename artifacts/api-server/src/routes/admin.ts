@@ -6,6 +6,7 @@ import {
   membersTable,
   resourcesTable,
   subscriptionsTable,
+  actionLibraryTable,
 } from "@workspace/db";
 import { cocciFeedbackTable, cocciRatingsTable } from "@workspace/db";
 import { eq, desc, count, max, and, isNull, isNotNull, sql, avg } from "drizzle-orm";
@@ -973,6 +974,121 @@ router.get("/admin/echanges/stats", async (req, res) => {
     newFeedbackCount: Number(newFeedback?.cnt ?? 0),
     newRatingCount: 0, // ratings are always "new" since they have no status
   });
+});
+
+// ─── RÉFÉRENTIEL D'ACTIONS (admin) ────────────────────────────────────────────
+
+// GET /admin/action-library — liste tout le référentiel (actif + inactif)
+router.get("/admin/action-library", async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(actionLibraryTable)
+    .orderBy(actionLibraryTable.sortOrder, actionLibraryTable.id);
+  res.json(rows);
+});
+
+// POST /admin/action-library — crée une nouvelle action (isSystem=false)
+router.post("/admin/action-library", async (req, res) => {
+  const { name, description, category, subcategory, esgPillar, level, odd, sortOrder } =
+    req.body as {
+      name?: string;
+      description?: string;
+      category?: string;
+      subcategory?: string;
+      esgPillar?: string;
+      level?: string;
+      odd?: string[] | null;
+      sortOrder?: number;
+    };
+
+  if (!name?.trim() || !esgPillar || !level) {
+    res.status(400).json({ error: "name, esgPillar et level sont obligatoires" });
+    return;
+  }
+
+  const [created] = await db
+    .insert(actionLibraryTable)
+    .values({
+      name: name.trim(),
+      description: description?.trim() ?? null,
+      category: category ?? null,
+      subcategory: subcategory ?? null,
+      esgPillar,
+      level,
+      odd: odd ?? null,
+      sortOrder: sortOrder ?? 999,
+      isSystem: false,
+      isActive: true,
+    })
+    .returning();
+
+  res.status(201).json(created);
+});
+
+// PATCH /admin/action-library/:id — modifie une action (nom, description, pilier, niveau, statut…)
+router.patch("/admin/action-library/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(actionLibraryTable)
+    .where(eq(actionLibraryTable.id, id))
+    .limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  const { name, description, category, subcategory, esgPillar, level, isActive, sortOrder } =
+    req.body as Record<string, unknown>;
+
+  const update: Partial<typeof actionLibraryTable.$inferInsert> = {};
+  if (typeof name === "string") update.name = name.trim();
+  if (description !== undefined) update.description = (description as string | null) ?? null;
+  if (category !== undefined) update.category = (category as string | null) ?? null;
+  if (subcategory !== undefined) update.subcategory = (subcategory as string | null) ?? null;
+  if (typeof esgPillar === "string") update.esgPillar = esgPillar;
+  if (typeof level === "string") update.level = level;
+  if (typeof isActive === "boolean") update.isActive = isActive;
+  if (typeof sortOrder === "number") update.sortOrder = sortOrder;
+
+  const [updated] = await db
+    .update(actionLibraryTable)
+    .set(update)
+    .where(eq(actionLibraryTable.id, id))
+    .returning();
+
+  res.json(updated);
+});
+
+// DELETE /admin/action-library/:id — supprime une action non-système
+router.delete("/admin/action-library/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(actionLibraryTable)
+    .where(eq(actionLibraryTable.id, id))
+    .limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  if (existing.isSystem) {
+    res.status(403).json({ error: "Les actions système ne peuvent pas être supprimées" });
+    return;
+  }
+
+  await db.delete(actionLibraryTable).where(eq(actionLibraryTable.id, id));
+  res.status(204).send();
 });
 
 export default router;
