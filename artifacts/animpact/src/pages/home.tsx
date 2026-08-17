@@ -432,6 +432,45 @@ export function Home() {
           </div>
         </section>
 
+        {/* ── Page publique partageable ── */}
+        <section className="bg-green-50 border-t border-green-100 py-16">
+          <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center gap-10">
+            {/* Illustration */}
+            <div className="shrink-0 bg-white rounded-2xl border border-green-200 shadow-sm p-6 flex flex-col items-center gap-3 min-w-[180px]">
+              <div className="h-12 w-12 rounded-full bg-[#163028] flex items-center justify-center">
+                <Leaf className="h-6 w-6 text-green-300" />
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-gray-400 font-mono truncate max-w-[140px]">cocci.app/p/abc123</p>
+                <p className="text-xs font-semibold text-gray-700 mt-1">Votre page RSE publique</p>
+              </div>
+              <div className="flex items-center gap-1.5 bg-green-100 text-green-800 text-[11px] font-medium px-3 py-1 rounded-full">
+                <CheckCircle2 className="h-3 w-3" /> Accessible sans compte
+              </div>
+            </div>
+            {/* Texte */}
+            <div>
+              <h2 className="text-xl font-bold text-[#16a34a] mb-2">Partagez votre engagement RSE en un lien</h2>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-lg">
+                Générez une page publique personnalisée présentant vos scores, vos engagements et votre plan d'actions. 
+                Partagez-la avec vos clients, partenaires ou investisseurs sans qu'ils aient besoin d'un compte.
+              </p>
+              <ul className="mt-4 space-y-1.5 text-sm text-gray-600">
+                {[
+                  "Un lien unique, révocable à tout moment",
+                  "Données mises à jour automatiquement",
+                  "Texte d'introduction personnalisable",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-[#163028] shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
         {/* ── Bottom CTA ── */}
         <section className="bg-gray-50 border-t border-gray-200 py-14">
           <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
