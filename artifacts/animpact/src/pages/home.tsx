@@ -266,7 +266,7 @@ const features = [
   {
     n: 3,
     title: "Pilotez votre capital humain",
-    body: "Diffusez automatiquement un questionnaire de baromètre social à vos collaborateurs, recueillez leurs réponses et visualisez les résultats en temps réel pour savoir ce que pense votre équipe et prendre le pouls de votre organisation.",
+    body: "Diffusez automatiquement un questionnaire de baromètre social à vos collaborateurs, recueillez leurs réponses et visualisez les résultats en temps réel pour savoir ce que pense votre équipe et prendre le pouls de votre organisation. Suivez également vos indicateurs RH clés : parité femmes/hommes, moyenne d'âge, taux de turnover et ancienneté moyenne.",
   },
   {
     n: 4,
