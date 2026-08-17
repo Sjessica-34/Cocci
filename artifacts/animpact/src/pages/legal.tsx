@@ -66,13 +66,14 @@ const sections = {
     content: (
       <div className="prose prose-sm max-w-none text-foreground space-y-4">
         <h2 className="text-base font-semibold">Éditeur</h2>
-        <p>Cocci SAS — Capital social : [À compléter]<br />
-          Siège social : [Adresse]<br />
-          SIREN : [À compléter]<br />
-          Directeur de la publication : [Nom]
+        <p>
+          A-NIM-PACT SAS<br />
+          Siège social : Clarensac (30870)<br />
+          SIREN : 103 566 824<br />
+          Présidente et directrice de la publication : Jessica Sutra
         </p>
         <h2 className="text-base font-semibold">Hébergement</h2>
-        <p>La plateforme Cocci est hébergée par Replit Inc., San Francisco, Californie, États-Unis.</p>
+        <p>La plateforme Cocci est hébergée par</p>
         <h2 className="text-base font-semibold">Propriété intellectuelle</h2>
         <p>L'ensemble des contenus de la plateforme (textes, graphismes, logiciels) est la propriété exclusive de Cocci SAS.</p>
         <h2 className="text-base font-semibold">Contact</h2>

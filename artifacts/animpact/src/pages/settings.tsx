@@ -18,7 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useUser, useClerk } from "@clerk/react";
 import { useToast } from "@/hooks/use-toast";
-import { useExportMyData, useRequestAccountDeletion, useMyConsents } from "@workspace/api-client-react";
+import { useExportMyData, useMyConsents } from "@workspace/api-client-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,17 +37,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -58,7 +47,6 @@ import {
   Loader2,
   Save,
   Download,
-  Trash2,
   ShieldCheck,
   LogOut,
   FileText,
@@ -448,10 +436,6 @@ function PrivacyTab() {
   const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
   const { triggerExport } = useExportMyData();
-  const deletionRequest = useRequestAccountDeletion({
-    onSuccess: (data) => toast({ title: "Demande enregistrée", description: data.message }),
-    onError: () => toast({ variant: "destructive", title: "Erreur", description: "Impossible d'enregistrer la demande. Réessayez." }),
-  });
 
   async function handleExport() {
     setExporting(true);
@@ -507,7 +491,7 @@ function PrivacyTab() {
             <CardTitle className="text-base">Mes données</CardTitle>
           </div>
           <CardDescription className="text-sm mt-1">
-            Conformément au RGPD, vous pouvez télécharger vos données ou demander la suppression de votre compte.
+            Conformément au RGPD, vous pouvez télécharger une copie de vos données personnelles.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
@@ -535,43 +519,18 @@ function PrivacyTab() {
 
           <Separator />
 
-          {/* Deletion */}
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-sm font-medium text-foreground">Supprimer mon compte</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Votre demande sera traitée dans les 30 jours. Cette action est irréversible.
-              </p>
-            </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="shrink-0 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Supprimer mon compte
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmer la demande de suppression</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Votre demande sera transmise à notre équipe. Toutes vos données personnelles
-                    seront supprimées ou anonymisées dans les 30 jours ouvrés. Cette action est
-                    irréversible une fois traitée.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-rose-600 hover:bg-rose-700 text-white"
-                    onClick={() => deletionRequest.mutate()}
-                    disabled={deletionRequest.isPending}
-                  >
-                    {deletionRequest.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Confirmer la demande
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          {/* RGPD rights */}
+          <div>
+            <p className="text-sm font-medium text-foreground">Exercer vos droits RGPD</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Pour toute demande relative à vos données personnelles (accès, rectification, opposition,
+              limitation ou suppression), veuillez contacter Cocci via les coordonnées indiquées dans
+              la rubrique{" "}
+              <Link href="/legal?section=mentions">
+                <span className="text-primary underline cursor-pointer">Contact</span>
+              </Link>
+              . Votre demande sera traitée conformément au RGPD.
+            </p>
           </div>
         </CardContent>
       </Card>
