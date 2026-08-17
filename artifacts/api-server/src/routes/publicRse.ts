@@ -57,18 +57,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
 
     const { organizationId: orgId, exerciseId, customDescription, showReport } = link;
 
-    // 2. Toutes les données en parallèle via pool.query
-    const [
-      orgRows,
-      exerciseRows,
-      diagnosticRows,
-      actionPlanRows,
-      labelRows,
-      stakeholderCountRows,
-      issueCountRows,
-      reportDraftRows,
-      baroCampaignRows,
-    ] = await Promise.all([
+    // 2. Données de base + filiales éventuelles
+    const [orgRows, exerciseRows, subsidiaryRows] = await Promise.all([
       pool.query<{ id: number; name: string; logo_url: string | null; sector: string | null; size: string | null }>(
         "SELECT id, name, logo_url, sector, size FROM organizations WHERE id = $1 LIMIT 1",
         [orgId],
@@ -77,6 +67,31 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
         "SELECT id, year, status FROM exercises WHERE id = $1 LIMIT 1",
         [exerciseId],
       ),
+      // Filiales directes (pour mode groupe consolidé)
+      pool.query<{ id: number }>(
+        "SELECT id FROM organizations WHERE parent_id = $1",
+        [orgId],
+      ),
+    ]);
+
+    const org = orgRows.rows[0];
+    const exercise = exerciseRows.rows[0];
+
+    if (!org || !exercise) {
+      res.status(404).json({ error: "Organization or exercise not found" });
+      return;
+    }
+
+    // 3. Charger les données directes de l'org
+    const [
+      diagnosticRows,
+      actionPlanRows,
+      labelRows,
+      stakeholderCountRows,
+      issueCountRows,
+      reportDraftRows,
+      baroCampaignRows,
+    ] = await Promise.all([
       pool.query<{ question_id: string; level: number }>(
         "SELECT question_id, level FROM diagnostic_responses WHERE organization_id = $1 AND exercise_id = $2",
         [orgId, exerciseId],
@@ -112,18 +127,78 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       ),
     ]);
 
-    const org = orgRows.rows[0];
-    const exercise = exerciseRows.rows[0];
+    // 4. Si l'org est un groupe sans données propres → consolider les filiales
+    const subsidiaryIds = subsidiaryRows.rows.map((r) => r.id);
+    let allDiagnosticRows = diagnosticRows.rows;
+    let allActionPlanRows = actionPlanRows.rows;
+    let allLabelRows = labelRows.rows;
+    let allStakeholderCount = Number(stakeholderCountRows.rows[0]?.cnt ?? 0);
+    let hasMateriaux = Number(issueCountRows.rows[0]?.cnt ?? 0) > 0;
 
-    if (!org || !exercise) {
-      res.status(404).json({ error: "Organization or exercise not found" });
-      return;
+    if (diagnosticRows.rows.length === 0 && subsidiaryIds.length > 0) {
+      // Récupérer l'exercice actif de chaque filiale puis agréger leurs données
+      const subExercisesRes = await pool.query<{ organization_id: number; id: number }>(
+        `SELECT organization_id, id FROM exercises
+         WHERE organization_id = ANY($1) AND status = 'active'
+         ORDER BY organization_id`,
+        [subsidiaryIds],
+      );
+      const subExercises = subExercisesRes.rows; // [{ organization_id, id }]
+
+      if (subExercises.length > 0) {
+        // Construire des filtres OR pour chaque (org_id, exercise_id)
+        const pairs = subExercises.map((_, i) => `(organization_id = $${i * 2 + 1} AND exercise_id = $${i * 2 + 2})`).join(" OR ");
+        const flatParams = subExercises.flatMap((e) => [e.organization_id, e.id]);
+
+        const [subDiagRows, subActionRows, subLabelRows, subStakeholderRows, subIssueRows] = await Promise.all([
+          pool.query<{ question_id: string; level: number }>(
+            `SELECT question_id, level FROM diagnostic_responses WHERE ${pairs}`,
+            flatParams,
+          ),
+          pool.query<{ is_checked: boolean; category: string | null; esg_pillar: string | null }>(
+            `SELECT oap.is_checked, al.category, al.esg_pillar
+             FROM organization_action_plans oap
+             LEFT JOIN action_library al ON al.id = oap.library_action_id
+             WHERE ${pairs.replace(/organization_id/g, "oap.organization_id").replace(/exercise_id/g, "oap.exercise_id")}`,
+            flatParams,
+          ),
+          pool.query<{ name: string | null; logo_url: string | null; holder: string | null; score: string | null }>(
+            `SELECT name, logo_url, holder, score FROM labels WHERE ${pairs}`,
+            flatParams,
+          ),
+          pool.query<{ cnt: string }>(
+            `SELECT COUNT(*) AS cnt FROM stakeholders WHERE ${pairs}`,
+            flatParams,
+          ),
+          pool.query<{ cnt: string }>(
+            `SELECT COUNT(*) AS cnt FROM issue_ratings WHERE ${pairs}`,
+            flatParams,
+          ),
+        ]);
+
+        // Consolider : pour le diagnostic on fait la moyenne des questions par catégorie
+        // On agrège en conservant la réponse la plus récente par question_id (dernière filiale)
+        const consolidatedMap = new Map<string, number[]>();
+        for (const row of subDiagRows.rows) {
+          if (!consolidatedMap.has(row.question_id)) consolidatedMap.set(row.question_id, []);
+          consolidatedMap.get(row.question_id)!.push(row.level);
+        }
+        allDiagnosticRows = Array.from(consolidatedMap.entries()).map(([question_id, levels]) => ({
+          question_id,
+          level: Math.round(levels.reduce((a, b) => a + b, 0) / levels.length),
+        }));
+
+        allActionPlanRows = [...allActionPlanRows, ...subActionRows.rows];
+        allLabelRows = [...allLabelRows, ...subLabelRows.rows];
+        allStakeholderCount += Number(subStakeholderRows.rows[0]?.cnt ?? 0);
+        hasMateriaux = hasMateriaux || Number(subIssueRows.rows[0]?.cnt ?? 0) > 0;
+      }
     }
 
-    // 3. Scores diagnostic + scores par sous-catégorie
-    const scores = computeScoresByAxis(diagnosticRows.rows);
+    // 5. Scores diagnostic + scores par sous-catégorie
+    const scores = computeScoresByAxis(allDiagnosticRows);
 
-    const responseMap = new Map<string, number>(diagnosticRows.rows.map((r) => [r.question_id, r.level]));
+    const responseMap = new Map<string, number>(allDiagnosticRows.map((r) => [r.question_id, r.level]));
     const subcategoryScores: Array<{
       id: string; name: string; categoryId: string;
       score: number | null; answeredCount: number; totalCount: number;
@@ -141,8 +216,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       subcategoryScores.push({ id: sub.id, name: sub.label, categoryId: sub.categoryId, score, answeredCount: answered, totalCount: totalQ });
     }
 
-    // 4. Plan d'actions
-    const actionItems = actionPlanRows.rows;
+    // 6. Plan d'actions
+    const actionItems = allActionPlanRows;
     const totalActions = actionItems.length;
     const doneActions = actionItems.filter((a) => a.is_checked).length;
     const byCategory: Record<string, { total: number; done: number }> = {};
@@ -153,22 +228,16 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       if (item.is_checked) byCategory[cat].done++;
     }
 
-    // 5. Labels (normalisation camelCase)
-    const labels = labelRows.rows.map((l) => ({
-      name: l.name,
-      logoUrl: l.logo_url,
-      holder: l.holder,
-      score: l.score,
-    }));
+    // 7. Labels (dédupliqués, normalisation camelCase)
+    const seenLabels = new Set<string>();
+    const labels = allLabelRows
+      .filter((l) => { const k = `${l.name}|${l.holder}`; if (seenLabels.has(k)) return false; seenLabels.add(k); return true; })
+      .map((l) => ({ name: l.name, logoUrl: l.logo_url, holder: l.holder, score: l.score }));
 
-    // 6. Comptages
-    const stakeholderCount = Number(stakeholderCountRows.rows[0]?.cnt ?? 0);
-    const hasMateriaux = Number(issueCountRows.rows[0]?.cnt ?? 0) > 0;
-
-    // 7. Rapport RSE
+    // 8. Rapport RSE
     const reportDraft = reportDraftRows.rows[0];
 
-    // 8. Baromètre social
+    // 9. Baromètre social
     let barometre: {
       satisfactionGlobale: number | null;
       tauxParticipation: number | null;
@@ -203,10 +272,10 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       };
     }
 
-    // 9. Progression
+    // 10. Progression
     const progression = {
-      diagnostic: diagnosticRows.rows.length > 0,
-      stakeholders: stakeholderCount > 0,
+      diagnostic: allDiagnosticRows.length > 0,
+      stakeholders: allStakeholderCount > 0,
       materiality: hasMateriaux,
       actionPlan: totalActions > 0,
       actionsInProgress: doneActions > 0,
@@ -220,7 +289,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       scores,
       actionPlan: { total: totalActions, done: doneActions, byCategory },
       labels,
-      stakeholderCount,
+      stakeholderCount: allStakeholderCount,
       barometre,
       progression,
       reportGenerationCount: reportDraft?.generation_count ?? 0,
@@ -229,8 +298,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       showReport: showReport ?? false,
     });
   } catch (e) {
-    logger.error({ e }, "public-rse error");
-    res.status(500).json({ error: "Internal server error" });
+    logger.error({ err: e, msg: (e as Error)?.message, stack: (e as Error)?.stack }, "public-rse error");
+    res.status(500).json({ error: "Internal server error", detail: (e as Error)?.message });
   }
 });
 
