@@ -20,7 +20,7 @@ type LinkData = {
 };
 
 export function PagePubliqueRse() {
-  const { orgId, isReadOnly } = useModuleContext();
+  const { effectiveOrgId: orgId, isReadOnly } = useModuleContext("group");
 
   const [link, setLink] = useState<LinkData | null | undefined>(undefined);
   const [loading, setLoading] = useState(false);
