@@ -321,8 +321,7 @@ export function RapportRse() {
 
   useEffect(() => {
     if (!orgId) return;
-    customFetch(`/api/organizations/${orgId}/public-link`, { method: "GET" })
-      .then((r) => r.json())
+    customFetch<{ token: string } | null>(`/api/organizations/${orgId}/public-link`, { method: "GET" })
       .then((data) => setPublicToken(data?.token ?? null))
       .catch(() => setPublicToken(null));
   }, [orgId]);
@@ -331,8 +330,7 @@ export function RapportRse() {
     if (!orgId) return;
     setShareLinkLoading(true);
     try {
-      const r = await customFetch(`/api/organizations/${orgId}/public-link`, { method: "POST" });
-      const data = await r.json();
+      const data = await customFetch<{ token: string }>(`/api/organizations/${orgId}/public-link`, { method: "POST" });
       setPublicToken(data.token);
     } finally {
       setShareLinkLoading(false);
