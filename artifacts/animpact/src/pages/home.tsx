@@ -95,8 +95,8 @@ function AppMockup() {
 
           {/* User footer */}
           <div className="border-t border-white/10 px-3 py-2">
-            <p className="text-white/90 font-semibold text-[8.5px]">Martin SUTRA</p>
-            <p className="text-white/40 text-[7px] truncate">sutra.jessica@gmail…</p>
+            <p className="text-white/90 font-semibold text-[8.5px]">Martin MATIN</p>
+            <p className="text-white/40 text-[7px] truncate">martin@a-nim-pact.fr</p>
           </div>
         </aside>
 
@@ -218,7 +218,7 @@ function AppMockup() {
                   },
                   {
                     label: "Capital humain", emoji: "👤",
-                    rows: [["Effectif", "9 pers."], ["Heures de formation", "4 h"]],
+                    rows: [["Effectif", "9 pers."], ["Parité F/H", "56 / 44 %"], ["Âge moyen", "38 ans"], ["Turnover", "11 %"], ["Ancienneté moy.", "4,2 ans"]],
                   },
                 ].map((m) => (
                   <div key={m.label} className="bg-white rounded-lg border border-gray-100 p-2">
