@@ -1,5 +1,6 @@
 import { useListOrganizations } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "./useCurrentOrganization";
+import { useAdminViewOrg } from "./useAdminView";
 import type { ModuleScope } from "@/config/moduleScopes";
 
 /**
@@ -27,7 +28,12 @@ export interface ModuleContext {
 
 export function useModuleContext(scope: ModuleScope): ModuleContext {
   const { currentOrgId } = useCurrentOrganization();
-  const { data: orgs = [] } = useListOrganizations();
+  const adminViewOrgId = useAdminViewOrg();
+  // Quand un super-admin visite l'espace d'un client (viewAs), on utilise les
+  // orgs de CE client — pas celles de l'admin — pour calculer rootOrg et effectiveOrgId.
+  const { data: orgs = [] } = useListOrganizations(
+    adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
+  );
 
   const rootOrg = orgs.find((o) => !o.parentId) ?? null;
   const isGroup = rootOrg?.type === "groupe";
