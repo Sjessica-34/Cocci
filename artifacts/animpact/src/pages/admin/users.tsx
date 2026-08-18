@@ -109,7 +109,8 @@ export function AdminUsers() {
               {filtered.map((userRaw) => {
                 // Type casting to include lastLoginAt which might not be strictly in the type yet
                 const user = userRaw as AdminUser & { lastLoginAt?: string | null };
-                const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "—";
+                const realEmail = user.email?.endsWith("@pending.local") ? null : user.email;
+                const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ") || realEmail || "—";
                 const isMe = user.clerkId === clerkUser?.id;
                 
                 return (
@@ -118,7 +119,7 @@ export function AdminUsers() {
                       <Avatar className="h-10 w-10 shrink-0 border border-border">
                         <AvatarImage src={user.avatarUrl || ""} />
                         <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
-                          {(displayName === "—" ? user.email : displayName).charAt(0).toUpperCase()}
+                          {displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
@@ -131,7 +132,7 @@ export function AdminUsers() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">{user.email}</p>
+                        {realEmail && <p className="text-xs text-muted-foreground truncate mt-0.5">{realEmail}</p>}
                       </div>
                     </div>
                     
@@ -174,8 +175,8 @@ export function AdminUsers() {
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   {user.isSuperAdmin
-                                    ? `${user.email} perdra l'accès au back-office cocci.`
-                                    : `${user.email} aura accès à l'ensemble du back-office cocci et pourra voir toutes les organisations et tous les utilisateurs.`}
+                                    ? `${displayName} perdra l'accès au back-office cocci.`
+                                    : `${displayName} aura accès à l'ensemble du back-office cocci et pourra voir toutes les organisations et tous les utilisateurs.`}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

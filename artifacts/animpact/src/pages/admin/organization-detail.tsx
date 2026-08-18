@@ -549,7 +549,8 @@ function MembersTab({ orgId }: { orgId: number }) {
     <Card className="border-border/50 overflow-hidden">
       <div className="divide-y divide-border/50">
         {members.map((m) => {
-          const displayName = [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") || "—";
+          const realEmail = m.user.email?.endsWith("@pending.local") ? null : m.user.email;
+          const displayName = [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") || realEmail || "—";
           const isSuspended = m.status === 'suspended';
           return (
             <div key={m.id} className={cn("flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-4 transition-colors", isSuspended ? "bg-rose-50/30" : "hover:bg-muted/30")}>
@@ -557,7 +558,7 @@ function MembersTab({ orgId }: { orgId: number }) {
                 <Avatar className={cn("h-10 w-10 shrink-0 border", isSuspended ? "opacity-50 grayscale" : "border-border")}>
                   <AvatarImage src={m.user.avatarUrl || ""} />
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
-                    {(displayName === "—" ? m.user.email : displayName).charAt(0).toUpperCase()}
+                    {displayName.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -566,7 +567,7 @@ function MembersTab({ orgId }: { orgId: number }) {
                     {m.user.isSuperAdmin && <Shield className="h-3 w-3 text-destructive shrink-0" />}
                     {isSuspended && <Badge variant="outline" className="text-[9px] h-4 px-1 py-0 border-rose-200 text-rose-600 bg-rose-50">Suspendu</Badge>}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{m.user.email}</p>
+                  {realEmail && <p className="text-xs text-muted-foreground truncate mt-0.5">{realEmail}</p>}
                 </div>
               </div>
 
@@ -627,7 +628,7 @@ function MembersTab({ orgId }: { orgId: number }) {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Retirer l'utilisateur ?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        {m.user.email} perdra l'accès à cette organisation.
+                        <strong>{displayName}</strong> perdra l'accès à cette organisation.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
