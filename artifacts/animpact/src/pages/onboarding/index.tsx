@@ -73,7 +73,7 @@ export function Onboarding() {
     if (type === "groupe") {
       setLocation("/onboarding/filiales");
     } else {
-      setLocation("/dashboard");
+      setLocation("/onboarding/effectif");
     }
   }
 

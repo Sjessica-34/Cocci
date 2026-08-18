@@ -53,6 +53,8 @@ import { MesActions } from "@/pages/mes-actions";
 import { GuideRSE } from "@/pages/guide-rse";
 import { Onboarding } from "@/pages/onboarding/index";
 import { OnboardingFiliales } from "@/pages/onboarding/filiales";
+import { OnboardingEffectif } from "@/pages/onboarding/effectif";
+import { OnboardingAbonnement } from "@/pages/onboarding/abonnement";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
@@ -287,6 +289,12 @@ function ClerkProviderWithRoutes() {
             </Route>
             <Route path="/onboarding/filiales">
               <ProtectedRoute component={OnboardingFiliales} />
+            </Route>
+            <Route path="/onboarding/effectif">
+              <ProtectedRoute component={OnboardingEffectif} />
+            </Route>
+            <Route path="/onboarding/abonnement">
+              <ProtectedRoute component={OnboardingAbonnement} />
             </Route>
 
             {/* Workspace module pages — redirect to onboarding if no org */}

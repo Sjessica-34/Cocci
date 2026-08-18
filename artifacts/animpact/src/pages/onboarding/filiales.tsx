@@ -143,13 +143,13 @@ export function OnboardingFiliales() {
   const subsidiaries = orgs.filter((o) => rootOrg && o.parentId === rootOrg.id);
   const isFirstSub = subsidiaries.length === 0;
 
-  // After mode is confirmed, go to dashboard
+  // After mode is confirmed, go to effectif step
   function handleModeDone() {
     setModeSet(true);
     setShowModeDialog(false);
     // Switch to the group view
     if (rootOrg) setCurrentOrg(rootOrg.id);
-    setLocation("/dashboard");
+    setLocation("/onboarding/effectif");
   }
 
   async function handleAddSub(e: React.FormEvent) {
@@ -175,7 +175,7 @@ export function OnboardingFiliales() {
 
   function handleContinue() {
     if (rootOrg) setCurrentOrg(rootOrg.id);
-    setLocation("/dashboard");
+    setLocation("/onboarding/effectif");
   }
 
   // Redirect outside of render

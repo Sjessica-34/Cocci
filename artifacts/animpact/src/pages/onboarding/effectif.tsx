@@ -1,0 +1,70 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Users } from "lucide-react";
+import { EFFECTIF_OPTIONS, EFFECTIF_SESSION_KEY, type EffectifKey } from "./plans";
+
+export function OnboardingEffectif() {
+  const [, setLocation] = useLocation();
+  const [selected, setSelected] = useState<EffectifKey | null>(null);
+
+  function handleContinue() {
+    if (!selected) return;
+    sessionStorage.setItem(EFFECTIF_SESSION_KEY, selected);
+    setLocation("/onboarding/abonnement");
+  }
+
+  return (
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-muted/30 px-4 py-12">
+      {/* Logo */}
+      <div className="flex items-center justify-center mb-10">
+        <img src={`${import.meta.env.BASE_URL}logo-dark.png`} alt="Cocci" className="h-9 w-auto" />
+      </div>
+
+      <div className="w-full max-w-md bg-white rounded-xl border border-border shadow-sm p-8 space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="flex justify-center mb-3">
+            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+          <h1 className="text-xl font-bold tracking-tight">
+            Combien de salariés compte votre entreprise&nbsp;?
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Cela nous permet de vous proposer la formule adaptée.
+          </p>
+        </div>
+
+        {/* Options */}
+        <div className="space-y-2">
+          {EFFECTIF_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setSelected(opt.key)}
+              className={cn(
+                "w-full text-left px-4 py-3 rounded-xl border transition-colors text-sm font-medium",
+                selected === opt.key
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border hover:bg-muted/30 text-foreground",
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <Button
+          className="w-full"
+          disabled={!selected}
+          onClick={handleContinue}
+        >
+          Voir ma formule →
+        </Button>
+      </div>
+    </div>
+  );
+}
