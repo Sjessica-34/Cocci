@@ -28,12 +28,29 @@ import echangesRouter from "./echanges";
 import auditRouter from "./audit";
 import publicRseRouter from "./publicRse";
 import subscriptionsRouter from "./subscriptions";
+import { requireAuth } from "../middlewares/requireAuth";
+import { requireOrgMembership } from "../middlewares/exerciseScope";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(storageRouter);
 router.use(usersRouter);
+
+// Routes d'abonnement montées AVANT le paywall : un utilisateur avec un abonnement
+// suspendu doit pouvoir consulter son statut et accéder au checkout/portail Stripe
+// pour se réabonner. Ces routes ont leurs propres gardes requireAuth + requireOrgMembership.
+router.use(subscriptionsRouter);
+
+// Paywall : toutes les routes /organizations/:orgId/* nécessitent un abonnement actif.
+// La chaîne complète : auth → vérification d'appartenance → vérification d'abonnement.
+// requireOrgMembership garantit que l'utilisateur est membre avant toute requête DB
+// sur l'abonnement, et expose req.orgId pour requireActiveSubscription.
+// Les super_admin sont exemptés dans requireOrgMembership (pas de vérif membres)
+// et dans requireActiveSubscription (pas de vérif abonnement).
+router.use("/organizations/:orgId", requireAuth, requireOrgMembership, requireActiveSubscription);
+
 router.use(organizationsRouter);
 router.use(exercisesRouter);
 router.use(membersRouter);
@@ -59,6 +76,5 @@ router.use(reportDraftRouter);
 router.use(echangesRouter);
 router.use(auditRouter);
 router.use(publicRseRouter);
-router.use(subscriptionsRouter);
 
 export default router;

@@ -36,16 +36,18 @@ export async function requireActiveSubscription(
       return;
     }
 
-    // 2. Vérifier l'abonnement de l'org
-    const orgId = (req as any).orgId ?? req.params.orgId;
+    // 2. Vérifier l'abonnement de l'org.
+    // req.orgId est déjà validé et garanti par requireOrgMembership qui s'exécute avant.
+    const orgId = req.orgId;
     if (!orgId) {
-      next();
+      // Ne devrait pas arriver : requireOrgMembership doit précéder ce middleware.
+      res.status(500).json({ error: "Internal server error: orgId missing" });
       return;
     }
 
     const subRow = await pool.query<{ status: string }>(
       "SELECT status FROM subscriptions WHERE organization_id = $1 LIMIT 1",
-      [parseInt(String(orgId))],
+      [orgId],
     );
     const status = subRow.rows[0]?.status;
 
@@ -66,7 +68,8 @@ export async function requireActiveSubscription(
       message: "Un abonnement actif est requis pour accéder à cette ressource.",
     });
   } catch (err) {
-    // En cas d'erreur DB, ne pas bloquer l'accès
-    next();
+    // Échec fermé : une erreur DB lors de la vérification d'abonnement
+    // ne doit pas autoriser silencieusement l'accès.
+    next(err);
   }
 }
