@@ -28,6 +28,7 @@ export * from './adminMemberUpdateStatus';
 export * from './adminMemberUser';
 export * from './adminOrganization';
 export * from './adminOrganizationType';
+export * from './adminOrgCreate';
 export * from './adminOrgUpdate';
 export * from './adminStats';
 export * from './adminSubscription';

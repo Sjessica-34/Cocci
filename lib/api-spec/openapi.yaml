@@ -473,6 +473,29 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+    post:
+      operationId: createAdminOrganization
+      tags: [admin]
+      summary: Create a new organization (superadmin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminOrgCreate"
+      responses:
+        "201":
+          description: Created organization with free subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOrganization"
+        "400":
+          description: Validation error
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
 
   /admin/organizations/{id}/members:
     get:
@@ -3492,6 +3515,15 @@ components:
         overrideMaxUsers: { type: ["integer", "null"] }
         overrideNote: { type: ["string", "null"] }
         overrideExpiresAt: { type: ["string", "null"], format: date }
+
+    AdminOrgCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        siren: { type: string }
+        sector: { type: string }
+        size: { type: string }
 
     AdminOrgUpdate:
       type: object

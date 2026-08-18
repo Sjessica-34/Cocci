@@ -498,6 +498,13 @@ export interface AdminSubscriptionUpsert {
   overrideExpiresAt?: string | null;
 }
 
+export interface AdminOrgCreate {
+  name: string;
+  siren?: string;
+  sector?: string;
+  size?: string;
+}
+
 export interface AdminOrgUpdate {
   name?: string;
   /** @nullable */

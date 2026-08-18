@@ -336,6 +336,47 @@ router.get("/admin/stats", async (req, res) => {
   });
 });
 
+// ─── POST /admin/organizations — créer une organisation ───────────────────────
+router.post("/admin/organizations", async (req, res): Promise<void> => {
+  const { name, siren, sector, size } = req.body as Record<string, unknown>;
+
+  if (!name || typeof name !== "string" || name.trim().length === 0) {
+    res.status(400).json({ error: "Le nom est requis" });
+    return;
+  }
+
+  // Créer l'organisation
+  const [newOrg] = await db
+    .insert(organizationsTable)
+    .values({
+      name: name.trim(),
+      siren: typeof siren === "string" && siren.trim() ? siren.trim() : null,
+      sector: typeof sector === "string" && sector.trim() ? sector.trim() : null,
+      size: typeof size === "string" && size.trim() ? size.trim() : null,
+      type: "entreprise",
+    })
+    .returning();
+
+  if (!newOrg) {
+    res.status(500).json({ error: "Échec de la création" });
+    return;
+  }
+
+  // Créer une souscription free par défaut
+  await db
+    .insert(subscriptionsTable)
+    .values({
+      organizationId: newOrg.id,
+      mode: "free",
+      status: "active",
+    })
+    .onConflictDoNothing();
+
+  // Renvoyer l'organisation enrichie
+  const enriched = buildAdminOrg(newOrg, 0, null, null, false);
+  res.status(201).json(enriched);
+});
+
 // ─── GET /admin/organizations — liste enrichie ────────────────────────────────
 router.get("/admin/organizations", async (req, res) => {
   const items = await loadAllOrgsEnriched();

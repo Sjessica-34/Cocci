@@ -28,6 +28,7 @@ import type {
   AdminAlert,
   AdminMember,
   AdminMemberUpdate,
+  AdminOrgCreate,
   AdminOrgUpdate,
   AdminOrganization,
   AdminStats,
@@ -1512,6 +1513,76 @@ export function useListAdminOrganizations<TData = Awaited<ReturnType<typeof list
 
 
 
+
+export const getCreateAdminOrganizationUrl = () => {
+
+
+
+
+  return `/api/admin/organizations`
+}
+
+/**
+ * @summary Create a new organization (superadmin)
+ */
+export const createAdminOrganization = async (adminOrgCreate: AdminOrgCreate, options?: RequestInit): Promise<AdminOrganization> => {
+
+  return customFetch<AdminOrganization>(getCreateAdminOrganizationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminOrgCreate)
+  }
+);}
+
+
+
+
+export const getCreateAdminOrganizationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminOrganization>>, TError,{data: BodyType<AdminOrgCreate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminOrganization>>, TError,{data: BodyType<AdminOrgCreate>}, TContext> => {
+
+const mutationKey = ['createAdminOrganization'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminOrganization>>, {data: BodyType<AdminOrgCreate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminOrganization(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminOrganization>>>
+    export type CreateAdminOrganizationMutationBody = BodyType<AdminOrgCreate>
+    export type CreateAdminOrganizationMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new organization (superadmin)
+ */
+export const useCreateAdminOrganization = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminOrganization>>, TError,{data: BodyType<AdminOrgCreate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminOrganization>>,
+        TError,
+        {data: BodyType<AdminOrgCreate>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminOrganizationMutationOptions(options));
+    }
 
 export const getListAdminOrgMembersUrl = (id: number,) => {
 
