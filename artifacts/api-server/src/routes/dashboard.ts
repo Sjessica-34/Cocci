@@ -134,6 +134,14 @@ interface KpiValues {
   diagEnvProg: number | null;
   diagSocProg: number | null;
   diagGovProg: number | null;
+  diagAnswered: number | null;
+  diagTotal: number | null;
+  diagEnvAnswered: number | null;
+  diagEnvTotal: number | null;
+  diagSocAnswered: number | null;
+  diagSocTotal: number | null;
+  diagGovAnswered: number | null;
+  diagGovTotal: number | null;
   stakeholders: number | null;
   suppliersTotal: number | null;
   suppliersCertified: number | null;
@@ -144,6 +152,8 @@ interface KpiValues {
   actionsRate: number | null;
   labelsObtained: number | null;
   nrScore: number | null;
+  nrAnswered: number | null;
+  nrTotal: number | null;
   headcount: number | null;
 }
 
@@ -243,9 +253,11 @@ async function computeKpis(orgId: number, exerciseId: number): Promise<KpiValues
   const labelsObtained = rawLabels > 0 ? rawLabels : null;
 
   // Numérique responsable
-  const nrTotal = nrResults.length;
+  const nrTotalCount = nrResults.length;
   const nrChecked = nrResults.filter((r) => r.checked).length;
-  const nrScore = nrTotal > 0 ? Math.round((nrChecked / nrTotal) * 100) : null;
+  const nrScore = nrTotalCount > 0 ? Math.round((nrChecked / nrTotalCount) * 100) : null;
+  const nrAnswered = nrChecked > 0 ? nrChecked : null;
+  const nrTotal = nrTotalCount > 0 ? nrTotalCount : null;
 
   // Diagnostic
   const responseMap = new Map<string, number>(
@@ -258,6 +270,23 @@ async function computeKpis(orgId: number, exerciseId: number): Promise<KpiValues
   const diagSocProg = axisProgress(responseMap, "SOC");
   const diagGovProg = axisProgress(responseMap, "GOV");
 
+  // Diagnostic completion counts per axis
+  function axisQuestionCounts(catId: "ENV" | "SOC" | "GOV") {
+    const subcats = ALL_SUBCATEGORIES.filter((s) => s.categoryId === catId);
+    const total = subcats.reduce((acc, s) => acc + s.questions.length, 0);
+    const answered = subcats.reduce(
+      (acc, s) => acc + s.questions.filter((q) => responseMap.has(q.id)).length,
+      0,
+    );
+    return { answered, total };
+  }
+
+  const envCounts = axisQuestionCounts("ENV");
+  const socCounts = axisQuestionCounts("SOC");
+  const govCounts = axisQuestionCounts("GOV");
+  const diagAnswered = envCounts.answered + socCounts.answered + govCounts.answered;
+  const diagTotalQ  = envCounts.total + socCounts.total + govCounts.total;
+
   // Capital humain
   const headcount = workforceResults[0]?.totalHeadcount ?? null;
 
@@ -269,6 +298,14 @@ async function computeKpis(orgId: number, exerciseId: number): Promise<KpiValues
     diagEnvProg,
     diagSocProg,
     diagGovProg,
+    diagAnswered: diagAnswered > 0 ? diagAnswered : null,
+    diagTotal: diagTotalQ > 0 ? diagTotalQ : null,
+    diagEnvAnswered: envCounts.answered > 0 ? envCounts.answered : null,
+    diagEnvTotal: envCounts.total > 0 ? envCounts.total : null,
+    diagSocAnswered: socCounts.answered > 0 ? socCounts.answered : null,
+    diagSocTotal: socCounts.total > 0 ? socCounts.total : null,
+    diagGovAnswered: govCounts.answered > 0 ? govCounts.answered : null,
+    diagGovTotal: govCounts.total > 0 ? govCounts.total : null,
     stakeholders,
     suppliersTotal,
     suppliersCertified,
@@ -279,6 +316,8 @@ async function computeKpis(orgId: number, exerciseId: number): Promise<KpiValues
     actionsRate,
     labelsObtained,
     nrScore,
+    nrAnswered,
+    nrTotal,
     headcount,
   };
 }
@@ -320,6 +359,14 @@ function buildSummaryResponse(
           ind("envProgress", "Progression Environnement", "%", curr.diagEnvProg, p?.diagEnvProg ?? null),
           ind("socProgress", "Progression Social", "%", curr.diagSocProg, p?.diagSocProg ?? null),
           ind("govProgress", "Progression Gouvernance", "%", curr.diagGovProg, p?.diagGovProg ?? null),
+          ind("answeredQuestions", "Questions renseignées", null, curr.diagAnswered, p?.diagAnswered ?? null),
+          ind("totalQuestions", "Questions totales", null, curr.diagTotal, p?.diagTotal ?? null),
+          ind("envAnswered", "Questions ENV renseignées", null, curr.diagEnvAnswered, p?.diagEnvAnswered ?? null),
+          ind("envTotal", "Questions ENV totales", null, curr.diagEnvTotal, p?.diagEnvTotal ?? null),
+          ind("socAnswered", "Questions SOC renseignées", null, curr.diagSocAnswered, p?.diagSocAnswered ?? null),
+          ind("socTotal", "Questions SOC totales", null, curr.diagSocTotal, p?.diagSocTotal ?? null),
+          ind("govAnswered", "Questions GOV renseignées", null, curr.diagGovAnswered, p?.diagGovAnswered ?? null),
+          ind("govTotal", "Questions GOV totales", null, curr.diagGovTotal, p?.diagGovTotal ?? null),
         ],
       },
       {
@@ -360,6 +407,8 @@ function buildSummaryResponse(
         key: "nr",
         indicators: [
           ind("score", "Score Numérique Responsable", "%", curr.nrScore, p?.nrScore ?? null),
+          ind("answered", "Critères NR cochés", null, curr.nrAnswered, p?.nrAnswered ?? null),
+          ind("total", "Critères NR totaux", null, curr.nrTotal, p?.nrTotal ?? null),
         ],
       },
       {
@@ -392,10 +441,14 @@ function mergeGroupKpis(list: KpiValues[]): KpiValues {
     return {
       carbon: null, diagEnv: null, diagSoc: null, diagGov: null,
       diagEnvProg: null, diagSocProg: null, diagGovProg: null,
+      diagAnswered: null, diagTotal: null,
+      diagEnvAnswered: null, diagEnvTotal: null,
+      diagSocAnswered: null, diagSocTotal: null,
+      diagGovAnswered: null, diagGovTotal: null,
       stakeholders: null, suppliersTotal: null, suppliersCertified: null,
       suppliersCertifiedPct: null, bioCount: null, actionsTotal: null,
       actionsDone: null, actionsRate: null, labelsObtained: null,
-      nrScore: null, headcount: null,
+      nrScore: null, nrAnswered: null, nrTotal: null, headcount: null,
     };
   }
 
@@ -416,6 +469,13 @@ function mergeGroupKpis(list: KpiValues[]): KpiValues {
       ? Math.round(((actionsDone ?? 0) / actionsTotal) * 100)
       : null;
 
+  const nrAnswered = s((k) => k.nrAnswered);
+  const nrTotal = s((k) => k.nrTotal);
+  const nrScore =
+    nrTotal != null && nrTotal > 0
+      ? Math.round(((nrAnswered ?? 0) / nrTotal) * 100)
+      : a((k) => k.nrScore);
+
   return {
     carbon: s((k) => k.carbon),
     diagEnv: a((k) => k.diagEnv),
@@ -424,6 +484,14 @@ function mergeGroupKpis(list: KpiValues[]): KpiValues {
     diagEnvProg: a((k) => k.diagEnvProg),
     diagSocProg: a((k) => k.diagSocProg),
     diagGovProg: a((k) => k.diagGovProg),
+    diagAnswered: s((k) => k.diagAnswered),
+    diagTotal: s((k) => k.diagTotal),
+    diagEnvAnswered: s((k) => k.diagEnvAnswered),
+    diagEnvTotal: s((k) => k.diagEnvTotal),
+    diagSocAnswered: s((k) => k.diagSocAnswered),
+    diagSocTotal: s((k) => k.diagSocTotal),
+    diagGovAnswered: s((k) => k.diagGovAnswered),
+    diagGovTotal: s((k) => k.diagGovTotal),
     stakeholders: s((k) => k.stakeholders),
     suppliersTotal,
     suppliersCertified,
@@ -433,7 +501,9 @@ function mergeGroupKpis(list: KpiValues[]): KpiValues {
     actionsDone,
     actionsRate,
     labelsObtained: s((k) => k.labelsObtained),
-    nrScore: a((k) => k.nrScore),
+    nrScore,
+    nrAnswered,
+    nrTotal,
     headcount: s((k) => k.headcount),
   };
 }

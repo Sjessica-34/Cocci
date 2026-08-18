@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ChevronRight, Check, User, CalendarClock } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Check, User, CalendarClock, Sparkles } from "lucide-react";
 import {
   useListPlanSlots,
   useGetCarbonBilan,
@@ -35,6 +35,14 @@ function axisProgress(scores: DiagnosticSubcategoryScore[], catId: string): numb
   const total = cat.reduce((s, x) => s + x.totalQuestions, 0);
   const answered = cat.reduce((s, x) => s + x.answered, 0);
   return total > 0 ? Math.round((answered / total) * 100) : 0;
+}
+
+function axisCounts(scores: DiagnosticSubcategoryScore[], catId: string): { answered: number; total: number } {
+  const cat = scores.filter(s => s.categoryId === catId);
+  return {
+    answered: cat.reduce((s, x) => s + x.answered, 0),
+    total: cat.reduce((s, x) => s + x.totalQuestions, 0),
+  };
 }
 
 // ─── Carbon total helper ──────────────────────────────────────────────────────
@@ -152,6 +160,63 @@ function ProgressRing({ pct, color }: { pct: number; color: string }) {
   );
 }
 
+// ─── Completion bar ───────────────────────────────────────────────────────────
+
+function CompletionBar({ pct, color = "bg-emerald-500" }: { pct: number; color?: string }) {
+  return (
+    <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
+      <div
+        className={`${color} h-1.5 rounded-full transition-all`}
+        style={{ width: `${Math.min(pct, 100)}%` }}
+      />
+    </div>
+  );
+}
+
+// ─── Next Step Banner ─────────────────────────────────────────────────────────
+
+interface NextStep {
+  href: string;
+  icon: string;
+  title: string;
+  hint: string;
+  completionPct: number;
+}
+
+function NextStepBanner({ step }: { step: NextStep }) {
+  return (
+    <Link href={step.href}>
+      <div className="flex items-center gap-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-5 py-4 hover:shadow-md transition-all cursor-pointer group">
+        <div className="shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-xl">
+          {step.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600">
+              Prochaine étape recommandée
+            </span>
+          </div>
+          <p className="text-sm font-semibold text-foreground truncate">{step.title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{step.hint}</p>
+          {step.completionPct > 0 && step.completionPct < 100 && (
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex-1 bg-amber-100 rounded-full h-1.5">
+                <div
+                  className="bg-amber-400 h-1.5 rounded-full transition-all"
+                  style={{ width: `${step.completionPct}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-amber-600 font-medium shrink-0">{step.completionPct}%</span>
+            </div>
+          )}
+        </div>
+        <ArrowUpRight className="h-4 w-4 text-amber-400 group-hover:text-amber-600 transition-colors shrink-0" />
+      </div>
+    </Link>
+  );
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ModuleCard({
@@ -205,6 +270,17 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   const envProg   = diagScores ? axisProgress(diagScores, "ENV")  : 0;
   const socProg   = diagScores ? axisProgress(diagScores, "SOC")  : 0;
   const govProg   = diagScores ? axisProgress(diagScores, "GOV")  : 0;
+
+  // Answered / total counts per axis for completion labels
+  const envCounts = diagScores ? axisCounts(diagScores, "ENV") : { answered: 0, total: 0 };
+  const socCounts = diagScores ? axisCounts(diagScores, "SOC") : { answered: 0, total: 0 };
+  const govCounts = diagScores ? axisCounts(diagScores, "GOV") : { answered: 0, total: 0 };
+  const overallCounts = diagScores
+    ? {
+        answered: diagScores.reduce((s, x) => s + x.answered, 0),
+        total: diagScores.reduce((s, x) => s + x.totalQuestions, 0),
+      }
+    : { answered: 0, total: 0 };
 
   const overallDiagScore = (() => {
     const nonNull = [envScore, socScore, govScore].filter((v): v is number => v !== null);
@@ -294,8 +370,114 @@ export function DashboardBody({ orgId }: { orgId: number }) {
     return ind?.current != null;
   });
 
+  // ── Prochaine étape recommandée ───────────────────────────────────────────
+  const isDataLoaded = !diagLoading && !actionsLoading && !carbonLoading && !nrLoading && !bioLoading && !stakeLoading && !suppLoading && !empLoading;
+
+  const nextStep: NextStep | null = (() => {
+    if (!isDataLoaded) return null;
+
+    const candidates: NextStep[] = [];
+
+    // Diagnostic RSE : basé sur le % de complétion global
+    if (overallCounts.total > 0) {
+      const pct = overallCounts.total > 0
+        ? Math.round((overallCounts.answered / overallCounts.total) * 100)
+        : 0;
+      if (pct < 100) {
+        candidates.push({
+          href: "/diagnostic",
+          icon: "🌱",
+          title: "Compléter le Diagnostic RSE",
+          hint: `${overallCounts.answered} / ${overallCounts.total} questions renseignées`,
+          completionPct: pct,
+        });
+      }
+    } else {
+      // Diagnostic pas commencé
+      candidates.push({
+        href: "/diagnostic",
+        icon: "🌱",
+        title: "Démarrer le Diagnostic RSE",
+        hint: "Évaluez votre maturité sur les axes ENV, SOC et GOV",
+        completionPct: 0,
+      });
+    }
+
+    // Numérique responsable
+    if (nrData && nrTotal > 0 && nrChecked < nrTotal) {
+      candidates.push({
+        href: "/numerique-responsable",
+        icon: "💻",
+        title: "Compléter le Numérique Responsable",
+        hint: `${nrChecked} / ${nrTotal} critères cochés`,
+        completionPct: nrScore,
+      });
+    } else if (!nrData) {
+      candidates.push({
+        href: "/numerique-responsable",
+        icon: "💻",
+        title: "Renseigner le Numérique Responsable",
+        hint: "Évaluez l'impact numérique de votre organisation",
+        completionPct: 0,
+      });
+    }
+
+    // Bilan carbone
+    if (!carbon) {
+      candidates.push({
+        href: "/bilan-carbone",
+        icon: "🌍",
+        title: "Saisir le Bilan Carbone",
+        hint: "Calculez vos émissions sur les 3 scopes",
+        completionPct: 0,
+      });
+    }
+
+    // Achats responsables
+    if (allSuppliers.length === 0) {
+      candidates.push({
+        href: "/achats-responsables",
+        icon: "🤝",
+        title: "Référencer vos fournisseurs",
+        hint: "Évaluez la démarche RSE de vos partenaires",
+        completionPct: 0,
+      });
+    }
+
+    // Biodiversité
+    if (bioItems.length === 0) {
+      candidates.push({
+        href: "/biodiversite",
+        icon: "🌿",
+        title: "Cartographier vos dépendances biodiversité",
+        hint: "Identifiez vos ressources, activités et lieux impactés",
+        completionPct: 0,
+      });
+    }
+
+    // Capital humain
+    if (!employment?.workforce && !employment?.training) {
+      candidates.push({
+        href: "/capital-humain",
+        icon: "👤",
+        title: "Renseigner les données Capital Humain",
+        hint: "Effectif, formation, parité et indicateurs sociaux",
+        completionPct: 0,
+      });
+    }
+
+    // Sélectionner le candidat le moins avancé (pct le plus bas), en priorité ceux à 0%
+    if (candidates.length === 0) return null;
+    return candidates.sort((a, b) => a.completionPct - b.completionPct)[0];
+  })();
+
   return (
     <div className="space-y-8">
+
+      {/* ══ Prochaine étape ══════════════════════════════════════════════════ */}
+      {isDataLoaded && nextStep && (
+        <NextStepBanner step={nextStep} />
+      )}
 
       {/* ══ LIGNE 1 : 4 cartes de synthèse ══════════════════════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -339,11 +521,21 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                 <>
                   <p className="text-3xl font-bold text-emerald-700">{overallDiagScore}%</p>
                   <p className="text-xs text-muted-foreground mt-1">Score global ENV · SOC · GOV</p>
+                  {overallCounts.total > 0 && (
+                    <p className="text-xs text-emerald-600/70 mt-0.5">
+                      {overallCounts.answered}/{overallCounts.total} questions renseignées
+                    </p>
+                  )}
                 </>
               ) : overallDiagProg > 0 ? (
                 <>
                   <p className="text-3xl font-bold text-emerald-400">{overallDiagProg}%</p>
                   <p className="text-xs text-muted-foreground mt-1">Avancement diagnostic</p>
+                  {overallCounts.total > 0 && (
+                    <p className="text-xs text-emerald-600/70 mt-0.5">
+                      {overallCounts.answered}/{overallCounts.total} questions
+                    </p>
+                  )}
                 </>
               ) : (
                 <>
@@ -509,6 +701,11 @@ export function DashboardBody({ orgId }: { orgId: number }) {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
           Diagnostic RSE
+          {!diagLoading && overallCounts.total > 0 && (
+            <span className="ml-2 normal-case font-normal text-muted-foreground/70">
+              — {overallCounts.answered}/{overallCounts.total} questions renseignées
+            </span>
+          )}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -537,6 +734,17 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                       ? `${envProg}% de progression`
                       : "Diagnostic non commencé"}
                 </p>
+                {!diagLoading && envCounts.total > 0 && (
+                  <div className="w-full mt-2 px-2">
+                    <p className="text-[11px] text-center text-muted-foreground/70 mb-1">
+                      {envCounts.answered}/{envCounts.total} questions
+                    </p>
+                    <CompletionBar
+                      pct={envCounts.total > 0 ? Math.round((envCounts.answered / envCounts.total) * 100) : 0}
+                      color="bg-emerald-400"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </Link>
@@ -566,6 +774,17 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                       ? `${socProg}% de progression`
                       : "Diagnostic non commencé"}
                 </p>
+                {!diagLoading && socCounts.total > 0 && (
+                  <div className="w-full mt-2 px-2">
+                    <p className="text-[11px] text-center text-muted-foreground/70 mb-1">
+                      {socCounts.answered}/{socCounts.total} questions
+                    </p>
+                    <CompletionBar
+                      pct={socCounts.total > 0 ? Math.round((socCounts.answered / socCounts.total) * 100) : 0}
+                      color="bg-blue-400"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </Link>
@@ -595,6 +814,17 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                       ? `${govProg}% de progression`
                       : "Diagnostic non commencé"}
                 </p>
+                {!diagLoading && govCounts.total > 0 && (
+                  <div className="w-full mt-2 px-2">
+                    <p className="text-[11px] text-center text-muted-foreground/70 mb-1">
+                      {govCounts.answered}/{govCounts.total} questions
+                    </p>
+                    <CompletionBar
+                      pct={govCounts.total > 0 ? Math.round((govCounts.answered / govCounts.total) * 100) : 0}
+                      color="bg-violet-400"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </Link>
@@ -681,6 +911,15 @@ export function DashboardBody({ orgId }: { orgId: number }) {
                 <ModuleCard icon="💻" title="Numérique responsable" href="/numerique-responsable">
                   <KpiRow label="Score" value={`${nrScore}%`} />
                   {nrLevel && <KpiRow label="Niveau" value={nrLevel} />}
+                  {nrTotal > 0 && (
+                    <div className="pt-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">{nrChecked}/{nrTotal} critères</span>
+                        <span className="text-xs font-medium text-sky-600">{nrScore}%</span>
+                      </div>
+                      <CompletionBar pct={nrScore} color="bg-sky-400" />
+                    </div>
+                  )}
                 </ModuleCard>
               )}
 
