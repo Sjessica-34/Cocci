@@ -246,7 +246,7 @@ export function OrganizationMembers() {
           </div>
 
           {/* Bouton "Inviter un collaborateur" — owners/admins uniquement */}
-          {canManage && !isAdminReadOnly && (
+          {canManage && (
             <Button onClick={handleInviteClick} className="gap-2 shrink-0">
               <UserPlus className="h-4 w-4" />
               Inviter un collaborateur
