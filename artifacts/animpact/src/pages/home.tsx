@@ -261,7 +261,7 @@ const features = [
   {
     n: 2,
     title: "Mesurez vos impacts",
-    body: "Réalisez votre bilan carbone, évaluez votre maturité numérique responsable et suivez vos principaux indicateurs environnementaux pour mesurer vos progrès et orienter vos décisions.",
+    body: "Saisissez vos données bilan carbone ou lancez une simulation rapide, évaluez votre maturité numérique responsable et suivez vos principaux indicateurs environnementaux pour mesurer vos progrès et orienter vos décisions.",
   },
   {
     n: 3,
