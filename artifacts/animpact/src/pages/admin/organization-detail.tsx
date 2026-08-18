@@ -79,9 +79,11 @@ import {
   Shield,
   Ban,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EFFECTIF_OPTIONS, effectifToPlan, type EffectifKey } from "@/pages/onboarding/plans";
 
 // --- Types & Constants ---
 
@@ -251,6 +253,56 @@ function SubForm({ orgId }: { orgId: number }) {
   const upsertSub = useUpsertAdminSubscription();
   const init = useRef(false);
 
+  // ── Formule gratuite — activation rapide ────────────────────────────────
+  const [freeKey, setFreeKey] = useState<EffectifKey | "">("");
+
+  function handleActivateFree() {
+    if (!freeKey) return;
+    const plan = effectifToPlan(freeKey);
+    const data: AdminSubscriptionUpsert = {
+      mode: "free" as const,
+      status: "active" as const,
+      offerName: plan.effectifLabel,
+      maxUsers: 1,
+      maxEmployees: plan.maxEmployees ?? null,
+      startAt: new Date().toISOString(),
+      endAt: null,
+      trialStartAt: null,
+      trialEndAt: null,
+      autoRenew: false,
+      stripeSubscriptionId: null,
+      stripeCustomerId: null,
+      overrideMaxEmployees: null,
+      overrideMaxUsers: null,
+      overrideNote: null,
+      overrideExpiresAt: null,
+    };
+    upsertSub.mutate(
+      { id: orgId, data },
+      {
+        onSuccess: () => {
+          toast({ title: "Formule gratuite activée." });
+          // Mettre à jour le formulaire détaillé pour refléter les nouvelles valeurs
+          init.current = false;
+          setForm((f: any) => ({
+            ...f,
+            mode: "free",
+            status: "active",
+            offerName: plan.effectifLabel,
+            maxUsers: 1,
+            maxEmployees: plan.maxEmployees ?? "",
+            startAt: new Date().toISOString().split("T")[0],
+            endAt: "",
+          }));
+          queryClient.invalidateQueries({ queryKey: getGetAdminSubscriptionQueryKey(orgId) });
+          queryClient.invalidateQueries({ queryKey: getGetAdminOrganizationQueryKey(orgId) });
+        },
+        onError: () => toast({ variant: "destructive", title: "Erreur d'activation." }),
+      },
+    );
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   const [form, setForm] = useState<any>({
     mode: "free",
     status: "active",
@@ -339,7 +391,42 @@ function SubForm({ orgId }: { orgId: number }) {
           </Badge>
         )}
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-6 space-y-6">
+
+        {/* ── Activation rapide — Formule gratuite ─────────────────────── */}
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-sm font-semibold text-foreground">Activer une formule gratuite</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Choisissez la tranche d'effectif — le compte est immédiatement actif en mode <code className="bg-muted px-1 rounded text-[11px]">free</code>, sans Stripe.
+          </p>
+          <div className="flex items-center gap-2">
+            <Select value={freeKey} onValueChange={(v) => setFreeKey(v as EffectifKey)}>
+              <SelectTrigger className="bg-background flex-1">
+                <SelectValue placeholder="Choisir une formule…" />
+              </SelectTrigger>
+              <SelectContent>
+                {EFFECTIF_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.key} value={opt.key}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              disabled={!freeKey || upsertSub.isPending}
+              onClick={handleActivateFree}
+              className="shrink-0"
+            >
+              <Zap className="h-4 w-4 mr-1.5" />
+              Activer
+            </Button>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground border-b border-border pb-2">Contrat principal</h3>

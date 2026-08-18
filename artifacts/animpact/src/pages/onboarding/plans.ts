@@ -21,6 +21,8 @@ export interface Plan {
   effectifLabel: string;
   /** Prix TTC mensuel en euros. null = sur devis. */
   pricePerMonth: number | null;
+  /** Effectif maximum de la tranche (pour subscriptions.max_employees). null = illimité. */
+  maxEmployees: number | null;
   // ── Placeholders Stripe ──────────────────────────────────────────────────
   // À renseigner lors de l'intégration Stripe Checkout.
   stripeProductId: string | null;
@@ -40,13 +42,13 @@ export const EFFECTIF_OPTIONS: { key: EffectifKey; label: string }[] = [
 
 /** Catalogue des formules indexé par clé d'effectif. */
 export const PLANS: Record<EffectifKey, Plan> = {
-  "1-5":     { effectifLabel: "1 à 5 salariés",      pricePerMonth: 19.99,  stripeProductId: null, stripePriceId: null },
-  "6-10":    { effectifLabel: "6 à 10 salariés",     pricePerMonth: 29.99,  stripeProductId: null, stripePriceId: null },
-  "11-25":   { effectifLabel: "11 à 25 salariés",    pricePerMonth: 39.99,  stripeProductId: null, stripePriceId: null },
-  "26-50":   { effectifLabel: "26 à 50 salariés",    pricePerMonth: 59.99,  stripeProductId: null, stripePriceId: null },
-  "51-100":  { effectifLabel: "51 à 100 salariés",   pricePerMonth: 89.99,  stripeProductId: null, stripePriceId: null },
-  "101-250": { effectifLabel: "101 à 250 salariés",  pricePerMonth: 129.99, stripeProductId: null, stripePriceId: null },
-  "250+":    { effectifLabel: "Plus de 250 salariés", pricePerMonth: null,  stripeProductId: null, stripePriceId: null },
+  "1-5":     { effectifLabel: "1 à 5 salariés",       pricePerMonth: 19.99,  maxEmployees: 5,   stripeProductId: null, stripePriceId: null },
+  "6-10":    { effectifLabel: "6 à 10 salariés",      pricePerMonth: 29.99,  maxEmployees: 10,  stripeProductId: null, stripePriceId: null },
+  "11-25":   { effectifLabel: "11 à 25 salariés",     pricePerMonth: 39.99,  maxEmployees: 25,  stripeProductId: null, stripePriceId: null },
+  "26-50":   { effectifLabel: "26 à 50 salariés",     pricePerMonth: 59.99,  maxEmployees: 50,  stripeProductId: null, stripePriceId: null },
+  "51-100":  { effectifLabel: "51 à 100 salariés",    pricePerMonth: 89.99,  maxEmployees: 100, stripeProductId: null, stripePriceId: null },
+  "101-250": { effectifLabel: "101 à 250 salariés",   pricePerMonth: 129.99, maxEmployees: 250, stripeProductId: null, stripePriceId: null },
+  "250+":    { effectifLabel: "Plus de 250 salariés", pricePerMonth: null,   maxEmployees: null,stripeProductId: null, stripePriceId: null },
 };
 
 /** Clé sessionStorage utilisée pour transmettre la tranche entre les étapes. */
