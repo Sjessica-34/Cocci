@@ -9,9 +9,10 @@ import {
   useUpdateMember,
   useRemoveMember,
   getListMembersQueryKey,
+  customFetch,
 } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { useUser } from "@clerk/react";
 import { useForm } from "react-hook-form";
@@ -24,6 +25,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -45,8 +47,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Loader2, Mail, Shield, Trash2 } from "lucide-react";
+import { Users, Loader2, Mail, Shield, Trash2, UserPlus, CreditCard } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -84,12 +94,24 @@ const STATUS_LABELS: Record<string, string> = {
   suspended: "Suspendu",
 };
 
+/** Réponse brute de GET /organizations/:orgId/subscription */
+type SubscriptionData = {
+  subscription: {
+    max_users: number | null;
+    override_max_users: number | null;
+  } | null;
+};
+
 export function OrganizationMembers() {
   const { id } = useParams();
   const orgId = Number(id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: clerkUser } = useUser();
+
+  // Dialogs
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Capture the navigation context BEFORE setCurrentOrg fires in the effect below.
   const { currentOrgId: navOrgId } = useCurrentOrganization();
@@ -111,6 +133,15 @@ export function OrganizationMembers() {
     query: { enabled: !!orgId, queryKey: getListMembersQueryKey(orgId) },
   });
 
+  // ── Abonnement — limite d'utilisateurs ──────────────────────────────────────
+  // Utilise le même customFetch que les autres hooks générés (auth + BASE_URL inclus).
+  const { data: subData } = useQuery<SubscriptionData | null>({
+    queryKey: ["/api/organizations", orgId, "subscription"],
+    queryFn: () =>
+      customFetch<SubscriptionData>(`/organizations/${orgId}/subscription`),
+    enabled: !!orgId,
+  });
+
   const inviteMember = useInviteMember();
   const updateMember = useUpdateMember();
   const removeMember = useRemoveMember();
@@ -123,21 +154,50 @@ export function OrganizationMembers() {
   const myMembership = members?.find((m) => m.user?.clerkId === clerkUser?.id);
   const canManage = myMembership?.role === "owner" || myMembership?.role === "admin";
 
+  // Limite effective : override si présent, sinon max_users, sinon aucune limite.
+  const sub = subData?.subscription ?? null;
+  const effectiveMaxUsers: number | null =
+    sub?.override_max_users ?? sub?.max_users ?? null;
+
+  // Membres actifs ou en attente (les suspendus ne comptent pas dans le quota).
+  const billableMembers = members?.filter((m) => m.status !== "suspended") ?? [];
+  const isAtLimit = effectiveMaxUsers !== null && billableMembers.length >= effectiveMaxUsers;
+
   const filteredMembers = members?.filter(
     (m) => statusFilter === "all" || m.status === statusFilter,
   );
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  /** Clique sur "Inviter un collaborateur" — redirige selon la limite. */
+  function handleInviteClick() {
+    if (isAtLimit) {
+      setShowUpgradeModal(true);
+    } else {
+      form.reset();
+      setShowInviteDialog(true);
+    }
+  }
 
   function onInvite(values: z.infer<typeof inviteSchema>) {
     inviteMember.mutate(
       { id: orgId, data: values },
       {
         onSuccess: () => {
-          toast({ title: "Invitation envoyée", description: `${values.email} a été invité(e) en tant que ${ROLE_LABELS[values.role]}.` });
+          toast({
+            title: "Invitation envoyée",
+            description: `${values.email} a été invité(e) en tant que ${ROLE_LABELS[values.role]}.`,
+          });
           form.reset();
+          setShowInviteDialog(false);
           queryClient.invalidateQueries({ queryKey: getListMembersQueryKey(orgId) });
         },
         onError: () => {
-          toast({ variant: "destructive", title: "Échec de l'invitation", description: "Vérifiez l'adresse e-mail et réessayez." });
+          toast({
+            variant: "destructive",
+            title: "Échec de l'invitation",
+            description: "Vérifiez l'adresse e-mail et réessayez.",
+          });
         },
       },
     );
@@ -177,11 +237,21 @@ export function OrganizationMembers() {
     <AppLayout>
       <div className="space-y-1">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Gestion des membres</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Invitez des collaborateurs et gérez les niveaux d'accès.
-          </p>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Gestion des membres</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Invitez des collaborateurs et gérez les niveaux d'accès.
+            </p>
+          </div>
+
+          {/* Bouton "Inviter un collaborateur" — owners/admins uniquement */}
+          {canManage && !isAdminReadOnly && (
+            <Button onClick={handleInviteClick} className="gap-2 shrink-0">
+              <UserPlus className="h-4 w-4" />
+              Inviter un collaborateur
+            </Button>
+          )}
         </div>
 
         {isAdminReadOnly && <GroupModuleBanner />}
@@ -191,63 +261,6 @@ export function OrganizationMembers() {
         {/* @ts-expect-error -- `inert` est un attribut HTML5 valide, pas encore dans les types JSX React */}
         <div inert={isAdminReadOnly ? "" : undefined} className={isAdminReadOnly ? "opacity-70" : ""}>
 
-        {/* Invite form — visible only for owners/admins */}
-        {canManage && (
-          <Card>
-            <CardHeader className="pb-4 border-b border-border">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Mail className="h-4 w-4 text-primary" /> Inviter un membre
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onInvite)}
-                  className="flex flex-col sm:flex-row gap-3 items-start"
-                >
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem className="flex-1 w-full">
-                        <FormControl>
-                          <Input placeholder="collaborateur@entreprise.fr" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem className="w-full sm:w-44 shrink-0">
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Rôle" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="admin">Administrateur</SelectItem>
-                            <SelectItem value="member">Membre</SelectItem>
-                            <SelectItem value="viewer">Lecteur</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" disabled={inviteMember.isPending} className="w-full sm:w-auto">
-                    {inviteMember.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Envoyer l'invitation
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Members list */}
         <Card>
           <CardHeader className="border-b border-border pb-4">
@@ -256,6 +269,11 @@ export function OrganizationMembers() {
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
                   Membres ({members?.length ?? 0})
+                  {effectiveMaxUsers !== null && (
+                    <span className="text-sm font-normal text-muted-foreground">
+                      / {effectiveMaxUsers} inclus
+                    </span>
+                  )}
                 </CardTitle>
                 <CardDescription>Accès et rôles au sein de l'organisation.</CardDescription>
               </div>
@@ -408,6 +426,125 @@ export function OrganizationMembers() {
         </Card>
         </div>{/* /inert */}
       </div>
+
+      {/* ── Dialog : formulaire d'invitation ──────────────────────────────────── */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary" />
+              Inviter un collaborateur
+            </DialogTitle>
+            <DialogDescription>
+              Envoyez une invitation par e-mail pour rejoindre cette organisation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onInvite)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Adresse e-mail</FormLabel>
+                    <FormControl>
+                      <Input placeholder="collaborateur@entreprise.fr" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rôle</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choisir un rôle" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrateur</SelectItem>
+                        <SelectItem value="member">Membre</SelectItem>
+                        <SelectItem value="viewer">Lecteur</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowInviteDialog(false)}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={inviteMember.isPending}>
+                  {inviteMember.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Envoyer l'invitation
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Modal : limite d'utilisateurs atteinte ────────────────────────────── */}
+      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-primary" />
+              Limite d'utilisateurs atteinte
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-1">
+            <p className="text-sm text-muted-foreground">
+              Votre abonnement inclut actuellement{" "}
+              <strong>
+                {effectiveMaxUsers}{" "}
+                {effectiveMaxUsers === 1 ? "utilisateur" : "utilisateurs"}
+              </strong>
+              .
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Pour inviter un collaborateur, vous devez ajouter un utilisateur
+              supplémentaire à votre abonnement.
+            </p>
+            <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">
+                Tarif : 3 € HT / mois par utilisateur supplémentaire.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowUpgradeModal(false)}
+              className="w-full sm:w-auto"
+            >
+              Annuler
+            </Button>
+            {/* TODO : ouvrir Stripe Checkout pour ajouter un utilisateur */}
+            <Button
+              className="w-full sm:w-auto"
+              onClick={() => {
+                // Stripe Checkout — à implémenter lors de l'intégration Stripe
+              }}
+            >
+              Ajouter un utilisateur
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

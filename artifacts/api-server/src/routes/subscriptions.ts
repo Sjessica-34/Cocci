@@ -64,7 +64,7 @@ router.get(
     try {
       const row = await pool.query(
         `SELECT mode, status, offer_name, stripe_customer_id, stripe_subscription_id,
-                start_at, end_at, trial_end_at
+                start_at, end_at, trial_end_at, max_users, override_max_users
          FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
         [orgId],
       );

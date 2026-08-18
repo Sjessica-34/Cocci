@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, membersTable, usersTable } from "@workspace/db";
+import { eq, and, count, ne } from "drizzle-orm";
+import { db, membersTable, usersTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
 import {
@@ -62,6 +62,32 @@ router.post(
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.message });
       return;
+    }
+
+    // ── Vérification de la limite d'utilisateurs ──────────────────────────────
+    // Lit COALESCE(override_max_users, max_users) depuis la table subscriptions.
+    // Si la valeur est NULL, aucune limite n'est appliquée.
+    const subRes = await pool.query<{ effective_max: number | null }>(
+      `SELECT COALESCE(override_max_users, max_users) AS effective_max
+       FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
+      [params.data.id],
+    );
+    const effectiveMax = subRes.rows[0]?.effective_max ?? null;
+
+    if (effectiveMax !== null) {
+      const [{ value: memberCount }] = await db
+        .select({ value: count() })
+        .from(membersTable)
+        .where(
+          and(
+            eq(membersTable.organizationId, params.data.id),
+            ne(membersTable.status, "suspended"),
+          ),
+        );
+      if (Number(memberCount) >= effectiveMax) {
+        res.status(402).json({ error: "USER_LIMIT_REACHED", maxUsers: effectiveMax });
+        return;
+      }
     }
 
     let [targetUser] = await db
