@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { pool } from "@workspace/db";
 import { getStripeSync, getStripeCredentials } from "./stripeClient";
 import { logger } from "./lib/logger";
+import { sendSubscriptionConfirmation } from "./lib/email";
 
 // ── Mise à jour de la table subscriptions selon les événements Stripe ─────────
 
@@ -100,6 +101,45 @@ export class WebhookHandlers {
           );
           logger.info({ orgId, paymentStatus: session.payment_status, internalStatus },
             "Subscription upserted after checkout");
+
+          // Envoyer l'email de confirmation à l'admin de l'organisation
+          try {
+            const adminRow = await pool.query<{
+              email: string;
+              first_name: string | null;
+              org_name: string;
+            }>(
+              `SELECT u.email, u.first_name, o.name AS org_name
+               FROM users u
+               JOIN members m ON m.user_id = u.id
+               JOIN organizations o ON o.id = m.organization_id
+               WHERE m.organization_id = $1
+                 AND m.role IN ('owner', 'admin')
+                 AND m.status = 'active'
+               ORDER BY CASE WHEN m.role = 'owner' THEN 0 ELSE 1 END
+               LIMIT 1`,
+              [orgId],
+            );
+            if (adminRow.rows[0]) {
+              const { email, first_name, org_name } = adminRow.rows[0];
+              const baseUrl = process.env.REPLIT_DOMAINS
+                ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+                : "https://cocci.app";
+              await sendSubscriptionConfirmation({
+                to: email,
+                firstName: first_name,
+                orgName: org_name,
+                spaceUrl: baseUrl,
+                portalUrl: `${baseUrl}/abonnement`,
+              });
+            } else {
+              logger.warn({ orgId }, "No admin found for subscription confirmation email");
+            }
+          } catch (emailErr) {
+            // Ne pas faire échouer le webhook si l'email plante
+            logger.error({ emailErr, orgId }, "Failed to send subscription confirmation email");
+          }
+
           break;
         }
 
