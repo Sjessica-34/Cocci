@@ -343,11 +343,18 @@ export function Home() {
             </div>
 
             <div className="space-y-2">
-              <Link href="/onboarding/effectif">
-                <Button size="lg" className="h-12 px-7 text-sm font-semibold bg-[#163028] hover:bg-[#1e4438] text-white rounded-lg">
-                  Commencer <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link href="/onboarding/effectif">
+                  <Button size="lg" className="h-12 px-7 text-sm font-semibold bg-[#163028] hover:bg-[#1e4438] text-white rounded-lg">
+                    Commencer <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href="/demo">
+                  <Button size="lg" variant="outline" className="h-12 px-7 text-sm font-semibold rounded-lg border-[#163028] text-[#163028] hover:bg-[#163028]/5">
+                    Demander une démo
+                  </Button>
+                </Link>
+              </div>
               <p className="text-xs text-gray-400 flex items-center gap-1">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Sans engagement
               </p>
