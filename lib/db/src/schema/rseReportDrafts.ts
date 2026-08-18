@@ -67,8 +67,9 @@ export const rseReportDraftsTable = pgTable("rse_report_drafts", {
   reportScope:       text("report_scope"),
   reportMethodology: text("report_methodology"),
 
-  // Quota de générations (rapport illustré)
+  // Quota de générations (rapport illustré) — se réinitialise au 1er janvier chaque année civile
   generationCount: integer("generation_count").notNull().default(0),
+  generationYear:  integer("generation_year").notNull().default(0), // 0 = jamais généré
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -41,6 +41,7 @@ function serializeDraft(row: typeof rseReportDraftsTable.$inferSelect) {
     reportScope: row.reportScope ?? null,
     reportMethodology: row.reportMethodology ?? null,
     generationCount: row.generationCount ?? 0,
+    generationYear: row.generationYear ?? 0,
     maxGenerations: MAX_REPORT_GENERATIONS,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -269,7 +270,7 @@ router.post("/organizations/:orgId/report/register-generation", requireAuth, req
   try {
     // Récupérer le brouillon actuel pour lire le compteur
     const [existing] = await db
-      .select({ id: rseReportDraftsTable.id, generationCount: rseReportDraftsTable.generationCount })
+      .select({ id: rseReportDraftsTable.id, generationCount: rseReportDraftsTable.generationCount, generationYear: rseReportDraftsTable.generationYear })
       .from(rseReportDraftsTable)
       .where(and(
         eq(rseReportDraftsTable.organizationId, orgId),
@@ -277,7 +278,12 @@ router.post("/organizations/:orgId/report/register-generation", requireAuth, req
       ))
       .limit(1);
 
-    const currentCount = existing?.generationCount ?? 0;
+    const currentYear = new Date().getFullYear();
+
+    // Reset annuel : si l'année stockée est différente de l'année courante, on repart à 0
+    const storedYear  = existing?.generationYear ?? 0;
+    const yearChanged = storedYear !== currentYear;
+    const currentCount = yearChanged ? 0 : (existing?.generationCount ?? 0);
 
     if (currentCount >= MAX_REPORT_GENERATIONS) {
       res.status(429).json({
@@ -288,20 +294,29 @@ router.post("/organizations/:orgId/report/register-generation", requireAuth, req
       return;
     }
 
-    // Incrémenter le compteur
+    // Incrémenter le compteur (et corriger l'année si nécessaire)
     if (existing) {
       await db
         .update(rseReportDraftsTable)
-        .set({ generationCount: sql`${rseReportDraftsTable.generationCount} + 1` })
+        .set({
+          generationCount: yearChanged
+            ? 1
+            : sql`${rseReportDraftsTable.generationCount} + 1`,
+          generationYear: currentYear,
+          updatedAt: new Date(),
+        })
         .where(eq(rseReportDraftsTable.id, existing.id));
     } else {
       // Créer le brouillon s'il n'existe pas encore
       await db
         .insert(rseReportDraftsTable)
-        .values({ organizationId: orgId, exerciseId: exercise.id, generationCount: 1 })
+        .values({ organizationId: orgId, exerciseId: exercise.id, generationCount: 1, generationYear: currentYear })
         .onConflictDoUpdate({
           target: [rseReportDraftsTable.organizationId, rseReportDraftsTable.exerciseId],
-          set: { generationCount: sql`${rseReportDraftsTable.generationCount} + 1` },
+          set: {
+            generationCount: sql`${rseReportDraftsTable.generationCount} + 1`,
+            generationYear: currentYear,
+          },
         });
     }
 
