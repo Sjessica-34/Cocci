@@ -12,6 +12,7 @@ import {
   customFetch,
 } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { useUser } from "@clerk/react";
@@ -108,6 +109,7 @@ export function OrganizationMembers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: clerkUser } = useUser();
+  const { isSuperAdmin } = useIsSuperAdmin();
 
   // Dialogs
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -152,7 +154,7 @@ export function OrganizationMembers() {
   });
 
   const myMembership = members?.find((m) => m.user?.clerkId === clerkUser?.id);
-  const canManage = myMembership?.role === "owner" || myMembership?.role === "admin";
+  const canManage = isSuperAdmin || myMembership?.role === "owner" || myMembership?.role === "admin";
 
   // Limite effective : override si présent, sinon max_users, sinon aucune limite.
   const sub = subData?.subscription ?? null;
