@@ -296,8 +296,7 @@ export function Home() {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Leaf className="h-5 w-5 text-[#163028]" />
-            <span className="font-bold text-lg text-[#163028] tracking-tight">Cocci</span>
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cocci" className="h-7 w-auto" />
           </div>
           <div className="flex items-center gap-3">
             <Link href="/sign-in">
@@ -496,8 +495,7 @@ export function Home() {
       <footer className="border-t border-gray-100 bg-white py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Leaf className="h-4 w-4 text-[#163028]" />
-            <span className="font-bold text-[#163028] text-sm">Cocci</span>
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cocci" className="h-5 w-auto" />
           </div>
           <p className="text-xs text-gray-400">© {new Date().getFullYear()} A-NIM-PACT SAS. Tous droits réservés.</p>
           <Link href="/legal">

@@ -55,7 +55,6 @@ import { Onboarding } from "@/pages/onboarding/index";
 import { OnboardingFiliales } from "@/pages/onboarding/filiales";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Leaf } from "lucide-react";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { setAuthTokenGetter, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
@@ -125,7 +124,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/logo.png`,
   },
   variables: {
     colorPrimary: "hsl(175 73% 18%)",
@@ -169,10 +168,10 @@ const clerkAppearance = {
 };
 
 function AuthBrand() {
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   return (
-    <div className="flex items-center justify-center gap-2 mb-6">
-      <Leaf className="h-7 w-7 text-primary" />
-      <span className="text-2xl font-bold tracking-tight text-foreground">cocci</span>
+    <div className="flex items-center justify-center mb-6">
+      <img src={`${basePath}/logo.png`} alt="Cocci" className="h-10 w-auto" />
     </div>
   );
 }

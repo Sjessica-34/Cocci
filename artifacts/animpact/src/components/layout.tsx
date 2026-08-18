@@ -9,7 +9,6 @@ import {
   Menu,
   ChevronDown,
   User as UserIcon,
-  Leaf,
   Wrench,
   BookOpen,
   Target,
@@ -159,9 +158,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const sidebarContent = (
     <>
       {/* Brand */}
-      <div className="h-16 flex items-center px-6 border-b border-sidebar-border bg-sidebar shrink-0">
-        <Leaf className="h-6 w-6 text-sidebar-primary mr-2 shrink-0" />
-        <span className="text-sidebar-foreground font-bold tracking-tight">Cocci</span>
+      <div className="h-16 flex items-center px-4 border-b border-sidebar-border bg-sidebar shrink-0">
+        <div className="bg-white/90 rounded-md px-2 py-1">
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cocci" className="h-7 w-auto" />
+        </div>
       </div>
 
       <div className="flex-1 py-3 px-3 flex flex-col overflow-y-auto">
@@ -280,8 +280,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Mobile header */}
       <header className="md:hidden h-14 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-50 shrink-0">
         <div className="flex items-center gap-2">
-          <Leaf className="h-5 w-5 text-primary" />
-          <span className="font-bold text-foreground">Cocci</span>
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cocci" className="h-6 w-auto" />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

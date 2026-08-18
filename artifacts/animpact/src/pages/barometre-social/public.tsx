@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Leaf } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 type Answers = Record<string, { scaleValue?: number | null; freeText?: string | null }>;
 
@@ -177,9 +177,8 @@ function PublicShell({ title, children }: { title?: string; children: React.Reac
   return (
     <div className="min-h-[100dvh] bg-muted/30 flex items-start justify-center px-4 py-10">
       <div className="w-full max-w-lg">
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <Leaf className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold tracking-tight text-foreground">cocci</span>
+        <div className="flex items-center justify-center mb-6">
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cocci" className="h-8 w-auto" />
         </div>
         {title && <h1 className="text-lg font-semibold text-foreground mb-4 text-center">{title}</h1>}
         {children}

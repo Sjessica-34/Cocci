@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useCreateOrganization, getListOrganizationsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Leaf, Building, Network, Loader2 } from "lucide-react";
+import { Building, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,9 +80,8 @@ export function Onboarding() {
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-muted/30 px-4 py-12">
       {/* Logo */}
-      <div className="flex items-center gap-2 mb-10">
-        <Leaf className="h-7 w-7 text-primary" />
-        <span className="text-2xl font-bold tracking-tight text-foreground">cocci</span>
+      <div className="flex items-center justify-center mb-10">
+        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cocci" className="h-9 w-auto" />
       </div>
 
       <div className="w-full max-w-md bg-white rounded-xl border border-border shadow-sm p-8 space-y-7">
