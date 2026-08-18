@@ -1001,8 +1001,8 @@ router.post("/admin/action-library", async (req, res) => {
       sortOrder?: number;
     };
 
-  if (!name?.trim() || !esgPillar || !level) {
-    res.status(400).json({ error: "name, esgPillar et level sont obligatoires" });
+  if (!name?.trim() || !esgPillar || !level || !category) {
+    res.status(400).json({ error: "name, esgPillar, level et category sont obligatoires" });
     return;
   }
 
@@ -1011,11 +1011,11 @@ router.post("/admin/action-library", async (req, res) => {
     .values({
       name: name.trim(),
       description: description?.trim() ?? null,
-      category: category ?? null,
+      category: category,
       subcategory: subcategory ?? null,
       esgPillar,
       level,
-      odd: odd ?? null,
+      odd: Array.isArray(odd) ? odd.join(",") : (odd ?? null),
       sortOrder: sortOrder ?? 999,
       isSystem: false,
       isActive: true,
@@ -1049,7 +1049,7 @@ router.patch("/admin/action-library/:id", async (req, res) => {
   const update: Partial<typeof actionLibraryTable.$inferInsert> = {};
   if (typeof name === "string") update.name = name.trim();
   if (description !== undefined) update.description = (description as string | null) ?? null;
-  if (category !== undefined) update.category = (category as string | null) ?? null;
+  if (typeof category === "string") update.category = category;
   if (subcategory !== undefined) update.subcategory = (subcategory as string | null) ?? null;
   if (typeof esgPillar === "string") update.esgPillar = esgPillar;
   if (typeof level === "string") update.level = level;
