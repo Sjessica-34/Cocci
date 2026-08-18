@@ -72,9 +72,10 @@ router.post(
        FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
       [params.data.id],
     );
-    const effectiveMax = subRes.rows[0]?.effective_max ?? null;
+    // Défaut produit : 1 utilisateur inclus si aucune ligne de souscription n'existe encore.
+    const effectiveMax: number = subRes.rows[0]?.effective_max ?? 1;
 
-    if (effectiveMax !== null) {
+    if (true) {
       const [{ value: memberCount }] = await db
         .select({ value: count() })
         .from(membersTable)

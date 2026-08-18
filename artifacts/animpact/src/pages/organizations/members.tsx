@@ -156,10 +156,10 @@ export function OrganizationMembers() {
   const myMembership = members?.find((m) => m.user?.clerkId === clerkUser?.id);
   const canManage = isSuperAdmin || myMembership?.role === "owner" || myMembership?.role === "admin";
 
-  // Limite effective : override si présent, sinon max_users, sinon aucune limite.
+  // Limite effective : override > max_users > défaut produit (1 utilisateur inclus par abonnement).
   const sub = subData?.subscription ?? null;
-  const effectiveMaxUsers: number | null =
-    sub?.override_max_users ?? sub?.max_users ?? null;
+  const effectiveMaxUsers: number =
+    sub?.override_max_users ?? sub?.max_users ?? 1;
 
   // Membres actifs ou en attente (les suspendus ne comptent pas dans le quota).
   const billableMembers = members?.filter((m) => m.status !== "suspended") ?? [];
