@@ -46,6 +46,7 @@ import { BarometreSocial } from "@/pages/barometre-social";
 import { BarometreSocialPublic } from "@/pages/barometre-social/public";
 import { PublicRsePage } from "@/pages/public-rse";
 import { PagePubliqueRse } from "@/pages/page-publique-rse";
+import { Abonnement } from "@/pages/abonnement";
 import { CapitalHumain } from "@/pages/employment";
 import { MesActions } from "@/pages/mes-actions";
 import { GuideRSE } from "@/pages/guide-rse";
@@ -301,6 +302,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/impact-score"><WorkspaceGuard component={ImpactScore} /></Route>
             <Route path="/rapport-rse"><WorkspaceGuard component={RapportRse} /></Route>
             <Route path="/page-publique-rse"><WorkspaceGuard component={PagePubliqueRse} /></Route>
+            <Route path="/abonnement"><ProtectedRoute component={Abonnement} /></Route>
             <Route path="/rapport-rse/viewer"><WorkspaceGuard component={ReportViewer} /></Route>
             <Route path="/mes-documents"><WorkspaceGuard component={MesDocuments} /></Route>
             <Route path="/mes-labels"><WorkspaceGuard component={MesLabels} /></Route>

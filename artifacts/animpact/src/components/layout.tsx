@@ -28,6 +28,7 @@ import {
   ListChecks,
   TreePine,
   MessageSquare,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -93,6 +94,7 @@ const navGroups: NavItem[][] = [
     { href: "/echanges", label: "Échanges avec Cocci", icon: MessageSquare },
   ],
   [
+    { href: "/abonnement", label: "Mon abonnement", icon: CreditCard },
     { href: "/settings", label: "Mes paramètres", icon: Settings },
   ],
 ];

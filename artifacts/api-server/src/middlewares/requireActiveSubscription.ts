@@ -1,71 +1,72 @@
+import { getAuth } from "@clerk/express";
+import { pool } from "@workspace/db";
 import type { Request, Response, NextFunction } from "express";
-import { db, subscriptionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
 
 /**
- * Vérifie que l'organisation a un abonnement actif ou en période d'essai.
+ * Vérifie qu'une organisation a un abonnement actif.
  *
- * Doit être utilisé APRÈS requireMembership (qui attache req.membership et req.currentUser).
- * L'organizationId est lu depuis req.membership.organizationId ou req.params.id en fallback.
+ * Règles :
+ * - is_super_admin → toujours autorisé (accès Cocci gratuit)
+ * - subscription.status IN ('active', 'trial') → autorisé
+ * - Pas de ligne subscription → autorisé (période de grâce / free)
+ * - subscription.status IN ('suspended', 'expired') → 402
  *
- * Status bloquants : "suspended" | "expired"
- * Status autorisés : "active" | "trial"
- * Absence d'abonnement : autorisé (offre gratuite)
- * Superadmin : toujours autorisé
+ * Doit être utilisé APRÈS requireAuth et requireOrgMembership
+ * (orgId doit être présent dans req.orgId ou req.params.orgId).
  */
 export async function requireActiveSubscription(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  // Superadmins contournent toutes les restrictions d'abonnement
-  if (req.currentUser?.isSuperAdmin) {
-    next();
-    return;
-  }
+  try {
+    const auth = getAuth(req);
+    if (!auth?.userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
 
-  const rawOrgId =
-    req.membership?.organizationId ??
-    Number(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
+    // 1. Super admin → accès libre
+    const userRow = await pool.query<{ is_super_admin: boolean }>(
+      "SELECT is_super_admin FROM users WHERE clerk_id = $1 LIMIT 1",
+      [auth.userId],
+    );
+    if (userRow.rows[0]?.is_super_admin) {
+      next();
+      return;
+    }
 
-  if (!rawOrgId || Number.isNaN(rawOrgId)) {
-    res.status(400).json({ error: "Organization id required for subscription check" });
-    return;
-  }
+    // 2. Vérifier l'abonnement de l'org
+    const orgId = (req as any).orgId ?? req.params.orgId;
+    if (!orgId) {
+      next();
+      return;
+    }
 
-  const [sub] = await db
-    .select({
-      status: subscriptionsTable.status,
-      endAt: subscriptionsTable.endAt,
-    })
-    .from(subscriptionsTable)
-    .where(eq(subscriptionsTable.organizationId, rawOrgId))
-    .limit(1);
+    const subRow = await pool.query<{ status: string }>(
+      "SELECT status FROM subscriptions WHERE organization_id = $1 LIMIT 1",
+      [parseInt(String(orgId))],
+    );
+    const status = subRow.rows[0]?.status;
 
-  // Pas d'abonnement enregistré = offre gratuite, on laisse passer
-  if (!sub) {
-    next();
-    return;
-  }
+    // Pas de ligne → période de grâce, on laisse passer
+    if (!status) {
+      next();
+      return;
+    }
 
-  const ALLOWED_STATUSES = ["active", "trial"];
-  if (!ALLOWED_STATUSES.includes(sub.status)) {
+    if (status === "active" || status === "trial") {
+      next();
+      return;
+    }
+
+    // suspended ou expired → 402
     res.status(402).json({
-      error: "Un abonnement actif est requis pour accéder à cette fonctionnalité.",
-      code: "SUBSCRIPTION_REQUIRED",
-      subscriptionStatus: sub.status,
+      error: "subscription_required",
+      message: "Un abonnement actif est requis pour accéder à cette ressource.",
     });
-    return;
+  } catch (err) {
+    // En cas d'erreur DB, ne pas bloquer l'accès
+    next();
   }
-
-  // Vérification de la date d'expiration (si renseignée)
-  if (sub.endAt && new Date(sub.endAt) < new Date()) {
-    res.status(402).json({
-      error: "Votre abonnement a expiré.",
-      code: "SUBSCRIPTION_EXPIRED",
-    });
-    return;
-  }
-
-  next();
 }

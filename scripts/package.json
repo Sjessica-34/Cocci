@@ -9,11 +9,13 @@
     "verify-exercise-backfill": "tsx ./src/verify-exercise-backfill.ts",
     "seed:actions": "tsx ./src/seed-action-library.ts",
     "seed:test": "tsx ./src/seed-test-data.ts",
+    "seed:stripe": "tsx ./src/seed-stripe-products.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
-    "drizzle-orm": "catalog:"
+    "drizzle-orm": "catalog:",
+    "stripe": "*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

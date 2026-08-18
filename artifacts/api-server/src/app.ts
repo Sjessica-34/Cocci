@@ -8,6 +8,7 @@ import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./mid
 import { generalLimiter } from "./middlewares/rateLimit";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { WebhookHandlers } from "./webhookHandlers";
 
 // ─── Origines autorisées ──────────────────────────────────────────────────────
 // En développement : Replit dev-domains + localhost
@@ -94,6 +95,25 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
     maxAge: 86400, // 24h preflight cache
   }),
+);
+
+// ─── Stripe webhook — AVANT le body parser JSON ───────────────────────────────
+// Le webhook Stripe nécessite le body brut (Buffer), pas du JSON parsé.
+app.post(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const signature = req.headers["stripe-signature"];
+    if (!signature) { res.status(400).json({ error: "Missing stripe-signature" }); return; }
+    try {
+      const sig = Array.isArray(signature) ? signature[0] : signature;
+      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      res.status(200).json({ received: true });
+    } catch (err: any) {
+      logger.error({ err: err?.message }, "Stripe webhook error");
+      res.status(400).json({ error: "Webhook processing error" });
+    }
+  },
 );
 
 // ─── Body parsing ─────────────────────────────────────────────────────────────
