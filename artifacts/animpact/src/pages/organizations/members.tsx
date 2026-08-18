@@ -532,19 +532,12 @@ export function OrganizationMembers() {
             </div>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+          <DialogFooter className="pt-2">
+            {/* Stripe Checkout — à implémenter lors de l'intégration Stripe */}
             <Button
-              variant="outline"
-              onClick={() => setShowUpgradeModal(false)}
-              className="w-full sm:w-auto"
-            >
-              Annuler
-            </Button>
-            {/* TODO : ouvrir Stripe Checkout pour ajouter un utilisateur */}
-            <Button
-              className="w-full sm:w-auto"
+              className="w-full"
               onClick={() => {
-                // Stripe Checkout — à implémenter lors de l'intégration Stripe
+                /* Stripe Checkout — à implémenter */
               }}
             >
               Ajouter un utilisateur
