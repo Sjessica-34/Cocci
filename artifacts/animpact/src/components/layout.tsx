@@ -120,15 +120,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isOnboardingRoute = location.startsWith("/onboarding");
   const showExerciseUi = !isAdminRoute && !isOnboardingRoute && exerciseOrgId != null;
 
-  // Quitter la zone admin efface l'impersonation : sans ça, adminViewOrgId
-  // persiste en sessionStorage et le GroupSwitcher force l'org à celle de martin grp
-  // même quand l'utilisateur navigue vers ses propres pages.
-  useEffect(() => {
-    if (!isAdminRoute && adminViewOrgId) {
-      setAdminViewOrg(null);
-    }
-  }, [isAdminRoute, adminViewOrgId]);
-
   const { data: dbUser } = useGetMe();
   const displayName =
     [dbUser?.firstName, dbUser?.lastName].filter(Boolean).join(" ") ||
@@ -150,7 +141,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // content area are made inert. Navigation (sidebar) and the exercise
   // selector itself stay interactive so the user can switch/reopen.
   const isExerciseClosed = showExerciseUi && currentExercise?.status === "closed";
-  const { isSuperAdmin } = useIsSuperAdmin();
+  const { isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin();
+
+  // Un compte non-super-admin ne peut jamais avoir positionné adminViewOrgId lui-même.
+  // S'il en a un (sessionStorage hérité d'une session précédente d'un autre compte),
+  // on l'efface. Le super admin garde son adminViewOrgId quand il visite l'espace client.
+  useEffect(() => {
+    if (adminViewOrgId && !isSuperAdmin && !isSuperAdminLoading) {
+      setAdminViewOrg(null);
+    }
+  }, [adminViewOrgId, isSuperAdmin, isSuperAdminLoading]);
 
   function isActive(item: NavItem) {
     return location === item.href || location.startsWith(`${item.href}/`);
