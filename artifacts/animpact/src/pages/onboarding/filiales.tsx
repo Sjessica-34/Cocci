@@ -201,7 +201,7 @@ export function OnboardingFiliales() {
     <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-muted/30 px-4 py-12">
       {/* Logo */}
       <div className="flex items-center justify-center mb-10">
-        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cocci" className="h-9 w-auto" />
+        <img src={`${import.meta.env.BASE_URL}logo-dark.png`} alt="Cocci" className="h-9 w-auto" />
       </div>
 
       <div className="w-full max-w-md bg-white rounded-xl border border-border shadow-sm p-8 space-y-6">

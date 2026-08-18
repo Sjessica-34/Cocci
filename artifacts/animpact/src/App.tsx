@@ -124,7 +124,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.png`,
+    logoImageUrl: `${window.location.origin}${basePath}/logo-dark.png`,
   },
   variables: {
     colorPrimary: "hsl(175 73% 18%)",
@@ -171,7 +171,7 @@ function AuthBrand() {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   return (
     <div className="flex items-center justify-center mb-6">
-      <img src={`${basePath}/logo.png`} alt="Cocci" className="h-10 w-auto" />
+      <img src={`${basePath}/logo-dark.png`} alt="Cocci" className="h-10 w-auto" />
     </div>
   );
 }
