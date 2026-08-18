@@ -36,7 +36,19 @@ export function Onboarding() {
     }
     setError("");
 
-    const org = await createOrg.mutateAsync({ data: { name: name.trim(), type } });
+    let org;
+    try {
+      org = await createOrg.mutateAsync({ data: { name: name.trim(), type } });
+    } catch (err: any) {
+      if (err?.status === 409 || err?.message?.includes("409")) {
+        // L'organisation existe déjà — aller directement au dashboard
+        await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
+        setLocation("/dashboard");
+        return;
+      }
+      setError("Une erreur est survenue. Veuillez réessayer.");
+      return;
+    }
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
     setCurrentOrg(org.id);
 
