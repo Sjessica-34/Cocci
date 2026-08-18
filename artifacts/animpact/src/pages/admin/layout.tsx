@@ -51,7 +51,7 @@ const NAV_ITEMS = [
   { href: "/admin/echanges", label: "Échanges avec Cocci", icon: MessageSquare, exact: false },
   { href: "/admin/securite", label: "Sécurité & journalisation", icon: Shield, exact: false },
   { href: null, label: "Factures", icon: CreditCard },
-  { href: null, label: "Abonnements", icon: Receipt },
+  { href: "/admin/abonnements", label: "Abonnements", icon: Receipt, exact: false },
   { href: null, label: "Analytics", icon: BarChart3 },
   { href: null, label: "Paramètres", icon: Settings },
 ];
