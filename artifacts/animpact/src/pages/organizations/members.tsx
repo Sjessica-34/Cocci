@@ -311,10 +311,13 @@ export function OrganizationMembers() {
                 {filteredMembers?.map((member) => {
                   const isMe = member.user?.clerkId === clerkUser?.id;
                   const isOwner = member.role === "owner";
+                  const realEmail = member.user?.email?.endsWith("@pending.local")
+                    ? null
+                    : member.user?.email;
                   const displayName =
                     [member.user?.firstName, member.user?.lastName].filter(Boolean).join(" ") ||
-                    member.user?.email ||
-                    "—";
+                    realEmail ||
+                    "Utilisateur";
 
                   return (
                     <div
@@ -340,7 +343,9 @@ export function OrganizationMembers() {
                               </Badge>
                             )}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">{member.user?.email}</p>
+                          {realEmail && (
+                            <p className="text-xs text-muted-foreground truncate">{realEmail}</p>
+                          )}
                         </div>
                       </div>
 
