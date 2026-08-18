@@ -33,6 +33,14 @@ const resp = await fetch(
 node --input-type=module -e "import { runMigrations } from 'stripe-replit-sync'; await runMigrations({ databaseUrl: process.env.DATABASE_URL });"
 ```
 
+## Leçons durables stripe-replit-sync
+
+- `syncBackfill()` sans paramètre ne synchronise RIEN — utiliser les syncs explicites (produits, prix, clients, abonnements).
+- Le secret webhook vit dans `stripe._managed_webhooks`, jamais dans les settings du connector. Le résoudre par **URL d'endpoint** (plusieurs lignes coexistent après un changement de domaine) et vérifier la signature soi-même avant tout traitement — le lookup interne de la lib fait un `LIMIT 1` par compte, ambigu.
+- Un échec de traitement webhook (secret introuvable, signature, erreur DB) doit répondre non-2xx, sinon Stripe ne réessaie jamais.
+
+**How to apply:** toute intégration webhook/sync Stripe sur ce projet.
+
 ## Pas de webhook_secret dans settings
 
 La clé `settings.webhook_secret` n'existe pas dans la réponse connectors. Le secret webhook est géré automatiquement par `stripeSync.findOrCreateManagedWebhook(url)`.

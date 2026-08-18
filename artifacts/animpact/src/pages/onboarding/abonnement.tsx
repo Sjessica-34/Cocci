@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
+import { customFetch } from "@workspace/api-client-react";
+import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { Button } from "@/components/ui/button";
-import { Check, CreditCard, ArrowLeft } from "lucide-react";
+import { Check, CreditCard, ArrowLeft, Loader2 } from "lucide-react";
 import {
   EFFECTIF_SESSION_KEY,
   effectifToPlan,
@@ -13,7 +15,10 @@ import {
 export function OnboardingAbonnement() {
   const [, setLocation] = useLocation();
   const { isSignedIn } = useAuth();
+  const { currentOrgId } = useCurrentOrganization();
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   useEffect(() => {
     const key = sessionStorage.getItem(EFFECTIF_SESSION_KEY) as EffectifKey | null;
@@ -28,6 +33,46 @@ export function OnboardingAbonnement() {
   if (!plan) return null;
 
   const isDevis = plan.pricePerMonth === null;
+
+  /** Ouvre Stripe Checkout pour la formule sélectionnée. */
+  const handleSouscrire = async () => {
+    // Non connecté → inscription (l'onboarding reprend ensuite, la tranche reste en sessionStorage)
+    if (!isSignedIn) {
+      setLocation("/sign-up");
+      return;
+    }
+    // Connecté mais pas d'organisation → l'espace guide la création avant de payer
+    if (!currentOrgId) {
+      setLocation("/dashboard");
+      return;
+    }
+    if (!plan.stripePriceId) {
+      setCheckoutError("Cette formule n'est pas encore disponible au paiement en ligne.");
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      // La formule (nom, plafond d'effectif) est dérivée côté serveur à partir du priceId —
+      // le prix Stripe porte la tranche sélectionnée (sessionStorage EFFECTIF_SESSION_KEY → plan).
+      const { url } = await customFetch<{ url: string }>(
+        `/api/organizations/${currentOrgId}/stripe/checkout`,
+        {
+          method: "POST",
+          body: JSON.stringify({ priceId: plan.stripePriceId }),
+        },
+      );
+      if (url) {
+        window.location.href = url;
+        return; // redirection en cours — garder l'état "loading"
+      }
+      throw new Error("URL de paiement manquante");
+    } catch {
+      setCheckoutError("Erreur lors de la création de la session de paiement. Réessayez.");
+      setCheckoutLoading(false);
+    }
+  };
 
   const INCLUDED_FEATURES = [
     "Toutes les fonctionnalités Cocci incluses",
@@ -106,29 +151,22 @@ export function OnboardingAbonnement() {
             </>
           ) : (
             <>
-              {/*
-               * ⚠️  STRIPE CHECKOUT — à brancher ici lors de l'intégration Stripe.
-               *
-               * Récupérer la clé effectif :
-               *   const key = sessionStorage.getItem(EFFECTIF_SESSION_KEY) as EffectifKey;
-               *   const plan = effectifToPlan(key);
-               *
-               * Ouvrir Stripe Checkout avec `plan.stripePriceId` (renseigner dans plans.ts).
-               * Si non connecté : rediriger vers /sign-up (l'onboarding reprend ensuite).
-               * Si connecté : appeler POST /api/subscriptions/checkout-session et rediriger.
-               */}
-              <Button
-                className="w-full gap-2"
-                onClick={() => {
-                  if (!isSignedIn) {
-                    setLocation("/sign-up");
-                  }
-                  /* else : Stripe Checkout — à implémenter */
-                }}
-              >
-                <CreditCard className="h-4 w-4" />
-                Souscrire
+              <Button className="w-full gap-2" onClick={handleSouscrire} disabled={checkoutLoading}>
+                {checkoutLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Redirection vers le paiement…
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4" />
+                    Souscrire
+                  </>
+                )}
               </Button>
+              {checkoutError && (
+                <p className="text-xs text-center text-destructive">{checkoutError}</p>
+              )}
             </>
           )}
 

@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import { requireOrgMembership } from "../middlewares/exerciseScope";
+import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
 import { getUncachableStripeClient } from "../stripeClient";
+import { resolveCatalogOffer } from "../stripeCatalog";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -96,7 +97,7 @@ router.get(
 router.post(
   "/organizations/:orgId/stripe/checkout",
   requireAuth,
-  requireOrgMembership,
+  requireOrgRole(["owner", "admin"]),
   async (req, res): Promise<void> => {
     const orgId = req.orgId!;
     const { priceId } = req.body as { priceId: string };
@@ -107,6 +108,15 @@ router.post(
     }
 
     try {
+      // Catalogue serveur : seuls les produits Cocci autorisés (onboarding ou
+      // formules tpe/pme/eti) peuvent être souscrits. Formule dérivée du produit.
+      const offer = await resolveCatalogOffer(priceId);
+      if (!offer) {
+        res.status(400).json({ error: "Unknown, inactive or unauthorized price" });
+        return;
+      }
+      const { offerName, maxEmployees, effectifKey } = offer;
+
       const stripe = await getUncachableStripeClient();
 
       // Récupérer ou créer le customer Stripe pour cette org
@@ -146,7 +156,12 @@ router.post(
         },
         success_url: `${baseUrl}/abonnement?success=1`,
         cancel_url: `${baseUrl}/abonnement?cancelled=1`,
-        metadata: { orgId: String(orgId) },
+        metadata: {
+          orgId: String(orgId),
+          offerName,
+          ...(effectifKey ? { effectifKey } : {}),
+          ...(maxEmployees != null ? { maxEmployees: String(maxEmployees) } : {}),
+        },
         locale: "fr",
       });
 

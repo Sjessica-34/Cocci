@@ -8,15 +8,21 @@ async function initStripe(): Promise<void> {
   if (!databaseUrl) { logger.warn("DATABASE_URL missing — skipping Stripe init"); return; }
   try {
     logger.info("Initializing Stripe schema…");
-    await runMigrations({ databaseUrl, schema: "stripe" });
+    await runMigrations({ databaseUrl });
 
     const stripeSync = await getStripeSync();
     const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
     await stripeSync.findOrCreateManagedWebhook(`${webhookBaseUrl}/api/stripe/webhook`);
     logger.info("Stripe webhook configured");
 
-    // Sync en arrière-plan pour ne pas retarder le démarrage
-    stripeSync.syncBackfill()
+    // Sync en arrière-plan pour ne pas retarder le démarrage.
+    // NB : syncBackfill() sans paramètre ne synchronise rien → sync explicite.
+    (async () => {
+      await stripeSync.syncProducts();
+      await stripeSync.syncPrices();
+      await stripeSync.syncCustomers();
+      await stripeSync.syncSubscriptions();
+    })()
       .then(() => logger.info("Stripe backfill complete"))
       .catch((err) => logger.error({ err }, "Stripe backfill failed"));
   } catch (err) {

@@ -43,6 +43,38 @@ async function suspendSubscriptionByStripeSubId(stripeSubscriptionId: string): P
   );
 }
 
+// ── Secret du webhook géré ─────────────────────────────────────────────────────
+// stripe-replit-sync stocke le secret de chaque endpoint géré dans
+// stripe._managed_webhooks. Plusieurs lignes peuvent exister (changement de
+// domaine, anciens endpoints) → résolution déterministe par URL configurée,
+// celle enregistrée au démarrage via findOrCreateManagedWebhook.
+
+function getConfiguredWebhookUrl(): string | null {
+  const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
+  return domain ? `https://${domain}/api/stripe/webhook` : null;
+}
+
+async function getManagedWebhookSecret(): Promise<string | null> {
+  try {
+    const url = getConfiguredWebhookUrl();
+    if (url) {
+      const row = await pool.query<{ secret: string }>(
+        `SELECT secret FROM stripe._managed_webhooks
+         WHERE url = $1 ORDER BY created DESC LIMIT 1`,
+        [url],
+      );
+      if (row.rows[0]?.secret) return row.rows[0].secret;
+    }
+    // Repli : s'il n'existe qu'un seul endpoint géré, il est non ambigu.
+    const all = await pool.query<{ secret: string }>(
+      `SELECT secret FROM stripe._managed_webhooks`,
+    );
+    return all.rows.length === 1 ? all.rows[0].secret : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Handler principal ─────────────────────────────────────────────────────────
 
 export class WebhookHandlers {
@@ -54,26 +86,35 @@ export class WebhookHandlers {
       );
     }
 
-    // 1. Sync vers stripe.* (stripe-replit-sync)
-    const sync = await getStripeSync();
-    await sync.processWebhook(payload, signature);
-
-    // 2. Logique métier : mise à jour de notre table subscriptions
-    const { secretKey, webhookSecret } = await getStripeCredentials();
+    // 1. Résoudre le secret de l'endpoint configuré (par URL — jamais un LIMIT 1
+    //    ambigu : d'anciens endpoints du même compte peuvent coexister) et
+    //    vérifier la signature UNE fois. Tout échec lève → non-2xx → retry Stripe.
+    const { secretKey, webhookSecret: settingsSecret } = await getStripeCredentials();
+    const webhookSecret = (await getManagedWebhookSecret()) ?? settingsSecret;
     if (!webhookSecret) {
-      logger.warn("No webhook secret — skipping business event handling");
-      return;
+      throw new Error("No webhook secret resolvable for configured endpoint — retry later");
     }
 
     const stripe = new Stripe(secretKey);
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-    } catch (err) {
-      logger.error({ err }, "Webhook signature verification failed");
-      return;
-    }
+    // Lève en cas de signature invalide → non-2xx → retry Stripe
+    const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
+    // 2. Sync vers stripe.* avec l'événement DÉJÀ vérifié — on court-circuite la
+    //    résolution de secret interne de stripe-replit-sync (LIMIT 1 par compte).
+    const sync = await getStripeSync();
+    await sync.processEvent(event);
+
+    // 3. Logique métier — toute erreur persistante lève → retry Stripe.
+    await handleStripeEvent(event);
+  }
+}
+
+/**
+ * Logique métier pure (événement déjà vérifié) — exportée pour les tests d'intégration.
+ * Les erreurs (DB, etc.) sont relancées : la route webhook répond alors non-2xx
+ * et Stripe réessaie l'événement. Seul l'envoi d'email est isolé (catch interne).
+ */
+export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
     try {
       switch (event.type) {
         case "checkout.session.completed": {
@@ -86,18 +127,28 @@ export class WebhookHandlers {
           // Paiement carte immédiat : payment_status = "paid" → active directement.
           const internalStatus = session.payment_status === "paid" ? "active" : "trial";
 
+          // Formule sélectionnée pendant l'onboarding (transmise via metadata)
+          const offerName = session.metadata?.offerName ?? null;
+          const maxEmployees = session.metadata?.maxEmployees
+            ? parseInt(session.metadata.maxEmployees)
+            : null;
+
           await pool.query(
             `INSERT INTO subscriptions
-               (organization_id, mode, status, stripe_customer_id, stripe_subscription_id, start_at, updated_at)
-             VALUES ($1, 'stripe', $2, $3, $4, NOW(), NOW())
+               (organization_id, mode, status, stripe_customer_id, stripe_subscription_id,
+                offer_name, max_employees, start_at, updated_at)
+             VALUES ($1, 'stripe', $2, $3, $4, $5, $6, NOW(), NOW())
              ON CONFLICT (organization_id)
              DO UPDATE SET
                mode = 'stripe',
                status = $2,
                stripe_customer_id = $3,
                stripe_subscription_id = $4,
+               offer_name = COALESCE($5, subscriptions.offer_name),
+               max_employees = COALESCE($6, subscriptions.max_employees),
                updated_at = NOW()`,
-            [orgId, internalStatus, session.customer as string, session.subscription as string],
+            [orgId, internalStatus, session.customer as string, session.subscription as string,
+             offerName, maxEmployees],
           );
           logger.info({ orgId, paymentStatus: session.payment_status, internalStatus },
             "Subscription upserted after checkout");
@@ -145,11 +196,12 @@ export class WebhookHandlers {
 
         // SEPA confirmé : la banque a débité → activer l'abonnement
         case "invoice.payment_succeeded": {
-          const invoice = event.data.object as Stripe.Invoice;
-          if (!invoice.subscription) break;
+          const invoice = event.data.object as Stripe.Invoice & { subscription?: string | { id: string } | null };
+          const invoiceSubId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+          if (!invoiceSubId) break;
           const row = await pool.query<{ organization_id: number }>(
             "SELECT organization_id FROM subscriptions WHERE stripe_subscription_id = $1 LIMIT 1",
-            [invoice.subscription],
+            [invoiceSubId],
           );
           if (!row.rows[0]) break;
           await pool.query(
@@ -157,20 +209,21 @@ export class WebhookHandlers {
              WHERE organization_id = $1 AND status = 'trial'`,
             [row.rows[0].organization_id],
           );
-          logger.info({ sub: invoice.subscription }, "Subscription activated after payment_succeeded");
+          logger.info({ sub: invoiceSubId }, "Subscription activated after payment_succeeded");
           break;
         }
 
         // SEPA échoué ou carte refusée → bloquer l'accès
         case "invoice.payment_failed": {
-          const invoice = event.data.object as Stripe.Invoice;
-          if (!invoice.subscription) break;
+          const invoice = event.data.object as Stripe.Invoice & { subscription?: string | { id: string } | null };
+          const failedSubId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+          if (!failedSubId) break;
           await pool.query(
             `UPDATE subscriptions SET status = 'suspended', updated_at = NOW()
              WHERE stripe_subscription_id = $1`,
-            [invoice.subscription],
+            [failedSubId],
           );
-          logger.info({ sub: invoice.subscription }, "Subscription suspended after payment_failed");
+          logger.info({ sub: failedSubId }, "Subscription suspended after payment_failed");
           break;
         }
 
@@ -204,6 +257,6 @@ export class WebhookHandlers {
       }
     } catch (err) {
       logger.error({ err, eventType: event.type }, "Error handling Stripe event");
+      throw err; // → non-2xx → retry Stripe
     }
-  }
 }

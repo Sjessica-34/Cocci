@@ -42,12 +42,12 @@ export const EFFECTIF_OPTIONS: { key: EffectifKey; label: string }[] = [
 
 /** Catalogue des formules indexé par clé d'effectif. */
 export const PLANS: Record<EffectifKey, Plan> = {
-  "1-5":     { effectifLabel: "1 à 5 salariés",       pricePerMonth: 19.99,  maxEmployees: 5,   stripeProductId: null, stripePriceId: null },
-  "6-10":    { effectifLabel: "6 à 10 salariés",      pricePerMonth: 29.99,  maxEmployees: 10,  stripeProductId: null, stripePriceId: null },
-  "11-25":   { effectifLabel: "11 à 25 salariés",     pricePerMonth: 39.99,  maxEmployees: 25,  stripeProductId: null, stripePriceId: null },
-  "26-50":   { effectifLabel: "26 à 50 salariés",     pricePerMonth: 59.99,  maxEmployees: 50,  stripeProductId: null, stripePriceId: null },
-  "51-100":  { effectifLabel: "51 à 100 salariés",    pricePerMonth: 89.99,  maxEmployees: 100, stripeProductId: null, stripePriceId: null },
-  "101-250": { effectifLabel: "101 à 250 salariés",   pricePerMonth: 129.99, maxEmployees: 250, stripeProductId: null, stripePriceId: null },
+  "1-5":     { effectifLabel: "1 à 5 salariés",       pricePerMonth: 19.99,  maxEmployees: 5,   stripeProductId: "prod_V63gSRaHuDcTk8", stripePriceId: "price_1U5rZZQ2UL4af4YQgpwrZsQQ" },
+  "6-10":    { effectifLabel: "6 à 10 salariés",      pricePerMonth: 29.99,  maxEmployees: 10,  stripeProductId: "prod_V63gOI0PktUlz1", stripePriceId: "price_1U5rZZQ2UL4af4YQwDCxKV0T" },
+  "11-25":   { effectifLabel: "11 à 25 salariés",     pricePerMonth: 39.99,  maxEmployees: 25,  stripeProductId: "prod_V63gBkl617YR7M", stripePriceId: "price_1U5rZZQ2UL4af4YQRHtk3t1s" },
+  "26-50":   { effectifLabel: "26 à 50 salariés",     pricePerMonth: 59.99,  maxEmployees: 50,  stripeProductId: "prod_V63gY1SMToyMcz", stripePriceId: "price_1U5rZaQ2UL4af4YQQsOSrs2u" },
+  "51-100":  { effectifLabel: "51 à 100 salariés",    pricePerMonth: 89.99,  maxEmployees: 100, stripeProductId: "prod_V63gMXwoeOyRJX", stripePriceId: "price_1U5rZaQ2UL4af4YQZJ1k6cLY" },
+  "101-250": { effectifLabel: "101 à 250 salariés",   pricePerMonth: 129.99, maxEmployees: 250, stripeProductId: "prod_V63ggFPjffDAeW", stripePriceId: "price_1U5rZbQ2UL4af4YQVU6Zx3AH" },
   "250+":    { effectifLabel: "Plus de 250 salariés", pricePerMonth: null,   maxEmployees: null,stripeProductId: null, stripePriceId: null },
 };
 
