@@ -304,7 +304,7 @@ export function Home() {
                 Se connecter
               </Button>
             </Link>
-            <Link href="/sign-up">
+            <Link href="/onboarding/effectif">
               <Button size="sm" className="bg-[#163028] hover:bg-[#1e4438] text-white font-medium">
                 Commencer
               </Button>
@@ -343,9 +343,9 @@ export function Home() {
             </div>
 
             <div className="space-y-2">
-              <Link href="/sign-up">
+              <Link href="/onboarding/effectif">
                 <Button size="lg" className="h-12 px-7 text-sm font-semibold bg-[#163028] hover:bg-[#1e4438] text-white rounded-lg">
-                  Demander une démo <ArrowRight className="ml-2 h-4 w-4" />
+                  Commencer <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <p className="text-xs text-gray-400 flex items-center gap-1">
@@ -481,7 +481,7 @@ export function Home() {
                 Échangez avec nos experts et découvrez comment Cocci peut répondre à vos besoins.
               </p>
             </div>
-            <Link href="/sign-up" className="shrink-0">
+            <Link href="/demo" className="shrink-0">
               <Button size="lg" className="h-12 px-7 text-sm font-semibold bg-[#163028] hover:bg-[#1e4438] text-white rounded-lg">
                 Demander une démo <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

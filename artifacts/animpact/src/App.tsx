@@ -10,6 +10,7 @@ import { useListOrganizations } from "@workspace/api-client-react";
 
 import NotFound from "@/pages/not-found";
 import { Home } from "@/pages/home";
+import { Demo } from "@/pages/demo";
 import { Dashboard } from "@/pages/dashboard";
 import { OrganizationsList } from "@/pages/organizations/index";
 import { OrganizationNew } from "@/pages/organizations/new";
@@ -280,6 +281,7 @@ function ClerkProviderWithRoutes() {
         <TooltipProvider>
           <Switch>
             <Route path="/" component={HomeRedirect} />
+            <Route path="/demo"><Demo /></Route>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
 
@@ -291,10 +293,10 @@ function ClerkProviderWithRoutes() {
               <ProtectedRoute component={OnboardingFiliales} />
             </Route>
             <Route path="/onboarding/effectif">
-              <ProtectedRoute component={OnboardingEffectif} />
+              <OnboardingEffectif />
             </Route>
             <Route path="/onboarding/abonnement">
-              <ProtectedRoute component={OnboardingAbonnement} />
+              <OnboardingAbonnement />
             </Route>
 
             {/* Workspace module pages — redirect to onboarding if no org */}

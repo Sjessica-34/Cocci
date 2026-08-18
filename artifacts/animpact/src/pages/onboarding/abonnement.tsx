@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Check, CreditCard, ArrowLeft } from "lucide-react";
 import {
@@ -11,6 +12,7 @@ import {
 
 export function OnboardingAbonnement() {
   const [, setLocation] = useLocation();
+  const { isSignedIn } = useAuth();
   const [plan, setPlan] = useState<Plan | null>(null);
 
   useEffect(() => {
@@ -112,12 +114,16 @@ export function OnboardingAbonnement() {
                *   const plan = effectifToPlan(key);
                *
                * Ouvrir Stripe Checkout avec `plan.stripePriceId` (renseigner dans plans.ts).
-               * Exemple : appeler POST /api/subscriptions/checkout-session et rediriger vers l'URL retournée.
+               * Si non connecté : rediriger vers /sign-up (l'onboarding reprend ensuite).
+               * Si connecté : appeler POST /api/subscriptions/checkout-session et rediriger.
                */}
               <Button
                 className="w-full gap-2"
                 onClick={() => {
-                  /* Stripe Checkout — à implémenter */
+                  if (!isSignedIn) {
+                    setLocation("/sign-up");
+                  }
+                  /* else : Stripe Checkout — à implémenter */
                 }}
               >
                 <CreditCard className="h-4 w-4" />
@@ -126,10 +132,10 @@ export function OnboardingAbonnement() {
             </>
           )}
 
-          {/* Lien secondaire pour accéder au dashboard sans souscrire (temporaire) */}
+          {/* Lien secondaire : accéder à l'espace ou s'inscrire */}
           <button
             type="button"
-            onClick={() => setLocation("/dashboard")}
+            onClick={() => setLocation(isSignedIn ? "/dashboard" : "/sign-up")}
             className="w-full text-center text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
           >
             Accéder à mon espace →
