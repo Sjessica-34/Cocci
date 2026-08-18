@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { useListExercises, useListOrganizations, useGetMe } from "@workspace/api-client-react";
@@ -119,6 +119,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAdminRoute = location.startsWith("/admin");
   const isOnboardingRoute = location.startsWith("/onboarding");
   const showExerciseUi = !isAdminRoute && !isOnboardingRoute && exerciseOrgId != null;
+
+  // Quitter la zone admin efface l'impersonation : sans ça, adminViewOrgId
+  // persiste en sessionStorage et le GroupSwitcher force l'org à celle de martin grp
+  // même quand l'utilisateur navigue vers ses propres pages.
+  useEffect(() => {
+    if (!isAdminRoute && adminViewOrgId) {
+      setAdminViewOrg(null);
+    }
+  }, [isAdminRoute, adminViewOrgId]);
 
   const { data: dbUser } = useGetMe();
   const displayName =

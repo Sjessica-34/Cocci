@@ -230,13 +230,19 @@ export function GroupSwitcher() {
   const rootOrg = orgs.find((o) => !o.parentId) ?? null;
   const subsidiaries = orgs.filter((o) => rootOrg && o.parentId === rootOrg.id);
 
-  // Auto-initialize currentOrgId when app loads or when admin view org changes.
+  // Auto-initialize / validate currentOrgId when orgs load or admin view changes.
   useEffect(() => {
-    if (rootOrg && (adminViewOrgId ? currentOrgId !== rootOrg.id : !currentOrgId)) {
-      setCurrentOrg(rootOrg.id);
+    if (!rootOrg) return;
+    if (adminViewOrgId) {
+      // Admin impersonation mode: always sync to root of the viewed org.
+      if (currentOrgId !== rootOrg.id) setCurrentOrg(rootOrg.id);
+    } else {
+      // Normal mode: reset if no org set OR if stored org doesn't belong to this user.
+      const isValid = orgs.some((o) => o.id === currentOrgId);
+      if (!currentOrgId || !isValid) setCurrentOrg(rootOrg.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rootOrg?.id, adminViewOrgId]);
+  }, [rootOrg?.id, adminViewOrgId, orgs.length]);
 
   // Show group mode dialog when group has subsidiaries but no mode set
   const needsGroupMode =
