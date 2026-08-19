@@ -71,7 +71,7 @@ async function seedProducts() {
     }
   }
 
-  console.log("\n✅ Produits Stripe créés. Les webhooks vont synchroniser la base de données.");
+  console.log("\n✅ Produits Stripe créés.");
 }
 
 seedProducts().catch((err) => {

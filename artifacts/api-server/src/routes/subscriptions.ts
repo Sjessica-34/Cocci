@@ -5,6 +5,7 @@ import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseSco
 import { getUncachableStripeClient } from "../stripeClient";
 import { configuredEffectifOffers, resolveCheckoutOffer } from "../stripeCatalog";
 import { logger } from "../lib/logger";
+import { getPublicAppUrl } from "../appUrl";
 
 const router = Router();
 
@@ -63,21 +64,10 @@ router.get(
       );
       const sub = row.rows[0] ?? null;
 
-      // Si abonnement Stripe actif, récupérer les détails depuis stripe.subscriptions
-      let stripeDetails = null;
-      if (sub?.stripe_subscription_id) {
-        try {
-          const sr = await pool.query(
-            "SELECT status, current_period_end FROM stripe.subscriptions WHERE id = $1 LIMIT 1",
-            [sub.stripe_subscription_id],
-          );
-          stripeDetails = sr.rows[0] ?? null;
-        } catch {
-          // stripe.* pas encore créé
-        }
-      }
-
-      res.json({ subscription: sub, stripeDetails });
+      // L'état local, alimenté exclusivement par les webhooks vérifiés, est la
+      // source utilisée par l'application. La propriété historique est gardée
+      // pour préserver le contrat de réponse sans requête au schéma stripe.*.
+      res.json({ subscription: sub, stripeDetails: null });
     } catch (err) {
       logger.error({ err }, "subscription status error");
       res.status(500).json({ error: "Internal server error" });
@@ -112,6 +102,7 @@ router.post(
         return;
       }
 
+      const baseUrl = getPublicAppUrl();
       const stripe = await getUncachableStripeClient();
       // Vérification de cohérence côté Stripe : la configuration serveur doit
       // pointer vers un prix actif rattaché au produit Cocci attendu.
@@ -141,12 +132,6 @@ router.post(
         });
         customerId = customer.id;
       }
-
-      const origin = `${req.protocol}://${req.get("host")}`;
-      // Les URLs de succès/annulation pointent vers la SPA (chemin /animpact/ en dev, / en prod)
-      const baseUrl = process.env.REPLIT_DOMAINS
-        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-        : origin;
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -196,10 +181,8 @@ router.post(
         return;
       }
 
+      const baseUrl = getPublicAppUrl();
       const stripe = await getUncachableStripeClient();
-      const baseUrl = process.env.REPLIT_DOMAINS
-        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-        : `${req.protocol}://${req.get("host")}`;
 
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customerId,

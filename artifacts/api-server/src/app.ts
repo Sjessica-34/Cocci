@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import Stripe from "stripe";
 import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
@@ -111,7 +112,11 @@ app.post(
       res.status(200).json({ received: true });
     } catch (err: any) {
       logger.error({ err: err?.message }, "Stripe webhook error");
-      res.status(400).json({ error: "Webhook processing error" });
+      const isInvalidSignature =
+        err instanceof Stripe.errors.StripeSignatureVerificationError;
+      res
+        .status(isInvalidSignature ? 400 : 500)
+        .json({ error: "Webhook processing error" });
     }
   },
 );

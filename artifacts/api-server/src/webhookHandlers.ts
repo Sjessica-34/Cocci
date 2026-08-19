@@ -1,8 +1,9 @@
 import Stripe from "stripe";
 import { pool } from "@workspace/db";
-import { getStripeSync, getStripeCredentials } from "./stripeClient";
+import { getStripeWebhookSecret, getUncachableStripeClient } from "./stripeClient";
 import { logger } from "./lib/logger";
 import { sendSubscriptionConfirmation } from "./lib/email";
+import { getPublicAppUrl } from "./appUrl";
 
 // ── Mise à jour de la table subscriptions selon les événements Stripe ─────────
 
@@ -43,38 +44,6 @@ async function suspendSubscriptionByStripeSubId(stripeSubscriptionId: string): P
   );
 }
 
-// ── Secret du webhook géré ─────────────────────────────────────────────────────
-// stripe-replit-sync stocke le secret de chaque endpoint géré dans
-// stripe._managed_webhooks. Plusieurs lignes peuvent exister (changement de
-// domaine, anciens endpoints) → résolution déterministe par URL configurée,
-// celle enregistrée au démarrage via findOrCreateManagedWebhook.
-
-function getConfiguredWebhookUrl(): string | null {
-  const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
-  return domain ? `https://${domain}/api/stripe/webhook` : null;
-}
-
-async function getManagedWebhookSecret(): Promise<string | null> {
-  try {
-    const url = getConfiguredWebhookUrl();
-    if (url) {
-      const row = await pool.query<{ secret: string }>(
-        `SELECT secret FROM stripe._managed_webhooks
-         WHERE url = $1 ORDER BY created DESC LIMIT 1`,
-        [url],
-      );
-      if (row.rows[0]?.secret) return row.rows[0].secret;
-    }
-    // Repli : s'il n'existe qu'un seul endpoint géré, il est non ambigu.
-    const all = await pool.query<{ secret: string }>(
-      `SELECT secret FROM stripe._managed_webhooks`,
-    );
-    return all.rows.length === 1 ? all.rows[0].secret : null;
-  } catch {
-    return null;
-  }
-}
-
 // ── Handler principal ─────────────────────────────────────────────────────────
 
 export class WebhookHandlers {
@@ -86,25 +55,13 @@ export class WebhookHandlers {
       );
     }
 
-    // 1. Résoudre le secret de l'endpoint configuré (par URL — jamais un LIMIT 1
-    //    ambigu : d'anciens endpoints du même compte peuvent coexister) et
-    //    vérifier la signature UNE fois. Tout échec lève → non-2xx → retry Stripe.
-    const { secretKey, webhookSecret: settingsSecret } = await getStripeCredentials();
-    const webhookSecret = (await getManagedWebhookSecret()) ?? settingsSecret;
-    if (!webhookSecret) {
-      throw new Error("No webhook secret resolvable for configured endpoint — retry later");
-    }
-
-    const stripe = new Stripe(secretKey);
-    // Lève en cas de signature invalide → non-2xx → retry Stripe
+    // Vérifier la signature une seule fois avec le secret explicite de
+    // l'environnement. Tout échec lève → non-2xx → retry Stripe.
+    const stripe = getUncachableStripeClient();
+    const webhookSecret = getStripeWebhookSecret();
     const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
-    // 2. Sync vers stripe.* avec l'événement DÉJÀ vérifié — on court-circuite la
-    //    résolution de secret interne de stripe-replit-sync (LIMIT 1 par compte).
-    const sync = await getStripeSync();
-    await sync.processEvent(event);
-
-    // 3. Logique métier — toute erreur persistante lève → retry Stripe.
+    // Logique métier locale — toute erreur persistante lève → retry Stripe.
     await handleStripeEvent(event);
   }
 }
@@ -173,9 +130,7 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
             );
             if (adminRow.rows[0]) {
               const { email, first_name, org_name } = adminRow.rows[0];
-              const baseUrl = process.env.REPLIT_DOMAINS
-                ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-                : "https://cocci.app";
+              const baseUrl = getPublicAppUrl();
               await sendSubscriptionConfirmation({
                 to: email,
                 firstName: first_name,

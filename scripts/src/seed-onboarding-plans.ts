@@ -4,8 +4,8 @@
  *
  * Usage : pnpm --filter @workspace/scripts exec tsx src/seed-onboarding-plans.ts
  *
- * Les IDs affichés en sortie sont à reporter dans
- * artifacts/animpact/src/pages/onboarding/plans.ts
+ * Les IDs affichés en sortie sont à configurer dans les variables serveur
+ * STRIPE_COCCI_PRODUCT_ID et STRIPE_COCCI_PRICE_* correspondantes.
  */
 import { getUncachableStripeClient } from "./stripeClient.js";
 
@@ -64,7 +64,7 @@ async function seed() {
     results.push({ key: t.key, productId, priceId: price.id });
   }
 
-  console.log("\n── À reporter dans plans.ts ──");
+  console.log("\n── Variables serveur du catalogue Stripe ──");
   for (const r of results) {
     console.log(`"${r.key}": productId=${r.productId} priceId=${r.priceId}`);
   }
