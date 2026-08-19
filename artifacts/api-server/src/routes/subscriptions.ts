@@ -102,6 +102,20 @@ router.post(
         return;
       }
 
+      const currentSubscription = await pool.query<{ mode: string | null; status: string | null }>(
+        "SELECT mode, status FROM subscriptions WHERE organization_id = $1 LIMIT 1",
+        [orgId],
+      );
+      const hasActiveStripeSubscription = currentSubscription.rows[0]?.mode === "stripe"
+        && currentSubscription.rows[0]?.status === "active";
+      if (hasActiveStripeSubscription) {
+        res.status(409).json({
+          error: "An active Stripe subscription already exists",
+          code: "ACTIVE_SUBSCRIPTION_EXISTS",
+        });
+        return;
+      }
+
       const baseUrl = getPublicAppUrl();
       const stripe = await getUncachableStripeClient();
       // Vérification de cohérence côté Stripe : la configuration serveur doit

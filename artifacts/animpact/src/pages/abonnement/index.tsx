@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout";
 import { customFetch } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useOrganizationSubscription } from "@/hooks/useOrganizationSubscription";
 import { CheckCircle2, Loader2, Zap, Building2, Building, ExternalLink, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,15 +22,6 @@ type Plan = {
   tier: string;
   prices: Price[];
 };
-
-type Subscription = {
-  mode: string;
-  status: string;
-  offer_name: string | null;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  end_at: string | null;
-} | null;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -74,9 +66,14 @@ const TIER_FEATURES: Record<string, string[]> = {
 
 export function Abonnement() {
   const { currentOrgId } = useCurrentOrganization();
+  const {
+    subscription,
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
+    isActive,
+  } = useOrganizationSubscription(currentOrgId);
 
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [subscription, setSubscription] = useState<Subscription | undefined>(undefined);
   const [billing, setBilling] = useState<"month" | "year">("month");
   const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -89,15 +86,8 @@ export function Abonnement() {
       .catch(() => setPlans([]));
   }, []);
 
-  useEffect(() => {
-    if (!currentOrgId) return;
-    customFetch<{ subscription: Subscription }>(`/api/organizations/${currentOrgId}/subscription`)
-      .then((d) => setSubscription(d.subscription ?? null))
-      .catch(() => setSubscription(null));
-  }, [currentOrgId]);
-
   const handleCheckout = async (effectifKey: string) => {
-    if (!currentOrgId) return;
+    if (!currentOrgId || subscriptionLoading || subscriptionError || isActive) return;
     setLoadingPlanKey(effectifKey);
     try {
       const { url } = await customFetch<{ url: string }>(
@@ -128,7 +118,6 @@ export function Abonnement() {
     }
   };
 
-  const isActive = subscription?.status === "active" && subscription.mode === "stripe";
   const hasAnyActive = subscription?.status === "active";
   const success = searchParams.get("success") === "1";
   const cancelled = searchParams.get("cancelled") === "1";
@@ -161,6 +150,17 @@ export function Abonnement() {
         )}
 
         {/* ── Statut actuel ── */}
+        {subscriptionLoading && currentOrgId && (
+          <div className="mb-8 text-center text-sm text-gray-500">
+            Vérification de votre abonnement…
+          </div>
+        )}
+        {subscriptionError && currentOrgId && (
+          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Impossible de vérifier votre abonnement. Les actions de souscription restent désactivées
+            jusqu&apos;à la prochaine tentative.
+          </div>
+        )}
         {subscription !== undefined && (
           <div className="mb-8 flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-5">
             <div>
@@ -259,7 +259,7 @@ export function Abonnement() {
 
                   <Button
                     onClick={() => price && handleCheckout(plan.key)}
-                    disabled={!price || isLoading || isActive}
+                    disabled={!price || isLoading || Boolean(subscriptionError) || isActive}
                     className={`w-full ${isFeatured ? "bg-[#163028] hover:bg-[#1e4438] text-white" : "variant-outline"}`}
                     variant={isFeatured ? "default" : "outline"}
                   >

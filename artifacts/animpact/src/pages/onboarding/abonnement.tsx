@@ -3,8 +3,12 @@ import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 import { customFetch } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import {
+  isActiveStripeSubscription,
+  useOrganizationSubscription,
+} from "@/hooks/useOrganizationSubscription";
 import { Button } from "@/components/ui/button";
-import { Check, CreditCard, ArrowLeft, Loader2 } from "lucide-react";
+import { Check, CreditCard, ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import {
   EFFECTIF_SESSION_KEY,
   effectifToPlan,
@@ -16,10 +20,17 @@ export function OnboardingAbonnement() {
   const [, setLocation] = useLocation();
   const { isSignedIn } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
+  const {
+    subscription,
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
+  } = useOrganizationSubscription(currentOrgId);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [effectifKey, setEffectifKey] = useState<EffectifKey | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
 
   useEffect(() => {
     const key = sessionStorage.getItem(EFFECTIF_SESSION_KEY) as EffectifKey | null;
@@ -35,6 +46,24 @@ export function OnboardingAbonnement() {
   if (!plan) return null;
 
   const isDevis = plan.pricePerMonth === null;
+  const isActive = isActiveStripeSubscription(subscription);
+
+  const handlePortal = async () => {
+    if (!currentOrgId) return;
+    setPortalLoading(true);
+    setPortalError(null);
+    try {
+      const { url } = await customFetch<{ url: string }>(
+        `/api/organizations/${currentOrgId}/stripe/portal`,
+        { method: "POST" },
+      );
+      if (url) window.open(url, "_blank");
+    } catch {
+      setPortalError("Erreur lors de l'ouverture du portail. Réessayez.");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   /** Ouvre Stripe Checkout pour la formule sélectionnée. */
   const handleSouscrire = async () => {
@@ -50,6 +79,13 @@ export function OnboardingAbonnement() {
     }
     if (!effectifKey) {
       setCheckoutError("La formule sélectionnée est introuvable. Recommencez le parcours.");
+      return;
+    }
+    if (subscriptionError) {
+      setCheckoutError("Impossible de vérifier votre abonnement. Réessayez.");
+      return;
+    }
+    if (isActive) {
       return;
     }
 
@@ -138,6 +174,40 @@ export function OnboardingAbonnement() {
           </div>
         </div>
 
+        {currentOrgId && subscriptionLoading && (
+          <p className="text-center text-xs text-muted-foreground">
+            Vérification de votre abonnement…
+          </p>
+        )}
+
+        {isActive && (
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide font-medium text-green-700">
+                Abonnement actuel
+              </p>
+              <p className="text-sm font-semibold text-green-900 mt-1">
+                {subscription?.offer_name ?? "Cocci Pro"} · Actif
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2 border-green-300 bg-white"
+              onClick={handlePortal}
+              disabled={portalLoading}
+            >
+              {portalLoading
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <ExternalLink className="h-4 w-4" />}
+              Gérer mon abonnement
+            </Button>
+            {portalError && (
+              <p className="text-xs text-center text-destructive">{portalError}</p>
+            )}
+          </div>
+        )}
+
         {/* CTA */}
         <div className="space-y-3">
           {isDevis ? (
@@ -153,12 +223,18 @@ export function OnboardingAbonnement() {
             </>
           ) : (
             <>
-              <Button className="w-full gap-2" onClick={handleSouscrire} disabled={checkoutLoading}>
+              <Button
+                className="w-full gap-2"
+                onClick={handleSouscrire}
+                disabled={checkoutLoading || subscriptionLoading || Boolean(subscriptionError) || isActive}
+              >
                 {checkoutLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Redirection vers le paiement…
                   </>
+                ) : isActive ? (
+                  "Abonnement déjà actif"
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4" />
@@ -166,6 +242,11 @@ export function OnboardingAbonnement() {
                   </>
                 )}
               </Button>
+              {subscriptionError && (
+                <p className="text-xs text-center text-destructive">
+                  Impossible de vérifier votre abonnement. Réessayez dans quelques instants.
+                </p>
+              )}
               {checkoutError && (
                 <p className="text-xs text-center text-destructive">{checkoutError}</p>
               )}
