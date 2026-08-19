@@ -14,3 +14,9 @@ Pour les contrôles d’abonnement exécutés immédiatement après l’authenti
 **Why:** juste après la création de compte, le fournisseur de jeton global peut ne pas être encore prêt ; le statut est alors refusé et bloque la reprise sûre de Checkout.
 
 **How to apply:** ne jamais ouvrir Checkout tant que le statut n’est pas confirmé ; afficher une action de relance en cas d’échec persistant.
+
+Le chargement du statut doit aussi être borné dans son ensemble : l’obtention du jeton Clerk peut rester pendante avant même qu’une requête HTTP ne soit envoyée.
+
+**Why:** une promesse de jeton non résolue laisse le composant en état de vérification indéfini, sans trace côté API et sans possibilité de reprendre Checkout.
+
+**How to apply:** appliquer des délais au jeton, à la requête de statut et au cycle complet ; transformer tout dépassement en erreur relançable.
