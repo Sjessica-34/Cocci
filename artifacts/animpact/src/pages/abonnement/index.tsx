@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/react";
 import { AppLayout } from "@/components/layout";
 import { customFetch } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
@@ -65,12 +66,14 @@ const TIER_FEATURES: Record<string, string[]> = {
 // ─── Composant ─────────────────────────────────────────────────────────────────
 
 export function Abonnement() {
+  const { getToken } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
   const {
     subscription,
     isLoading: subscriptionLoading,
     error: subscriptionError,
     isActive,
+    refresh: refreshSubscription,
   } = useOrganizationSubscription(currentOrgId);
 
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -90,9 +93,15 @@ export function Abonnement() {
     if (!currentOrgId || subscriptionLoading || subscriptionError || isActive) return;
     setLoadingPlanKey(effectifKey);
     try {
+      const token = await getToken({ skipCache: true });
+      if (!token) throw new Error("Authentication token unavailable");
       const { url } = await customFetch<{ url: string }>(
         `/api/organizations/${currentOrgId}/stripe/checkout`,
-        { method: "POST", body: JSON.stringify({ effectifKey }) },
+        {
+          method: "POST",
+          body: JSON.stringify({ effectifKey }),
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
       if (url) window.location.href = url;
     } catch {
@@ -106,9 +115,14 @@ export function Abonnement() {
     if (!currentOrgId) return;
     setPortalLoading(true);
     try {
+      const token = await getToken({ skipCache: true });
+      if (!token) throw new Error("Authentication token unavailable");
       const { url } = await customFetch<{ url: string }>(
         `/api/organizations/${currentOrgId}/stripe/portal`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
       if (url) window.open(url, "_blank");
     } catch {
@@ -156,9 +170,20 @@ export function Abonnement() {
           </div>
         )}
         {subscriptionError && currentOrgId && (
-          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            Impossible de vérifier votre abonnement. Les actions de souscription restent désactivées
-            jusqu&apos;à la prochaine tentative.
+          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 space-y-3">
+            <p>
+              Impossible de vérifier votre abonnement. Les actions de souscription restent désactivées
+              jusqu&apos;à la prochaine tentative.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={refreshSubscription}
+              disabled={subscriptionLoading}
+            >
+              Réessayer la vérification
+            </Button>
           </div>
         )}
         {subscription !== undefined && (

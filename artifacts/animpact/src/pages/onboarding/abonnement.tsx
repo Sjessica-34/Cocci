@@ -19,12 +19,13 @@ import {
 
 export function OnboardingAbonnement() {
   const [, setLocation] = useLocation();
-  const { isSignedIn } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn, getToken } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
   const {
     subscription,
     isLoading: subscriptionLoading,
     error: subscriptionError,
+    refresh: refreshSubscription,
   } = useOrganizationSubscription(currentOrgId);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [effectifKey, setEffectifKey] = useState<EffectifKey | null>(null);
@@ -57,9 +58,14 @@ export function OnboardingAbonnement() {
     setPortalLoading(true);
     setPortalError(null);
     try {
+      const token = await getToken({ skipCache: true });
+      if (!token) throw new Error("Authentication token unavailable");
       const { url } = await customFetch<{ url: string }>(
         `/api/organizations/${currentOrgId}/stripe/portal`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
       if (url) window.open(url, "_blank");
     } catch {
@@ -74,6 +80,8 @@ export function OnboardingAbonnement() {
       !currentOrgId
       || !effectifKey
       || !subscriptionReady
+      || !isAuthLoaded
+      || !isSignedIn
       || isActive
       || checkoutStartedRef.current
     ) {
@@ -84,6 +92,8 @@ export function OnboardingAbonnement() {
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
+      const token = await getToken({ skipCache: true });
+      if (!token) throw new Error("Authentication token unavailable");
       // Le frontend transmet seulement la tranche d'effectif. Le serveur
       // sélectionne lui-même le Product ID et le Price ID autorisés.
       const { url } = await customFetch<{ url: string }>(
@@ -91,6 +101,7 @@ export function OnboardingAbonnement() {
         {
           method: "POST",
           body: JSON.stringify({ effectifKey }),
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
       if (url) {
@@ -106,7 +117,15 @@ export function OnboardingAbonnement() {
       setCheckoutError("Erreur lors de la création de la session de paiement. Réessayez.");
       setCheckoutLoading(false);
     }
-  }, [currentOrgId, effectifKey, isActive, subscriptionReady]);
+  }, [
+    currentOrgId,
+    effectifKey,
+    getToken,
+    isActive,
+    isAuthLoaded,
+    isSignedIn,
+    subscriptionReady,
+  ]);
 
   useEffect(() => {
     const hasMatchingIntent = effectifKey
@@ -166,6 +185,11 @@ export function OnboardingAbonnement() {
     }
 
     await startCheckout();
+  };
+
+  const handleRetrySubscriptionCheck = () => {
+    setCheckoutError(null);
+    refreshSubscription();
   };
 
   if (!plan) return null;
@@ -307,9 +331,21 @@ export function OnboardingAbonnement() {
                 )}
               </Button>
               {subscriptionError && (
-                <p className="text-xs text-center text-destructive">
-                  Impossible de vérifier votre abonnement. Réessayez dans quelques instants.
-                </p>
+                <div className="space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-center">
+                  <p className="text-xs text-destructive">
+                    Impossible de vérifier votre abonnement.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={handleRetrySubscriptionCheck}
+                    disabled={subscriptionLoading}
+                  >
+                    Réessayer la vérification
+                  </Button>
+                </div>
               )}
               {checkoutError && (
                 <p className="text-xs text-center text-destructive">{checkoutError}</p>
