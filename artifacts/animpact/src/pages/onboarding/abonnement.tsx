@@ -17,6 +17,7 @@ export function OnboardingAbonnement() {
   const { isSignedIn } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [effectifKey, setEffectifKey] = useState<EffectifKey | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ export function OnboardingAbonnement() {
       setLocation("/onboarding/effectif");
       return;
     }
+    setEffectifKey(key);
     setPlan(effectifToPlan(key));
   }, [setLocation]);
 
@@ -46,21 +48,21 @@ export function OnboardingAbonnement() {
       setLocation("/dashboard");
       return;
     }
-    if (!plan.stripePriceId) {
-      setCheckoutError("Cette formule n'est pas encore disponible au paiement en ligne.");
+    if (!effectifKey) {
+      setCheckoutError("La formule sélectionnée est introuvable. Recommencez le parcours.");
       return;
     }
 
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
-      // La formule (nom, plafond d'effectif) est dérivée côté serveur à partir du priceId —
-      // le prix Stripe porte la tranche sélectionnée (sessionStorage EFFECTIF_SESSION_KEY → plan).
+      // Le frontend transmet seulement la tranche d'effectif. Le serveur
+      // sélectionne lui-même le Product ID et le Price ID autorisés.
       const { url } = await customFetch<{ url: string }>(
         `/api/organizations/${currentOrgId}/stripe/checkout`,
         {
           method: "POST",
-          body: JSON.stringify({ priceId: plan.stripePriceId }),
+          body: JSON.stringify({ effectifKey }),
         },
       );
       if (url) {

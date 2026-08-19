@@ -3,54 +3,46 @@ import { pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
 import { getUncachableStripeClient } from "../stripeClient";
-import { resolveCatalogOffer } from "../stripeCatalog";
+import { configuredEffectifOffers, resolveCheckoutOffer } from "../stripeCatalog";
 import { logger } from "../lib/logger";
 
 const router = Router();
 
-// ── GET /api/stripe/plans — offres disponibles (public) ──────────────────────
+// ── GET /api/stripe/plans — offres disponibles (public, sans IDs Stripe) ─────
 router.get("/stripe/plans", async (_req, res): Promise<void> => {
   try {
-    const result = await pool.query(`
-      SELECT
-        p.id          AS product_id,
-        p.name        AS product_name,
-        p.description AS product_description,
-        p.metadata    AS product_metadata,
-        pr.id         AS price_id,
-        pr.unit_amount,
-        pr.currency,
-        pr.recurring
-      FROM stripe.products p
-      JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
-      WHERE p.active = true
-      ORDER BY pr.unit_amount ASC
-    `);
+    const stripe = await getUncachableStripeClient();
+    const plans = await Promise.all(
+      configuredEffectifOffers().map(async (offer) => {
+        const price = await stripe.prices.retrieve(offer.priceId);
+        const productId = typeof price.product === "string" ? price.product : price.product.id;
+        if (!price.active || productId !== offer.productId || !price.recurring) {
+          throw new Error("Configured Stripe price is unavailable");
+        }
 
-    // Grouper les prix par produit
-    const map = new Map<string, { id: string; name: string; description: string | null; metadata: Record<string, string>; prices: object[] }>();
-    for (const row of result.rows) {
-      if (!map.has(row.product_id)) {
-        map.set(row.product_id, {
-          id: row.product_id,
-          name: row.product_name,
-          description: row.product_description,
-          metadata: row.product_metadata ?? {},
-          prices: [],
-        });
-      }
-      map.get(row.product_id)!.prices.push({
-        id: row.price_id,
-        unitAmount: row.unit_amount,
-        currency: row.currency,
-        recurring: row.recurring,
-      });
-    }
+        const tier = offer.maxEmployees && offer.maxEmployees <= 25
+          ? "tpe"
+          : offer.maxEmployees && offer.maxEmployees <= 100
+            ? "pme"
+            : "eti";
 
-    res.json({ plans: Array.from(map.values()) });
+        return {
+          key: offer.effectifKey,
+          name: offer.offerName,
+          description: null,
+          tier,
+          prices: [{
+            unitAmount: price.unit_amount ?? 0,
+            currency: price.currency,
+            recurring: { interval: price.recurring.interval },
+          }],
+        };
+      }),
+    );
+    res.json({ plans });
   } catch (err) {
     logger.error({ err }, "stripe/plans error");
-    // Stripe pas encore configuré ou aucun produit créé
+    // Stripe pas encore configuré ou catalogue incomplet
     res.json({ plans: [] });
   }
 });
@@ -100,24 +92,36 @@ router.post(
   requireOrgRole(["owner", "admin"]),
   async (req, res): Promise<void> => {
     const orgId = req.orgId!;
-    const { priceId } = req.body as { priceId: string };
+    const body = (req.body ?? {}) as Record<string, unknown>;
 
-    if (!priceId) {
-      res.status(400).json({ error: "priceId is required" });
+    // Toute tentative de choisir un produit ou un prix Stripe depuis le client
+    // est explicitement rejetée. Le catalogue métier du serveur est la source
+    // de vérité exclusive.
+    if ("priceId" in body || "productId" in body) {
+      res.status(400).json({ error: "Stripe identifiers must not be supplied by the client" });
       return;
     }
 
     try {
-      // Catalogue serveur : seuls les produits Cocci autorisés (onboarding ou
-      // formules tpe/pme/eti) peuvent être souscrits. Formule dérivée du produit.
-      const offer = await resolveCatalogOffer(priceId);
+      const offer = resolveCheckoutOffer({
+        effectifKey: body.effectifKey,
+        action: body.action,
+      });
       if (!offer) {
-        res.status(400).json({ error: "Unknown, inactive or unauthorized price" });
+        res.status(400).json({ error: "Unsupported checkout selection" });
         return;
       }
-      const { offerName, maxEmployees, effectifKey } = offer;
 
       const stripe = await getUncachableStripeClient();
+      // Vérification de cohérence côté Stripe : la configuration serveur doit
+      // pointer vers un prix actif rattaché au produit Cocci attendu.
+      const price = await stripe.prices.retrieve(offer.priceId);
+      const priceProductId = typeof price.product === "string" ? price.product : price.product.id;
+      if (!price.active || priceProductId !== offer.productId) {
+        logger.error({ offerName: offer.offerName }, "Invalid Stripe checkout catalog configuration");
+        res.status(500).json({ error: "Stripe catalog configuration is invalid" });
+        return;
+      }
 
       // Récupérer ou créer le customer Stripe pour cette org
       const subRow = await pool.query(
@@ -148,7 +152,7 @@ router.post(
         customer: customerId,
         // Activer SEPA Direct Debit (prélèvement IBAN) + carte bancaire
         payment_method_types: ["card", "sepa_debit"],
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price: offer.priceId, quantity: 1 }],
         mode: "subscription",
         // Pour SEPA, Stripe demande un mandat de prélèvement — on l'accepte automatiquement
         payment_method_options: {
@@ -158,9 +162,10 @@ router.post(
         cancel_url: `${baseUrl}/abonnement?cancelled=1`,
         metadata: {
           orgId: String(orgId),
-          offerName,
-          ...(effectifKey ? { effectifKey } : {}),
-          ...(maxEmployees != null ? { maxEmployees: String(maxEmployees) } : {}),
+          offerName: offer.offerName,
+          ...(offer.effectifKey ? { effectifKey: offer.effectifKey } : {}),
+          ...(offer.action ? { action: offer.action } : {}),
+          ...(offer.maxEmployees != null ? { maxEmployees: String(offer.maxEmployees) } : {}),
         },
         locale: "fr",
       });

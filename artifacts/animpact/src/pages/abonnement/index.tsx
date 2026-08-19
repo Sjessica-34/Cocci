@@ -9,17 +9,16 @@ import { Badge } from "@/components/ui/badge";
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 type Price = {
-  id: string;
   unitAmount: number;
   currency: string;
   recurring: { interval: "month" | "year" };
 };
 
 type Plan = {
-  id: string;
+  key: string;
   name: string;
   description: string | null;
-  metadata: Record<string, string>;
+  tier: string;
   prices: Price[];
 };
 
@@ -79,7 +78,7 @@ export function Abonnement() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | undefined>(undefined);
   const [billing, setBilling] = useState<"month" | "year">("month");
-  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
+  const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
 
@@ -97,19 +96,19 @@ export function Abonnement() {
       .catch(() => setSubscription(null));
   }, [currentOrgId]);
 
-  const handleCheckout = async (priceId: string, planId: string) => {
+  const handleCheckout = async (effectifKey: string) => {
     if (!currentOrgId) return;
-    setLoadingPlanId(planId);
+    setLoadingPlanKey(effectifKey);
     try {
       const { url } = await customFetch<{ url: string }>(
         `/api/organizations/${currentOrgId}/stripe/checkout`,
-        { method: "POST", body: JSON.stringify({ priceId }) },
+        { method: "POST", body: JSON.stringify({ effectifKey }) },
       );
       if (url) window.location.href = url;
     } catch {
       alert("Erreur lors de la création de la session de paiement. Réessayez.");
     } finally {
-      setLoadingPlanId(null);
+      setLoadingPlanKey(null);
     }
   };
 
@@ -208,16 +207,16 @@ export function Abonnement() {
         ) : (
           <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan, i) => {
-              const tier = plan.metadata.tier ?? "tpe";
+              const tier = plan.tier ?? "tpe";
               const Icon = TIER_ICONS[tier] ?? Zap;
               const features = TIER_FEATURES[tier] ?? [];
               const price = plan.prices.find((p) => p.recurring.interval === billing)
                 ?? plan.prices[0];
               const isFeatured = i === 1;
-              const isLoading = loadingPlanId === plan.id;
+              const isLoading = loadingPlanKey === plan.key;
 
               return (
-                <div key={plan.id}
+                <div key={plan.key}
                   className={`relative rounded-2xl border p-6 flex flex-col ${isFeatured ? "border-[#163028] shadow-lg ring-1 ring-[#163028]/20" : "border-gray-200"}`}>
                   {isFeatured && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -259,7 +258,7 @@ export function Abonnement() {
                   </ul>
 
                   <Button
-                    onClick={() => price && handleCheckout(price.id, plan.id)}
+                    onClick={() => price && handleCheckout(plan.key)}
                     disabled={!price || isLoading || isActive}
                     className={`w-full ${isFeatured ? "bg-[#163028] hover:bg-[#1e4438] text-white" : "variant-outline"}`}
                     variant={isFeatured ? "default" : "outline"}
