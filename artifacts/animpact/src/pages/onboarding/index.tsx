@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { EFFECTIF_SESSION_KEY } from "./plans";
 
 // Version des documents légaux en vigueur
 const LEGAL_VERSION = "2025-01";
@@ -72,6 +73,10 @@ export function Onboarding() {
 
     if (type === "groupe") {
       setLocation("/onboarding/filiales");
+    } else if (sessionStorage.getItem(EFFECTIF_SESSION_KEY)) {
+      // The user came back from the subscription flow: resume at the selected
+      // plan now that the first organization exists.
+      setLocation("/onboarding/abonnement");
     } else {
       setLocation("/onboarding/effectif");
     }

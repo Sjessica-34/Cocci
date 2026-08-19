@@ -56,6 +56,7 @@ import { Onboarding } from "@/pages/onboarding/index";
 import { OnboardingFiliales } from "@/pages/onboarding/filiales";
 import { OnboardingEffectif } from "@/pages/onboarding/effectif";
 import { OnboardingAbonnement } from "@/pages/onboarding/abonnement";
+import { EFFECTIF_SESSION_KEY } from "@/pages/onboarding/plans";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
@@ -191,6 +192,19 @@ function SignInPage() {
 }
 
 function SignUpPage() {
+  const [, setLocation] = useLocation();
+  const { isLoaded, isSignedIn } = useAuth();
+
+  // A visitor may arrive here from the pricing flow. Once Clerk has finished
+  // signing them in, resume organization setup instead of sending them to the
+  // dashboard where they would have to find onboarding manually.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+
+    const hasPendingPlan = Boolean(sessionStorage.getItem(EFFECTIF_SESSION_KEY));
+    setLocation(hasPendingPlan ? "/onboarding" : "/dashboard", { replace: true });
+  }, [isLoaded, isSignedIn, setLocation]);
+
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-[440px]">
