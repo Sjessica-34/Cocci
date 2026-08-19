@@ -2,3 +2,4 @@
 - [Catalogue Stripe côté serveur](stripe-catalog-security.md) — jamais d’IDs Stripe dans le frontend : sélectionner les prix via clés métier côté API.
 - [subsidiary-exercise-isolation](subsidiary-exercise-isolation.md) — chaque org (racine ET filiale) doit avoir son propre exercice ; pas de fallback parent dans resolveExercise.
 - [public-rse-page](public-rse-page.md) — page publique /p/:token : utiliser pool.query() pas db.execute(sql``), barometre sans nb_repondants en DB, normaliser snake_case→camelCase des labels.
+- [Reprise d’intention de souscription](subscription-intent-resume.md) — distinguer la formule consultée de l’intention de payer pour reprendre Checkout après l’onboarding, sans abonnement orphelin.

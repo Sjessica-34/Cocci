@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { SUBSCRIPTION_INTENT_SESSION_KEY } from "./plans";
 
 // ── Group mode dialog ──────────────────────────────────────────────────────
 
@@ -139,6 +140,13 @@ export function OnboardingFiliales() {
   const [showModeDialog, setShowModeDialog] = useState(false);
   const [modeSet, setModeSet] = useState(false);
 
+  function continueToNextOnboardingStep() {
+    const hasSubscriptionIntent = Boolean(
+      sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
+    );
+    setLocation(hasSubscriptionIntent ? "/onboarding/abonnement" : "/onboarding/effectif");
+  }
+
   const rootOrg = orgs.find((o) => !o.parentId && o.type === "groupe") ?? null;
   const subsidiaries = orgs.filter((o) => rootOrg && o.parentId === rootOrg.id);
   const isFirstSub = subsidiaries.length === 0;
@@ -149,7 +157,7 @@ export function OnboardingFiliales() {
     setShowModeDialog(false);
     // Switch to the group view
     if (rootOrg) setCurrentOrg(rootOrg.id);
-    setLocation("/onboarding/effectif");
+    continueToNextOnboardingStep();
   }
 
   async function handleAddSub(e: React.FormEvent) {
@@ -175,7 +183,7 @@ export function OnboardingFiliales() {
 
   function handleContinue() {
     if (rootOrg) setCurrentOrg(rootOrg.id);
-    setLocation("/onboarding/effectif");
+    continueToNextOnboardingStep();
   }
 
   // Redirect outside of render

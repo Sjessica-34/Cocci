@@ -49,6 +49,14 @@ export const PLANS: Record<EffectifKey, Plan> = {
 /** Clé sessionStorage utilisée pour transmettre la tranche entre les étapes. */
 export const EFFECTIF_SESSION_KEY = "cocci_onboarding_effectif";
 
+/**
+ * Distinct de la tranche sélectionnée : cette clé confirme que l'utilisateur
+ * a explicitement demandé à payer. Elle permet de reprendre Checkout après
+ * l'authentification et la création de l'organisation, sans déclencher un
+ * paiement après une simple consultation de formule.
+ */
+export const SUBSCRIPTION_INTENT_SESSION_KEY = "cocci_subscription_intent_effectif";
+
 /** Retourne la formule correspondant à une clé d'effectif. */
 export function effectifToPlan(key: EffectifKey): Plan {
   return PLANS[key];

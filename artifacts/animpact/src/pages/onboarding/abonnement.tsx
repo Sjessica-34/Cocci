@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 import { customFetch } from "@workspace/api-client-react";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Check, CreditCard, ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import {
   EFFECTIF_SESSION_KEY,
+  SUBSCRIPTION_INTENT_SESSION_KEY,
   effectifToPlan,
   type EffectifKey,
   type Plan,
@@ -31,6 +32,7 @@ export function OnboardingAbonnement() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
+  const checkoutStartedRef = useRef(false);
 
   useEffect(() => {
     const key = sessionStorage.getItem(EFFECTIF_SESSION_KEY) as EffectifKey | null;
@@ -43,10 +45,12 @@ export function OnboardingAbonnement() {
     setPlan(effectifToPlan(key));
   }, [setLocation]);
 
-  if (!plan) return null;
-
-  const isDevis = plan.pricePerMonth === null;
   const isActive = isActiveStripeSubscription(subscription);
+  const subscriptionReady = Boolean(currentOrgId)
+    && subscription !== undefined
+    && !subscriptionLoading
+    && !subscriptionError;
+  const isDevis = plan?.pricePerMonth === null;
 
   const handlePortal = async () => {
     if (!currentOrgId) return;
@@ -65,30 +69,18 @@ export function OnboardingAbonnement() {
     }
   };
 
-  /** Ouvre Stripe Checkout pour la formule sélectionnée. */
-  const handleSouscrire = async () => {
-    // Non connecté → inscription (l'onboarding reprend ensuite, la tranche reste en sessionStorage)
-    if (!isSignedIn) {
-      setLocation("/sign-up");
-      return;
-    }
-    // Connecté mais pas d'organisation → l'espace guide la création avant de payer
-    if (!currentOrgId) {
-      setLocation("/dashboard");
-      return;
-    }
-    if (!effectifKey) {
-      setCheckoutError("La formule sélectionnée est introuvable. Recommencez le parcours.");
-      return;
-    }
-    if (subscriptionError) {
-      setCheckoutError("Impossible de vérifier votre abonnement. Réessayez.");
-      return;
-    }
-    if (isActive) {
+  const startCheckout = useCallback(async () => {
+    if (
+      !currentOrgId
+      || !effectifKey
+      || !subscriptionReady
+      || isActive
+      || checkoutStartedRef.current
+    ) {
       return;
     }
 
+    checkoutStartedRef.current = true;
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
@@ -102,15 +94,81 @@ export function OnboardingAbonnement() {
         },
       );
       if (url) {
+        // Checkout est lancé : l'intention est consommée pour ne jamais
+        // redéclencher une seconde session après un retour ou un rechargement.
+        sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
         window.location.href = url;
         return; // redirection en cours — garder l'état "loading"
       }
       throw new Error("URL de paiement manquante");
     } catch {
+      checkoutStartedRef.current = false;
       setCheckoutError("Erreur lors de la création de la session de paiement. Réessayez.");
       setCheckoutLoading(false);
     }
+  }, [currentOrgId, effectifKey, isActive, subscriptionReady]);
+
+  useEffect(() => {
+    const hasMatchingIntent = effectifKey
+      && sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY) === effectifKey;
+    const canResumeCheckout = isSignedIn
+      && currentOrgId
+      && effectifKey
+      && !isDevis
+      && hasMatchingIntent
+      && subscriptionReady
+      && !isActive;
+
+    if (isActive && hasMatchingIntent) {
+      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      return;
+    }
+
+    if (canResumeCheckout) {
+      void startCheckout();
+    }
+  }, [
+    currentOrgId,
+    effectifKey,
+    isActive,
+    isDevis,
+    isSignedIn,
+    startCheckout,
+    subscriptionReady,
+  ]);
+
+  /** Enregistre l'intention puis ouvre Checkout maintenant ou après l'onboarding. */
+  const handleSouscrire = async () => {
+    if (!effectifKey) {
+      setCheckoutError("La formule sélectionnée est introuvable. Recommencez le parcours.");
+      return;
+    }
+
+    sessionStorage.setItem(SUBSCRIPTION_INTENT_SESSION_KEY, effectifKey);
+
+    // Non connecté → inscription. L'intention est reprise après authentification.
+    if (!isSignedIn) {
+      setLocation("/sign-up");
+      return;
+    }
+    // Connecté mais sans organisation → création d'espace, puis reprise automatique.
+    if (!currentOrgId) {
+      setLocation("/dashboard");
+      return;
+    }
+    if (subscriptionError || !subscriptionReady) {
+      setCheckoutError("Impossible de vérifier votre abonnement. Réessayez.");
+      return;
+    }
+    if (isActive) {
+      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      return;
+    }
+
+    await startCheckout();
   };
+
+  if (!plan) return null;
 
   const INCLUDED_FEATURES = [
     "Toutes les fonctionnalités Cocci incluses",
@@ -226,7 +284,13 @@ export function OnboardingAbonnement() {
               <Button
                 className="w-full gap-2"
                 onClick={handleSouscrire}
-                disabled={checkoutLoading || subscriptionLoading || Boolean(subscriptionError) || isActive}
+                disabled={
+                  checkoutLoading
+                  || subscriptionLoading
+                  || Boolean(subscriptionError)
+                  || (Boolean(currentOrgId) && !subscriptionReady)
+                  || isActive
+                }
               >
                 {checkoutLoading ? (
                   <>
