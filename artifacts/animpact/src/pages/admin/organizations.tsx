@@ -1,32 +1,14 @@
 import { useState, useMemo } from "react";
-import { useLocation } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "./layout";
 import {
   useListAdminOrganizations,
   getListAdminOrganizationsQueryKey,
-  useCreateAdminOrganization,
 } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, Filter, Plus, Loader2 } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   buildHierarchy,
@@ -36,154 +18,10 @@ import {
 } from "./_org-rows";
 import type { AdminOrganization } from "@workspace/api-client-react";
 import type { ClientEntry } from "./_org-rows";
-import { useToast } from "@/hooks/use-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type FilterStatus = "all" | "active" | "trial" | "suspended" | "expired" | "overflow";
-
-interface CreateOrgForm {
-  name: string;
-  siren: string;
-  sector: string;
-  size: string;
-}
-
-const EMPTY_FORM: CreateOrgForm = { name: "", siren: "", sector: "", size: "" };
-
-// ─── Create Organisation Modal ────────────────────────────────────────────────
-
-function CreateOrgModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [form, setForm] = useState<CreateOrgForm>(EMPTY_FORM);
-  const [, navigate] = useLocation();
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  const createOrg = useCreateAdminOrganization({
-    mutation: {
-      onSuccess: (newOrg) => {
-        queryClient.invalidateQueries({ queryKey: getListAdminOrganizationsQueryKey() });
-        toast({ title: `Organisation « ${newOrg.name} » créée avec succès.` });
-        setForm(EMPTY_FORM);
-        onClose();
-        navigate(`/admin/organizations/${newOrg.id}`);
-      },
-      onError: () => {
-        toast({ variant: "destructive", title: "Erreur lors de la création de l'organisation." });
-      },
-    },
-  });
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.name.trim()) return;
-    createOrg.mutate({
-      data: {
-        name: form.name.trim(),
-        ...(form.siren.trim() ? { siren: form.siren.trim() } : {}),
-        ...(form.sector.trim() ? { sector: form.sector.trim() } : {}),
-        ...(form.size ? { size: form.size } : {}),
-      },
-    });
-  }
-
-  function handleClose() {
-    if (createOrg.isPending) return;
-    setForm(EMPTY_FORM);
-    onClose();
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Nouvelle organisation</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
-          {/* Nom */}
-          <div className="space-y-2">
-            <Label htmlFor="org-name" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-              Nom <span className="text-rose-500">*</span>
-            </Label>
-            <Input
-              id="org-name"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Acme SAS"
-              autoFocus
-              required
-              className="bg-background"
-            />
-          </div>
-
-          {/* SIREN */}
-          <div className="space-y-2">
-            <Label htmlFor="org-siren" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-              SIREN <span className="text-muted-foreground/60 font-normal normal-case">(optionnel)</span>
-            </Label>
-            <Input
-              id="org-siren"
-              value={form.siren}
-              onChange={(e) => setForm((f) => ({ ...f, siren: e.target.value }))}
-              placeholder="123 456 789"
-              className="bg-background font-mono"
-              maxLength={14}
-            />
-          </div>
-
-          {/* Secteur + Taille */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="org-sector" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                Secteur
-              </Label>
-              <Input
-                id="org-sector"
-                value={form.sector}
-                onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))}
-                placeholder="Industrie, IT…"
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                Taille
-              </Label>
-              <Select value={form.size} onValueChange={(v) => setForm((f) => ({ ...f, size: v }))}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Sélectionner…" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TPE">TPE</SelectItem>
-                  <SelectItem value="PME">PME</SelectItem>
-                  <SelectItem value="ETI">ETI</SelectItem>
-                  <SelectItem value="GE">GE</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={handleClose} disabled={createOrg.isPending}>
-              Annuler
-            </Button>
-            <Button type="submit" disabled={!form.name.trim() || createOrg.isPending}>
-              {createOrg.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Créer l'organisation
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -191,7 +29,6 @@ export function AdminOrganizations() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [createOpen, setCreateOpen] = useState(false);
 
   const { data: orgs, isLoading } = useListAdminOrganizations({
     query: { queryKey: getListAdminOrganizationsQueryKey() },
@@ -305,14 +142,6 @@ export function AdminOrganizations() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Button
-              size="sm"
-              className="shrink-0"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-1.5" />
-              Nouvelle organisation
-            </Button>
           </div>
         </div>
 
@@ -397,8 +226,6 @@ export function AdminOrganizations() {
         )}
       </div>
 
-      {/* Create organisation modal */}
-      <CreateOrgModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </AdminLayout>
   );
 }
