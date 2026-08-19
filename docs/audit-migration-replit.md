@@ -7,17 +7,21 @@ Nature : audit documentaire en lecture seule
 ## 1. Synthèse
 
 Le projet n’est pas entièrement portable en l’état. Son socle Node.js, React, Express,
-PostgreSQL, Drizzle et pnpm est standard, mais quatre fonctions de production reposent
-sur des services ou conventions Replit :
+PostgreSQL, Drizzle et pnpm est standard, mais trois fonctions de production reposent
+encore sur des services ou conventions Replit :
 
-1. **Paiement Stripe** : récupération des credentials via le connecteur Replit,
-   synchronisation `stripe-replit-sync`, webhook géré et tables `stripe.*`.
-2. **Authentification** : tenant Clerk géré par Replit, résolution de clé par hostname
+1. **Authentification** : tenant Clerk géré par Replit, résolution de clé par hostname
    et proxy Clerk spécifique au déploiement Replit.
-3. **Stockage d’objets** : credentials et URLs signées fournis par un sidecar local
+2. **Stockage d’objets** : credentials et URLs signées fournis par un sidecar local
    Replit inaccessible sur un hébergeur classique.
-4. **Fonctions IA** : appels Anthropic et OpenAI acheminés par les proxies Replit AI
+3. **Fonctions IA** : appels Anthropic et OpenAI acheminés par les proxies Replit AI
    Integrations et leurs variables dédiées.
+
+Le verrou Stripe identifié pendant l’audit a depuis été supprimé par la
+**Task #52 — Migrer Stripe vers SDK officiel**. Le code utilise désormais le SDK
+officiel, des secrets standard et une URL applicative explicite. La configuration des
+secrets, du catalogue TEST/LIVE et du webhook reste un prérequis de déploiement, mais
+ce n’est plus une dépendance à Replit.
 
 La base PostgreSQL est techniquement portable grâce à `DATABASE_URL`, mais sa migration
 est un prérequis majeur : elle contient les données métier, les identifiants Clerk,
@@ -42,18 +46,17 @@ cible.
 
 ### 3.1 Paiement Stripe
 
-**Criticité : Bloquant pour Checkout, portail et suivi d’abonnement**
+**Criticité actuelle : Configuration — verrou Replit supprimé**
 
-| Élément Replit | Preuves | Impact hors Replit | Remplacement portable |
-|---|---|---|---|
-| Broker de credentials Stripe | `artifacts/api-server/src/stripeClient.ts:4-34`, `scripts/src/stripeClient.ts:3-30` | Absence de `REPLIT_CONNECTORS_HOSTNAME`, `REPL_IDENTITY` et `WEB_REPL_RENEWAL` ; aucune clé Stripe n’est disponible. | SDK officiel `stripe` avec `STRIPE_SECRET_KEY` dans le gestionnaire de secrets de l’hébergeur. |
-| Synchronisation propriétaire | `package.json:22-25`, `artifacts/api-server/src/stripeClient.ts:41-50`, `artifacts/api-server/src/index.ts:3-27` | Migrations, webhook géré et backfill ne démarrent plus. | Webhook Stripe officiel, logique métier locale et migrations applicatives versionnées. |
-| Secret de webhook en table gérée | `artifacts/api-server/src/webhookHandlers.ts:46-105` | La signature ne peut plus être vérifiée car le secret est recherché dans `stripe._managed_webhooks`. | `STRIPE_WEBHOOK_SECRET`, corps HTTP brut et `stripe.webhooks.constructEvent`. |
-| État synchronisé `stripe.*` | `artifacts/api-server/src/routes/subscriptions.ts:66-80` | La consultation d’abonnement dépend d’un schéma alimenté par `stripe-replit-sync`. | Base métier locale alimentée par les webhooks, complétée au besoin par des lectures Stripe directes. |
-| Domaine de webhook et retours | `artifacts/api-server/src/index.ts:14-15`, `artifacts/api-server/src/routes/subscriptions.ts:145-162,199-207`, `artifacts/api-server/src/webhookHandlers.ts:176-185` | `REPLIT_DOMAINS` disparaît ; webhook, retours Checkout/portail et liens email peuvent être invalides. | URL publique explicite, par exemple `APP_PUBLIC_URL` et éventuellement `API_PUBLIC_URL`. |
+| Élément portable | Preuves actuelles | Préparation restante |
+|---|---|---|
+| Client SDK officiel | `artifacts/api-server/src/stripeClient.ts:1-25`, `scripts/src/stripeClient.ts` | Configurer `STRIPE_SECRET_KEY` dans chaque environnement. |
+| Signature webhook explicite | `artifacts/api-server/src/webhookHandlers.ts:47-65`, `artifacts/api-server/src/app.ts:100-117` | Créer l’endpoint Stripe et configurer `STRIPE_WEBHOOK_SECRET`. |
+| URL applicative indépendante de l’hébergeur | `artifacts/api-server/src/appUrl.ts:1-32`, `artifacts/api-server/src/routes/subscriptions.ts`, `artifacts/api-server/src/webhookHandlers.ts` | Configurer `APP_URL` avec l’URL publique de la SPA. |
+| État métier local | `artifacts/api-server/src/routes/subscriptions.ts`, `lib/db/src/schema/subscriptions.ts` | Vérifier la cohérence avec le compte Stripe TEST puis LIVE. |
+| Absence de synchronisation Replit | `package.json`, `pnpm-workspace.yaml`, `artifacts/api-server/src/index.ts` | Les anciennes tables `stripe.*` peuvent être conservées sans être consultées. |
 
-La **Task #52 — Migrer Stripe vers SDK officiel** traite déjà ce sous-ensemble. Cet
-audit ne duplique pas sa mise en œuvre.
+Les détails de configuration sont documentés dans `docs/stripe-deployment.md`.
 
 **Données à préserver**
 
@@ -201,14 +204,14 @@ design et n’ont aucun effet d’exécution.
 
 ## 4. Inventaire des variables
 
-### 4.1 Variables spécifiques à Replit à éliminer ou remplacer
+### 4.1 Variables spécifiques à Replit retirées ou encore à remplacer
 
-| Variable | Usage actuel | Remplacement envisagé |
+| Variable | État actuel | Remplacement envisagé |
 |---|---|---|
-| `REPLIT_CONNECTORS_HOSTNAME` | Broker Stripe | Aucun ; SDK fournisseur direct. |
-| `REPL_IDENTITY` | Authentification du broker en développement | Aucun. |
-| `WEB_REPL_RENEWAL` | Authentification du broker en déploiement | Aucun. |
-| `REPLIT_DOMAINS` | Webhook, redirections et liens | `APP_PUBLIC_URL` / `API_PUBLIC_URL`. |
+| `REPLIT_CONNECTORS_HOSTNAME` | Plus référencée par Stripe | Aucun ; SDK officiel direct. |
+| `REPL_IDENTITY` | Plus référencée par Stripe | Aucun. |
+| `WEB_REPL_RENEWAL` | Plus référencée par Stripe | Aucun. |
+| `REPLIT_DOMAINS` | Plus référencée par Stripe | `APP_URL`. |
 | `REPL_ID` | Activation de plugins Vite Replit | Aucun. |
 | `AI_INTEGRATIONS_ANTHROPIC_*` | Proxy Anthropic | Clé/base URL fournisseur standard. |
 | `AI_INTEGRATIONS_OPENAI_*` | Proxy OpenAI | Clé/base URL fournisseur standard. |
@@ -234,13 +237,11 @@ reconfigurée uniquement si un proxy Clerk standard est volontairement maintenu.
 `BASE_PATH` reste une convention générique, mais doit être explicitement fixée à `/`
 ou au chemin publié par le nouvel hébergeur.
 
-### 4.3 Variables futures probables
+### 4.3 Variables nouvelles ou futures
 
-Les noms exacts devront être validés lors de chaque migration :
-
-- Stripe : `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`,
-  `STRIPE_WEBHOOK_SECRET` ;
-- URLs : `APP_PUBLIC_URL`, éventuellement `API_PUBLIC_URL` ;
+- Stripe, désormais définies par l’architecture :
+  `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`,
+  `STRIPE_WEBHOOK_SECRET` et `APP_URL` ;
 - stockage S3 : bucket, région, endpoint, access key et secret key ;
 - ou GCS : project ID, bucket et identité de service ;
 - IA : clés fournisseur, base URL et modèle sélectionné.
@@ -323,7 +324,7 @@ un échantillonnage avec checksums.
 
 ### Paiement
 
-- [ ] Task #52 finalisée et validée.
+- [x] Dépendance au connecteur Replit supprimée par la Task #52.
 - [ ] Clé Stripe TEST puis LIVE dans le gestionnaire de secrets.
 - [ ] Produits/prix reconnus dans le bon mode Stripe.
 - [ ] Webhook officiel configuré sur l’URL publique API.
@@ -361,7 +362,7 @@ un échantillonnage avec checksums.
 3. **Préparer l’authentification** et le mapping des utilisateurs sans couper le tenant
    actuel.
 4. **Migrer le stockage d’objets** et sécuriser les téléchargements privés.
-5. **Finaliser la Task #52 Stripe**, d’abord en TEST, puis préparer le LIVE.
+5. **Configurer et valider Stripe migré**, d’abord en TEST, puis préparer le LIVE.
 6. **Remplacer les proxies IA** ou accepter explicitement la désactivation temporaire
    des fonctions concernées.
 7. **Reproduire le routage web/API**, CORS, HTTPS, variables et healthchecks.
@@ -386,11 +387,11 @@ un échantillonnage avec checksums.
 
 ## 9. Conclusion
 
-La sortie de Replit est réalisable sans réécriture générale. Les composants standards
-peuvent être conservés, mais la migration doit traiter explicitement Stripe,
-l’identité Clerk, le sidecar Object Storage et les proxies IA. PostgreSQL doit être
-migré comme source de vérité, avec une attention particulière aux Clerk IDs, aux
-abonnements et aux fichiers binaires.
+La sortie de Replit est réalisable sans réécriture générale. Le verrou Stripe a déjà
+été retiré. Les composants standards peuvent être conservés, mais la migration doit
+encore traiter explicitement l’identité Clerk, le sidecar Object Storage et les
+proxies IA. PostgreSQL doit être migré comme source de vérité, avec une attention
+particulière aux Clerk IDs, aux abonnements et aux fichiers binaires.
 
 Les fichiers d’artifact, plugins Vite et outils Canvas ne sont pas des blocages métier.
 Ils peuvent être retirés après la migration fonctionnelle ou conservés localement
