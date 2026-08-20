@@ -326,7 +326,7 @@ export function ReportViewer() {
             #report-toolbar { display: none !important; }
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             #report-content { max-width: 100% !important; padding: 0 !important; box-shadow: none !important; }
-            .chapter-section { break-before: page; page-break-before: always; }
+            .chapter-section { break-before: auto; page-break-before: auto; }
             .chapter-section > div > * { break-inside: avoid; page-break-inside: avoid; }
             tr { break-inside: avoid; page-break-inside: avoid; }
             * { box-shadow: none !important; }
