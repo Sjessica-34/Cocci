@@ -2371,6 +2371,7 @@ export interface ReportDraft {
   reportScope?: string | null;
   reportMethodology?: string | null;
   generationCount?: number;
+  generationYear?: number;
   additionalGenerations?: number;
   maxGenerations?: number;
   updatedAt: string;

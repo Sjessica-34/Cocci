@@ -459,6 +459,7 @@ export function RapportRse() {
     setGenerating(true);
     setGenerateError(null);
     try {
+      await flushDraftBeforeGeneration();
       await customFetch(`/api/organizations/${orgId}/report/register-generation`, {
         method: "POST",
       });

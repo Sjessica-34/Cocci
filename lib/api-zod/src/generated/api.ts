@@ -4106,6 +4106,7 @@ export const GetReportDraftResponse = zod.object({
   "reportScope": zod.string().nullish(),
   "reportMethodology": zod.string().nullish(),
   "generationCount": zod.number().optional(),
+  "generationYear": zod.number().optional(),
   "additionalGenerations": zod.number().optional(),
   "maxGenerations": zod.number().optional(),
   "updatedAt": zod.string()
@@ -4211,6 +4212,7 @@ export const UpdateReportDraftResponse = zod.object({
   "reportScope": zod.string().nullish(),
   "reportMethodology": zod.string().nullish(),
   "generationCount": zod.number().optional(),
+  "generationYear": zod.number().optional(),
   "additionalGenerations": zod.number().optional(),
   "maxGenerations": zod.number().optional(),
   "updatedAt": zod.string()

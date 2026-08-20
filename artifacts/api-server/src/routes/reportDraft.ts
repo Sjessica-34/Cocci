@@ -10,6 +10,11 @@ import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
 const router = Router();
 
 function serializeDraft(row: typeof rseReportDraftsTable.$inferSelect) {
+  const generationYear = row.generationYear ?? 0;
+  const generationCount = generationYear === new Date().getFullYear()
+    ? (row.generationCount ?? 0)
+    : 0;
+
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -40,8 +45,8 @@ function serializeDraft(row: typeof rseReportDraftsTable.$inferSelect) {
     perspectivesContent: row.perspectivesContent ?? null,
     reportScope: row.reportScope ?? null,
     reportMethodology: row.reportMethodology ?? null,
-    generationCount: row.generationCount ?? 0,
-    generationYear: row.generationYear ?? 0,
+    generationCount,
+    generationYear,
     additionalGenerations: row.generationBonus ?? 0,
     maxGenerations: MAX_REPORT_GENERATIONS + (row.generationBonus ?? 0),
     updatedAt: row.updatedAt.toISOString(),
@@ -92,6 +97,7 @@ router.get("/organizations/:orgId/report-draft", requireAuth, requireActiveOrgMe
       reportScope: null,
       reportMethodology: null,
       generationCount: 0,
+      generationYear: 0,
       additionalGenerations: 0,
       maxGenerations: MAX_REPORT_GENERATIONS,
       updatedAt: new Date().toISOString(),
