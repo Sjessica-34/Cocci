@@ -53,65 +53,6 @@ function serializeDraft(row: typeof rseReportDraftsTable.$inferSelect) {
   };
 }
 
-async function reserveReportGeneration(orgId: number, exerciseId: number) {
-  const currentYear = new Date().getFullYear();
-
-  return db.transaction(async (tx) => {
-    // A report generation is a quota reservation. Serializing requests per
-    // organization/exercise prevents simultaneous requests from spending the
-    // same remaining generation credit more than once.
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(${orgId}, ${exerciseId})`);
-
-    const [existing] = await tx
-      .select({
-        id: rseReportDraftsTable.id,
-        generationCount: rseReportDraftsTable.generationCount,
-        generationYear: rseReportDraftsTable.generationYear,
-        generationBonus: rseReportDraftsTable.generationBonus,
-      })
-      .from(rseReportDraftsTable)
-      .where(and(
-        eq(rseReportDraftsTable.organizationId, orgId),
-        eq(rseReportDraftsTable.exerciseId, exerciseId),
-      ))
-      .limit(1);
-    const currentCount = existing?.generationYear === currentYear
-      ? (existing.generationCount ?? 0)
-      : 0;
-    const maxGenerations = MAX_REPORT_GENERATIONS + (existing?.generationBonus ?? 0);
-
-    if (currentCount >= maxGenerations) {
-      return { limitReached: true as const, generationCount: currentCount, maxGenerations };
-    }
-
-    if (existing) {
-      await tx
-        .update(rseReportDraftsTable)
-        .set({
-          generationCount: currentCount + 1,
-          generationYear: currentYear,
-          updatedAt: new Date(),
-        })
-        .where(eq(rseReportDraftsTable.id, existing.id));
-    } else {
-      await tx
-        .insert(rseReportDraftsTable)
-        .values({
-          organizationId: orgId,
-          exerciseId,
-          generationCount: 1,
-          generationYear: currentYear,
-        });
-    }
-
-    return {
-      limitReached: false as const,
-      generationCount: currentCount + 1,
-      maxGenerations,
-    };
-  });
-}
-
 // GET /organizations/:orgId/report-draft
 router.get("/organizations/:orgId/report-draft", requireAuth, requireActiveOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const [row] = await db
@@ -342,23 +283,11 @@ router.post("/organizations/:orgId/report/ai-section", requireAuth, requireWrita
 });
 
 // GET /organizations/:orgId/report/generate
-// Legacy DOCX download. It must reserve a credit itself because callers can
-// invoke this endpoint directly, outside the visual report flow.
-router.get("/organizations/:orgId/report/generate", requireAuth, requireWritableOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+router.get("/organizations/:orgId/report/generate", requireAuth, requireActiveOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const orgId = req.orgId!;
   const exercise = req.exercise!;
 
   try {
-    const reservation = await reserveReportGeneration(orgId, exercise.id);
-    if (reservation.limitReached) {
-      res.status(429).json({
-        error: "generation_limit_reached",
-        generationCount: reservation.generationCount,
-        maxGenerations: reservation.maxGenerations,
-      });
-      return;
-    }
-
     const buffer = await generateReport(orgId, exercise.id, exercise.year);
     const filename = `rapport-rse-${exercise.year}.docx`;
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
@@ -376,9 +305,63 @@ router.get("/organizations/:orgId/report/generate", requireAuth, requireWritable
 router.post("/organizations/:orgId/report/register-generation", requireAuth, requireWritableOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const orgId = req.orgId!;
   const exercise = req.exercise!;
+  const currentYear = new Date().getFullYear();
 
   try {
-    const result = await reserveReportGeneration(orgId, exercise.id);
+    const result = await db.transaction(async (tx) => {
+      // A report generation is a quota reservation. Serializing requests per
+      // organization/exercise prevents simultaneous clicks from spending the
+      // same remaining generation credit more than once.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${orgId}, ${exercise.id})`);
+
+      const [existing] = await tx
+        .select({
+          id: rseReportDraftsTable.id,
+          generationCount: rseReportDraftsTable.generationCount,
+          generationYear: rseReportDraftsTable.generationYear,
+          generationBonus: rseReportDraftsTable.generationBonus,
+        })
+        .from(rseReportDraftsTable)
+        .where(and(
+          eq(rseReportDraftsTable.organizationId, orgId),
+          eq(rseReportDraftsTable.exerciseId, exercise.id),
+        ))
+        .limit(1);
+      const currentCount = existing?.generationYear === currentYear
+        ? (existing.generationCount ?? 0)
+        : 0;
+      const maxGenerations = MAX_REPORT_GENERATIONS + (existing?.generationBonus ?? 0);
+
+      if (currentCount >= maxGenerations) {
+        return { limitReached: true as const, generationCount: currentCount, maxGenerations };
+      }
+
+      if (existing) {
+        await tx
+          .update(rseReportDraftsTable)
+          .set({
+            generationCount: currentCount + 1,
+            generationYear: currentYear,
+            updatedAt: new Date(),
+          })
+          .where(eq(rseReportDraftsTable.id, existing.id));
+      } else {
+        await tx
+          .insert(rseReportDraftsTable)
+          .values({
+            organizationId: orgId,
+            exerciseId: exercise.id,
+            generationCount: 1,
+            generationYear: currentYear,
+          });
+      }
+
+      return {
+        limitReached: false as const,
+        generationCount: currentCount + 1,
+        maxGenerations,
+      };
+    });
 
     if (result.limitReached) {
       res.status(429).json({

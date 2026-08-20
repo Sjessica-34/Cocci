@@ -9,8 +9,6 @@ export function ChapterIntroRSE() {
     <section
       className="chapter-section"
       style={{
-        breakBefore: "page",
-        pageBreakBefore: "always",
         paddingBottom: 48,
       }}
     >

@@ -67,8 +67,6 @@ export function ChapterWrapper({
     <section
       className="chapter-section"
       style={{
-        breakBefore: "page",
-        pageBreakBefore: "always",
         paddingTop: 0,
         paddingBottom: 48,
       }}
