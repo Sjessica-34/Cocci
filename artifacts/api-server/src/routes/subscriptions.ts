@@ -157,7 +157,11 @@ router.post(
         payment_method_options: {
           sepa_debit: { mandate_options: {} },
         },
-        success_url: `${baseUrl}/abonnement?success=1`,
+        // Stripe revient sur une confirmation dédiée, jamais sur le catalogue.
+        // Seule une clé métier issue du catalogue serveur est exposée à l'URL.
+        success_url: `${baseUrl}/abonnement/confirmation?offer=${encodeURIComponent(
+          offer.effectifKey ?? offer.action ?? "subscription",
+        )}`,
         cancel_url: `${baseUrl}/abonnement?cancelled=1`,
         metadata: {
           orgId: String(orgId),

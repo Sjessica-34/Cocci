@@ -133,7 +133,6 @@ export function Abonnement() {
   };
 
   const hasAnyActive = subscription?.status === "active";
-  const success = searchParams.get("success") === "1";
   const cancelled = searchParams.get("cancelled") === "1";
 
   return (
@@ -149,14 +148,6 @@ export function Abonnement() {
         </div>
 
         {/* ── Notifications ── */}
-        {success && (
-          <div className="mb-6 flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
-            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
-            <p className="text-sm font-medium text-green-800">
-              Abonnement activé avec succès ! Votre organisation bénéficie maintenant d'un accès complet.
-            </p>
-          </div>
-        )}
         {cancelled && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
             <p className="text-sm text-amber-800">Paiement annulé. Votre abonnement n'a pas été modifié.</p>

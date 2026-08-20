@@ -3,4 +3,5 @@
 - [subsidiary-exercise-isolation](subsidiary-exercise-isolation.md) — chaque org (racine ET filiale) doit avoir son propre exercice ; pas de fallback parent dans resolveExercise.
 - [public-rse-page](public-rse-page.md) — page publique /p/:token : utiliser pool.query() pas db.execute(sql``), barometre sans nb_repondants en DB, normaliser snake_case→camelCase des labels.
 - [Reprise d’intention de souscription](subscription-intent-resume.md) — distinguer la formule consultée de l’intention de payer pour reprendre Checkout après l’onboarding, sans abonnement orphelin.
+- [Confirmation de souscription](subscription-success-confirmation.md) — un paiement réussi aboutit à une confirmation dédiée, pas au catalogue des offres.
 - [Livraison webhook Stripe](stripe-webhook-delivery.md) — un paiement Checkout réussi n’active rien sans endpoint TEST actif et secret de signature cohérent.
