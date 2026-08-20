@@ -10,7 +10,14 @@ description: Architecture et points techniques de la page publique partageable /
   - `GET /api/public/rse/:token` — agrège toutes les données sans auth via `pool.query()` (pas `db.execute(sql\`...\`)` qui causait des 500 silencieux)
   - `GET/POST/DELETE /organizations/:orgId/public-link` — gestion du token (auth requise)
 - **Frontend** : `artifacts/animpact/src/pages/public-rse/index.tsx` — route `/p/:token` dans `AppRoutes` (hors ClerkProvider)
-- **Bouton partage** : dans `rapport-rse/index.tsx` onglet "Générer", state `publicToken`/`publicUrl`, fetch via `customFetch`
+
+## Positionnement dans le produit
+
+La gestion de la page publique RSE (lien, QR code et révocation) doit rester sur sa page dédiée, et ne doit pas apparaître dans l’éditeur du rapport RSE.
+
+**Why:** le rapport reste concentré sur sa préparation, sa génération et ses archives ; le partage public est un parcours distinct.
+
+**How to apply:** ne pas ajouter de carte, QR code ni commande de lien public dans le rapport RSE. Conserver la page publique partageable et son écran de gestion dédié.
 
 ## Pièges connus
 
