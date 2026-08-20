@@ -565,6 +565,8 @@ export function RapportRse() {
   ];
 
   const editorialMode = local.editorialMode ?? "manual";
+  const reportGenerationCount = draft?.generationCount ?? 0;
+  const reportMaxGenerations = draft?.maxGenerations ?? MAX_REPORT_GENERATIONS;
 
   if (!orgId) {
     return (
@@ -1015,8 +1017,9 @@ export function RapportRse() {
 
               {/* ─── Quota de générations ─── */}
               {(() => {
-                const count = (draft as { generationCount?: number } | undefined)?.generationCount ?? 0;
-                const limitReached = count >= MAX_REPORT_GENERATIONS;
+                const count = reportGenerationCount;
+                const maxGenerations = reportMaxGenerations;
+                const limitReached = count >= maxGenerations;
                 return (
                   <div className="space-y-3">
                     {/* Indicateur de quota */}
@@ -1026,7 +1029,7 @@ export function RapportRse() {
                         "font-semibold",
                         limitReached ? "text-destructive" : "text-foreground",
                       )}>
-                        {count} / {MAX_REPORT_GENERATIONS}
+                        {count} / {maxGenerations}
                       </span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
@@ -1035,7 +1038,7 @@ export function RapportRse() {
                           "h-full rounded-full transition-all",
                           limitReached ? "bg-destructive" : "bg-green-500",
                         )}
-                        style={{ width: `${Math.min((count / MAX_REPORT_GENERATIONS) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((count / maxGenerations) * 100, 100)}%` }}
                       />
                     </div>
 
@@ -1043,7 +1046,7 @@ export function RapportRse() {
                       /* ── Limite atteinte ── */
                       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-1">
                         <p className="text-sm font-semibold text-destructive">
-                          Vous avez atteint le nombre maximum de générations pour cet exercice ({MAX_REPORT_GENERATIONS}).
+                          Vous avez atteint le nombre maximum de générations pour cet exercice ({maxGenerations}).
                         </p>
                         <p className="text-xs text-muted-foreground">
                           Si vous souhaitez bénéficier d'une génération supplémentaire, merci de contacter l'équipe Cocci.
@@ -1143,7 +1146,7 @@ export function RapportRse() {
             <AlertDialogTitle>Confirmer la génération</AlertDialogTitle>
             <AlertDialogDescription>
               Attention : chaque exercice est limité à{" "}
-              <strong>{MAX_REPORT_GENERATIONS} générations</strong> de rapport. Cette génération sera
+              <strong>{reportMaxGenerations} générations</strong> de rapport. Cette génération sera
               décomptée de votre quota. Souhaitez-vous continuer ?
             </AlertDialogDescription>
           </AlertDialogHeader>
