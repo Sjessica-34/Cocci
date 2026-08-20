@@ -38,53 +38,15 @@ function Toolbar({ orgId }: { orgId: number | null }) {
   const { editMode, toggleEditMode } = useReportEdit();
 
   const handlePrint = () => {
-    const report = document.getElementById("report-content");
-    const printWindow = window.open("", "rse-report-print", "popup,width=1000,height=900");
-
-    if (!report || !printWindow) {
-      window.print();
-      return;
-    }
-
-    const styles = Array.from(document.head.querySelectorAll("link[rel='stylesheet'], style"))
-      .map((element) => element.outerHTML)
-      .join("");
-    let printStarted = false;
-
-    const print = () => {
-      if (printStarted) return;
-      printStarted = true;
-      printWindow.focus();
-      printWindow.print();
+    const previousTitle = document.title;
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
     };
 
-    printWindow.addEventListener("load", () => {
-      void printWindow.document.fonts?.ready.then(print);
-    }, { once: true });
-    printWindow.addEventListener("afterprint", () => printWindow.close(), { once: true });
-
-    printWindow.document.write(`<!doctype html>
-      <html lang="fr">
-        <head>
-          <meta charset="UTF-8" />
-          <base href="${document.baseURI}" />
-          <title>Rapport RSE Cocci</title>
-          ${styles}
-          <style>
-            @page { size: A4; margin: 1.8cm 1.5cm; }
-            body { margin: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            #report-content { max-width: 100% !important; padding: 0 !important; box-shadow: none !important; }
-            .chapter-section { break-before: page; page-break-before: always; }
-            .chapter-section > div > * { break-inside: avoid; page-break-inside: avoid; }
-            tr { break-inside: avoid; page-break-inside: avoid; }
-            * { box-shadow: none !important; }
-            textarea { display: none !important; }
-          </style>
-        </head>
-        <body>${report.outerHTML}</body>
-      </html>`);
-    printWindow.document.close();
-    window.setTimeout(print, 1200);
+    document.title = "Rapport RSE Cocci";
+    window.addEventListener("afterprint", restoreTitle);
+    window.print();
   };
 
   return (
