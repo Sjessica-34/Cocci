@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useStorageUpload } from "@/hooks/useStorageUpload";
 import { useAuth } from "@clerk/react";
+import { useLocation } from "wouter";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import {
   useGetReportDraft, useUpdateReportDraft, useGenerateReportAiSection,
-  useGenerateReportPdf, useListDocuments, getListDocumentsQueryKey,
+  customFetch,
 } from "@workspace/api-client-react";
-import type { DocumentMeta, ReportDraftUpdate, ReportHighlight } from "@workspace/api-client-react";
+import type { ReportDraftUpdate, ReportHighlight } from "@workspace/api-client-react";
 import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
 import { AppLayout } from "@/components/layout";
 import { DocumentUploader } from "@/components/DocumentUploader";
@@ -32,11 +33,10 @@ import {
   AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles,
   Plus, Trash2, ChevronDown, ChevronRight, FileText,
   Building2, Users2, Leaf, Award, LayoutList, BookOpen, Target,
-  PenLine, Info, ExternalLink, Download, Eye,
+  PenLine, Info, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getGetReportDraftQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -291,26 +291,18 @@ function SaveStatus({ status }: { status: "idle" | "saving" | "saved" | "error" 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function RapportRse() {
-  const { getToken } = useAuth();
-  const queryClient = useQueryClient();
+  useAuth();
   const { effectiveOrgId, isReadOnly } = useModuleContext("group");
   const orgId = effectiveOrgId;
   const { currentExerciseId } = useCurrentExercise();
   const reportDraftQueryKey = [...getGetReportDraftQueryKey(orgId ?? 0), "exercise", currentExerciseId ?? "latest"];
-  const documentsQueryKey = [...getListDocumentsQueryKey(orgId ?? 0), "exercise", currentExerciseId ?? "latest"];
 
   const { data: draft, isLoading } = useGetReportDraft(orgId ?? 0, {
     query: { enabled: orgId != null, queryKey: reportDraftQueryKey },
   });
   const { mutateAsync: saveDraft } = useUpdateReportDraft();
   const { mutateAsync: generateAiSection } = useGenerateReportAiSection();
-  const { mutateAsync: generateReportPdf } = useGenerateReportPdf();
-  const { data: documents = [] } = useListDocuments(orgId ?? 0, {
-    query: {
-      enabled: orgId != null,
-      queryKey: documentsQueryKey,
-    },
-  });
+  const [, navigate] = useLocation();
 
   const [local, setLocal] = useState<LocalDraft>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -318,18 +310,12 @@ export function RapportRse() {
   const [showGenConfirm, setShowGenConfirm] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const hydratedDraftScopeRef = useRef<string | null>(null);
   const draftScope = `${orgId ?? "none"}:${currentExerciseId ?? "latest"}`;
   const currentDraftScopeRef = useRef(draftScope);
   currentDraftScopeRef.current = draftScope;
-  const latestPdf = (documents as DocumentMeta[])
-    .filter((document) => document.category === "rapport-rse" && document.mimeType === "application/pdf")
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   useEffect(() => {
     if (saveTimerRef.current) {
@@ -467,80 +453,16 @@ export function RapportRse() {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    let objectUrl: string | null = null;
-
-    if (!orgId || !latestPdf) {
-      setPreviewUrl(null);
-      setPreviewError(null);
-      return;
-    }
-
-    const loadPreview = async () => {
-      setPreviewLoading(true);
-      setPreviewError(null);
-      try {
-        const token = await getToken();
-        const response = await fetch(`/api/organizations/${orgId}/documents/${latestPdf.id}/download`, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(currentExerciseId != null ? { "x-exercise-id": String(currentExerciseId) } : {}),
-          },
-        });
-        if (!response.ok) throw new Error("PDF unavailable");
-        objectUrl = URL.createObjectURL(await response.blob());
-        if (!cancelled) setPreviewUrl(objectUrl);
-      } catch {
-        if (!cancelled) {
-          setPreviewUrl(null);
-          setPreviewError("L’aperçu du PDF n’a pas pu être chargé.");
-        }
-      } finally {
-        if (!cancelled) setPreviewLoading(false);
-      }
-    };
-
-    void loadPreview();
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [currentExerciseId, getToken, latestPdf?.id, orgId]);
-
-  const downloadPdf = async (report: DocumentMeta) => {
-    if (!orgId) return;
-    const token = await getToken();
-    const response = await fetch(`/api/organizations/${orgId}/documents/${report.id}/download`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(currentExerciseId != null ? { "x-exercise-id": String(currentExerciseId) } : {}),
-      },
-    });
-    if (!response.ok) {
-      setGenerateError("Le téléchargement du PDF a échoué. Réessayez dans quelques instants.");
-      return;
-    }
-    const url = URL.createObjectURL(await response.blob());
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = report.originalName;
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  };
-
   const handleConfirmGenerate = async () => {
     if (!orgId || generating) return;
     setShowGenConfirm(false);
     setGenerating(true);
     setGenerateError(null);
     try {
-      await flushDraftBeforeGeneration();
-      await generateReportPdf({ orgId });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: reportDraftQueryKey }),
-        queryClient.invalidateQueries({ queryKey: documentsQueryKey }),
-      ]);
+      await customFetch(`/api/organizations/${orgId}/report/register-generation`, {
+        method: "POST",
+      });
+      navigate("/rapport-rse/viewer");
     } catch (err: unknown) {
       const status = (err as { status?: number })?.status;
       if (status === 429) {
@@ -590,7 +512,7 @@ export function RapportRse() {
               Rapport RSE
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Préparez le contenu éditorial de votre rapport et générez-le en PDF.
+              Préparez le contenu éditorial de votre rapport et générez-le en DOCX.
             </p>
           </div>
           <SaveStatus status={saveStatus} />
@@ -1076,57 +998,6 @@ export function RapportRse() {
               })()}
 
             </div>
-
-            <section className="rounded-xl border bg-card overflow-hidden">
-              <div className="flex flex-col gap-3 border-b bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <h3 className="text-sm font-semibold">Dernier rapport PDF archivé</h3>
-                  {latestPdf ? (
-                    <p className="mt-1 truncate text-xs text-muted-foreground">
-                      {latestPdf.label ?? latestPdf.originalName} · {new Date(latestPdf.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-xs text-muted-foreground">Le PDF apparaîtra ici dès sa première génération.</p>
-                  )}
-                </div>
-                {latestPdf && (
-                  <div className="flex shrink-0 gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => previewUrl ? window.open(previewUrl, "_blank", "noopener,noreferrer") : void downloadPdf(latestPdf)}
-                    >
-                      <Eye className="h-3.5 w-3.5" /> Ouvrir
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => void downloadPdf(latestPdf)}>
-                      <Download className="h-3.5 w-3.5" /> Télécharger
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {latestPdf && (
-                <div className="bg-muted/10 p-3">
-                  {previewLoading && (
-                    <div className="flex h-72 items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Chargement de l’aperçu…
-                    </div>
-                  )}
-                  {previewError && (
-                    <p className="p-4 text-sm text-destructive">{previewError}</p>
-                  )}
-                  {previewUrl && !previewLoading && (
-                    <iframe
-                      title={`Aperçu de ${latestPdf.originalName}`}
-                      src={previewUrl}
-                      className="h-[540px] w-full rounded-lg border bg-white"
-                    />
-                  )}
-                </div>
-              )}
-            </section>
 
             <div className="rounded-xl border bg-card p-5">
               <h3 className="text-sm font-semibold mb-1">Documents archivés</h3>

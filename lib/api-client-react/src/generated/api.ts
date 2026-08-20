@@ -116,7 +116,6 @@ import type {
   ReportAiSectionResponse,
   ReportDraft,
   ReportDraftUpdate,
-  ReportPdfGeneration,
   Resource,
   ResourceInput,
   ResourcePublishUpdate,
@@ -9644,75 +9643,5 @@ export const useGenerateReportAiSection = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGenerateReportAiSectionMutationOptions(options));
-    }
-
-export const getGenerateReportPdfUrl = (orgId: number,) => {
-
-
-
-
-  return `/api/organizations/${orgId}/report/generate-pdf`
-}
-
-/**
- * @summary Generate and archive the RSE report as a PDF
- */
-export const generateReportPdf = async (orgId: number, options?: RequestInit): Promise<ReportPdfGeneration> => {
-
-  return customFetch<ReportPdfGeneration>(getGenerateReportPdfUrl(orgId),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-export const getGenerateReportPdfMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateReportPdf>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof generateReportPdf>>, TError,{orgId: number}, TContext> => {
-
-const mutationKey = ['generateReportPdf'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateReportPdf>>, {orgId: number}> = (props) => {
-          const {orgId} = props ?? {};
-
-          return  generateReportPdf(orgId,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type GenerateReportPdfMutationResult = NonNullable<Awaited<ReturnType<typeof generateReportPdf>>>
-
-    export type GenerateReportPdfMutationError = ErrorType<void>
-
-    /**
- * @summary Generate and archive the RSE report as a PDF
- */
-export const useGenerateReportPdf = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateReportPdf>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof generateReportPdf>>,
-        TError,
-        {orgId: number},
-        TContext
-      > => {
-      return useMutation(getGenerateReportPdfMutationOptions(options));
     }
 

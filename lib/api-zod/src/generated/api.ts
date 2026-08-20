@@ -4240,28 +4240,3 @@ export const GenerateReportAiSectionResponse = zod.object({
 })
 
 
-/**
- * @summary Generate and archive the RSE report as a PDF
- */
-export const GenerateReportPdfParams = zod.object({
-  "orgId": zod.coerce.number()
-})
-
-export const GenerateReportPdfResponse = zod.object({
-  "document": zod.object({
-  "id": zod.number(),
-  "organizationId": zod.number(),
-  "uploadedByUserId": zod.number(),
-  "category": zod.string(),
-  "label": zod.string().nullish().describe('Custom label for personalized documents'),
-  "description": zod.string().nullish().describe('Custom description for personalized documents'),
-  "originalName": zod.string(),
-  "mimeType": zod.string(),
-  "size": zod.number(),
-  "createdAt": zod.coerce.date()
-}),
-  "generationCount": zod.number(),
-  "maxGenerations": zod.number()
-})
-
-

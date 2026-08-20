@@ -3191,31 +3191,6 @@ paths:
         "403":
           description: Forbidden
 
-  /organizations/{orgId}/report/generate-pdf:
-    post:
-      operationId: generateReportPdf
-      tags: [rapport-rse]
-      summary: Generate and archive the RSE report as a PDF
-      parameters:
-        - name: orgId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "201":
-          description: PDF report generated and archived
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ReportPdfGeneration"
-        "401":
-          description: Unauthorized
-        "403":
-          description: Forbidden
-        "429":
-          description: Generation limit reached
-
 components:
   schemas:
     HealthStatus:
@@ -5918,14 +5893,3 @@ components:
       properties:
         content:
           type: string
-
-    ReportPdfGeneration:
-      type: object
-      required: [document, generationCount, maxGenerations]
-      properties:
-        document:
-          $ref: "#/components/schemas/DocumentMeta"
-        generationCount:
-          type: integer
-        maxGenerations:
-          type: integer

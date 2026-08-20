@@ -1,10 +1,9 @@
 import { Router } from "express";
 import { eq, and, sql } from "drizzle-orm";
-import { db, documentsTable, documentExerciseLinksTable, rseReportDraftsTable } from "@workspace/db";
+import { db, rseReportDraftsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireActiveOrgMembership, requireExerciseScope, requireWritableExerciseScope, requireWritableOrgMembership } from "../middlewares/exerciseScope";
 import { generateReport } from "../lib/generateReport";
-import { generatePdfReport } from "../lib/generateReportPdf";
 import { logger } from "../lib/logger";
 import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
 
@@ -294,49 +293,19 @@ router.get("/organizations/:orgId/report/generate", requireAuth, requireActiveOr
   }
 });
 
-// POST /organizations/:orgId/report/generate-pdf
-// Génère et archive le PDF dans un seul traitement : le quota n'est débité
-// qu'une fois le document et son lien à l'exercice créés avec succès.
-router.post("/organizations/:orgId/report/generate-pdf", requireAuth, requireWritableOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+// POST /organizations/:orgId/report/register-generation
+// Ancien flux DOCX : le compteur est réservé avant l'ouverture du visualiseur.
+// Les crédits accordés par le back-office augmentent le plafond effectif.
+router.post("/organizations/:orgId/report/register-generation", requireAuth, requireWritableOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const orgId = req.orgId!;
   const exercise = req.exercise!;
   const currentYear = new Date().getFullYear();
 
   try {
-    const [beforeGeneration] = await db
-      .select({
-        generationCount: rseReportDraftsTable.generationCount,
-        generationYear: rseReportDraftsTable.generationYear,
-        generationBonus: rseReportDraftsTable.generationBonus,
-      })
-      .from(rseReportDraftsTable)
-      .where(and(
-        eq(rseReportDraftsTable.organizationId, orgId),
-        eq(rseReportDraftsTable.exerciseId, exercise.id),
-      ))
-      .limit(1);
-    const beforeCount = beforeGeneration?.generationYear === currentYear
-      ? (beforeGeneration.generationCount ?? 0)
-      : 0;
-    const beforeMaxGenerations = MAX_REPORT_GENERATIONS + (beforeGeneration?.generationBonus ?? 0);
-
-    if (beforeCount >= beforeMaxGenerations) {
-      res.status(429).json({
-        error: "generation_limit_reached",
-        generationCount: beforeCount,
-        maxGenerations: beforeMaxGenerations,
-      });
-      return;
-    }
-
-    const pdf = await generatePdfReport(orgId, exercise.id);
-    const generatedAt = new Date();
-    const stamp = generatedAt.toISOString().replace(/[:.]/g, "-");
-    const filename = `rapport-rse-${exercise.year}-${stamp}.pdf`;
-
     const result = await db.transaction(async (tx) => {
-      // Serialize concurrent PDF generations for this organization/exercise so
-      // the quota check and archival remain a single reservation.
+      // A report generation is a quota reservation. Serializing requests per
+      // organization/exercise prevents simultaneous clicks from spending the
+      // same remaining generation credit more than once.
       await tx.execute(sql`SELECT pg_advisory_xact_lock(${orgId}, ${exercise.id})`);
 
       const [existing] = await tx
@@ -345,7 +314,6 @@ router.post("/organizations/:orgId/report/generate-pdf", requireAuth, requireWri
           generationCount: rseReportDraftsTable.generationCount,
           generationYear: rseReportDraftsTable.generationYear,
           generationBonus: rseReportDraftsTable.generationBonus,
-          period: rseReportDraftsTable.period,
         })
         .from(rseReportDraftsTable)
         .where(and(
@@ -353,45 +321,14 @@ router.post("/organizations/:orgId/report/generate-pdf", requireAuth, requireWri
           eq(rseReportDraftsTable.exerciseId, exercise.id),
         ))
         .limit(1);
-
       const currentCount = existing?.generationYear === currentYear
         ? (existing.generationCount ?? 0)
         : 0;
       const maxGenerations = MAX_REPORT_GENERATIONS + (existing?.generationBonus ?? 0);
+
       if (currentCount >= maxGenerations) {
         return { limitReached: true as const, generationCount: currentCount, maxGenerations };
       }
-
-      const [document] = await tx
-        .insert(documentsTable)
-        .values({
-          organizationId: orgId,
-          uploadedByUserId: req.userId!,
-          category: "rapport-rse",
-          label: `Rapport RSE ${existing?.period ?? exercise.year}`,
-          description: `PDF généré le ${generatedAt.toLocaleDateString("fr-FR")}`,
-          originalName: filename,
-          mimeType: "application/pdf",
-          size: pdf.length,
-          content: pdf,
-        })
-        .returning({
-          id: documentsTable.id,
-          organizationId: documentsTable.organizationId,
-          uploadedByUserId: documentsTable.uploadedByUserId,
-          category: documentsTable.category,
-          label: documentsTable.label,
-          description: documentsTable.description,
-          originalName: documentsTable.originalName,
-          mimeType: documentsTable.mimeType,
-          size: documentsTable.size,
-          createdAt: documentsTable.createdAt,
-        });
-
-      await tx.insert(documentExerciseLinksTable).values({
-        documentId: document!.id,
-        exerciseId: exercise.id,
-      });
 
       if (existing) {
         await tx
@@ -399,7 +336,7 @@ router.post("/organizations/:orgId/report/generate-pdf", requireAuth, requireWri
           .set({
             generationCount: currentCount + 1,
             generationYear: currentYear,
-            updatedAt: generatedAt,
+            updatedAt: new Date(),
           })
           .where(eq(rseReportDraftsTable.id, existing.id));
       } else {
@@ -417,7 +354,6 @@ router.post("/organizations/:orgId/report/generate-pdf", requireAuth, requireWri
         limitReached: false as const,
         generationCount: currentCount + 1,
         maxGenerations,
-        document: { ...document!, createdAt: document!.createdAt.toISOString() },
       };
     });
 
@@ -431,13 +367,12 @@ router.post("/organizations/:orgId/report/generate-pdf", requireAuth, requireWri
     }
 
     res.status(201).json({
-      document: result.document,
       generationCount: result.generationCount,
       maxGenerations: result.maxGenerations,
     });
   } catch (e) {
-    logger.error({ e, orgId, exerciseId: exercise.id }, "PDF report generation error");
-    res.status(500).json({ error: "PDF report generation failed" });
+    logger.error({ e, orgId, exerciseId: exercise.id }, "Report generation registration error");
+    res.status(500).json({ error: "Report generation registration failed" });
   }
 });
 

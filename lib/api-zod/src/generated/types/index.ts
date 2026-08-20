@@ -173,7 +173,6 @@ export * from './reportAiSectionResponse';
 export * from './reportDraft';
 export * from './reportDraftUpdate';
 export * from './reportHighlight';
-export * from './reportPdfGeneration';
 export * from './reportPhoto';
 export * from './reportTimelineEvent';
 export * from './resource';

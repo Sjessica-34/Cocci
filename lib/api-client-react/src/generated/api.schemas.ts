@@ -2436,12 +2436,6 @@ export interface ReportAiSectionResponse {
   content: string;
 }
 
-export interface ReportPdfGeneration {
-  document: DocumentMeta;
-  generationCount: number;
-  maxGenerations: number;
-}
-
 export type ListOrganizationsParams = {
 /**
  * Superadmin only — return this org and its subsidiaries instead of the caller's own orgs.
