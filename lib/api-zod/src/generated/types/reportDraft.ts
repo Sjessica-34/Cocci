@@ -39,5 +39,8 @@ export interface ReportDraft {
   perspectivesContent?: string | null;
   reportScope?: string | null;
   reportMethodology?: string | null;
+  generationCount?: number;
+  additionalGenerations?: number;
+  maxGenerations?: number;
   updatedAt: string;
 }

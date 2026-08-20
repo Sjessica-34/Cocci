@@ -146,9 +146,18 @@ function CategorySection({
 
   return (
     <div className="rounded-xl border border-border bg-white dark:bg-muted/10 overflow-hidden">
-      <button
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/5 hover:bg-muted/10 transition-colors"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
       >
         <div className="flex items-center gap-2.5">
           <FolderOpen className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -176,7 +185,7 @@ function CategorySection({
             ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
             : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="p-5">
@@ -318,9 +327,18 @@ function DiagnosticRseSection({
   return (
     <div className="rounded-xl border border-border bg-white dark:bg-muted/10 overflow-hidden">
       {/* En-tête */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/5 hover:bg-muted/10 transition-colors"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
       >
         <div className="flex items-center gap-2.5">
           <ClipboardList className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -342,7 +360,7 @@ function DiagnosticRseSection({
             ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
             : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="p-4 space-y-3">
@@ -472,9 +490,18 @@ function SubcatGroup({
 
   return (
     <div className="rounded-lg border border-emerald-100 bg-white overflow-hidden">
-      <button
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/5 transition-colors"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
       >
         <div className="flex items-center gap-2">
           <FolderOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
@@ -496,7 +523,7 @@ function SubcatGroup({
             ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
         </div>
-      </button>
+      </div>
       {open && docs.length > 0 && (
         <div className="px-4 pb-3 border-t border-border/50 divide-y divide-border/50">
           {docs.map((doc) => (

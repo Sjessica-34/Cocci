@@ -27,7 +27,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "mes-actions":          "Mes actions RSE",
   "capital-humain":       "Capital Humain",
   "mes-labels":           "Mes labels & certifications",
-  "rapport-rse":          "Mon rapport RSE",
+  "rapport-rse":          "Mes rapports RSE",
   "autre":                "Autres documents",
 };
 

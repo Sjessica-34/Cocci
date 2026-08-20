@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useStorageUpload } from "@/hooks/useStorageUpload";
 import { useAuth } from "@clerk/react";
-import { useLocation } from "wouter";
 import { useModuleContext } from "@/hooks/useModuleContext";
-import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
+import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import {
   useGetReportDraft, useUpdateReportDraft, useGenerateReportAiSection,
-  customFetch,
+  useGenerateReportPdf, useListDocuments, getListDocumentsQueryKey,
 } from "@workspace/api-client-react";
-import type { ReportDraftUpdate, ReportHighlight } from "@workspace/api-client-react";
+import type { DocumentMeta, ReportDraftUpdate, ReportHighlight } from "@workspace/api-client-react";
 import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
 import { AppLayout } from "@/components/layout";
 import { DocumentUploader } from "@/components/DocumentUploader";
@@ -33,10 +32,11 @@ import {
   AlertCircle, FileBarChart2, CheckCircle2, Loader2, Sparkles,
   Plus, Trash2, ChevronDown, ChevronRight, FileText,
   Building2, Users2, Leaf, Award, LayoutList, BookOpen, Target,
-  PenLine, Info, ExternalLink,
+  PenLine, Info, ExternalLink, Download, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getGetReportDraftQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -291,69 +291,131 @@ function SaveStatus({ status }: { status: "idle" | "saving" | "saved" | "error" 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function RapportRse() {
-  useAuth(); // conserve l'import pour les hooks d'auth futurs
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
   const { effectiveOrgId, isReadOnly } = useModuleContext("group");
   const orgId = effectiveOrgId;
+  const { currentExerciseId } = useCurrentExercise();
+  const reportDraftQueryKey = [...getGetReportDraftQueryKey(orgId ?? 0), "exercise", currentExerciseId ?? "latest"];
+  const documentsQueryKey = [...getListDocumentsQueryKey(orgId ?? 0), "exercise", currentExerciseId ?? "latest"];
 
   const { data: draft, isLoading } = useGetReportDraft(orgId ?? 0, {
-    query: { enabled: orgId != null, queryKey: getGetReportDraftQueryKey(orgId ?? 0) },
+    query: { enabled: orgId != null, queryKey: reportDraftQueryKey },
   });
   const { mutateAsync: saveDraft } = useUpdateReportDraft();
   const { mutateAsync: generateAiSection } = useGenerateReportAiSection();
+  const { mutateAsync: generateReportPdf } = useGenerateReportPdf();
+  const { data: documents = [] } = useListDocuments(orgId ?? 0, {
+    query: {
+      enabled: orgId != null,
+      queryKey: documentsQueryKey,
+    },
+  });
 
-  const [, navigate] = useLocation();
   const [local, setLocal] = useState<LocalDraft>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
   const [showGenConfirm, setShowGenConfirm] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const hydratedDraftScopeRef = useRef<string | null>(null);
+  const draftScope = `${orgId ?? "none"}:${currentExerciseId ?? "latest"}`;
+  const currentDraftScopeRef = useRef(draftScope);
+  currentDraftScopeRef.current = draftScope;
+  const latestPdf = (documents as DocumentMeta[])
+    .filter((document) => document.category === "rapport-rse" && document.mimeType === "application/pdf")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   useEffect(() => {
-    if (draft && Object.keys(local).length === 0) {
-      setLocal({
-        coverImageUrl: draft.coverImageUrl ?? "",
-        version: draft.version ?? "1.0",
-        period: draft.period ?? "",
-        editorialMode: draft.editorialMode ?? "manual",
-        editorialAuthor: draft.editorialAuthor ?? "",
-        editorialAuthorRole: draft.editorialAuthorRole ?? "",
-        editorialCoSigned: draft.editorialCoSigned ?? false,
-        editorialTone: draft.editorialTone ?? "institutionnel",
-        editorialThemes: draft.editorialThemes ?? [],
-        editorialLength: draft.editorialLength ?? "standard",
-        editorialContext: draft.editorialContext ?? "",
-        editorialContent: draft.editorialContent ?? "",
-        companyDescription: draft.companyDescription ?? "",
-        companyMission: draft.companyMission ?? "",
-        isMissionEntreprise: draft.isMissionEntreprise ?? false,
-        companyVision: draft.companyVision ?? "",
-        companyValues: draft.companyValues ?? "",
-        companyKeyFigures: draft.companyKeyFigures ?? "",
-        timeline: (draft.timeline as TimelineEvent[]) ?? [],
-        orgChartUrl: draft.orgChartUrl ?? "",
-        highlights: (draft.highlights as Highlight[]) ?? [],
-        perspectivesMode: draft.perspectivesMode ?? "manual",
-        perspectivesContent: draft.perspectivesContent ?? "",
-      });
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
     }
-  }, [draft]);
+    hydratedDraftScopeRef.current = null;
+    setLocal({});
+    setSaveStatus("idle");
+  }, [draftScope]);
+
+  useEffect(() => {
+    if (
+      !draft ||
+      hydratedDraftScopeRef.current === draftScope ||
+      (currentExerciseId != null && draft.exerciseId !== currentExerciseId)
+    ) return;
+
+    hydratedDraftScopeRef.current = draftScope;
+    setLocal({
+      coverImageUrl: draft.coverImageUrl ?? "",
+      version: draft.version ?? "1.0",
+      period: draft.period ?? "",
+      editorialMode: draft.editorialMode ?? "manual",
+      editorialAuthor: draft.editorialAuthor ?? "",
+      editorialAuthorRole: draft.editorialAuthorRole ?? "",
+      editorialCoSigned: draft.editorialCoSigned ?? false,
+      editorialTone: draft.editorialTone ?? "institutionnel",
+      editorialThemes: draft.editorialThemes ?? [],
+      editorialLength: draft.editorialLength ?? "standard",
+      editorialContext: draft.editorialContext ?? "",
+      editorialContent: draft.editorialContent ?? "",
+      companyDescription: draft.companyDescription ?? "",
+      companyMission: draft.companyMission ?? "",
+      isMissionEntreprise: draft.isMissionEntreprise ?? false,
+      companyVision: draft.companyVision ?? "",
+      companyValues: draft.companyValues ?? "",
+      companyKeyFigures: draft.companyKeyFigures ?? "",
+      timeline: (draft.timeline as TimelineEvent[]) ?? [],
+      orgChartUrl: draft.orgChartUrl ?? "",
+      highlights: (draft.highlights as Highlight[]) ?? [],
+      perspectivesMode: draft.perspectivesMode ?? "manual",
+      perspectivesContent: draft.perspectivesContent ?? "",
+    });
+  }, [currentExerciseId, draft, draftScope]);
+
+  const persistDraft = useCallback((patch: LocalDraft, scope: string): Promise<void> => {
+    if (!orgId || isReadOnly) return Promise.resolve();
+    const request = saveQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        // A delayed save belonging to an earlier organization/exercise must
+        // never be sent with the newly active exercise header.
+        if (currentDraftScopeRef.current !== scope) return;
+        setSaveStatus("saving");
+        try {
+          await saveDraft({ orgId, data: patch as ReportDraftUpdate });
+          setSaveStatus("saved");
+          setTimeout(() => setSaveStatus("idle"), 2000);
+        } catch (error) {
+          setSaveStatus("error");
+          throw error;
+        }
+      });
+    saveQueueRef.current = request;
+    return request;
+  }, [orgId, isReadOnly, saveDraft]);
 
   const triggerSave = useCallback((patch: LocalDraft) => {
     if (!orgId || isReadOnly) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
-      setSaveStatus("saving");
-      try {
-        await saveDraft({ orgId, data: patch as ReportDraftUpdate });
-        setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 2000);
-      } catch {
-        setSaveStatus("error");
-      }
+      saveTimerRef.current = null;
+      await persistDraft(patch, draftScope).catch(() => undefined);
     }, 600);
-  }, [orgId, isReadOnly, saveDraft]);
+  }, [orgId, isReadOnly, persistDraft, draftScope]);
+
+  const flushDraftBeforeGeneration = useCallback(async (): Promise<void> => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (Object.keys(local).length > 0) {
+      await persistDraft(local, draftScope);
+    }
+  }, [draftScope, local, persistDraft]);
 
   const update = useCallback(<K extends keyof LocalDraft>(field: K, value: LocalDraft[K]) => {
     setLocal((prev) => {
@@ -405,6 +467,67 @@ export function RapportRse() {
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    if (!orgId || !latestPdf) {
+      setPreviewUrl(null);
+      setPreviewError(null);
+      return;
+    }
+
+    const loadPreview = async () => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        const token = await getToken();
+        const response = await fetch(`/api/organizations/${orgId}/documents/${latestPdf.id}/download`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(currentExerciseId != null ? { "x-exercise-id": String(currentExerciseId) } : {}),
+          },
+        });
+        if (!response.ok) throw new Error("PDF unavailable");
+        objectUrl = URL.createObjectURL(await response.blob());
+        if (!cancelled) setPreviewUrl(objectUrl);
+      } catch {
+        if (!cancelled) {
+          setPreviewUrl(null);
+          setPreviewError("L’aperçu du PDF n’a pas pu être chargé.");
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    };
+
+    void loadPreview();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [currentExerciseId, getToken, latestPdf?.id, orgId]);
+
+  const downloadPdf = async (report: DocumentMeta) => {
+    if (!orgId) return;
+    const token = await getToken();
+    const response = await fetch(`/api/organizations/${orgId}/documents/${report.id}/download`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(currentExerciseId != null ? { "x-exercise-id": String(currentExerciseId) } : {}),
+      },
+    });
+    if (!response.ok) {
+      setGenerateError("Le téléchargement du PDF a échoué. Réessayez dans quelques instants.");
+      return;
+    }
+    const url = URL.createObjectURL(await response.blob());
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = report.originalName;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
 
   const handleConfirmGenerate = async () => {
     if (!orgId || generating) return;
@@ -412,10 +535,12 @@ export function RapportRse() {
     setGenerating(true);
     setGenerateError(null);
     try {
-      await customFetch(`/api/organizations/${orgId}/report/register-generation`, {
-        method: "POST",
-      });
-      navigate("/rapport-rse/viewer");
+      await flushDraftBeforeGeneration();
+      await generateReportPdf({ orgId });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: reportDraftQueryKey }),
+        queryClient.invalidateQueries({ queryKey: documentsQueryKey }),
+      ]);
     } catch (err: unknown) {
       const status = (err as { status?: number })?.status;
       if (status === 429) {
@@ -463,7 +588,7 @@ export function RapportRse() {
               Rapport RSE
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Préparez le contenu éditorial de votre rapport et générez-le en DOCX.
+              Préparez le contenu éditorial de votre rapport et générez-le en PDF.
             </p>
           </div>
           <SaveStatus status={saveStatus} />
@@ -948,6 +1073,57 @@ export function RapportRse() {
               })()}
 
             </div>
+
+            <section className="rounded-xl border bg-card overflow-hidden">
+              <div className="flex flex-col gap-3 border-b bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold">Dernier rapport PDF archivé</h3>
+                  {latestPdf ? (
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {latestPdf.label ?? latestPdf.originalName} · {new Date(latestPdf.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">Le PDF apparaîtra ici dès sa première génération.</p>
+                  )}
+                </div>
+                {latestPdf && (
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => previewUrl ? window.open(previewUrl, "_blank", "noopener,noreferrer") : void downloadPdf(latestPdf)}
+                    >
+                      <Eye className="h-3.5 w-3.5" /> Ouvrir
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => void downloadPdf(latestPdf)}>
+                      <Download className="h-3.5 w-3.5" /> Télécharger
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {latestPdf && (
+                <div className="bg-muted/10 p-3">
+                  {previewLoading && (
+                    <div className="flex h-72 items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Chargement de l’aperçu…
+                    </div>
+                  )}
+                  {previewError && (
+                    <p className="p-4 text-sm text-destructive">{previewError}</p>
+                  )}
+                  {previewUrl && !previewLoading && (
+                    <iframe
+                      title={`Aperçu de ${latestPdf.originalName}`}
+                      src={previewUrl}
+                      className="h-[540px] w-full rounded-lg border bg-white"
+                    />
+                  )}
+                </div>
+              )}
+            </section>
 
             <div className="rounded-xl border bg-card p-5">
               <h3 className="text-sm font-semibold mb-1">Documents archivés</h3>

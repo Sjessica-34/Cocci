@@ -70,6 +70,7 @@ export const rseReportDraftsTable = pgTable("rse_report_drafts", {
   // Quota de générations (rapport illustré) — se réinitialise au 1er janvier chaque année civile
   generationCount: integer("generation_count").notNull().default(0),
   generationYear:  integer("generation_year").notNull().default(0), // 0 = jamais généré
+  generationBonus: integer("generation_bonus").notNull().default(0), // crédits ajoutés par le back-office pour cet exercice
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

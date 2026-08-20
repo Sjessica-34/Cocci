@@ -84,6 +84,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EFFECTIF_OPTIONS, effectifToPlan, type EffectifKey } from "@/pages/onboarding/plans";
+import { ReportGenerationCredits } from "./report-generation-credits";
 
 // --- Types & Constants ---
 
@@ -1037,6 +1038,7 @@ export function AdminOrganizationDetail() {
             {[
               { id: "informations", icon: Building2, label: "Informations" },
               { id: "abonnement", icon: CreditCard, label: "Abonnement" },
+              { id: "generations", icon: FileText, label: "Générations RSE" },
               { id: "utilisateurs", icon: Users, label: "Utilisateurs" },
               { id: "conformite", icon: Activity, label: "Conformité" },
               { id: "historique", icon: Clock, label: "Historique" },
@@ -1056,6 +1058,7 @@ export function AdminOrganizationDetail() {
           <div className="mt-6">
             <TabsContent value="informations" className="m-0"><InfoForm org={org} /></TabsContent>
             <TabsContent value="abonnement" className="m-0"><SubForm orgId={orgId} /></TabsContent>
+            <TabsContent value="generations" className="m-0"><ReportGenerationCredits orgId={orgId} /></TabsContent>
             <TabsContent value="utilisateurs" className="m-0"><MembersTab orgId={orgId} /></TabsContent>
             <TabsContent value="conformite" className="m-0"><ComplianceTab org={org} /></TabsContent>
             <TabsContent value="historique" className="m-0"><HistoryTab org={org} /></TabsContent>

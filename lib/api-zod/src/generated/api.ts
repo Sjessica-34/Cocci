@@ -1054,6 +1054,50 @@ export const UpsertAdminSubscriptionResponse = zod.object({
 
 
 /**
+ * @summary Get RSE report generation quotas by exercise (superadmin)
+ */
+export const GetAdminReportGenerationQuotasParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminReportGenerationQuotasResponseItem = zod.object({
+  "exerciseId": zod.number(),
+  "exerciseYear": zod.number(),
+  "exerciseStatus": zod.string(),
+  "usedGenerations": zod.number(),
+  "additionalGenerations": zod.number(),
+  "maxGenerations": zod.number()
+})
+export const GetAdminReportGenerationQuotasResponse = zod.array(GetAdminReportGenerationQuotasResponseItem)
+
+
+/**
+ * @summary Add RSE report generation credits for an exercise (superadmin)
+ */
+export const GrantAdminReportGenerationsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const grantAdminReportGenerationsBodyGenerationsMax = 1000;
+
+
+
+export const GrantAdminReportGenerationsBody = zod.object({
+  "exerciseId": zod.number(),
+  "generations": zod.number().min(1).max(grantAdminReportGenerationsBodyGenerationsMax)
+})
+
+export const GrantAdminReportGenerationsResponse = zod.object({
+  "exerciseId": zod.number(),
+  "exerciseYear": zod.number(),
+  "exerciseStatus": zod.string(),
+  "usedGenerations": zod.number(),
+  "additionalGenerations": zod.number(),
+  "maxGenerations": zod.number()
+})
+
+
+/**
  * @summary Suspend an organization account (superadmin)
  */
 export const SuspendAdminOrganizationParams = zod.object({
@@ -4061,6 +4105,9 @@ export const GetReportDraftResponse = zod.object({
   "perspectivesContent": zod.string().nullish(),
   "reportScope": zod.string().nullish(),
   "reportMethodology": zod.string().nullish(),
+  "generationCount": zod.number().optional(),
+  "additionalGenerations": zod.number().optional(),
+  "maxGenerations": zod.number().optional(),
   "updatedAt": zod.string()
 })
 
@@ -4163,6 +4210,9 @@ export const UpdateReportDraftResponse = zod.object({
   "perspectivesContent": zod.string().nullish(),
   "reportScope": zod.string().nullish(),
   "reportMethodology": zod.string().nullish(),
+  "generationCount": zod.number().optional(),
+  "additionalGenerations": zod.number().optional(),
+  "maxGenerations": zod.number().optional(),
   "updatedAt": zod.string()
 })
 
@@ -4187,6 +4237,31 @@ export const GenerateReportAiSectionBody = zod.object({
 
 export const GenerateReportAiSectionResponse = zod.object({
   "content": zod.string()
+})
+
+
+/**
+ * @summary Generate and archive the RSE report as a PDF
+ */
+export const GenerateReportPdfParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const GenerateReportPdfResponse = zod.object({
+  "document": zod.object({
+  "id": zod.number(),
+  "organizationId": zod.number(),
+  "uploadedByUserId": zod.number(),
+  "category": zod.string(),
+  "label": zod.string().nullish().describe('Custom label for personalized documents'),
+  "description": zod.string().nullish().describe('Custom description for personalized documents'),
+  "originalName": zod.string(),
+  "mimeType": zod.string(),
+  "size": zod.number(),
+  "createdAt": zod.coerce.date()
+}),
+  "generationCount": zod.number(),
+  "maxGenerations": zod.number()
 })
 
 

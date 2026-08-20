@@ -45,6 +45,52 @@ export async function requireOrgMembership(req: Request, res: Response, next: Ne
   next();
 }
 
+async function requireActiveOrganizationAccess(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+  allowedRoles?: MemberRole[],
+): Promise<void> {
+  const orgId = parseId(req.params.orgId);
+  if (!orgId) {
+    res.status(400).json({ error: "Invalid organization id" });
+    return;
+  }
+
+  const user = await getOrCreateUser(req.clerkUserId!);
+  // Superadmins retain their cross-organization access for support operations.
+  if (!user.isSuperAdmin) {
+    const [membership] = await db
+      .select({ role: membersTable.role })
+      .from(membersTable)
+      .where(and(
+        eq(membersTable.organizationId, orgId),
+        eq(membersTable.userId, user.id),
+        eq(membersTable.status, "active"),
+      ))
+      .limit(1);
+
+    if (!membership || (allowedRoles && !allowedRoles.includes(membership.role as MemberRole))) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+  }
+
+  req.orgId = orgId;
+  req.userId = user.id;
+  next();
+}
+
+/** Requires an active organization member. Use for private read routes. */
+export async function requireActiveOrgMembership(req: Request, res: Response, next: NextFunction): Promise<void> {
+  await requireActiveOrganizationAccess(req, res, next);
+}
+
+/** Requires an active member with permission to change organization data. */
+export async function requireWritableOrgMembership(req: Request, res: Response, next: NextFunction): Promise<void> {
+  await requireActiveOrganizationAccess(req, res, next, ["owner", "admin", "member"]);
+}
+
 /**
  * Same as `requireOrgMembership`, but additionally restricts access to the
  * given member roles. Use this (not `requireMembership`, which reads
@@ -53,26 +99,7 @@ export async function requireOrgMembership(req: Request, res: Response, next: Ne
  */
 export function requireOrgRole(allowedRoles: MemberRole[]) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const orgId = parseId(req.params.orgId);
-    if (!orgId) {
-      res.status(400).json({ error: "Invalid organization id" });
-      return;
-    }
-    const user = await getOrCreateUser(req.clerkUserId!);
-    const [membership] = await db
-      .select()
-      .from(membersTable)
-      .where(
-        and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id), eq(membersTable.status, "active")),
-      )
-      .limit(1);
-    if (!membership || !allowedRoles.includes(membership.role as MemberRole)) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
-    req.orgId = orgId;
-    req.userId = user.id;
-    next();
+    await requireActiveOrganizationAccess(req, res, next, allowedRoles);
   };
 }
 

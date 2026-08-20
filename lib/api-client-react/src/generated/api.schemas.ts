@@ -385,6 +385,24 @@ export interface AdminOrganization {
   healthScore: number;
 }
 
+export interface AdminReportGenerationQuota {
+  exerciseId: number;
+  exerciseYear: number;
+  exerciseStatus: string;
+  usedGenerations: number;
+  additionalGenerations: number;
+  maxGenerations: number;
+}
+
+export interface AdminReportGenerationGrant {
+  exerciseId: number;
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  generations: number;
+}
+
 export interface AdminUser {
   id: number;
   clerkId: string;
@@ -2352,6 +2370,9 @@ export interface ReportDraft {
   perspectivesContent?: string | null;
   reportScope?: string | null;
   reportMethodology?: string | null;
+  generationCount?: number;
+  additionalGenerations?: number;
+  maxGenerations?: number;
   updatedAt: string;
 }
 
@@ -2413,6 +2434,12 @@ export interface ReportAiSectionInput {
 
 export interface ReportAiSectionResponse {
   content: string;
+}
+
+export interface ReportPdfGeneration {
+  document: DocumentMeta;
+  generationCount: number;
+  maxGenerations: number;
 }
 
 export type ListOrganizationsParams = {

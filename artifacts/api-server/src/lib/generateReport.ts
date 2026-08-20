@@ -228,7 +228,7 @@ const SYS = "Tu es expert RSE francophone. Tu rédiges des analyses courtes et f
 
 // ─── Data loading ─────────────────────────────────────────────────────────────
 
-async function loadReportData(orgId: number, exerciseId: number) {
+export async function loadReportData(orgId: number, exerciseId: number) {
   const [
     [org], [exercise], [draft],
     [impactScore], workforce, diversity, training,
@@ -250,11 +250,11 @@ async function loadReportData(orgId: number, exerciseId: number) {
     db.select().from(carbonBilansTable).where(and(eq(carbonBilansTable.organizationId, orgId), eq(carbonBilansTable.exerciseId, exerciseId))),
     db.select().from(captationCarboneTable).where(and(eq(captationCarboneTable.organizationId, orgId), eq(captationCarboneTable.exerciseId, exerciseId))).limit(1),
     db.select().from(bioDependenciesTable).where(and(eq(bioDependenciesTable.organizationId, orgId), eq(bioDependenciesTable.exerciseId, exerciseId))),
-    db.select().from(stakeholdersTable).where(eq(stakeholdersTable.organizationId, orgId)),
-    db.select().from(suppliersTable).where(eq(suppliersTable.organizationId, orgId)),
+    db.select().from(stakeholdersTable).where(and(eq(stakeholdersTable.organizationId, orgId), eq(stakeholdersTable.exerciseId, exerciseId))),
+    db.select().from(suppliersTable).where(and(eq(suppliersTable.organizationId, orgId), eq(suppliersTable.exerciseId, exerciseId))),
     db.select().from(nrResponsesTable).where(and(eq(nrResponsesTable.organizationId, orgId), eq(nrResponsesTable.exerciseId, exerciseId))),
     db.select().from(nrMetaTable).where(and(eq(nrMetaTable.organizationId, orgId), eq(nrMetaTable.exerciseId, exerciseId))).limit(1),
-    db.select().from(labelsTable).where(eq(labelsTable.organizationId, orgId)),
+    db.select().from(labelsTable).where(and(eq(labelsTable.organizationId, orgId), eq(labelsTable.exerciseId, exerciseId))),
     db.select({
       id: organizationActionPlansTable.id,
       isChecked: organizationActionPlansTable.isChecked,
@@ -264,9 +264,9 @@ async function loadReportData(orgId: number, exerciseId: number) {
       subcategory: actionLibraryTable.subcategory,
     }).from(organizationActionPlansTable)
       .leftJoin(actionLibraryTable, eq(organizationActionPlansTable.libraryActionId, actionLibraryTable.id))
-      .where(eq(organizationActionPlansTable.organizationId, orgId)),
+      .where(and(eq(organizationActionPlansTable.organizationId, orgId), eq(organizationActionPlansTable.exerciseId, exerciseId))),
     db.select().from(diagnosticResponsesTable).where(and(eq(diagnosticResponsesTable.organizationId, orgId), eq(diagnosticResponsesTable.exerciseId, exerciseId))),
-    db.select().from(barometreCampaignsTable).where(eq(barometreCampaignsTable.organizationId, orgId)).limit(1),
+    db.select().from(barometreCampaignsTable).where(and(eq(barometreCampaignsTable.organizationId, orgId), eq(barometreCampaignsTable.exerciseId, exerciseId))).limit(1),
     db.select().from(organizationsTable).where(eq(organizationsTable.parentId, orgId)),
   ]);
 

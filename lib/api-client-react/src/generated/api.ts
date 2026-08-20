@@ -31,6 +31,8 @@ import type {
   AdminOrgCreate,
   AdminOrgUpdate,
   AdminOrganization,
+  AdminReportGenerationGrant,
+  AdminReportGenerationQuota,
   AdminStats,
   AdminSubscription,
   AdminSubscriptionUpsert,
@@ -114,6 +116,7 @@ import type {
   ReportAiSectionResponse,
   ReportDraft,
   ReportDraftUpdate,
+  ReportPdfGeneration,
   Resource,
   ResourceInput,
   ResourcePublishUpdate,
@@ -2757,6 +2760,154 @@ export const useUpsertAdminSubscription = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpsertAdminSubscriptionMutationOptions(options));
+    }
+
+export const getGetAdminReportGenerationQuotasUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/organizations/${id}/report-generations`
+}
+
+/**
+ * @summary Get RSE report generation quotas by exercise (superadmin)
+ */
+export const getAdminReportGenerationQuotas = async (id: number, options?: RequestInit): Promise<AdminReportGenerationQuota[]> => {
+
+  return customFetch<AdminReportGenerationQuota[]>(getGetAdminReportGenerationQuotasUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminReportGenerationQuotasQueryKey = (id: number,) => {
+    return [
+    `/api/admin/organizations/${id}/report-generations`
+    ] as const;
+    }
+
+
+export const getGetAdminReportGenerationQuotasQueryOptions = <TData = Awaited<ReturnType<typeof getAdminReportGenerationQuotas>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminReportGenerationQuotas>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminReportGenerationQuotasQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminReportGenerationQuotas>>> = ({ signal }) => getAdminReportGenerationQuotas(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminReportGenerationQuotas>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminReportGenerationQuotasQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminReportGenerationQuotas>>>
+export type GetAdminReportGenerationQuotasQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get RSE report generation quotas by exercise (superadmin)
+ */
+
+export function useGetAdminReportGenerationQuotas<TData = Awaited<ReturnType<typeof getAdminReportGenerationQuotas>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminReportGenerationQuotas>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminReportGenerationQuotasQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGrantAdminReportGenerationsUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/organizations/${id}/report-generations/grant`
+}
+
+/**
+ * @summary Add RSE report generation credits for an exercise (superadmin)
+ */
+export const grantAdminReportGenerations = async (id: number,
+    adminReportGenerationGrant: AdminReportGenerationGrant, options?: RequestInit): Promise<AdminReportGenerationQuota> => {
+
+  return customFetch<AdminReportGenerationQuota>(getGrantAdminReportGenerationsUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminReportGenerationGrant)
+  }
+);}
+
+
+
+
+export const getGrantAdminReportGenerationsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantAdminReportGenerations>>, TError,{id: number;data: BodyType<AdminReportGenerationGrant>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof grantAdminReportGenerations>>, TError,{id: number;data: BodyType<AdminReportGenerationGrant>}, TContext> => {
+
+const mutationKey = ['grantAdminReportGenerations'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof grantAdminReportGenerations>>, {id: number;data: BodyType<AdminReportGenerationGrant>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  grantAdminReportGenerations(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GrantAdminReportGenerationsMutationResult = NonNullable<Awaited<ReturnType<typeof grantAdminReportGenerations>>>
+    export type GrantAdminReportGenerationsMutationBody = BodyType<AdminReportGenerationGrant>
+    export type GrantAdminReportGenerationsMutationError = ErrorType<void>
+
+    /**
+ * @summary Add RSE report generation credits for an exercise (superadmin)
+ */
+export const useGrantAdminReportGenerations = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantAdminReportGenerations>>, TError,{id: number;data: BodyType<AdminReportGenerationGrant>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof grantAdminReportGenerations>>,
+        TError,
+        {id: number;data: BodyType<AdminReportGenerationGrant>},
+        TContext
+      > => {
+      return useMutation(getGrantAdminReportGenerationsMutationOptions(options));
     }
 
 export const getSuspendAdminOrganizationUrl = (id: number,) => {
@@ -9493,5 +9644,75 @@ export const useGenerateReportAiSection = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGenerateReportAiSectionMutationOptions(options));
+    }
+
+export const getGenerateReportPdfUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/report/generate-pdf`
+}
+
+/**
+ * @summary Generate and archive the RSE report as a PDF
+ */
+export const generateReportPdf = async (orgId: number, options?: RequestInit): Promise<ReportPdfGeneration> => {
+
+  return customFetch<ReportPdfGeneration>(getGenerateReportPdfUrl(orgId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGenerateReportPdfMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateReportPdf>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateReportPdf>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['generateReportPdf'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateReportPdf>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  generateReportPdf(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateReportPdfMutationResult = NonNullable<Awaited<ReturnType<typeof generateReportPdf>>>
+
+    export type GenerateReportPdfMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate and archive the RSE report as a PDF
+ */
+export const useGenerateReportPdf = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateReportPdf>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateReportPdf>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getGenerateReportPdfMutationOptions(options));
     }
 

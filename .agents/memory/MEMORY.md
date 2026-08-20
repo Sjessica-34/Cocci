@@ -5,3 +5,5 @@
 - [Reprise d’intention de souscription](subscription-intent-resume.md) — distinguer la formule consultée de l’intention de payer pour reprendre Checkout après l’onboarding, sans abonnement orphelin.
 - [Confirmation de souscription](subscription-success-confirmation.md) — un paiement réussi aboutit à une confirmation dédiée, pas au catalogue des offres.
 - [Livraison webhook Stripe](stripe-webhook-delivery.md) — un paiement Checkout réussi n’active rien sans endpoint TEST actif et secret de signature cohérent.
+- [Archives PDF RSE](rse-pdf-archives.md) — sauvegarder le brouillon, archiver le PDF et débiter le quota comme une opération cohérente et isolée par exercice.
+- [Crédits de génération RSE](rse-generation-credits.md) — les crédits superadmin sont cumulatifs, liés à l’exercice et protégés des mises à jour de brouillon.

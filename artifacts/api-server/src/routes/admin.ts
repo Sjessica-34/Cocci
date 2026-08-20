@@ -7,11 +7,14 @@ import {
   resourcesTable,
   subscriptionsTable,
   actionLibraryTable,
+  exercisesTable,
+  rseReportDraftsTable,
 } from "@workspace/db";
 import { cocciFeedbackTable, cocciRatingsTable } from "@workspace/db";
 import { eq, desc, count, max, and, isNull, isNotNull, sql, avg } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
+import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
 
 const router = Router();
 
@@ -546,6 +549,102 @@ router.put("/admin/organizations/:id/subscription", async (req, res): Promise<vo
   }
 
   res.json(mapSub(sub));
+});
+
+// ─── QUOTAS RAPPORT RSE (superadmin) ─────────────────────────────────────────
+router.get("/admin/organizations/:id/report-generations", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const orgId = Number(rawId);
+  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [org, exercises, drafts] = await Promise.all([
+    db.select({ id: organizationsTable.id }).from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1),
+    db.select().from(exercisesTable).where(eq(exercisesTable.organizationId, orgId)).orderBy(desc(exercisesTable.year)),
+    db.select().from(rseReportDraftsTable).where(eq(rseReportDraftsTable.organizationId, orgId)),
+  ]);
+  if (!org) { res.status(404).json({ error: "Not found" }); return; }
+
+  const draftsByExercise = new Map(drafts.map((draft) => [draft.exerciseId, draft]));
+  res.json(exercises.map((exercise) => {
+    const draft = draftsByExercise.get(exercise.id);
+    const usedGenerations = draft?.generationYear === new Date().getFullYear()
+      ? (draft.generationCount ?? 0)
+      : 0;
+    const additionalGenerations = draft?.generationBonus ?? 0;
+    return {
+      exerciseId: exercise.id,
+      exerciseYear: exercise.year,
+      exerciseStatus: exercise.status,
+      usedGenerations,
+      additionalGenerations,
+      maxGenerations: MAX_REPORT_GENERATIONS + additionalGenerations,
+    };
+  }));
+});
+
+router.post("/admin/organizations/:id/report-generations/grant", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const orgId = Number(rawId);
+  if (!orgId || isNaN(orgId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const { exerciseId, generations } = req.body as Record<string, unknown>;
+  if (!Number.isInteger(exerciseId) || Number(exerciseId) <= 0 || !Number.isInteger(generations) || Number(generations) < 1 || Number(generations) > 1000) {
+    res.status(400).json({ error: "exerciseId and generations (1–1000) are required" });
+    return;
+  }
+
+  const [exercise] = await db
+    .select({ id: exercisesTable.id, year: exercisesTable.year, status: exercisesTable.status })
+    .from(exercisesTable)
+    .where(and(eq(exercisesTable.id, Number(exerciseId)), eq(exercisesTable.organizationId, orgId)))
+    .limit(1);
+  if (!exercise) { res.status(404).json({ error: "Exercise not found" }); return; }
+
+  // Use the same per-organization/exercise transaction lock as PDF generation.
+  // Without it, a first grant could race a first generation and make the latter
+  // fail its draft insert on the unique (organization, exercise) key.
+  const quota = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${orgId}, ${exercise.id})`);
+    const updatedAt = new Date();
+
+    await tx
+      .insert(rseReportDraftsTable)
+      .values({
+        organizationId: orgId,
+        exerciseId: exercise.id,
+        generationBonus: Number(generations),
+      })
+      .onConflictDoUpdate({
+        target: [rseReportDraftsTable.organizationId, rseReportDraftsTable.exerciseId],
+        set: {
+          generationBonus: sql`${rseReportDraftsTable.generationBonus} + ${Number(generations)}`,
+          updatedAt,
+        },
+      });
+
+    const [draft] = await tx
+      .select({
+        generationCount: rseReportDraftsTable.generationCount,
+        generationYear: rseReportDraftsTable.generationYear,
+        generationBonus: rseReportDraftsTable.generationBonus,
+      })
+      .from(rseReportDraftsTable)
+      .where(and(eq(rseReportDraftsTable.organizationId, orgId), eq(rseReportDraftsTable.exerciseId, exercise.id)));
+
+    const usedGenerations = draft?.generationYear === new Date().getFullYear()
+      ? (draft.generationCount ?? 0)
+      : 0;
+    const additionalGenerations = draft?.generationBonus ?? 0;
+    return {
+      exerciseId: exercise.id,
+      exerciseYear: exercise.year,
+      exerciseStatus: exercise.status,
+      usedGenerations,
+      additionalGenerations,
+      maxGenerations: MAX_REPORT_GENERATIONS + additionalGenerations,
+    };
+  });
+  res.json(quota);
 });
 
 // ─── POST /admin/organizations/:id/suspend ────────────────────────────────────

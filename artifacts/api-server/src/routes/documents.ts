@@ -3,7 +3,7 @@ import multer from "multer";
 import { db, documentsTable, documentExerciseLinksTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
+import { requireActiveOrgMembership, requireExerciseScope, requireWritableExerciseScope, requireWritableOrgMembership } from "../middlewares/exerciseScope";
 
 const router = Router();
 const upload = multer({
@@ -16,7 +16,7 @@ function parseId(raw: string | string[]): number {
 }
 
 // GET /organizations/:orgId/documents[?category=xxx]
-router.get("/organizations/:orgId/documents", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+router.get("/organizations/:orgId/documents", requireAuth, requireActiveOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const { category } = req.query as { category?: string };
 
   const links = await db
@@ -54,7 +54,7 @@ router.get("/organizations/:orgId/documents", requireAuth, requireOrgMembership,
 router.post(
   "/organizations/:orgId/documents",
   requireAuth,
-  requireOrgMembership,
+  requireWritableOrgMembership,
   requireWritableExerciseScope,
   upload.single("file"),
   async (req, res): Promise<void> => {
@@ -98,7 +98,7 @@ router.post(
 );
 
 // GET /organizations/:orgId/documents/:docId/download
-router.get("/organizations/:orgId/documents/:docId/download", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+router.get("/organizations/:orgId/documents/:docId/download", requireAuth, requireActiveOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
   const docId = parseId(req.params.docId);
   if (!docId || isNaN(docId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
@@ -124,7 +124,7 @@ router.get("/organizations/:orgId/documents/:docId/download", requireAuth, requi
 });
 
 // DELETE /organizations/:orgId/documents/:docId
-router.delete("/organizations/:orgId/documents/:docId", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+router.delete("/organizations/:orgId/documents/:docId", requireAuth, requireWritableOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const docId = parseId(req.params.docId);
   if (!docId || isNaN(docId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
