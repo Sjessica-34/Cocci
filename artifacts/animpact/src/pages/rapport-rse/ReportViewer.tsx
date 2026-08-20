@@ -36,6 +36,18 @@ const YEAR = new Date().getFullYear();
 function Toolbar({ orgId }: { orgId: number | null }) {
   const { editMode, toggleEditMode } = useReportEdit();
 
+  const handlePrint = () => {
+    const previousTitle = document.title;
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+
+    document.title = "Rapport RSE Cocci";
+    window.addEventListener("afterprint", restoreTitle);
+    window.print();
+  };
+
   return (
     <div
       id="report-toolbar"
@@ -94,7 +106,7 @@ function Toolbar({ orgId }: { orgId: number | null }) {
 
         {!editMode && (
           <button
-            onClick={() => window.print()}
+            onClick={handlePrint}
             style={{
               backgroundColor: "#1F6B3A", color: "white",
               border: "none", borderRadius: 8,
