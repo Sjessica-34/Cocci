@@ -14,6 +14,7 @@ import {
 } from "../../biodiversite/data";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
+import { StakeholderReportCharts } from "./StakeholderReportCharts";
 
 // ─── Cartographie des connexions (ReactFlow, read-only) ───────────────────────
 
@@ -589,6 +590,7 @@ export function ChapterDemarcheRSE({ data, ai }: { data: ReportData; ai: AiAnaly
             ])}
             widths={["35%", "30%", "17%", "18%"]}
           />
+          <StakeholderReportCharts stakeholders={stakeholders} />
           <EditableAiBlock id="stakeholders" text={ai.stakeholders ?? null} label="Analyse des parties prenantes" />
         </>
       )}
