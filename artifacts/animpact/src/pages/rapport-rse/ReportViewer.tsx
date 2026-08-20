@@ -38,15 +38,55 @@ function Toolbar({ orgId }: { orgId: number | null }) {
   const { editMode, toggleEditMode } = useReportEdit();
 
   const handlePrint = () => {
-    const previousTitle = document.title;
-    const restoreTitle = () => {
-      document.title = previousTitle;
-      window.removeEventListener("afterprint", restoreTitle);
+    const report = document.getElementById("report-content");
+    const reportFrame = report?.parentElement;
+    const printWindow = window.open("", "rse-report-print", "popup,width=1000,height=900");
+
+    if (!report || !reportFrame || !printWindow) {
+      window.print();
+      return;
+    }
+
+    const frame = reportFrame.cloneNode(false) as HTMLElement;
+    frame.append(report.cloneNode(true));
+    const styles = Array.from(
+      document.querySelectorAll("link[rel='stylesheet'], style"),
+    ).map((style) => style.outerHTML).join("");
+
+    let printStarted = false;
+    const print = () => {
+      if (printStarted) return;
+      printStarted = true;
+      printWindow.focus();
+      printWindow.print();
     };
 
-    document.title = "Rapport RSE Cocci";
-    window.addEventListener("afterprint", restoreTitle);
-    window.print();
+    printWindow.addEventListener("load", () => {
+      const fontsReady = printWindow.document.fonts?.ready ?? Promise.resolve();
+      const imagesReady = Promise.all(
+        Array.from(printWindow.document.images).map((image) => {
+          if (image.complete) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener("error", () => resolve(), { once: true });
+          });
+        }),
+      );
+      void Promise.all([fontsReady, imagesReady]).then(print);
+    }, { once: true });
+    printWindow.addEventListener("afterprint", () => printWindow.close(), { once: true });
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html>
+      <html lang="fr">
+        <head>
+          <meta charset="UTF-8" />
+          <base href="${document.baseURI}" />
+          <title>Rapport RSE Cocci</title>
+          ${styles}
+        </head>
+        <body>${frame.outerHTML}</body>
+      </html>`);
+    printWindow.document.close();
   };
 
   return (
@@ -326,7 +366,7 @@ export function ReportViewer() {
             #report-toolbar { display: none !important; }
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             #report-content { max-width: 100% !important; padding: 0 !important; box-shadow: none !important; }
-            .chapter-section { break-before: auto; page-break-before: auto; }
+            .chapter-section { break-before: page; page-break-before: always; }
             .chapter-section > div > * { break-inside: avoid; page-break-inside: avoid; }
             tr { break-inside: avoid; page-break-inside: avoid; }
             * { box-shadow: none !important; }
