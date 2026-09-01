@@ -10,6 +10,7 @@ import {
   type Organization,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { MobileZoomable } from "@/components/MobileZoomable";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -406,21 +407,23 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
         /* ── Matrix view ────────────────────────────────────────────────── */
         <div>
           {/* Matrices */}
-          {filter === "all" ? (
-            <div className="flex flex-col md:flex-row gap-4 overflow-visible">
-              {positions.map(pos => (
-                <BioMatrix key={pos} issues={issues} position={pos} issueNum={issueNum} />
-              ))}
-            </div>
-          ) : (
-            <div className="max-w-sm">
-              <BioMatrix
-                issues={issues}
-                position={filter as ChainPos}
-                issueNum={issueNum}
-              />
-            </div>
-          )}
+          <MobileZoomable className="rounded-xl">
+            {filter === "all" ? (
+              <div className="flex flex-col md:flex-row gap-4 overflow-visible">
+                {positions.map(pos => (
+                  <BioMatrix key={pos} issues={issues} position={pos} issueNum={issueNum} />
+                ))}
+              </div>
+            ) : (
+              <div className="max-w-sm">
+                <BioMatrix
+                  issues={issues}
+                  position={filter as ChainPos}
+                  issueNum={issueNum}
+                />
+              </div>
+            )}
+          </MobileZoomable>
 
           {/* Legend */}
           <div className="mt-4 flex items-center gap-5 flex-wrap">

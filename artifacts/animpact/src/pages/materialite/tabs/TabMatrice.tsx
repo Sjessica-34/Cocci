@@ -7,6 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Loader2, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MobileZoomable } from "@/components/MobileZoomable";
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Changements climatiques": "#14b8a6",
@@ -84,8 +85,16 @@ export function TabMatriceViz({ items, top12Keys, orgId }: Props) {
           </p>
         </div>
 
-        <div ref={containerRef} className="relative rounded-xl border border-border bg-white dark:bg-muted/10 overflow-hidden">
-          <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} width="100%" style={{ maxHeight: 480 }} className="select-none">
+        <MobileZoomable
+          viewportRef={containerRef}
+          className="rounded-xl border border-border bg-white dark:bg-muted/10"
+        >
+          <svg
+            viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+            width="100%"
+            style={{ maxHeight: 480 }}
+            className="select-none"
+          >
             {/* Quadrant backgrounds */}
             <rect x={PAD.left} y={PAD.top} width={PLOT_W / 2} height={PLOT_H / 2} fill="#f8fafc" />
             <rect x={PAD.left + PLOT_W / 2} y={PAD.top} width={PLOT_W / 2} height={PLOT_H / 2} fill="#f0fdf4" />
@@ -184,7 +193,7 @@ export function TabMatriceViz({ items, top12Keys, orgId }: Props) {
               )}
             </div>
           )}
-        </div>
+        </MobileZoomable>
 
         {/* Category legend */}
         <div className="flex flex-wrap gap-3">

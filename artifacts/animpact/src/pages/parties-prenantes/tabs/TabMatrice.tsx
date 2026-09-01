@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import type { Stakeholder } from "@workspace/api-client-react";
 import { STAKEHOLDER_CATEGORIES, CATEGORY_COLORS, getCategoryByKey } from "../constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ZoomIn, ZoomOut, RotateCcw, Download, Search, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTouchZoom } from "@/hooks/useTouchZoom";
 
 // SVG layout constants
 const PAD = { left: 60, right: 30, top: 30, bottom: 60 };
@@ -75,15 +76,22 @@ type TooltipData = {
 type Props = { stakeholders: Stakeholder[] };
 
 export function TabMatrice({ stakeholders }: Props) {
-  const [scale, setScale] = useState(1);
-  const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  const {
+    scale,
+    translate,
+    isDragging,
+    zoom,
+    reset,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+  } = useTouchZoom({ minScale: 0.6 });
 
   const activeCats = STAKEHOLDER_CATEGORIES.filter((c) =>
     stakeholders.some((s) => s.category === c.key),
@@ -92,29 +100,6 @@ export function TabMatrice({ stakeholders }: Props) {
   const filtered = filterCat === "all" ? stakeholders : stakeholders.filter((s) => s.category === filterCat);
 
   const searchLower = search.toLowerCase();
-
-  function onMouseDown(e: React.MouseEvent) {
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
-  }
-  function onMouseMove(e: React.MouseEvent) {
-    if (!isDragging.current) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-    setTranslate({ x: dragStart.current.tx + dx, y: dragStart.current.ty + dy });
-  }
-  function onMouseUp() {
-    isDragging.current = false;
-  }
-
-  function zoom(delta: number) {
-    setScale((prev) => Math.min(3, Math.max(0.6, prev + delta)));
-  }
-
-  function reset() {
-    setScale(1);
-    setTranslate({ x: 0, y: 0 });
-  }
 
   function exportPng() {
     const svgEl = svgRef.current;
@@ -163,6 +148,9 @@ export function TabMatrice({ stakeholders }: Props) {
           <h2 className="text-lg font-semibold text-foreground">Matrice Influence × Intérêt</h2>
           <p className="text-sm text-muted-foreground">
             Glissez pour déplacer · Zoomez pour explorer
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 sm:hidden">
+            Pincez avec deux doigts pour zoomer sur la matrice.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -220,18 +208,18 @@ export function TabMatrice({ stakeholders }: Props) {
       {/* SVG container */}
       <div
         ref={containerRef}
-        className="relative rounded-xl border border-border bg-white overflow-hidden cursor-grab active:cursor-grabbing"
+        className="relative rounded-xl border border-border bg-white overflow-hidden cursor-grab active:cursor-grabbing touch-none"
         style={{ height: 480 }}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
       >
         <div
           style={{
             transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
             transformOrigin: "center center",
-            transition: isDragging.current ? "none" : "transform 0.15s ease",
+            transition: isDragging ? "none" : "transform 0.15s ease",
             width: "100%",
             height: "100%",
             display: "flex",

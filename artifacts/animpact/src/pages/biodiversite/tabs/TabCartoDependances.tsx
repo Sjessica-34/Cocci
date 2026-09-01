@@ -492,12 +492,17 @@ function GroupCarto({ subsidiaries }: { subsidiaries: Organization[] }) {
           fitViewOptions={{ padding: 0.12 }}
           minZoom={0.08}
           maxZoom={2.5}
+          zoomOnPinch
+          panOnDrag
         >
           <Background gap={20} size={1} color="#cbd5e1" />
           <Controls position="bottom-left" />
           <MiniMap position="bottom-right" nodeColor="#94a3b8" pannable zoomable />
         </ReactFlow>
       </div>
+      <p className="text-center text-[11px] text-muted-foreground sm:hidden">
+        Pincez pour zoomer · faites glisser le fond pour déplacer la cartographie
+      </p>
     </div>
   );
 }
@@ -685,6 +690,8 @@ function IndividualCarto({ orgId }: { orgId: number }) {
             fitViewOptions={{ padding: 0.15 }}
             minZoom={0.25}
             maxZoom={2.5}
+            zoomOnPinch
+            panOnDrag
           >
             <Background gap={20} size={1} color="#cbd5e1" />
             <Controls position="bottom-left" />
@@ -692,6 +699,9 @@ function IndividualCarto({ orgId }: { orgId: number }) {
           </ReactFlow>
         </div>
       )}
+      <p className="text-center text-[11px] text-muted-foreground sm:hidden">
+        Pincez pour zoomer · faites glisser le fond pour déplacer la cartographie
+      </p>
 
       {/* Dialog connexion */}
       <Dialog open={connectDialog !== null} onOpenChange={open => !open && setConnectDialog(null)}>
