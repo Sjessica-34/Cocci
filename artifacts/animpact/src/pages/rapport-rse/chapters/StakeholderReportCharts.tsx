@@ -135,14 +135,17 @@ function placeStakeholders(points: StakeholderPoint[], categories: typeof REPORT
 
 function ChartFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
+    <div
+      className="stakeholder-chart-frame"
+      style={{
       border: "1px solid #E2E8F0",
       backgroundColor: "white",
       borderRadius: 12,
       padding: "14px 16px",
       breakInside: "avoid",
       pageBreakInside: "avoid",
-    }}>
+      }}
+    >
       {children}
     </div>
   );
@@ -184,11 +187,12 @@ function StakeholderCartography({ points }: { points: StakeholderPoint[] }) {
         La distance par rapport à l’entreprise représente le niveau d’intérêt : plus une partie prenante est proche du centre, plus son intérêt est élevé.
       </ChartCaption>
       <svg
+        className="stakeholder-chart-svg"
         viewBox={`0 0 ${RADIAL.width} ${RADIAL.height}`}
         width="100%"
         role="img"
         aria-label="Cartographie des parties prenantes par catégorie et niveau d’intérêt"
-        style={{ display: "block", maxHeight: 520 }}
+        style={{ display: "block", width: "100%", height: "auto", maxHeight: 520 }}
       >
         {categories.map((category, index) => {
           const halfSector = sectorAngle / 2;
@@ -352,11 +356,12 @@ function StakeholderInfluenceMatrix({ points }: { points: StakeholderPoint[] }) 
         Elle situe chaque partie prenante selon son niveau d’influence sur l’organisation et son niveau d’intérêt pour la démarche RSE.
       </ChartCaption>
       <svg
+        className="stakeholder-chart-svg"
         viewBox={`0 0 ${MATRIX_WIDTH} ${MATRIX_HEIGHT}`}
         width="100%"
         role="img"
         aria-label="Matrice Influence par Intérêt des parties prenantes"
-        style={{ display: "block", maxHeight: 420 }}
+        style={{ display: "block", width: "100%", height: "auto", maxHeight: 420 }}
       >
         {quadrants.map((quadrant) => (
           <g key={quadrant.key}>
@@ -450,7 +455,16 @@ export function StakeholderReportCharts({ stakeholders }: { stakeholders: RawSta
   if (points.length === 0) return null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div
+      className="stakeholder-chart-stack"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 18,
+        breakInside: "auto",
+        pageBreakInside: "auto",
+      }}
+    >
       <StakeholderCartography points={points} />
       <StakeholderInfluenceMatrix points={points} />
     </div>

@@ -325,9 +325,12 @@ export function ReportViewer() {
             @page { size: A4; margin: 1.8cm 1.5cm; }
             #report-toolbar { display: none !important; }
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            #report-content { max-width: 100% !important; padding: 0 !important; box-shadow: none !important; }
+            #report-content { max-width: 100% !important; padding: 0 !important; box-shadow: none !important; overflow: visible !important; }
             .chapter-section { break-before: auto; page-break-before: auto; }
             .chapter-section > div > * { break-inside: avoid; page-break-inside: avoid; }
+            .stakeholder-chart-stack { break-inside: auto !important; page-break-inside: auto !important; }
+            .stakeholder-chart-frame { break-inside: avoid !important; page-break-inside: avoid !important; }
+            .stakeholder-chart-svg { display: block !important; width: 100% !important; height: auto !important; max-width: 100% !important; max-height: none !important; }
             tr { break-inside: avoid; page-break-inside: avoid; }
             * { box-shadow: none !important; }
             textarea { display: none !important; }

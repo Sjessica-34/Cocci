@@ -8,3 +8,4 @@
 - [Génération DOCX RSE](rse-pdf-archives.md) — réserver atomiquement le quota avant d’ouvrir le visualiseur DOCX, isolé par exercice.
 - [Crédits de génération RSE](rse-generation-credits.md) — les crédits superadmin sont cumulatifs, liés à l’exercice et protégés des mises à jour de brouillon.
 - [Nom des PDF RSE](report-pdf-filename.md) — l’aperçu Replit impose son titre au dialogue d’impression ; exporter via une page dédiée titrée.
+- [Pagination des graphiques parties prenantes](stakeholder-chart-print-pagination.md) — en PDF, fragmenter la pile de graphiques mais jamais une carte, son SVG ou sa légende.
