@@ -407,7 +407,7 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
         <div>
           {/* Matrices */}
           {filter === "all" ? (
-            <div className="flex gap-4 overflow-visible">
+            <div className="flex flex-col md:flex-row gap-4 overflow-visible">
               {positions.map(pos => (
                 <BioMatrix key={pos} issues={issues} position={pos} issueNum={issueNum} />
               ))}
