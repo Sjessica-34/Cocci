@@ -244,7 +244,7 @@ export function TabMatrice({ stakeholders }: Props) {
             width={SVG_W}
             height={SVG_H}
             viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-            className="select-none"
+            className="select-none w-full h-auto max-w-full"
             style={{ overflow: "visible" }}
           >
             {/* Quadrant backgrounds */}

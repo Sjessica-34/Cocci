@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import type { Stakeholder } from "@workspace/api-client-react";
 import { STAKEHOLDER_CATEGORIES, CATEGORY_COLORS } from "../constants";
-import { Users2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RotateCcw, Users2, ZoomIn, ZoomOut } from "lucide-react";
 
 const W = 780;
 const H = 780;
@@ -104,8 +105,18 @@ type TooltipData = { x: number; y: number; node: PlacedNode };
 type Props = { stakeholders: Stakeholder[] };
 
 export function TabCartographie({ stakeholders }: Props) {
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({
+    active: false,
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    originX: 0,
+    originY: 0,
+  });
 
   const placed = computePositions(stakeholders);
   const activeCats = STAKEHOLDER_CATEGORIES.filter((c) =>
@@ -128,191 +139,277 @@ export function TabCartographie({ stakeholders }: Props) {
 
   const sectorAngle = (2 * Math.PI) / activeCats.length;
 
+  function zoom(delta: number) {
+    setScale((prev) => Math.min(3, Math.max(1, prev + delta)));
+  }
+
+  function resetView() {
+    setScale(1);
+    setTranslate({ x: 0, y: 0 });
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    dragRef.current = {
+      active: true,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: translate.x,
+      originY: translate.y,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag.active || drag.pointerId !== e.pointerId) return;
+    setTranslate({
+      x: drag.originX + e.clientX - drag.startX,
+      y: drag.originY + e.clientY - drag.startY,
+    });
+  }
+
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (dragRef.current.pointerId === e.pointerId) {
+      dragRef.current.active = false;
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Cartographie des parties prenantes</h2>
-        <p className="text-sm text-muted-foreground">
-          Classement par catégorie (secteur) et par intérêt (distance — plus proche du centre = intérêt plus élevé).
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Cartographie des parties prenantes</h2>
+          <p className="text-sm text-muted-foreground">
+            Classement par catégorie (secteur) et par intérêt (distance — plus proche du centre = intérêt plus élevé).
+          </p>
+        </div>
+        <div className="flex items-center gap-1 sm:shrink-0" aria-label="Contrôles de zoom">
+          <span className="text-xs text-muted-foreground mr-1">Zoom</span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => zoom(0.25)}
+            aria-label="Zoomer"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => zoom(-0.25)}
+            aria-label="Dézoomer"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={resetView}
+            aria-label="Réinitialiser le zoom"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
-      <div ref={containerRef} className="relative bg-white dark:bg-muted/10 rounded-xl border border-border overflow-hidden">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          width="100%"
-          style={{ maxHeight: 680 }}
-          className="select-none"
+      <div
+        ref={containerRef}
+        className="relative bg-white dark:bg-muted/10 rounded-xl border border-border overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <div
+          style={{
+            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+            transformOrigin: "center center",
+            transition: dragRef.current.active ? "none" : "transform 0.15s ease",
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+          }}
         >
-          {/* Colored sector backgrounds */}
-          {activeCats.map((cat, ci) => {
-            const halfSector = sectorAngle / 2;
-            const a1 = ci * sectorAngle - Math.PI / 2 - halfSector;
-            const a2 = ci * sectorAngle - Math.PI / 2 + halfSector;
-            return (
-              <path
-                key={cat.key + "_bg"}
-                d={arcPath(CX, CY, CENTER_R + 2, RING_RADII[1] + 8, a1, a2)}
-                fill={CATEGORY_COLORS[cat.key] ?? "#94a3b8"}
-                opacity={0.07}
-              />
-            );
-          })}
-
-          {/* 5 concentric rings */}
-          {ALL_INTEREST.map((lvl) => (
-            <circle
-              key={lvl}
-              cx={CX}
-              cy={CY}
-              r={RING_RADII[lvl]}
-              fill="none"
-              stroke="#e2e8f0"
-              strokeWidth={lvl === 3 ? 1.5 : 1}
-              strokeDasharray={lvl === 3 ? undefined : "5 5"}
-            />
-          ))}
-
-          {/* Interest level labels */}
-          {ALL_INTEREST.map((lvl) => (
-            <text
-              key={lvl}
-              x={CX + RING_RADII[lvl] - 4}
-              y={CY - 5}
-              textAnchor="end"
-              fontSize={8}
-              fill="#94a3b8"
-            >
-              {lvl}
-            </text>
-          ))}
-
-          {/* Sector dividers */}
-          {activeCats.length > 1 &&
-            activeCats.map((_, ci) => {
-              const angle = ci * sectorAngle - Math.PI / 2 - sectorAngle / 2;
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            width="100%"
+            style={{ maxHeight: 680 }}
+            className="select-none"
+          >
+            {/* Colored sector backgrounds */}
+            {activeCats.map((cat, ci) => {
+              const halfSector = sectorAngle / 2;
+              const a1 = ci * sectorAngle - Math.PI / 2 - halfSector;
+              const a2 = ci * sectorAngle - Math.PI / 2 + halfSector;
               return (
-                <line
-                  key={ci}
-                  x1={CX + (CENTER_R + 3) * Math.cos(angle)}
-                  y1={CY + (CENTER_R + 3) * Math.sin(angle)}
-                  x2={CX + (RING_RADII[1] + 9) * Math.cos(angle)}
-                  y2={CY + (RING_RADII[1] + 9) * Math.sin(angle)}
-                  stroke="#cbd5e1"
-                  strokeWidth={1}
-                  strokeDasharray="3 5"
+                <path
+                  key={cat.key + "_bg"}
+                  d={arcPath(CX, CY, CENTER_R + 2, RING_RADII[1] + 8, a1, a2)}
+                  fill={CATEGORY_COLORS[cat.key] ?? "#94a3b8"}
+                  opacity={0.07}
                 />
               );
             })}
 
-          {/* Category labels — full name, uppercase, colored */}
-          {activeCats.map((cat, ci) => {
-            const angle = ci * sectorAngle - Math.PI / 2;
-            const lx = CX + LABEL_R * Math.cos(angle);
-            const ly = CY + LABEL_R * Math.sin(angle);
-            const color = CATEGORY_COLORS[cat.key] ?? "#94a3b8";
-            const lines = wrapLabel(cat.label, 14);
-            const lineH = 13;
-            const totalH = lines.length * lineH;
-            return (
+            {/* 5 concentric rings */}
+            {ALL_INTEREST.map((lvl) => (
+              <circle
+                key={lvl}
+                cx={CX}
+                cy={CY}
+                r={RING_RADII[lvl]}
+                fill="none"
+                stroke="#e2e8f0"
+                strokeWidth={lvl === 3 ? 1.5 : 1}
+                strokeDasharray={lvl === 3 ? undefined : "5 5"}
+              />
+            ))}
+
+            {/* Interest level labels */}
+            {ALL_INTEREST.map((lvl) => (
               <text
-                key={cat.key}
-                textAnchor="middle"
-                fontSize={10}
-                fill={color}
-                fontWeight={700}
-                letterSpacing={0.3}
+                key={lvl}
+                x={CX + RING_RADII[lvl] - 4}
+                y={CY - 5}
+                textAnchor="end"
+                fontSize={8}
+                fill="#94a3b8"
               >
-                {lines.map((line, li) => (
-                  <tspan key={li} x={lx} y={ly - totalH / 2 + li * lineH + lineH / 2}>
-                    {line}
-                  </tspan>
-                ))}
+                {lvl}
               </text>
-            );
-          })}
+            ))}
 
-          {/* Center circle */}
-          <circle cx={CX} cy={CY} r={CENTER_R} fill="hsl(160 55% 28%)" />
+            {/* Sector dividers */}
+            {activeCats.length > 1 &&
+              activeCats.map((_, ci) => {
+                const angle = ci * sectorAngle - Math.PI / 2 - sectorAngle / 2;
+                return (
+                  <line
+                    key={ci}
+                    x1={CX + (CENTER_R + 3) * Math.cos(angle)}
+                    y1={CY + (CENTER_R + 3) * Math.sin(angle)}
+                    x2={CX + (RING_RADII[1] + 9) * Math.cos(angle)}
+                    y2={CY + (RING_RADII[1] + 9) * Math.sin(angle)}
+                    stroke="#cbd5e1"
+                    strokeWidth={1}
+                    strokeDasharray="3 5"
+                  />
+                );
+              })}
 
-          {/* City buildings icon — two office towers */}
-          <g transform={`translate(${CX}, ${CY - 7})`} fill="white" opacity={0.92}>
-            {/* Tower 1 — taller, left */}
-            <rect x="-14" y="-15" width="12" height="23" rx="0.5" />
-            <rect x="-12" y="-13" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            <rect x="-7"  y="-13" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            <rect x="-12" y="-8"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            <rect x="-7"  y="-8"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            <rect x="-12" y="-3"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            <rect x="-7"  y="-3"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            {/* Tower 2 — shorter, right */}
-            <rect x="1" y="-9" width="13" height="17" rx="0.5" />
-            <rect x="3"  y="-7" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            <rect x="8"  y="-7" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            <rect x="3"  y="-2" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-            <rect x="8"  y="-2" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
-          </g>
-          <text
-            x={CX}
-            y={CY + 37}
-            textAnchor="middle"
-            fontSize={7.5}
-            fill="white"
-            fontWeight={700}
-            letterSpacing={0.8}
-          >
-            ENTREPRISE
-          </text>
-
-          {/* Stakeholder nodes */}
-          {placed.map((node) => {
-            const label = node.subcategory ?? "";
-            const truncated = label.length > 14 ? label.slice(0, 12) + "…" : label;
-            return (
-              <g
-                key={node.id}
-                onMouseEnter={(e) => {
-                  const rect = containerRef.current?.getBoundingClientRect();
-                  if (!rect) return;
-                  const svgEl = e.currentTarget.closest("svg")!;
-                  const svgRect = svgEl.getBoundingClientRect();
-                  setTooltip({
-                    x: node.x * (svgRect.width / W) + svgRect.left - rect.left,
-                    y: node.y * (svgRect.height / H) + svgRect.top - rect.top,
-                    node,
-                  });
-                }}
-                onMouseLeave={() => setTooltip(null)}
-                className="cursor-pointer"
-              >
-                <circle cx={node.x} cy={node.y} r={NODE_R + 4} fill={node.color} opacity={0.12} />
-                <circle cx={node.x} cy={node.y} r={NODE_R} fill="white" stroke={node.color} strokeWidth={2} />
+            {/* Category labels — full name, uppercase, colored */}
+            {activeCats.map((cat, ci) => {
+              const angle = ci * sectorAngle - Math.PI / 2;
+              const lx = CX + LABEL_R * Math.cos(angle);
+              const ly = CY + LABEL_R * Math.sin(angle);
+              const color = CATEGORY_COLORS[cat.key] ?? "#94a3b8";
+              const lines = wrapLabel(cat.label, 14);
+              const lineH = 13;
+              const totalH = lines.length * lineH;
+              return (
                 <text
-                  x={node.x}
-                  y={node.y}
+                  key={cat.key}
                   textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={8}
-                  fill={node.color}
+                  fontSize={10}
+                  fill={color}
                   fontWeight={700}
+                  letterSpacing={0.3}
                 >
-                  {((node.subcategory ?? node.catLabel)[0] ?? "?").toUpperCase()}
+                  {lines.map((line, li) => (
+                    <tspan key={li} x={lx} y={ly - totalH / 2 + li * lineH + lineH / 2}>
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
-                {truncated && (
+              );
+            })}
+
+            {/* Center circle */}
+            <circle cx={CX} cy={CY} r={CENTER_R} fill="hsl(160 55% 28%)" />
+
+            {/* City buildings icon — two office towers */}
+            <g transform={`translate(${CX}, ${CY - 7})`} fill="white" opacity={0.92}>
+              {/* Tower 1 — taller, left */}
+              <rect x="-14" y="-15" width="12" height="23" rx="0.5" />
+              <rect x="-12" y="-13" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              <rect x="-7"  y="-13" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              <rect x="-12" y="-8"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              <rect x="-7"  y="-8"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              <rect x="-12" y="-3"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              <rect x="-7"  y="-3"  width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              {/* Tower 2 — shorter, right */}
+              <rect x="1" y="-9" width="13" height="17" rx="0.5" />
+              <rect x="3"  y="-7" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              <rect x="8"  y="-7" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              <rect x="3"  y="-2" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+              <rect x="8"  y="-2" width="3" height="3" fill="hsl(160 55% 28%)" rx="0.4" />
+            </g>
+            <text
+              x={CX}
+              y={CY + 37}
+              textAnchor="middle"
+              fontSize={7.5}
+              fill="white"
+              fontWeight={700}
+              letterSpacing={0.8}
+            >
+              ENTREPRISE
+            </text>
+
+            {/* Stakeholder nodes */}
+            {placed.map((node) => {
+              const label = node.subcategory ?? "";
+              const truncated = label.length > 14 ? label.slice(0, 12) + "…" : label;
+              return (
+                <g
+                  key={node.id}
+                  onMouseEnter={(e) => {
+                    const rect = containerRef.current?.getBoundingClientRect();
+                    if (!rect) return;
+                    const svgEl = e.currentTarget.closest("svg")!;
+                    const svgRect = svgEl.getBoundingClientRect();
+                    setTooltip({
+                      x: node.x * (svgRect.width / W) + svgRect.left - rect.left,
+                      y: node.y * (svgRect.height / H) + svgRect.top - rect.top,
+                      node,
+                    });
+                  }}
+                  onMouseLeave={() => setTooltip(null)}
+                  className="cursor-pointer"
+                >
+                  <circle cx={node.x} cy={node.y} r={NODE_R + 4} fill={node.color} opacity={0.12} />
+                  <circle cx={node.x} cy={node.y} r={NODE_R} fill="white" stroke={node.color} strokeWidth={2} />
                   <text
                     x={node.x}
-                    y={node.y + NODE_R + 10}
+                    y={node.y}
                     textAnchor="middle"
-                    fontSize={7}
-                    fill="#475569"
+                    dominantBaseline="middle"
+                    fontSize={8}
+                    fill={node.color}
+                    fontWeight={700}
                   >
-                    {truncated}
+                    {((node.subcategory ?? node.catLabel)[0] ?? "?").toUpperCase()}
                   </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
+                  {truncated && (
+                    <text
+                      x={node.x}
+                      y={node.y + NODE_R + 10}
+                      textAnchor="middle"
+                      fontSize={7}
+                      fill="#475569"
+                    >
+                      {truncated}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
 
         {/* Tooltip */}
         {tooltip && (
