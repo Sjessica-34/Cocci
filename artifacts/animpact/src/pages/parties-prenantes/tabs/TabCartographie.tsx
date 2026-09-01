@@ -103,12 +103,19 @@ function wrapLabel(text: string, maxChars = 14): string[] {
 
 type TooltipData = { x: number; y: number; node: PlacedNode };
 type Props = { stakeholders: Stakeholder[] };
+type PointerPoint = { x: number; y: number };
+
+function pointerDistance(a: PointerPoint, b: PointerPoint) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
 
 export function TabCartographie({ stakeholders }: Props) {
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pointersRef = useRef(new Map<number, PointerPoint>());
+  const pinchRef = useRef<{ distance: number; scale: number } | null>(null);
   const dragRef = useRef({
     active: false,
     pointerId: -1,
@@ -149,6 +156,19 @@ export function TabCartographie({ stakeholders }: Props) {
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    if (pointersRef.current.size === 2) {
+      const [first, second] = Array.from(pointersRef.current.values());
+      pinchRef.current = {
+        distance: pointerDistance(first, second),
+        scale,
+      };
+      dragRef.current.active = false;
+      return;
+    }
+
     dragRef.current = {
       active: true,
       pointerId: e.pointerId,
@@ -157,10 +177,19 @@ export function TabCartographie({ stakeholders }: Props) {
       originX: translate.x,
       originY: translate.y,
     };
-    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointersRef.current.size >= 2 && pinchRef.current) {
+      const [first, second] = Array.from(pointersRef.current.values());
+      const distance = pointerDistance(first, second);
+      const ratio = pinchRef.current.distance > 0 ? distance / pinchRef.current.distance : 1;
+      setScale(Math.min(3, Math.max(1, pinchRef.current.scale * ratio)));
+      return;
+    }
+
     const drag = dragRef.current;
     if (!drag.active || drag.pointerId !== e.pointerId) return;
     setTranslate({
@@ -170,9 +199,30 @@ export function TabCartographie({ stakeholders }: Props) {
   }
 
   function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    if (dragRef.current.pointerId === e.pointerId) {
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) {
+      pinchRef.current = null;
+    }
+
+    if (pointersRef.current.size === 1) {
+      const [remainingId, remainingPoint] = Array.from(pointersRef.current.entries())[0];
+      dragRef.current = {
+        active: true,
+        pointerId: remainingId,
+        startX: remainingPoint.x,
+        startY: remainingPoint.y,
+        originX: translate.x,
+        originY: translate.y,
+      };
+    } else if (dragRef.current.pointerId === e.pointerId) {
       dragRef.current.active = false;
     }
+  }
+
+  function onPointerCancel(e: React.PointerEvent<HTMLDivElement>) {
+    pointersRef.current.delete(e.pointerId);
+    pinchRef.current = null;
+    dragRef.current.active = false;
   }
 
   return (
@@ -182,6 +232,9 @@ export function TabCartographie({ stakeholders }: Props) {
           <h2 className="text-lg font-semibold text-foreground">Cartographie des parties prenantes</h2>
           <p className="text-sm text-muted-foreground">
             Classement par catégorie (secteur) et par intérêt (distance — plus proche du centre = intérêt plus élevé).
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 sm:hidden">
+            Pincez pour zoomer et faites glisser pour déplacer la carte.
           </p>
         </div>
         <div className="flex items-center gap-1 sm:shrink-0" aria-label="Contrôles de zoom">
@@ -222,7 +275,7 @@ export function TabCartographie({ stakeholders }: Props) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={onPointerCancel}
       >
         <div
           style={{
