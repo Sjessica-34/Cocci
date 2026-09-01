@@ -277,8 +277,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Mobile header */}
       <header className="md:hidden h-14 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-50 shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <img src={`${import.meta.env.BASE_URL}logo-dark.png`} alt="Cocci" className="h-6 w-auto" />
+          {!isAdminRoute && !isOnboardingRoute && (
+            <div className="min-w-0 flex-1">
+              <GroupSwitcher mobile />
+            </div>
+          )}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

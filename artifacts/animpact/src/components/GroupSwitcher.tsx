@@ -215,7 +215,7 @@ function AddSubsidiaryDialog({
 
 // ── Main component ────────────────────────────────────────────────────────
 
-export function GroupSwitcher() {
+export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
   const { currentOrgId } = useCurrentOrganization();
   const adminViewOrgId = useAdminViewOrg();
   const { data: orgs = [], isLoading } = useListOrganizations(
@@ -259,12 +259,17 @@ export function GroupSwitcher() {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded-md">
         <Building className="h-4 w-4 text-primary/70 shrink-0" />
-        <span className="text-sm font-semibold text-sidebar-foreground truncate flex-1">
+        <span className={cn("text-sm font-semibold truncate flex-1", mobile ? "text-foreground" : "text-sidebar-foreground")}>
           {rootOrg.name}
         </span>
         <button
           onClick={() => setLocation(`/organizations/${rootOrg.id}/settings`)}
-          className="h-5 w-5 flex items-center justify-center rounded hover:bg-sidebar-accent/80 text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors"
+          className={cn(
+            "h-5 w-5 flex items-center justify-center rounded transition-colors",
+            mobile
+              ? "hover:bg-muted text-foreground/40 hover:text-foreground/70"
+              : "hover:bg-sidebar-accent/80 text-sidebar-foreground/40 hover:text-sidebar-foreground/70",
+          )}
           title="Paramètres"
         >
           <Settings className="h-3 w-3" />
@@ -289,18 +294,32 @@ export function GroupSwitcher() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="w-full justify-start px-2 h-auto py-1.5 hover:bg-sidebar-accent/60 text-sidebar-foreground min-w-0"
+            className={cn(
+              "w-full justify-start px-2 h-auto py-1.5 min-w-0",
+              mobile
+                ? "hover:bg-muted/70 text-foreground"
+                : "hover:bg-sidebar-accent/60 text-sidebar-foreground",
+            )}
           >
             <Network className="h-4 w-4 mr-2 text-primary/70 shrink-0" />
             <div className="flex-1 text-left min-w-0">
-              <div className="text-[10px] text-sidebar-foreground/50 uppercase tracking-wide truncate leading-none mb-0.5">
+              <div className={cn(
+                "text-[10px] uppercase tracking-wide truncate leading-none mb-0.5",
+                mobile ? "text-muted-foreground" : "text-sidebar-foreground/50",
+              )}>
                 {rootOrg.name}
               </div>
-              <div className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
+              <div className={cn(
+                "text-sm font-semibold truncate leading-tight",
+                mobile ? "text-foreground" : "text-sidebar-foreground",
+              )}>
                 {sublabel}
               </div>
             </div>
-            <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground/40 shrink-0 ml-1" />
+            <ChevronsUpDown className={cn(
+              "h-3.5 w-3.5 shrink-0 ml-1",
+              mobile ? "text-muted-foreground" : "text-sidebar-foreground/40",
+            )} />
           </Button>
         </DropdownMenuTrigger>
 
