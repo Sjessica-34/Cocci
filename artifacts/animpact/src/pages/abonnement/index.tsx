@@ -4,7 +4,9 @@ import { AppLayout } from "@/components/layout";
 import {
   ApiError,
   customFetch,
+  getGetEmploymentWorkforceQueryKey,
   getGetOrganizationQueryKey,
+  useGetEmploymentWorkforce,
   useGetOrganization,
 } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
@@ -99,6 +101,16 @@ export function Abonnement() {
     },
   });
   const {
+    data: workforce,
+    isLoading: workforceLoading,
+    error: workforceError,
+  } = useGetEmploymentWorkforce(currentOrgId ?? 0, {
+    query: {
+      enabled: Boolean(currentOrgId),
+      queryKey: getGetEmploymentWorkforceQueryKey(currentOrgId ?? 0),
+    },
+  });
+  const {
     subscription,
     isLoading: subscriptionLoading,
     error: subscriptionError,
@@ -120,7 +132,8 @@ export function Abonnement() {
 
   const handleCheckout = async (effectifKey: string) => {
     const selectedMaxEmployees = getPlanMaxEmployees(effectifKey);
-    const employeeCount = organization?.employeeCount ?? null;
+    const employeeCount =
+      organization?.employeeCount ?? workforce?.data?.totalHeadcount ?? null;
     const planTooSmall =
       employeeCount !== null &&
       selectedMaxEmployees !== null &&
@@ -214,10 +227,16 @@ export function Abonnement() {
 
   const hasAnyActive = subscription?.status === "active";
   const cancelled = searchParams.get("cancelled") === "1";
-  const employeeCount = organization?.employeeCount ?? null;
+  const employeeCount =
+    organization?.employeeCount ?? workforce?.data?.totalHeadcount ?? null;
   const employeeCountCheckPending =
-    Boolean(currentOrgId) && organization === undefined && organizationLoading;
-  const employeeCountCheckFailed = Boolean(currentOrgId) && Boolean(organizationError);
+    Boolean(currentOrgId) &&
+    employeeCount === null &&
+    (organizationLoading || workforceLoading);
+  const employeeCountCheckFailed =
+    Boolean(currentOrgId) &&
+    employeeCount === null &&
+    Boolean(organizationError || workforceError);
 
   return (
     <AppLayout>

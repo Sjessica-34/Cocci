@@ -120,7 +120,19 @@ router.post(
       // inférieure ne doit jamais pouvoir être souscrite, même via un appel
       // direct à l'API qui contournerait l'état désactivé de l'interface.
       const organizationRow = await pool.query<{ employee_count: number | null }>(
-        "SELECT employee_count FROM organizations WHERE id = $1 LIMIT 1",
+        `SELECT COALESCE(
+           o.employee_count,
+           (
+             SELECT ew.total_headcount
+             FROM employment_workforce ew
+             WHERE ew.organization_id = o.id
+             ORDER BY ew.updated_at DESC NULLS LAST, ew.id DESC
+             LIMIT 1
+           )
+         ) AS employee_count
+         FROM organizations o
+         WHERE o.id = $1
+         LIMIT 1`,
         [orgId],
       );
       const employeeCount = organizationRow.rows[0]?.employee_count ?? null;
