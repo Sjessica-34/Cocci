@@ -108,7 +108,9 @@ export function OnboardingAbonnement() {
         // Checkout est lancé : l'intention est consommée pour ne jamais
         // redéclencher une seconde session après un retour ou un rechargement.
         sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
-        window.location.href = url;
+        // Stripe Checkout ne peut pas être rendu dans l'iframe de prévisualisation.
+        const targetWindow = window.top ?? window;
+        targetWindow.location.href = url;
         return; // redirection en cours — garder l'état "loading"
       }
       throw new Error("URL de paiement manquante");

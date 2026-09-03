@@ -107,7 +107,14 @@ export function Abonnement() {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      if (url) window.location.href = url;
+      if (url) {
+        // Stripe Checkout ne peut pas être rendu dans l'iframe de prévisualisation.
+        // Naviguer la fenêtre principale évite d'afficher une page blanche.
+        const targetWindow = window.top ?? window;
+        targetWindow.location.href = url;
+        return;
+      }
+      throw new Error("URL de paiement manquante");
     } catch {
       alert("Erreur lors de la création de la session de paiement. Réessayez.");
     } finally {
