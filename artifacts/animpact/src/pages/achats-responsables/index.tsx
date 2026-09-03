@@ -25,31 +25,31 @@ export function AchatsResponsables() {
       <h1 className="text-xl font-bold mb-6">📦 Achats &amp; Fournisseurs Responsables</h1>
 
       <Tabs defaultValue="decouvrir" className="space-y-6">
-          <TabsList className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-1 h-auto rounded-lg bg-muted p-1 md:grid-cols-4">
+          <TabsList className="mx-auto flex h-auto w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-xl bg-muted/70 p-1">
             <TabsTrigger
               value="decouvrir"
-              className="w-full min-w-0 gap-2 whitespace-normal px-2 text-center leading-tight sm:px-3 md:whitespace-nowrap"
+              className="flex-none gap-2 whitespace-nowrap px-3 text-center"
             >
               <BookOpen className="h-4 w-4" />
               Découvrir
             </TabsTrigger>
             <TabsTrigger
               value="fournisseurs"
-              className="w-full min-w-0 gap-2 whitespace-normal px-2 text-center leading-tight sm:px-3 md:whitespace-nowrap"
+              className="flex-none gap-2 whitespace-nowrap px-3 text-center"
             >
               <Building2 className="h-4 w-4" />
               Mes fournisseurs
             </TabsTrigger>
             <TabsTrigger
               value="achats"
-              className="w-full min-w-0 gap-2 whitespace-normal px-2 text-center leading-tight sm:px-3 md:whitespace-nowrap"
+              className="flex-none gap-2 whitespace-nowrap px-3 text-center"
             >
               <ShoppingCart aria-hidden="true" className="h-4 w-4 shrink-0" />
               Achats responsables
             </TabsTrigger>
             <TabsTrigger
               value="dashboard"
-              className="w-full min-w-0 gap-2 whitespace-normal px-2 text-center leading-tight sm:px-3 md:whitespace-nowrap"
+              className="flex-none gap-2 whitespace-nowrap px-3 text-center"
             >
               <BarChart3 className="h-4 w-4" />
               Synthèse
