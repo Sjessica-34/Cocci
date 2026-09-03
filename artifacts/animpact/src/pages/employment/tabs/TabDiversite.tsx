@@ -6,6 +6,8 @@ import {
   getGetEmploymentWorkforceQueryKey,
   getGetEmploymentDiversityQueryKey,
   getGetEmploymentResultsQueryKey,
+  getGetOrganizationQueryKey,
+  useGetOrganization,
   type EmploymentDiversityInput,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,7 +39,10 @@ export function TabDiversite({ orgId, readOnly }: Props) {
   const { data: workforceData } = useGetEmploymentWorkforce(orgId, {
     query: { enabled: !!orgId, queryKey: getGetEmploymentWorkforceQueryKey(orgId) },
   });
-  const totalHeadcount = workforceData?.data?.totalHeadcount;
+  const { data: organization } = useGetOrganization(orgId, {
+    query: { enabled: !!orgId, queryKey: getGetOrganizationQueryKey(orgId) },
+  });
+  const totalHeadcount = organization?.employeeCount ?? workforceData?.data?.totalHeadcount;
 
   useEffect(() => {
     if (data?.data) {

@@ -4,6 +4,8 @@ import {
   useUpsertEmploymentWorkforce,
   getGetEmploymentWorkforceQueryKey,
   getGetEmploymentResultsQueryKey,
+  getGetOrganizationQueryKey,
+  useGetOrganization,
   type EmploymentWorkforceInput,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -73,6 +75,9 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
   const { data, isLoading } = useGetEmploymentWorkforce(orgId, {
     query: { enabled: !!orgId, queryKey: getGetEmploymentWorkforceQueryKey(orgId) },
   });
+  const { data: organization, isLoading: organizationLoading } = useGetOrganization(orgId, {
+    query: { enabled: !!orgId, queryKey: getGetOrganizationQueryKey(orgId) },
+  });
 
   useEffect(() => {
     if (data?.data) {
@@ -97,7 +102,14 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
 
   const set = <K extends keyof FormState>(key: K, val: FormState[K]) => setForm((f) => ({ ...f, [key]: val }));
 
-  const total = form.totalHeadcount;
+  // employeeCount est l'effectif de référence de l'organisation. La valeur
+  // de l'exercice reste un secours pour les organisations historiques qui
+  // n'ont pas encore renseigné leur effectif déclaré.
+  const declaredEmployeeCount = organization?.employeeCount ?? null;
+  const total = declaredEmployeeCount ?? form.totalHeadcount;
+  const formToSave = declaredEmployeeCount !== null
+    ? { ...form, totalHeadcount: declaredEmployeeCount }
+    : form;
   const ageSum = sumFields([form.ageUnder25, form.age25to34, form.age35to44, form.age45to54, form.age55plus]);
   const senioritySum = sumFields([form.seniorityUnder2, form.seniority2to5, form.seniority5to10, form.seniorityOver10]);
 
@@ -116,7 +128,7 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
     checkNotExceeding({ sum: senioritySum, total, label: "La somme des tranches d'ancienneté" }),
   ];
 
-  if (isLoading) {
+  if (isLoading || organizationLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-40 w-full" />
@@ -137,10 +149,10 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
           <NumberField
             id="totalHeadcount"
             label="Effectif total"
-            help="Nombre total de collaborateurs présents dans l'entreprise à la clôture de l'exercice, tous types de contrats confondus."
-            value={form.totalHeadcount}
+            help="Effectif déclaré de l'organisation, utilisé comme référence pour les contrôles de cohérence."
+            value={total}
             onChange={(v) => set("totalHeadcount", v)}
-            disabled={readOnly}
+            disabled={readOnly || declaredEmployeeCount !== null}
           />
           <NumberField
             id="nbCdi"
@@ -276,7 +288,7 @@ export function TabEffectifs({ orgId, readOnly }: Props) {
 
       {!readOnly && (
         <div className="flex items-center gap-3">
-          <Button onClick={() => save({ orgId, data: form })} disabled={saving}>
+          <Button onClick={() => save({ orgId, data: formToSave })} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? "Enregistrement..." : "Enregistrer"}
           </Button>
