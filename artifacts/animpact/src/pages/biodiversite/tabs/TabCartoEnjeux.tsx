@@ -314,7 +314,7 @@ export function TabCartoEnjeux({ orgId, subsidiaries }: Props) {
       </div>
 
       {/* ── KPI cards ──────────────────────────────────────────────────────── */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-3 sm:flex-wrap">
         <KpiCard
           value={issues.length}
           label="Enjeux générés par l'IA"
