@@ -1,0 +1,118 @@
+Je souhaite définir le fonctionnement définitif de Cocci concernant la gestion des exercices annuels, la conservation des données, les sauvegardes et la gestion des organisations.
+
+Je ne souhaite pas un correctif temporaire mais une architecture robuste, cohérente et pérenne qui constituera le fonctionnement normal de l'application.
+
+Avant toute modification, merci de me présenter l'architecture retenue ainsi que les impacts éventuels. Je souhaite privilégier une solution fiable et évolutive.
+
+## 1. Gestion des exercices annuels
+
+Je souhaite mettre en place les règles de gestion suivantes :
+
+- un nouvel exercice est créé automatiquement chaque année au 1er janvier ;
+- au 1er janvier, tous les utilisateurs basculent automatiquement sur ce nouvel exercice, qui devient l'exercice actif par défaut ;
+- l'exercice précédent reste néanmoins entièrement modifiable jusqu'au 28 février inclus afin de permettre aux entreprises de finaliser leur reporting annuel ;
+- à compter du 1er mars, l'exercice précédent passe automatiquement en lecture seule ;
+- tous les exercices antérieurs restent consultables en lecture seule.
+
+Merci de proposer un mécanisme robuste permettant de garantir ce fonctionnement, y compris en cas d'indisponibilité temporaire de l'application au moment du changement d'année.
+
+---
+
+## 2. Duplication annuelle
+
+Je souhaite que le nouvel exercice soit créé automatiquement comme un duplicata complet de l'exercice précédent.
+
+Pour cette première version, je souhaite volontairement une duplication complète de toutes les données.
+
+Les seules données à réinitialiser sont :
+
+- le Baromètre social ;
+- le compteur annuel de génération du rapport RSE.
+
+Toutes les autres données doivent être conservées dans le nouvel exercice.
+
+Merci de vérifier que toutes les tables concernées sont bien prises en compte et qu'aucun module n'est oublié (achats responsables, brouillons RSE, plans d'action, fournisseurs, biodiversité, etc.).
+
+Je souhaite également qu'une vérification automatique confirme que toutes les données attendues ont bien été dupliquées.
+
+---
+
+## 3. Gestion des groupes et des filiales
+
+Ce fonctionnement doit être entièrement fiable.
+
+Je souhaite que chaque organisation, qu'il s'agisse d'un groupe ou d'une filiale, possède ses propres exercices.
+
+Merci de vérifier que :
+
+- chaque organisation possède son propre historique d'exercices ;
+- le sélecteur d'exercices affiche toujours les exercices de l'organisation actuellement sélectionnée ;
+- le changement d'organisation recharge automatiquement les exercices correspondants ;
+- aucun exercice appartenant à une autre organisation ne puisse être utilisé ou transmis aux routes API ;
+- tous les composants utilisent systématiquement l'exercice de l'organisation courante.
+
+Merci de réaliser des tests avec :
+
+- un groupe ;
+- plusieurs filiales ;
+- plusieurs exercices sur chacune d'elles ;
+
+afin de garantir qu'aucun mélange de données ne puisse se produire.
+
+---
+
+## 4. Conservation des données
+
+Je souhaite garantir qu'aucune donnée client ne puisse être perdue automatiquement.
+
+Merci de vérifier que :
+
+- aucun changement d'exercice ne supprime des données ;
+- aucune résiliation Stripe ne supprime les données ;
+- aucun changement d'abonnement ne supprime des données ;
+- aucune suppression d'utilisateur ne supprime des données métier ;
+- les données historiques restent toujours consultables.
+
+---
+
+## 5. Sauvegardes et restauration
+
+Je souhaite que Cocci dispose d'une véritable stratégie de sauvegarde permanente.
+
+Merci de mettre en place une solution robuste permettant :
+
+- des sauvegardes automatiques régulières de la base de données ;
+- la sauvegarde des documents et fichiers ;
+- une procédure documentée de restauration ;
+- des tests réguliers de restauration afin de garantir que les sauvegardes sont réellement exploitables.
+
+Je souhaite également connaître précisément :
+
+- la fréquence des sauvegardes ;
+- leur durée de conservation ;
+- les personnes autorisées à lancer une restauration ;
+- le délai estimé de restauration.
+
+L'objectif est de garantir qu'aucune donnée client ne puisse être perdue, même en cas d'incident majeur.
+
+---
+
+## 6. Sécurité
+
+Merci de corriger les points de sécurité identifiés, notamment :
+
+- limiter l'accès au portail Stripe aux propriétaires et administrateurs ;
+- sécuriser les fichiers privés ;
+- empêcher la suppression du dernier propriétaire d'une organisation ;
+- sécuriser les suppressions de documents et d'organisations.
+
+---
+
+Je souhaite qu'à l'issue de ces évolutions, un nouveau rapport de validation confirme que :
+
+- ces mécanismes sont correctement implémentés ;
+- ils ont été testés ;
+- ils sont robustes ;
+- ils garantissent la pérennité des données ainsi que le bon fonctionnement de Cocci dans le temps.
+
+Je préfère prendre un peu plus de temps maintenant plutôt que de découvrir un problème d'architecture lorsque plusieurs entreprises utiliseront déjà la plateforme.
