@@ -96,6 +96,17 @@ export function Abonnement() {
   const handleCheckout = async (effectifKey: string) => {
     if (!currentOrgId || subscriptionLoading || subscriptionError || isActive) return;
     setLoadingPlanKey(effectifKey);
+    // Ouvrir l'onglet pendant le clic utilisateur : après l'appel réseau,
+    // les navigateurs peuvent bloquer une nouvelle fenêtre depuis l'iframe.
+    const checkoutWindow = window.open("about:blank", "cocci-stripe-checkout");
+    if (checkoutWindow) {
+      checkoutWindow.document.title = "Paiement sécurisé Cocci";
+      checkoutWindow.document.body.style.cssText =
+        "margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;color:#163028;background:#f8faf9";
+      checkoutWindow.document.body.textContent = "Redirection vers le paiement sécurisé…";
+    }
+    let checkoutUrl: string;
+
     try {
       const token = await getToken({ skipCache: true });
       if (!token) throw new Error("Authentication token unavailable");
@@ -107,16 +118,25 @@ export function Abonnement() {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      if (url) {
-        // Stripe Checkout ne peut pas être rendu dans l'iframe de prévisualisation.
-        // Naviguer la fenêtre principale évite d'afficher une page blanche.
-        const targetWindow = window.top ?? window;
-        targetWindow.location.href = url;
-        return;
-      }
-      throw new Error("URL de paiement manquante");
+      if (!url) throw new Error("URL de paiement manquante");
+      checkoutUrl = url;
     } catch {
+      checkoutWindow?.close();
+      setLoadingPlanKey(null);
       alert("Erreur lors de la création de la session de paiement. Réessayez.");
+      return;
+    }
+
+    try {
+      if (checkoutWindow && !checkoutWindow.closed) {
+        checkoutWindow.location.href = checkoutUrl;
+      } else {
+        const targetWindow = window.top ?? window;
+        targetWindow.location.href = checkoutUrl;
+      }
+    } catch {
+      checkoutWindow?.close();
+      alert("Impossible d'ouvrir la page de paiement. Réessayez.");
     } finally {
       setLoadingPlanKey(null);
     }
