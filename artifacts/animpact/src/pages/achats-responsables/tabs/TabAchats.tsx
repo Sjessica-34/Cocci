@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import {
   Table,
@@ -29,16 +30,45 @@ import {
 
 type FormState = Pick<
   ResponsiblePurchaseInput,
-  "category" | "amount" | "responsiblePercent" | "localPercent" | "circularPercent"
+  "amount" | "responsiblePercent" | "localPercent" | "circularPercent"
 >;
 
 const EMPTY_FORM: FormState = {
-  category: "",
   amount: 0,
   responsiblePercent: 0,
   localPercent: 0,
   circularPercent: 0,
 };
+
+const PURCHASE_CATEGORIES = [
+  "Informatique & numérique",
+  "Mobilier & aménagement",
+  "Fournitures de bureau",
+  "Impressions & papeterie",
+  "Énergie & fluides (électricité, gaz, eau)",
+  "Véhicules & mobilité",
+  "Carburants",
+  "Déplacements & voyages",
+  "Bâtiments & maintenance",
+  "Entretien & nettoyage",
+  "Prestations de services",
+  "Logistique & transport",
+  "Communication & marketing",
+  "Télécoms & abonnements",
+  "Assurances",
+  "Juridique & conseil",
+  "Comptabilité & finance",
+  "Ressources humaines & recrutement",
+  "Formation",
+  "Équipements & vêtements professionnels",
+  "Restauration & réception",
+  "Espaces verts & environnement",
+  "Matières premières / marchandises (pour les entreprises concernées)",
+  "Investissements & équipements",
+  "Autres achats",
+] as const;
+
+const OTHER_PURCHASE_CATEGORY = "Autres achats";
 
 const CATEGORY_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6"];
 
@@ -178,6 +208,8 @@ export function TabAchats({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [categorySelection, setCategorySelection] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
   const items = useMemo(
@@ -245,14 +277,18 @@ export function TabAchats({
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...EMPTY_FORM });
+    setCategorySelection("");
+    setCustomCategory("");
     setFormError(null);
     setDialogOpen(true);
   };
 
   const openEdit = (item: ResponsiblePurchase) => {
     setEditingId(item.id);
+    const isKnownCategory = PURCHASE_CATEGORIES.includes(item.category as (typeof PURCHASE_CATEGORIES)[number]);
+    setCategorySelection(isKnownCategory ? item.category : OTHER_PURCHASE_CATEGORY);
+    setCustomCategory(isKnownCategory ? "" : item.category);
     setForm({
-      category: item.category,
       amount: item.amount,
       responsiblePercent: item.responsiblePercent,
       localPercent: item.localPercent,
@@ -266,9 +302,12 @@ export function TabAchats({
     queryClient.invalidateQueries({ queryKey: getListResponsiblePurchasesQueryKey(orgId) });
 
   const save = () => {
-    const category = form.category.trim();
+    const category =
+      categorySelection === OTHER_PURCHASE_CATEGORY
+        ? customCategory.trim() || OTHER_PURCHASE_CATEGORY
+        : categorySelection.trim();
     if (!category) {
-      setFormError("Indiquez une catégorie d'achat.");
+      setFormError("Sélectionnez une catégorie d'achat.");
       return;
     }
     if (!Number.isFinite(form.amount) || form.amount < 0) {
@@ -535,13 +574,37 @@ export function TabAchats({
           <div className="space-y-6 py-3">
             <div className="space-y-2">
               <Label htmlFor="purchase-category">Catégorie d&apos;achat</Label>
-              <Input
-                id="purchase-category"
-                value={form.category}
-                onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
-                placeholder="Ex. informatique, prestations, matières premières…"
-                autoFocus
-              />
+              <Select
+                value={categorySelection}
+                onValueChange={(value) => {
+                  setCategorySelection(value);
+                  if (value !== OTHER_PURCHASE_CATEGORY) setCustomCategory("");
+                  setFormError(null);
+                }}
+              >
+                <SelectTrigger id="purchase-category" className="w-full">
+                  <SelectValue placeholder="Sélectionnez une catégorie…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PURCHASE_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {categorySelection === OTHER_PURCHASE_CATEGORY && (
+                <div className="space-y-2 pt-1">
+                  <Label htmlFor="purchase-custom-category">Précisez votre catégorie (facultatif)</Label>
+                  <Input
+                    id="purchase-custom-category"
+                    value={customCategory}
+                    onChange={(event) => setCustomCategory(event.target.value)}
+                    placeholder="Ex. cadeaux clients, achats événementiels…"
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="purchase-amount">Montant annuel estimé (€)</Label>

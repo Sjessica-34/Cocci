@@ -35,7 +35,7 @@ export function AchatsResponsables() {
               Mes fournisseurs
             </TabsTrigger>
             <TabsTrigger value="achats" className="flex items-center gap-2 flex-1 md:flex-none">
-              <ShoppingCart className="h-4 w-4" />
+              <ShoppingCart aria-hidden="true" className="h-4 w-4 shrink-0" />
               Achats responsables
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="flex items-center gap-2 flex-1 md:flex-none">
