@@ -1,0 +1,82 @@
+Avant la mise en production de Cocci, je souhaite réaliser un audit complet des mécanismes de temporalité et de sécurité des données.
+
+## 1. Gestion des exercices annuels
+
+Je souhaite vérifier que la notion d'exercice annuel est entièrement fonctionnelle.
+
+Merci de vérifier notamment :
+
+- qu'un exercice est bien associé à toutes les données concernées ;
+- qu'un utilisateur peut consulter plusieurs exercices (N, N-1, N-2...) ;
+- qu'il peut passer facilement d'un exercice à l'autre ;
+- que les données d'un exercice ne peuvent jamais être mélangées avec celles d'un autre.
+
+Je souhaite également mettre en place les règles de gestion suivantes :
+
+- un nouvel exercice est créé automatiquement chaque année au 1er janvier ;
+- au 1er janvier, tous les utilisateurs basculent automatiquement sur le nouvel exercice, qui devient l'exercice actif par défaut ;
+- l'exercice précédent reste néanmoins entièrement accessible et modifiable jusqu'au 28 février inclus afin de permettre aux entreprises de finaliser leur reporting annuel ;
+- à compter du 1er mars, l'exercice précédent passe automatiquement en lecture seule ;
+- tous les exercices antérieurs restent consultables en lecture seule.
+
+## 2. Duplication du nouvel exercice
+
+Je souhaite vérifier que la création du nouvel exercice se fait automatiquement sous forme d'un duplicata de l'exercice précédent.
+
+Pour cette première version, je souhaite volontairement une duplication complète de toutes les données de l'exercice précédent.
+
+Les seules données qui doivent être réinitialisées sont :
+
+- le Baromètre social ;
+- le compteur annuel de génération du rapport RSE.
+
+Toutes les autres données doivent être reprises automatiquement dans le nouvel exercice.
+
+Nous affinerons ce comportement dans une future version si nécessaire. Pour le moment, je privilégie une transition simple et sécurisée entre deux exercices.
+
+Merci de vérifier que cette duplication est complète et qu'aucune donnée n'est perdue lors du changement d'exercice.
+
+## 3. Conservation des données
+
+Je souhaite vérifier qu'aucune donnée ne peut disparaître automatiquement lors d'un changement d'année.
+
+Merci de confirmer notamment que :
+
+- aucun changement d'exercice ne supprime les données des exercices précédents ;
+- aucune tâche planifiée ne purge les anciennes données ;
+- les rapports déjà générés restent accessibles ;
+- l'ensemble des données historiques reste consultable.
+
+## 4. Sauvegarde de la base de données
+
+Je souhaite connaître précisément la stratégie de sauvegarde actuellement en place.
+
+Merci d'indiquer :
+
+- comment la base PostgreSQL est sauvegardée ;
+- si des sauvegardes automatiques existent déjà ;
+- leur fréquence ;
+- leur durée de conservation ;
+- la procédure de restauration en cas d'incident.
+
+Si aucune stratégie n'existe actuellement, je souhaite qu'une solution de sauvegarde automatique soit mise en place avant la mise en production.
+
+## 5. Vérifications de sécurité
+
+Merci de vérifier qu'aucune opération ne peut entraîner la suppression involontaire des données d'un client, notamment lors :
+
+- du changement d'exercice ;
+- d'un changement d'abonnement ;
+- d'une résiliation ;
+- de la suppression d'un utilisateur ;
+- de la suppression d'une organisation.
+
+Je souhaite un rapport indiquant clairement :
+
+- ce qui est déjà couvert ;
+- ce qui ne l'est pas encore ;
+- les éventuelles recommandations avant la mise en production.
+
+Merci de ne modifier aucun code avant cet audit.
+
+Je souhaite d'abord disposer d'un état des lieux complet afin de valider les règles métier avant leur implémentation.
