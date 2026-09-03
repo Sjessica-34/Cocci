@@ -585,7 +585,7 @@ export function TabAchats({
                 <SelectTrigger id="purchase-category" className="w-full">
                   <SelectValue placeholder="Sélectionnez une catégorie…" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[60vh] overflow-y-auto">
                   {PURCHASE_CATEGORIES.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
