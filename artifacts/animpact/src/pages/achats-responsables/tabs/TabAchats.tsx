@@ -304,10 +304,14 @@ export function TabAchats({
   const save = () => {
     const category =
       categorySelection === OTHER_PURCHASE_CATEGORY
-        ? customCategory.trim() || OTHER_PURCHASE_CATEGORY
+        ? customCategory.trim()
         : categorySelection.trim();
     if (!category) {
-      setFormError("Sélectionnez une catégorie d'achat.");
+      setFormError(
+        categorySelection === OTHER_PURCHASE_CATEGORY
+          ? "Écrivez le nom de votre catégorie d'achat."
+          : "Sélectionnez une catégorie d'achat.",
+      );
       return;
     }
     if (!Number.isFinite(form.amount) || form.amount < 0) {
@@ -594,15 +598,19 @@ export function TabAchats({
                 </SelectContent>
               </Select>
               {categorySelection === OTHER_PURCHASE_CATEGORY && (
-                <div className="space-y-2 pt-1">
-                  <Label htmlFor="purchase-custom-category">Précisez votre catégorie (facultatif)</Label>
+                <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3 pt-3">
+                  <Label htmlFor="purchase-custom-category">Écrivez votre catégorie</Label>
                   <Input
                     id="purchase-custom-category"
                     value={customCategory}
                     onChange={(event) => setCustomCategory(event.target.value)}
                     placeholder="Ex. cadeaux clients, achats événementiels…"
+                    aria-required="true"
                     autoFocus
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Ce champ s&apos;ouvre parce que vous avez choisi « Autres achats ».
+                  </p>
                 </div>
               )}
             </div>
