@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/react";
 import { AppLayout } from "@/components/layout";
-import { customFetch } from "@workspace/api-client-react";
+import {
+  ApiError,
+  customFetch,
+  getGetOrganizationQueryKey,
+  useGetOrganization,
+} from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useOrganizationSubscription } from "@/hooks/useOrganizationSubscription";
+import { PLANS, type EffectifKey } from "@/pages/onboarding/plans";
 import { CheckCircle2, Loader2, Zap, Building2, Building, ExternalLink, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +30,11 @@ type Plan = {
   prices: Price[];
 };
 
+type CheckoutError = {
+  code?: string;
+  employeeCount?: number;
+};
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatAmount(cents: number, currency: string) {
@@ -33,6 +44,10 @@ function formatAmount(cents: number, currency: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(cents / 100);
+}
+
+function getPlanMaxEmployees(planKey: string) {
+  return PLANS[planKey as EffectifKey]?.maxEmployees ?? null;
 }
 
 const TIER_ICONS: Record<string, typeof Zap> = {
@@ -74,6 +89,16 @@ export function Abonnement() {
   const { getToken } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
   const {
+    data: organization,
+    isLoading: organizationLoading,
+    error: organizationError,
+  } = useGetOrganization(currentOrgId ?? 0, {
+    query: {
+      enabled: Boolean(currentOrgId),
+      queryKey: getGetOrganizationQueryKey(currentOrgId ?? 0),
+    },
+  });
+  const {
     subscription,
     isLoading: subscriptionLoading,
     error: subscriptionError,
@@ -94,7 +119,22 @@ export function Abonnement() {
   }, []);
 
   const handleCheckout = async (effectifKey: string) => {
-    if (!currentOrgId || subscriptionLoading || subscriptionError || isActive) return;
+    const selectedMaxEmployees = getPlanMaxEmployees(effectifKey);
+    const employeeCount = organization?.employeeCount ?? null;
+    const planTooSmall =
+      employeeCount !== null &&
+      selectedMaxEmployees !== null &&
+      employeeCount > selectedMaxEmployees;
+
+    if (
+      !currentOrgId ||
+      organizationLoading ||
+      organizationError ||
+      planTooSmall ||
+      subscriptionLoading ||
+      subscriptionError ||
+      isActive
+    ) return;
     setLoadingPlanKey(effectifKey);
     // Ouvrir l'onglet pendant le clic utilisateur : après l'appel réseau,
     // les navigateurs peuvent bloquer une nouvelle fenêtre depuis l'iframe.
@@ -120,10 +160,19 @@ export function Abonnement() {
       );
       if (!url) throw new Error("URL de paiement manquante");
       checkoutUrl = url;
-    } catch {
+    } catch (error) {
       checkoutWindow?.close();
       setLoadingPlanKey(null);
-      alert("Erreur lors de la création de la session de paiement. Réessayez.");
+      const checkoutError =
+        error instanceof ApiError ? (error.data as CheckoutError | null) : null;
+      if (checkoutError?.code === "PLAN_TOO_SMALL") {
+        const count = checkoutError.employeeCount;
+        alert(
+          `Cette formule ne couvre pas votre effectif de ${count} salarié${count === 1 ? "" : "s"}. Choisissez une formule supérieure.`,
+        );
+      } else {
+        alert("Erreur lors de la création de la session de paiement. Réessayez.");
+      }
       return;
     }
 
@@ -165,6 +214,10 @@ export function Abonnement() {
 
   const hasAnyActive = subscription?.status === "active";
   const cancelled = searchParams.get("cancelled") === "1";
+  const employeeCount = organization?.employeeCount ?? null;
+  const employeeCountCheckPending =
+    Boolean(currentOrgId) && organization === undefined && organizationLoading;
+  const employeeCountCheckFailed = Boolean(currentOrgId) && Boolean(organizationError);
 
   return (
     <AppLayout>
@@ -231,6 +284,23 @@ export function Abonnement() {
           </div>
         )}
 
+        {employeeCount !== null && (
+          <div className="mb-8 rounded-xl border border-[#d8e7df] bg-[#f3f8f5] p-4 text-sm text-[#163028]">
+            <p className="font-semibold">
+              Effectif déclaré : {employeeCount.toLocaleString("fr-FR")} salarié{employeeCount === 1 ? "" : "s"}.
+            </p>
+            <p className="mt-1 text-[#527064]">
+              Les formules qui ne couvrent pas cet effectif sont automatiquement indisponibles.
+            </p>
+          </div>
+        )}
+        {employeeCountCheckFailed && (
+          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Impossible de vérifier l&apos;effectif de votre organisation. Les actions de souscription restent
+            désactivées jusqu&apos;à la prochaine tentative.
+          </div>
+        )}
+
         {/* ── Plans ── */}
         {plans.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
@@ -246,10 +316,16 @@ export function Abonnement() {
               const price = plan.prices.find((p) => p.recurring.interval === "month");
               const isFeatured = i === 1;
               const isLoading = loadingPlanKey === plan.key;
+              const maxEmployees = getPlanMaxEmployees(plan.key);
+              const planTooSmall =
+                employeeCount !== null &&
+                maxEmployees !== null &&
+                employeeCount > maxEmployees;
+              const unavailable = employeeCountCheckPending || employeeCountCheckFailed || planTooSmall;
 
               return (
                 <div key={plan.key}
-                  className={`relative rounded-2xl border p-6 flex flex-col ${isFeatured ? "border-[#163028] shadow-lg ring-1 ring-[#163028]/20" : "border-gray-200"}`}>
+                  className={`relative rounded-2xl border p-6 flex flex-col ${isFeatured ? "border-[#163028] shadow-lg ring-1 ring-[#163028]/20" : "border-gray-200"} ${planTooSmall ? "opacity-65" : ""}`}>
                   {isFeatured && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <span className="bg-[#163028] text-white text-[11px] font-semibold px-3 py-1 rounded-full flex items-center gap-1">
@@ -274,6 +350,12 @@ export function Abonnement() {
                         <span className="text-sm text-gray-400 ml-1">/mois</span>
                     </div>
                   )}
+                  {planTooSmall && (
+                    <p className="mb-5 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+                      Indisponible pour {employeeCount} salarié{employeeCount === 1 ? "" : "s"}.
+                      Choisissez une formule supérieure.
+                    </p>
+                  )}
 
                   <ul className="space-y-2.5 mb-8 flex-1">
                     {features.map((f) => (
@@ -285,14 +367,14 @@ export function Abonnement() {
                   </ul>
 
                   <Button
-                    onClick={() => price && handleCheckout(plan.key)}
-                    disabled={!price || isLoading || Boolean(subscriptionError) || isActive}
+                    onClick={() => price && !unavailable && handleCheckout(plan.key)}
+                    disabled={!price || isLoading || unavailable || Boolean(subscriptionError) || isActive}
                     className={`w-full ${isFeatured ? "bg-[#163028] hover:bg-[#1e4438] text-white" : "variant-outline"}`}
                     variant={isFeatured ? "default" : "outline"}
                   >
                     {isLoading ? (
                       <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Redirection…</>
-                    ) : isActive ? "Offre en cours" : "Choisir cette offre"}
+                    ) : isActive ? "Offre en cours" : planTooSmall ? "Effectif trop élevé" : "Choisir cette offre"}
                   </Button>
                 </div>
               );

@@ -22,6 +22,11 @@ export interface Organization {
      * @nullable
      */
   size?: string | null;
+  /**
+     * Effectif déclaré de l'organisation
+     * @nullable
+     */
+  employeeCount?: number | null;
   /** @nullable */
   logoUrl?: string | null;
   /** Entity type: 'entreprise' or 'groupe' */

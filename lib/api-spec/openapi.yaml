@@ -3366,6 +3366,9 @@ components:
         size:
           type: ["string", "null"]
           description: "TPE / PME / ETI / GE"
+        employeeCount:
+          type: ["integer", "null"]
+          description: "Effectif déclaré de l'organisation"
         logoUrl:
           type: ["string", "null"]
         type:

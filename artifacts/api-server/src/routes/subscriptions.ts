@@ -116,6 +116,28 @@ router.post(
         return;
       }
 
+      // L'effectif déclaré est la limite métier à respecter : une formule
+      // inférieure ne doit jamais pouvoir être souscrite, même via un appel
+      // direct à l'API qui contournerait l'état désactivé de l'interface.
+      const organizationRow = await pool.query<{ employee_count: number | null }>(
+        "SELECT employee_count FROM organizations WHERE id = $1 LIMIT 1",
+        [orgId],
+      );
+      const employeeCount = organizationRow.rows[0]?.employee_count ?? null;
+      if (
+        employeeCount !== null &&
+        offer.maxEmployees !== null &&
+        employeeCount > offer.maxEmployees
+      ) {
+        res.status(409).json({
+          error: "Cette formule ne couvre pas l'effectif déclaré de l'organisation",
+          code: "PLAN_TOO_SMALL",
+          employeeCount,
+          maxEmployees: offer.maxEmployees,
+        });
+        return;
+      }
+
       const baseUrl = getPublicAppUrl();
       const stripe = await getUncachableStripeClient();
       // Vérification de cohérence côté Stripe : la configuration serveur doit
