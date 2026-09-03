@@ -91,6 +91,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       issueCountRows,
       reportDraftRows,
       baroCampaignRows,
+      responsiblePurchaseRows,
     ] = await Promise.all([
       pool.query<{ question_id: string; level: number }>(
         "SELECT question_id, level FROM diagnostic_responses WHERE organization_id = $1 AND exercise_id = $2",
@@ -125,6 +126,18 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
          ORDER BY close_date DESC LIMIT 1`,
         [orgId, exerciseId],
       ),
+      pool.query<{
+        category: string;
+        amount: string;
+        responsible_percent: number;
+        local_percent: number;
+        circular_percent: number;
+      }>(
+        `SELECT category, amount, responsible_percent, local_percent, circular_percent
+         FROM responsible_purchases
+         WHERE organization_id = $1 AND exercise_id = $2`,
+        [orgId, exerciseId],
+      ),
     ]);
 
     // 4. Si l'org est un groupe sans données propres → consolider les filiales
@@ -134,6 +147,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
     let allLabelRows = labelRows.rows;
     let allStakeholderCount = Number(stakeholderCountRows.rows[0]?.cnt ?? 0);
     let hasMateriaux = Number(issueCountRows.rows[0]?.cnt ?? 0) > 0;
+    let allResponsiblePurchaseRows = responsiblePurchaseRows.rows;
 
     if (diagnosticRows.rows.length === 0 && subsidiaryIds.length > 0) {
       // Récupérer l'exercice actif de chaque filiale puis agréger leurs données
@@ -150,7 +164,14 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
         const pairs = subExercises.map((_, i) => `(organization_id = $${i * 2 + 1} AND exercise_id = $${i * 2 + 2})`).join(" OR ");
         const flatParams = subExercises.flatMap((e) => [e.organization_id, e.id]);
 
-        const [subDiagRows, subActionRows, subLabelRows, subStakeholderRows, subIssueRows] = await Promise.all([
+        const [
+          subDiagRows,
+          subActionRows,
+          subLabelRows,
+          subStakeholderRows,
+          subIssueRows,
+          subResponsiblePurchaseRows,
+        ] = await Promise.all([
           pool.query<{ question_id: string; level: number }>(
             `SELECT question_id, level FROM diagnostic_responses WHERE ${pairs}`,
             flatParams,
@@ -174,6 +195,18 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
             `SELECT COUNT(*) AS cnt FROM issue_ratings WHERE ${pairs}`,
             flatParams,
           ),
+          pool.query<{
+            category: string;
+            amount: string;
+            responsible_percent: number;
+            local_percent: number;
+            circular_percent: number;
+          }>(
+            `SELECT category, amount, responsible_percent, local_percent, circular_percent
+             FROM responsible_purchases
+             WHERE ${pairs}`,
+            flatParams,
+          ),
         ]);
 
         // Consolider : pour le diagnostic on fait la moyenne des questions par catégorie
@@ -192,6 +225,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
         allLabelRows = [...allLabelRows, ...subLabelRows.rows];
         allStakeholderCount += Number(subStakeholderRows.rows[0]?.cnt ?? 0);
         hasMateriaux = hasMateriaux || Number(subIssueRows.rows[0]?.cnt ?? 0) > 0;
+        allResponsiblePurchaseRows = [...allResponsiblePurchaseRows, ...subResponsiblePurchaseRows.rows];
       }
     }
 
@@ -234,10 +268,44 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       .filter((l) => { const k = `${l.name}|${l.holder}`; if (seenLabels.has(k)) return false; seenLabels.add(k); return true; })
       .map((l) => ({ name: l.name, logoUrl: l.logo_url, holder: l.holder, score: l.score }));
 
-    // 8. Rapport RSE
+    // 8. Achats responsables — ne jamais exposer les montants sur la page publique
+    const totalPurchasesAmount = allResponsiblePurchaseRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+    const responsiblePurchasesByCategory = new Map<string, number>();
+    let responsibleAmount = 0;
+    let localAmount = 0;
+    let circularAmount = 0;
+
+    for (const row of allResponsiblePurchaseRows) {
+      const amount = Number(row.amount ?? 0);
+      responsibleAmount += amount * Number(row.responsible_percent ?? 0) / 100;
+      localAmount += amount * Number(row.local_percent ?? 0) / 100;
+      circularAmount += amount * Number(row.circular_percent ?? 0) / 100;
+      responsiblePurchasesByCategory.set(
+        row.category,
+        (responsiblePurchasesByCategory.get(row.category) ?? 0) + amount,
+      );
+    }
+
+    const asPercent = (amount: number) =>
+      totalPurchasesAmount > 0 ? Math.round((amount / totalPurchasesAmount) * 100) : 0;
+    const responsiblePurchases = allResponsiblePurchaseRows.length > 0
+      ? {
+          responsiblePercent: asPercent(responsibleAmount),
+          localPercent: asPercent(localAmount),
+          circularPercent: asPercent(circularAmount),
+          byCategory: Array.from(responsiblePurchasesByCategory.entries())
+            .map(([category, amount]) => ({
+              category,
+              sharePercent: asPercent(amount),
+            }))
+            .sort((a, b) => b.sharePercent - a.sharePercent),
+        }
+      : null;
+
+    // 9. Rapport RSE
     const reportDraft = reportDraftRows.rows[0];
 
-    // 9. Baromètre social
+    // 10. Baromètre social
     let barometre: {
       satisfactionGlobale: number | null;
       tauxParticipation: number | null;
@@ -272,7 +340,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       };
     }
 
-    // 10. Progression
+    // 11. Progression
     const progression = {
       diagnostic: allDiagnosticRows.length > 0,
       stakeholders: allStakeholderCount > 0,
@@ -290,6 +358,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       actionPlan: { total: totalActions, done: doneActions, byCategory },
       labels,
       stakeholderCount: allStakeholderCount,
+      responsiblePurchases,
       barometre,
       progression,
       reportGenerationCount: reportDraft?.generation_count ?? 0,

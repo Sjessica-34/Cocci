@@ -22,6 +22,12 @@ type PublicData = {
   labels: Array<{ name: string | null; logoUrl: string | null; holder: string | null; score: string | null }>;
   stakeholderCount: number;
   barometre: { satisfactionGlobale: number | null; tauxParticipation: number | null; nbRepondants: number | null; nbCollaborateurs: number | null } | null;
+  responsiblePurchases: {
+    responsiblePercent: number;
+    localPercent: number;
+    circularPercent: number;
+    byCategory: Array<{ category: string; sharePercent: number }>;
+  } | null;
   progression: { diagnostic: boolean; stakeholders: boolean; materiality: boolean; actionPlan: boolean; actionsInProgress: boolean; reportGenerated: boolean };
   reportGenerationCount: number;
   subcategoryScores: SubcategoryScore[];
@@ -176,7 +182,20 @@ export function PublicRsePage() {
     );
   }
 
-  const { organization, exercise, updatedAt, scores, actionPlan, labels, stakeholderCount, barometre, progression, subcategoryScores = [], customDescription } = data;
+  const {
+    organization,
+    exercise,
+    updatedAt,
+    scores,
+    actionPlan,
+    labels,
+    stakeholderCount,
+    barometre,
+    responsiblePurchases,
+    progression,
+    subcategoryScores = [],
+    customDescription,
+  } = data;
   const pctDone = actionPlan.total > 0 ? Math.round((actionPlan.done / actionPlan.total) * 100) : 0;
 
   const progressionSteps = [
@@ -376,6 +395,47 @@ export function PublicRsePage() {
             </div>
           </Card>
         </div>
+
+        {/* ── Achats responsables ── */}
+        {responsiblePurchases && (
+          <Card style={{ marginBottom: 16 }}>
+            <SectionTitle>Achats responsables</SectionTitle>
+            <p style={{ fontSize: 12, color: C.gray600, lineHeight: 1.5, margin: "-6px 0 16px" }}>
+              Les montants responsables sont calculés automatiquement à partir de vos estimations.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+              {[
+                { label: "Part responsable", value: responsiblePurchases.responsiblePercent, icon: "🌱", color: C.green },
+                { label: "Part locale", value: responsiblePurchases.localPercent, icon: "📍", color: C.gov },
+                { label: "Part circulaire", value: responsiblePurchases.circularPercent, icon: "♻️", color: C.soc },
+              ].map(({ label, value, icon, color }) => (
+                <div key={label} style={{ background: C.gray50, borderRadius: 10, padding: "14px 12px", textAlign: "center" }}>
+                  <div style={{ fontSize: 18, marginBottom: 5 }}>{icon}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color }}>{value} %</div>
+                  <div style={{ fontSize: 11, color: C.gray400, marginTop: 3 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+            {responsiblePurchases.byCategory.length > 0 && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.gray600, marginBottom: 12 }}>
+                  Répartition par catégorie
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {responsiblePurchases.byCategory.map(({ category, sharePercent }) => (
+                    <div key={category}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, gap: 12 }}>
+                        <span style={{ fontSize: 12, color: C.gray700 }}>{category}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.gray600 }}>{sharePercent} %</span>
+                      </div>
+                      <ProgressBar value={sharePercent} color={C.greenMid} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* ── Résultats détaillés ── */}
         <Card style={{ marginBottom: 16 }}>
