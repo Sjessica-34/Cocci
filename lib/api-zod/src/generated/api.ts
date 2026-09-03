@@ -715,12 +715,8 @@ export const GetStorageObjectResponse = zod.unknown()
 /**
  * @summary Finalize a private upload and attach its ACL
  */
-
-
-
 export const CompleteStorageUploadBody = zod.object({
-  "objectPath": zod.string(),
-  "organizationId": zod.number().min(1).optional()
+  "objectPath": zod.string()
 })
 
 export const CompleteStorageUploadResponse = zod.unknown()

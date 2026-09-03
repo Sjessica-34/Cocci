@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "kRWdJZxZVCt_iEK-p8-WK"
+uri = "file://docs/architecture-migration-definitive-infomaniak.md"
+type = "text"
+title = "Architecture cible et migration définitive de Cocci"
+description = "Recommandation Infomaniak complète : environnements, Docker, PostgreSQL, stockage, sauvegardes, coûts, dépendances Replit et plan de bascule."
+logical_id = "f770a5b1-b020-4775-82b4-7fde4cafc5b8"
+content_hash = "sha256:5dd33321796483ae85a5ac71eca5f871c119b6eeb1b7bee46ada5c1d5020cb04"
+size = 26096
+mtime_ms = 1788444580651
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:b7c7b77b-c3ca-42fd-84a3-660c43f48709/f770a5b1-b020-4775-82b4-7fde4cafc5b8/40aeb031-064d-4c38-a4dc-352f3d16472a"
+storage_version_token = "1788444617896001"
+content_type = "text/markdown"

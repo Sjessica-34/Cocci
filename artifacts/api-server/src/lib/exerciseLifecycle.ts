@@ -8,6 +8,8 @@ import {
   bioDependenciesTable,
   bioConnectionsTable,
   bioIssuesTable,
+  carbonBilansTable,
+  captationCarboneTable,
   publicLinksTable,
   rseReportDraftsTable,
   EXERCISE_RESET_TABLES,
@@ -93,6 +95,15 @@ export async function duplicateExerciseData(
 ): Promise<ExerciseDuplicationCheck[]> {
   const checks: ExerciseDuplicationCheck[] = [];
   const bioDependencyIdMap = new Map<number, number>();
+  const [targetExercise] = await dbClient
+    .select({ year: exercisesTable.year })
+    .from(exercisesTable)
+    .where(and(
+      eq(exercisesTable.id, toExerciseId),
+      eq(exercisesTable.organizationId, orgId),
+    ))
+    .limit(1);
+  if (!targetExercise) throw new Error("Target exercise not found");
 
   for (const entry of EXERCISE_SCOPED_TABLES) {
     const { table } = entry;
@@ -161,9 +172,13 @@ export async function duplicateExerciseData(
     } else {
       for (const row of rows as Record<string, unknown>[]) {
         const { id, ...rest } = row;
+        const annualValues =
+          table === carbonBilansTable || table === captationCarboneTable
+            ? { ...rest, year: targetExercise.year }
+            : rest;
         const [inserted] = await dbClient
           .insert(table)
-          .values({ ...rest, organizationId: orgId, exerciseId: toExerciseId } as never)
+          .values({ ...annualValues, organizationId: orgId, exerciseId: toExerciseId } as never)
           .returning();
         if (table === bioDependenciesTable && inserted) {
           bioDependencyIdMap.set(id as number, (inserted as { id: number }).id);

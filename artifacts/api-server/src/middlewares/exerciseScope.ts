@@ -33,7 +33,11 @@ export async function requireOrgMembership(req: Request, res: Response, next: Ne
     const [membership] = await db
       .select({ id: membersTable.id })
       .from(membersTable)
-      .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.userId, user.id)))
+      .where(and(
+        eq(membersTable.organizationId, orgId),
+        eq(membersTable.userId, user.id),
+        eq(membersTable.status, "active"),
+      ))
       .limit(1);
     if (!membership) {
       res.status(403).json({ error: "Forbidden" });

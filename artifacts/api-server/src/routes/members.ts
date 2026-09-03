@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, count, ne } from "drizzle-orm";
+import { eq, and, count, ne, sql } from "drizzle-orm";
 import { db, membersTable, usersTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
@@ -27,19 +27,7 @@ async function getMembersWithUsers(orgId: number) {
   return rows.map(({ member, user }) => ({ ...member, user }));
 }
 
-async function isLastOwner(orgId: number, memberId: number): Promise<boolean> {
-  const [target] = await db
-    .select({ role: membersTable.role })
-    .from(membersTable)
-    .where(and(eq(membersTable.id, memberId), eq(membersTable.organizationId, orgId)))
-    .limit(1);
-  if (target?.role !== "owner") return false;
-  const [owners] = await db
-    .select({ value: count() })
-    .from(membersTable)
-    .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.role, "owner")));
-  return Number(owners?.value ?? 0) <= 1;
-}
+class LastOwnerMutationError extends Error {}
 
 router.get(
   "/organizations/:id/members",
@@ -152,16 +140,56 @@ router.patch(
       return;
     }
 
-    if (parsed.data.role && await isLastOwner(params.data.id, params.data.memberId)) {
-      res.status(409).json({ error: "Le dernier propriétaire de l'organisation ne peut pas être rétrogradé" });
-      return;
+    let updated;
+    try {
+      updated = await db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(67101, ${params.data.id})`,
+        );
+        const [target] = await tx
+          .select({ role: membersTable.role, status: membersTable.status })
+          .from(membersTable)
+          .where(and(
+            eq(membersTable.id, params.data.memberId),
+            eq(membersTable.organizationId, params.data.id),
+          ))
+          .limit(1);
+        const nextRole = parsed.data.role ?? target?.role;
+        const nextStatus = parsed.data.status ?? target?.status;
+        if (
+          target?.role === "owner" &&
+          target.status === "active" &&
+          (nextRole !== "owner" || nextStatus !== "active")
+        ) {
+          const [otherOwner] = await tx
+            .select({ id: membersTable.id })
+            .from(membersTable)
+            .where(and(
+              eq(membersTable.organizationId, params.data.id),
+              eq(membersTable.role, "owner"),
+              eq(membersTable.status, "active"),
+              ne(membersTable.id, params.data.memberId),
+            ))
+            .limit(1);
+          if (!otherOwner) throw new LastOwnerMutationError();
+        }
+        const [result] = await tx
+          .update(membersTable)
+          .set(parsed.data)
+          .where(and(
+            eq(membersTable.id, params.data.memberId),
+            eq(membersTable.organizationId, params.data.id),
+          ))
+          .returning();
+        return result;
+      });
+    } catch (error) {
+      if (error instanceof LastOwnerMutationError) {
+        res.status(409).json({ error: "Le dernier propriétaire de l'organisation ne peut pas être rétrogradé" });
+        return;
+      }
+      throw error;
     }
-
-    const [updated] = await db
-      .update(membersTable)
-      .set(parsed.data)
-      .where(and(eq(membersTable.id, params.data.memberId), eq(membersTable.organizationId, params.data.id)))
-      .returning();
 
     if (!updated) {
       res.status(404).json({ error: "Member not found" });
@@ -192,15 +220,49 @@ router.delete(
       return;
     }
 
-    if (await isLastOwner(params.data.id, params.data.memberId)) {
-      res.status(409).json({ error: "Le dernier propriétaire de l'organisation ne peut pas être supprimé" });
-      return;
+    let deleted;
+    try {
+      deleted = await db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(67101, ${params.data.id})`,
+        );
+        const [target] = await tx
+          .select({ role: membersTable.role, status: membersTable.status })
+          .from(membersTable)
+          .where(and(
+            eq(membersTable.id, params.data.memberId),
+            eq(membersTable.organizationId, params.data.id),
+          ))
+          .limit(1);
+        if (target?.role === "owner" && target.status === "active") {
+          const [otherOwner] = await tx
+            .select({ id: membersTable.id })
+            .from(membersTable)
+            .where(and(
+              eq(membersTable.organizationId, params.data.id),
+              eq(membersTable.role, "owner"),
+              eq(membersTable.status, "active"),
+              ne(membersTable.id, params.data.memberId),
+            ))
+            .limit(1);
+          if (!otherOwner) throw new LastOwnerMutationError();
+        }
+        const [result] = await tx
+          .delete(membersTable)
+          .where(and(
+            eq(membersTable.id, params.data.memberId),
+            eq(membersTable.organizationId, params.data.id),
+          ))
+          .returning();
+        return result;
+      });
+    } catch (error) {
+      if (error instanceof LastOwnerMutationError) {
+        res.status(409).json({ error: "Le dernier propriétaire de l'organisation ne peut pas être supprimé" });
+        return;
+      }
+      throw error;
     }
-
-    const [deleted] = await db
-      .delete(membersTable)
-      .where(and(eq(membersTable.id, params.data.memberId), eq(membersTable.organizationId, params.data.id)))
-      .returning();
 
     if (!deleted) {
       res.status(404).json({ error: "Member not found" });

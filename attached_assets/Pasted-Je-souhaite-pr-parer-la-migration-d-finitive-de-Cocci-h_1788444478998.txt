@@ -1,0 +1,36 @@
+Je souhaite préparer la migration définitive de Cocci hors de Replit.
+
+⚠️ Je ne souhaite pas encore lancer la migration. Je souhaite d'abord définir l'architecture cible afin de créer directement les bonnes ressources.
+
+Mon objectif est que la première version publique de Cocci ne soit plus hébergée sur Replit.
+
+Je dispose déjà d'un compte Infomaniak.
+
+Je souhaite une architecture robuste, évolutive et simple à maintenir, adaptée à un SaaS B2B visant dans un premier temps environ 500 entreprises clientes.
+
+Je souhaite également disposer de deux environnements totalement indépendants :
+
+- Préproduction
+- Production
+
+Chaque environnement devra posséder ses propres ressources (base de données, stockage, variables d'environnement, Stripe, Clerk, etc.) afin qu'aucun test ne puisse impacter la production.
+
+Avant toute création de ressources, je souhaite que tu me proposes l'architecture cible complète.
+
+Merci de me fournir un document détaillant notamment :
+
+- l'infrastructure recommandée (VPS, Public Cloud ou autre) et la justification de ce choix ;
+- le nombre de serveurs ou de VPS nécessaires ;
+- l'organisation des conteneurs Docker ;
+- la stratégie PostgreSQL (nombre de bases, isolation des environnements, sauvegardes) ;
+- la stratégie de stockage des documents ;
+- la stratégie de sauvegarde et de restauration ;
+- les sous-domaines à prévoir (préproduction, production, API, etc.) ;
+- les services Infomaniak à créer ;
+- les ressources (CPU, RAM, stockage) recommandées ;
+- les coûts estimés ;
+- la procédure complète de migration depuis Replit.
+
+Je souhaite également que tu identifies les éventuelles dépendances actuelles à Replit (stockage, variables d'environnement, workflows, tâches planifiées, etc.) et que tu proposes leur remplacement afin qu'aucune dépendance à Replit ne subsiste après la migration.
+
+Enfin, merci de me fournir un plan de migration détaillé, étape par étape, permettant de passer de Replit à l'infrastructure définitive sans perdre de données ni avoir à refaire une seconde migration quelques semaines plus tard.

@@ -9,8 +9,13 @@ import { getAuth } from '@clerk/express';
 import { ObjectPermission } from '../lib/objectAcl';
 import { ObjectAccessGroupType } from '../lib/objectAcl';
 import { z } from 'zod';
-import { db, membersTable, usersTable } from '@workspace/db';
-import { and, eq } from 'drizzle-orm';
+import {
+  db,
+  membersTable,
+  pendingObjectUploadsTable,
+  usersTable,
+} from '@workspace/db';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import {
   ObjectNotFoundError,
   ObjectStorageService,
@@ -20,8 +25,9 @@ const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 const completeUploadSchema = z.object({
   objectPath: z.string().startsWith('/objects/'),
-  organizationId: z.number().int().positive().optional(),
 });
+
+class UploadAuthorizationError extends Error {}
 
 function hasAuthenticatedSession(
   req: Request,
@@ -82,6 +88,12 @@ router.post(
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       const objectPath =
         objectStorageService.normalizeObjectEntityPath(uploadURL);
+      await db.insert(pendingObjectUploadsTable).values({
+        objectPath,
+        ownerClerkId: auth.userId,
+        organizationId,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      });
 
       res.json(
         RequestUploadUrlResponse.parse({
@@ -108,32 +120,74 @@ router.post('/storage/uploads/complete', async (req: Request, res: Response) => 
     res.status(400).json({ error: 'Invalid upload completion payload' });
     return;
   }
-  const { objectPath, organizationId } = parsed.data;
-  if (organizationId) {
-    const [membership] = await db
-      .select({ id: membersTable.id })
-      .from(membersTable)
-      .innerJoin(usersTable, eq(usersTable.id, membersTable.userId))
-      .where(and(
-        eq(usersTable.clerkId, auth.userId),
-        eq(membersTable.organizationId, organizationId),
-        eq(membersTable.status, 'active'),
-      ))
-      .limit(1);
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' });
+  const { objectPath } = parsed.data;
+  try {
+    await db.transaction(async (tx) => {
+      const [pending] = await tx
+        .select({
+          organizationId: pendingObjectUploadsTable.organizationId,
+        })
+        .from(pendingObjectUploadsTable)
+        .where(and(
+          eq(pendingObjectUploadsTable.objectPath, objectPath),
+          eq(pendingObjectUploadsTable.ownerClerkId, auth.userId),
+          isNull(pendingObjectUploadsTable.consumedAt),
+          gt(pendingObjectUploadsTable.expiresAt, new Date()),
+        ))
+        .limit(1)
+        .for('update');
+      if (!pending) {
+        throw new UploadAuthorizationError(
+          'Upload authorization missing, expired, or already consumed',
+        );
+      }
+      if (pending.organizationId) {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(67101, ${pending.organizationId})`,
+        );
+        const [activeMembership] = await tx
+          .select({ id: membersTable.id })
+          .from(membersTable)
+          .innerJoin(usersTable, eq(usersTable.id, membersTable.userId))
+          .where(and(
+            eq(usersTable.clerkId, auth.userId),
+            eq(membersTable.organizationId, pending.organizationId),
+            eq(membersTable.status, 'active'),
+          ))
+          .limit(1);
+        if (!activeMembership) {
+          throw new UploadAuthorizationError(
+            'Organization access was revoked before upload completion',
+          );
+        }
+      }
+      await objectStorageService.trySetObjectEntityAclPolicy(objectPath, {
+        owner: pending.organizationId
+          ? `organization:${pending.organizationId}`
+          : auth.userId,
+        visibility: 'private',
+        aclRules: pending.organizationId ? [{
+          group: {
+            type: ObjectAccessGroupType.ORGANIZATION,
+            id: String(pending.organizationId),
+          },
+          permission: ObjectPermission.READ,
+        }] : [],
+      });
+      await tx
+        .update(pendingObjectUploadsTable)
+        .set({ consumedAt: new Date() })
+        .where(eq(pendingObjectUploadsTable.objectPath, objectPath));
+    });
+    res.json({ objectPath });
+  } catch (error) {
+    if (error instanceof UploadAuthorizationError) {
+      res.status(403).json({ error: error.message });
       return;
     }
+    req.log.error({ err: error }, 'Error finalizing private upload');
+    res.status(500).json({ error: 'Failed to finalize upload' });
   }
-  await objectStorageService.trySetObjectEntityAclPolicy(objectPath, {
-    owner: auth.userId,
-    visibility: 'private',
-    aclRules: organizationId ? [{
-      group: { type: ObjectAccessGroupType.ORGANIZATION, id: String(organizationId) },
-      permission: ObjectPermission.READ,
-    }] : [],
-  });
-  res.json({ objectPath });
 });
 
 /**

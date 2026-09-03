@@ -48,7 +48,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
         if (!putRes.ok) throw new Error("Échec de l'envoi vers le stockage.");
         await customFetch("/api/storage/uploads/complete", {
           method: "POST",
-          body: JSON.stringify({ objectPath, organizationId: currentOrgId ?? undefined }),
+          body: JSON.stringify({ objectPath }),
         });
 
         setProgress(100);

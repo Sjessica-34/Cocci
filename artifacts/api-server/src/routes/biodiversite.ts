@@ -377,7 +377,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans commentaires ni markdown :
 
 // ─── GROUP (legacy — kept for compatibility) ──────────────────────────────────
 
-router.post("/organizations/:orgId/bio-issues/group", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+router.post("/organizations/:orgId/bio-issues/group", requireAuth, requireOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
   const issues = await db.select().from(bioIssuesTable).where(scopeToExercise(bioIssuesTable, req));
   if (issues.length === 0) { res.json({ groups: [] }); return; }
 

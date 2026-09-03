@@ -27,3 +27,4 @@ export * from "./echanges";
 export * from "./audit";
 export * from "./consents";
 export * from "./publicLinks";
+export * from "./pendingObjectUploads";

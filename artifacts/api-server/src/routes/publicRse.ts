@@ -2,7 +2,12 @@ import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, pool, publicLinksTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import { requireOrgMembership, requireExerciseScope } from "../middlewares/exerciseScope";
+import {
+  requireOrgMembership,
+  requireOrgRole,
+  requireExerciseScope,
+  requireWritableExerciseScope,
+} from "../middlewares/exerciseScope";
 import { logger } from "../lib/logger";
 import { ALL_SUBCATEGORIES, COMPLETENESS_THRESHOLD, getMaturityLabel } from "@workspace/rse-referentials";
 import crypto from "crypto";
@@ -449,7 +454,7 @@ router.get("/organizations/:orgId/public-link", requireAuth, requireOrgMembershi
 
 // ── PATCH /organizations/:orgId/public-link — met à jour description/showReport
 
-router.patch("/organizations/:orgId/public-link", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+router.patch("/organizations/:orgId/public-link", requireAuth, requireOrgMembership, requireOrgRole(["owner", "admin"]), requireWritableExerciseScope, async (req, res): Promise<void> => {
   const orgId = req.orgId!;
   const exercise = req.exercise!;
 
@@ -473,7 +478,7 @@ router.patch("/organizations/:orgId/public-link", requireAuth, requireOrgMembers
 
 // ── POST /organizations/:orgId/public-link — génère ou retourne le token ──────
 
-router.post("/organizations/:orgId/public-link", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+router.post("/organizations/:orgId/public-link", requireAuth, requireOrgMembership, requireOrgRole(["owner", "admin"]), requireWritableExerciseScope, async (req, res): Promise<void> => {
   const orgId = req.orgId!;
   const exercise = req.exercise!;
 
@@ -500,7 +505,7 @@ router.post("/organizations/:orgId/public-link", requireAuth, requireOrgMembersh
 
 // ── DELETE /organizations/:orgId/public-link — révoque le lien ────────────────
 
-router.delete("/organizations/:orgId/public-link", requireAuth, requireOrgMembership, requireExerciseScope, async (req, res): Promise<void> => {
+router.delete("/organizations/:orgId/public-link", requireAuth, requireOrgMembership, requireOrgRole(["owner", "admin"]), requireWritableExerciseScope, async (req, res): Promise<void> => {
   const orgId = req.orgId!;
   const exercise = req.exercise!;
 

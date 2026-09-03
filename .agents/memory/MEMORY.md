@@ -10,3 +10,4 @@
 - [Nom des PDF RSE](report-pdf-filename.md) — l’aperçu Replit impose son titre au dialogue d’impression ; exporter via une page dédiée titrée.
 - [Pagination des graphiques parties prenantes](stakeholder-chart-print-pagination.md) — en PDF, fragmenter la pile de graphiques mais jamais une carte, son SVG ou sa légende.
 - [Cycle annuel des exercices](annual-exercise-lifecycle.md) — un seul service transactionnel pour planifié, rattrapage et manuel; précédent modifiable jusqu’au 28 février.
+- [Invariants objets privés et propriétaires](private-object-and-owner-invariants.md) — finalisation réessayable sous verrou; droits par organisation; seul un propriétaire actif compte.

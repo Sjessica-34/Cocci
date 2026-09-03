@@ -8,6 +8,4 @@
 
 export interface CompleteUploadRequest {
   objectPath: string;
-  /** @minimum 1 */
-  organizationId?: number;
 }

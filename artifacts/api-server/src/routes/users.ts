@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, ne, sql } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { z } from "zod";
-import { db, pool, usersTable, membersTable, organizationsTable, userConsentsTable } from "@workspace/db";
+import { db, usersTable, membersTable, organizationsTable, userConsentsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sensitiveLimiter } from "../middlewares/rateLimit";
 import { getOrCreateUser } from "../lib/auth";
@@ -97,6 +97,8 @@ const deletionReasonSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
+class SoleOwnerDeletionError extends Error {}
+
 /**
  * POST /users/me/deletion-request
  * Anonymise immédiatement les données personnelles locales, conserve les
@@ -109,37 +111,60 @@ router.post(
   async (req, res): Promise<void> => {
     const parsed = deletionReasonSchema.safeParse(req.body);
     const user = await getOrCreateUser(req.clerkUserId!);
-    const soleOwner = await pool.query(
-      `SELECT m.organization_id
-       FROM members m
-       WHERE m.user_id = $1 AND m.role = 'owner'
-         AND NOT EXISTS (
-           SELECT 1 FROM members other
-           WHERE other.organization_id = m.organization_id
-             AND other.role = 'owner' AND other.user_id <> $1
-         )
-       LIMIT 1`,
-      [user.id],
-    );
-    if (soleOwner.rowCount) {
-      res.status(409).json({
-        error: "Transférez d'abord la propriété de vos organisations avant de supprimer votre compte.",
-      });
-      return;
-    }
-
     const stamp = Date.now();
-    await db.transaction(async (tx) => {
-      await tx.execute(sql`select pg_advisory_xact_lock(${user.id})`);
-      await tx.update(usersTable).set({
-        email: `deleted-${user.id}-${stamp}@anonymized.invalid`,
-        firstName: null,
-        lastName: null,
-        avatarUrl: null,
-        updatedAt: new Date(),
-      }).where(eq(usersTable.id, user.id));
-      await tx.delete(membersTable).where(eq(membersTable.userId, user.id));
-    });
+    try {
+      await db.transaction(async (tx) => {
+        const ownedOrganizations = await tx
+          .select({ organizationId: membersTable.organizationId })
+          .from(membersTable)
+          .where(and(
+            eq(membersTable.userId, user.id),
+            eq(membersTable.role, "owner"),
+            eq(membersTable.status, "active"),
+          ))
+          .orderBy(membersTable.organizationId);
+
+        for (const { organizationId } of ownedOrganizations) {
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(67101, ${organizationId})`,
+          );
+        }
+
+        for (const { organizationId } of ownedOrganizations) {
+          const [otherOwner] = await tx
+            .select({ id: membersTable.id })
+            .from(membersTable)
+            .where(and(
+              eq(membersTable.organizationId, organizationId),
+              eq(membersTable.role, "owner"),
+              eq(membersTable.status, "active"),
+              ne(membersTable.userId, user.id),
+            ))
+            .limit(1);
+          if (!otherOwner) {
+            throw new SoleOwnerDeletionError();
+          }
+        }
+
+        await tx.execute(sql`select pg_advisory_xact_lock(${user.id})`);
+        await tx.update(usersTable).set({
+          email: `deleted-${user.id}-${stamp}@anonymized.invalid`,
+          firstName: null,
+          lastName: null,
+          avatarUrl: null,
+          updatedAt: new Date(),
+        }).where(eq(usersTable.id, user.id));
+        await tx.delete(membersTable).where(eq(membersTable.userId, user.id));
+      });
+    } catch (error) {
+      if (error instanceof SoleOwnerDeletionError) {
+        res.status(409).json({
+          error: "Transférez d'abord la propriété de vos organisations avant de supprimer votre compte.",
+        });
+        return;
+      }
+      throw error;
+    }
 
     await logAuditEvent(req, "user.delete_request", {
       userId: null,

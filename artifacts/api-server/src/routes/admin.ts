@@ -11,7 +11,7 @@ import {
   rseReportDraftsTable,
 } from "@workspace/db";
 import { cocciFeedbackTable, cocciRatingsTable } from "@workspace/db";
-import { eq, desc, count, max, and, isNull, isNotNull, sql, avg } from "drizzle-orm";
+import { eq, desc, count, max, and, isNull, isNotNull, ne, sql, avg } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
 import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
@@ -24,6 +24,7 @@ router.use("/admin", requireAuth, requireSuperAdmin);
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 type Sub = typeof subscriptionsTable.$inferSelect | null;
+class LastActiveOwnerAdminMutationError extends Error {}
 
 function effectiveMaxEmployees(sub: Sub): number | null {
   if (!sub) return null;
@@ -765,11 +766,61 @@ router.patch("/admin/members/:memberId", async (req, res): Promise<void> => {
   if (typeof role === "string") updates.role = role;
   if (typeof status === "string") updates.status = status;
 
-  const [updated] = await db
-    .update(membersTable)
-    .set(updates)
-    .where(eq(membersTable.id, memberId))
-    .returning();
+  let updated;
+  try {
+    updated = await db.transaction(async (tx) => {
+      const [initialTarget] = await tx
+        .select({ organizationId: membersTable.organizationId })
+        .from(membersTable)
+        .where(eq(membersTable.id, memberId))
+        .limit(1);
+      if (!initialTarget) return undefined;
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(67101, ${initialTarget.organizationId})`,
+      );
+      const [target] = await tx
+        .select({
+          role: membersTable.role,
+          status: membersTable.status,
+          organizationId: membersTable.organizationId,
+        })
+        .from(membersTable)
+        .where(eq(membersTable.id, memberId))
+        .limit(1);
+      if (!target) return undefined;
+      const nextRole = updates.role ?? target.role;
+      const nextStatus = updates.status ?? target.status;
+      if (
+        target.role === "owner" &&
+        target.status === "active" &&
+        (nextRole !== "owner" || nextStatus !== "active")
+      ) {
+        const [otherActiveOwner] = await tx
+          .select({ id: membersTable.id })
+          .from(membersTable)
+          .where(and(
+            eq(membersTable.organizationId, target.organizationId),
+            eq(membersTable.role, "owner"),
+            eq(membersTable.status, "active"),
+            ne(membersTable.id, memberId),
+          ))
+          .limit(1);
+        if (!otherActiveOwner) throw new LastActiveOwnerAdminMutationError();
+      }
+      const [result] = await tx
+        .update(membersTable)
+        .set(updates)
+        .where(eq(membersTable.id, memberId))
+        .returning();
+      return result;
+    });
+  } catch (error) {
+    if (error instanceof LastActiveOwnerAdminMutationError) {
+      res.status(409).json({ error: "Le dernier propriétaire actif ne peut pas être rétrogradé ou suspendu" });
+      return;
+    }
+    throw error;
+  }
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
 
@@ -801,10 +852,54 @@ router.delete("/admin/members/:memberId", async (req, res): Promise<void> => {
   const memberId = Number(rawId);
   if (!memberId || isNaN(memberId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const [deleted] = await db
-    .delete(membersTable)
-    .where(eq(membersTable.id, memberId))
-    .returning();
+  let deleted;
+  try {
+    deleted = await db.transaction(async (tx) => {
+      const [initialTarget] = await tx
+        .select({ organizationId: membersTable.organizationId })
+        .from(membersTable)
+        .where(eq(membersTable.id, memberId))
+        .limit(1);
+      if (!initialTarget) return undefined;
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(67101, ${initialTarget.organizationId})`,
+      );
+      const [target] = await tx
+        .select({
+          role: membersTable.role,
+          status: membersTable.status,
+          organizationId: membersTable.organizationId,
+        })
+        .from(membersTable)
+        .where(eq(membersTable.id, memberId))
+        .limit(1);
+      if (!target) return undefined;
+      if (target.role === "owner" && target.status === "active") {
+        const [otherActiveOwner] = await tx
+          .select({ id: membersTable.id })
+          .from(membersTable)
+          .where(and(
+            eq(membersTable.organizationId, target.organizationId),
+            eq(membersTable.role, "owner"),
+            eq(membersTable.status, "active"),
+            ne(membersTable.id, memberId),
+          ))
+          .limit(1);
+        if (!otherActiveOwner) throw new LastActiveOwnerAdminMutationError();
+      }
+      const [result] = await tx
+        .delete(membersTable)
+        .where(eq(membersTable.id, memberId))
+        .returning();
+      return result;
+    });
+  } catch (error) {
+    if (error instanceof LastActiveOwnerAdminMutationError) {
+      res.status(409).json({ error: "Le dernier propriétaire actif ne peut pas être supprimé" });
+      return;
+    }
+    throw error;
+  }
   if (!deleted) { res.status(404).json({ error: "Not found" }); return; }
   res.status(204).end();
 });

@@ -6030,9 +6030,6 @@ components:
       properties:
         objectPath:
           type: string
-        organizationId:
-          type: integer
-          minimum: 1
     UploadUrlResponse:
       type: object
       required: [uploadURL, objectPath]
