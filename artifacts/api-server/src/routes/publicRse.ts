@@ -92,6 +92,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       reportDraftRows,
       baroCampaignRows,
       responsiblePurchaseRows,
+      nrResponseRows,
+      diversityRows,
     ] = await Promise.all([
       pool.query<{ question_id: string; level: number }>(
         "SELECT question_id, level FROM diagnostic_responses WHERE organization_id = $1 AND exercise_id = $2",
@@ -138,6 +140,18 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
          WHERE organization_id = $1 AND exercise_id = $2`,
         [orgId, exerciseId],
       ),
+      pool.query<{ checked: boolean }>(
+        `SELECT checked
+         FROM nr_responses
+         WHERE organization_id = $1 AND exercise_id = $2`,
+        [orgId, exerciseId],
+      ),
+      pool.query<{ nb_hommes: number | null; nb_femmes: number | null }>(
+        `SELECT nb_hommes, nb_femmes
+         FROM employment_diversity
+         WHERE organization_id = $1 AND exercise_id = $2`,
+        [orgId, exerciseId],
+      ),
     ]);
 
     // 4. Si l'org est un groupe sans données propres → consolider les filiales
@@ -148,6 +162,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
     let allStakeholderCount = Number(stakeholderCountRows.rows[0]?.cnt ?? 0);
     let hasMateriaux = Number(issueCountRows.rows[0]?.cnt ?? 0) > 0;
     let allResponsiblePurchaseRows = responsiblePurchaseRows.rows;
+    let allNrResponseRows = nrResponseRows.rows;
+    let allDiversityRows = diversityRows.rows;
 
     if (diagnosticRows.rows.length === 0 && subsidiaryIds.length > 0) {
       // Récupérer l'exercice actif de chaque filiale puis agréger leurs données
@@ -171,6 +187,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
           subStakeholderRows,
           subIssueRows,
           subResponsiblePurchaseRows,
+          subNrResponseRows,
+          subDiversityRows,
         ] = await Promise.all([
           pool.query<{ question_id: string; level: number }>(
             `SELECT question_id, level FROM diagnostic_responses WHERE ${pairs}`,
@@ -207,6 +225,14 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
              WHERE ${pairs}`,
             flatParams,
           ),
+          pool.query<{ checked: boolean }>(
+            `SELECT checked FROM nr_responses WHERE ${pairs}`,
+            flatParams,
+          ),
+          pool.query<{ nb_hommes: number | null; nb_femmes: number | null }>(
+            `SELECT nb_hommes, nb_femmes FROM employment_diversity WHERE ${pairs}`,
+            flatParams,
+          ),
         ]);
 
         // Consolider : pour le diagnostic on fait la moyenne des questions par catégorie
@@ -226,6 +252,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
         allStakeholderCount += Number(subStakeholderRows.rows[0]?.cnt ?? 0);
         hasMateriaux = hasMateriaux || Number(subIssueRows.rows[0]?.cnt ?? 0) > 0;
         allResponsiblePurchaseRows = [...allResponsiblePurchaseRows, ...subResponsiblePurchaseRows.rows];
+        allNrResponseRows = [...allNrResponseRows, ...subNrResponseRows.rows];
+        allDiversityRows = [...allDiversityRows, ...subDiversityRows.rows];
       }
     }
 
@@ -302,10 +330,32 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
         }
       : null;
 
-    // 9. Rapport RSE
+    // 9. Synthèses publiques complémentaires
+    const nrTotal = allNrResponseRows.length;
+    const nrChecked = allNrResponseRows.filter((row) => row.checked).length;
+    const numeriqueResponsable = nrTotal > 0
+      ? { scorePercent: Math.round((nrChecked / nrTotal) * 100) }
+      : null;
+
+    const diversityTotals = allDiversityRows.reduce(
+      (totals, row) => ({
+        women: totals.women + Number(row.nb_femmes ?? 0),
+        men: totals.men + Number(row.nb_hommes ?? 0),
+      }),
+      { women: 0, men: 0 },
+    );
+    const genderTotal = diversityTotals.women + diversityTotals.men;
+    const parite = genderTotal > 0
+      ? {
+          womenPercent: Math.round((diversityTotals.women / genderTotal) * 100),
+          menPercent: Math.round((diversityTotals.men / genderTotal) * 100),
+        }
+      : null;
+
+    // 10. Rapport RSE
     const reportDraft = reportDraftRows.rows[0];
 
-    // 10. Baromètre social
+    // 11. Baromètre social
     let barometre: {
       satisfactionGlobale: number | null;
       tauxParticipation: number | null;
@@ -340,7 +390,7 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       };
     }
 
-    // 11. Progression
+    // 12. Progression
     const progression = {
       diagnostic: allDiagnosticRows.length > 0,
       stakeholders: allStakeholderCount > 0,
@@ -359,6 +409,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       labels,
       stakeholderCount: allStakeholderCount,
       responsiblePurchases,
+      numeriqueResponsable,
+      parite,
       barometre,
       progression,
       reportGenerationCount: reportDraft?.generation_count ?? 0,

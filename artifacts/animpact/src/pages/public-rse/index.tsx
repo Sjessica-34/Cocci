@@ -28,6 +28,8 @@ type PublicData = {
     circularPercent: number;
     byCategory: Array<{ category: string; sharePercent: number }>;
   } | null;
+  numeriqueResponsable: { scorePercent: number } | null;
+  parite: { womenPercent: number; menPercent: number } | null;
   progression: { diagnostic: boolean; stakeholders: boolean; materiality: boolean; actionPlan: boolean; actionsInProgress: boolean; reportGenerated: boolean };
   reportGenerationCount: number;
   subcategoryScores: SubcategoryScore[];
@@ -192,6 +194,8 @@ export function PublicRsePage() {
     stakeholderCount,
     barometre,
     responsiblePurchases,
+    numeriqueResponsable,
+    parite,
     progression,
     subcategoryScores = [],
     customDescription,
@@ -436,6 +440,62 @@ export function PublicRsePage() {
             )}
           </Card>
         )}
+
+        {/* ── Synthèses complémentaires ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <Card>
+            <SectionTitle>Numérique responsable</SectionTitle>
+            {numeriqueResponsable ? (
+              <>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
+                  <span style={{ fontSize: 36, fontWeight: 800, color: C.env }}>{numeriqueResponsable.scorePercent} %</span>
+                  <span style={{ fontSize: 12, color: C.gray400 }}>des critères validés</span>
+                </div>
+                <ProgressBar value={numeriqueResponsable.scorePercent} color={C.env} />
+                <p style={{ fontSize: 12, color: C.gray600, lineHeight: 1.5, margin: "10px 0 0" }}>
+                  {numeriqueResponsable.scorePercent >= 75
+                    ? "Une démarche numérique responsable bien engagée et structurée."
+                    : numeriqueResponsable.scorePercent >= 50
+                      ? "Une démarche numérique responsable est engagée et continue de progresser."
+                      : "La démarche numérique responsable est en cours de construction."}
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: 13, color: C.gray400, margin: 0 }}>
+                Aucune donnée renseignée pour cet exercice.
+              </p>
+            )}
+          </Card>
+
+          <Card>
+            <SectionTitle>Parité femmes-hommes</SectionTitle>
+            {parite ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: C.soc }}>{parite.womenPercent} %</div>
+                    <div style={{ fontSize: 11, color: C.gray400 }}>Femmes</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: C.gov }}>{parite.menPercent} %</div>
+                    <div style={{ fontSize: 11, color: C.gray400 }}>Hommes</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: C.gray100 }}>
+                  <div style={{ width: `${parite.womenPercent}%`, background: C.soc }} />
+                  <div style={{ width: `${parite.menPercent}%`, background: C.gov }} />
+                </div>
+                <p style={{ fontSize: 12, color: C.gray600, lineHeight: 1.5, margin: "10px 0 0" }}>
+                  La répartition femmes-hommes est présentée à partir des effectifs dont le genre est renseigné.
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: 13, color: C.gray400, margin: 0 }}>
+                Aucune donnée renseignée pour cet exercice.
+              </p>
+            )}
+          </Card>
+        </div>
 
         {/* ── Résultats détaillés ── */}
         <Card style={{ marginBottom: 16 }}>
