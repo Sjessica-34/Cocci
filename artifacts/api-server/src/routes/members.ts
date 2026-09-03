@@ -27,6 +27,20 @@ async function getMembersWithUsers(orgId: number) {
   return rows.map(({ member, user }) => ({ ...member, user }));
 }
 
+async function isLastOwner(orgId: number, memberId: number): Promise<boolean> {
+  const [target] = await db
+    .select({ role: membersTable.role })
+    .from(membersTable)
+    .where(and(eq(membersTable.id, memberId), eq(membersTable.organizationId, orgId)))
+    .limit(1);
+  if (target?.role !== "owner") return false;
+  const [owners] = await db
+    .select({ value: count() })
+    .from(membersTable)
+    .where(and(eq(membersTable.organizationId, orgId), eq(membersTable.role, "owner")));
+  return Number(owners?.value ?? 0) <= 1;
+}
+
 router.get(
   "/organizations/:id/members",
   requireAuth,
@@ -138,6 +152,11 @@ router.patch(
       return;
     }
 
+    if (parsed.data.role && await isLastOwner(params.data.id, params.data.memberId)) {
+      res.status(409).json({ error: "Le dernier propriétaire de l'organisation ne peut pas être rétrogradé" });
+      return;
+    }
+
     const [updated] = await db
       .update(membersTable)
       .set(parsed.data)
@@ -170,6 +189,11 @@ router.delete(
     const params = RemoveMemberParams.safeParse({ id: Number(rawId), memberId: Number(rawMemberId) });
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    if (await isLastOwner(params.data.id, params.data.memberId)) {
+      res.status(409).json({ error: "Le dernier propriétaire de l'organisation ne peut pas être supprimé" });
       return;
     }
 

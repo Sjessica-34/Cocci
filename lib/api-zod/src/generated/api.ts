@@ -396,7 +396,7 @@ export const ListExercisesResponseItem = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "year": zod.number(),
-  "status": zod.enum(['active', 'closed']),
+  "status": zod.enum(['active', 'grace', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -404,8 +404,8 @@ export const ListExercisesResponse = zod.array(ListExercisesResponseItem)
 
 
 /**
- * The only way an exercise is ever closed or created. Computes the next year automatically (current active exercise's year + 1), refuses if the current month is before the organization's configured exerciseOpeningMonth, then atomically closes the current exercise, creates the next one, duplicates all business data into it, and re-links (never duplicates) documents.
- * @summary Close the current active exercise and automatically create + populate the next one
+ * Uses the same idempotent and transactional lifecycle service as scheduled annual maintenance. The previous exercise enters its grace period; physical documents are not copied, only their immutable links are shared with the new exercise.
+ * @summary Superadministrator recovery command to create and populate the next exercise
  */
 export const AdvanceExerciseParams = zod.object({
   "orgId": zod.coerce.number()
@@ -415,7 +415,7 @@ export const AdvanceExerciseResponse = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "year": zod.number(),
-  "status": zod.enum(['active', 'closed']),
+  "status": zod.enum(['active', 'grace', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })

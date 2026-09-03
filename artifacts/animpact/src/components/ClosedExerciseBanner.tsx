@@ -17,8 +17,7 @@ export function ClosedExerciseBanner() {
     <div className="mb-4 flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
       <Lock className="h-4 w-4 shrink-0" />
       <span>
-        L'exercice {current.year} est clôturé. Les données sont en lecture seule — réouvrez l'exercice pour les
-        modifier.
+        L'exercice {current.year} est clôturé. Les données sont conservées en lecture seule.
       </span>
     </div>
   );

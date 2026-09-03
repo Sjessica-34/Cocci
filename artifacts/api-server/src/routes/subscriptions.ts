@@ -219,7 +219,7 @@ router.post(
 router.post(
   "/organizations/:orgId/stripe/portal",
   requireAuth,
-  requireOrgMembership,
+  requireOrgRole(["owner", "admin"]),
   async (req, res): Promise<void> => {
     const orgId = req.orgId!;
     try {

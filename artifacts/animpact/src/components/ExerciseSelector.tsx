@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import {
   useListExercises,
   useAdvanceExercise,
-  useGetOrganization,
-  getGetOrganizationQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarRange, ChevronsUpDown, Sparkles, ListFilter } from "lucide-react";
@@ -39,14 +37,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
 import { cn } from "@/lib/utils";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 
 export function ExerciseSelector({ orgId }: { orgId: number }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: exercises } = useListExercises(orgId);
-  const { data: org } = useGetOrganization(orgId, {
-    query: { enabled: !!orgId, queryKey: getGetOrganizationQueryKey(orgId) },
-  });
+  const { isSuperAdmin } = useIsSuperAdmin();
   const { currentExerciseId, setCurrentExercise } = useCurrentExercise();
   const [allOpen, setAllOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -57,9 +54,7 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
   const recentExercises = exercises?.slice(0, 3) ?? [];
   const hasMoreExercises = (exercises?.length ?? 0) > recentExercises.length;
 
-  const currentMonth = new Date().getMonth() + 1;
-  const openingMonth = org?.exerciseOpeningMonth ?? 12;
-  const canAdvance = !!current && current.status === "active" && currentMonth >= openingMonth;
+  const canAdvance = isSuperAdmin && !!current && current.status === "active";
 
   // Default to the most recent exercise when none is selected yet (or the
   // stored one no longer belongs to this organization).
@@ -68,7 +63,8 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
   useEffect(() => {
     if (!exercises || exercises.length === 0) return;
     if (!exercises.some((e) => e.id === currentExerciseId)) {
-      setCurrentExercise(exercises[0].id);
+      const activeExercise = exercises.find((exercise) => exercise.status === "active") ?? exercises[0];
+      setCurrentExercise(activeExercise.id);
       qc.invalidateQueries();
     }
   }, [exercises, currentExerciseId, setCurrentExercise, qc]);
@@ -121,7 +117,7 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
                   variant={current.status === "active" ? "default" : "secondary"}
                   className="mr-1.5 text-[10px] px-1.5 py-0 h-4"
                 >
-                  {current.status === "active" ? "En cours" : "Clôturé"}
+                  {current.status === "active" ? "En cours" : current.status === "grace" ? "Finalisation" : "Clôturé"}
                 </Badge>
               )}
               <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground/40 shrink-0" />
@@ -141,7 +137,7 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
                   variant={ex.status === "active" ? "default" : "secondary"}
                   className="text-[10px] px-1.5 py-0 h-4"
                 >
-                  {ex.status === "active" ? "En cours" : "Clôturé"}
+                  {ex.status === "active" ? "En cours" : ex.status === "grace" ? "Finalisation" : "Clôturé"}
                 </Badge>
               </DropdownMenuItem>
             ))}
@@ -160,7 +156,7 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
             size="icon"
             variant="ghost"
             className="h-9 w-9 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent/60"
-            title="Clôturer et créer l'exercice suivant"
+            title="Créer immédiatement l'exercice suivant"
             onClick={() => setConfirmOpen(true)}
           >
             <Sparkles className="h-4 w-4" />
@@ -171,17 +167,17 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clôturer l'exercice {current?.year} et créer {current ? current.year + 1 : ""} ?</AlertDialogTitle>
+            <AlertDialogTitle>Créer immédiatement l'exercice {current ? current.year + 1 : ""} ?</AlertDialogTitle>
             <AlertDialogDescription>
-              L'exercice {current?.year} sera clôturé, et un nouvel exercice {current ? current.year + 1 : ""} sera
-              créé avec l'ensemble des données de {current?.year} (fournisseurs, diagnostics, documents…) afin de
-              vous permettre de démarrer directement dessus. Cette action est irréversible.
+              Cette commande de reprise réservée au superadministrateur utilise le même mécanisme que le passage
+              annuel automatique. L'exercice {current?.year} restera modifiable pendant sa période de finalisation
+              et les données seront copiées sans supprimer l'historique.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={advanceMutation.isPending}>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleAdvance} disabled={advanceMutation.isPending}>
-              {advanceMutation.isPending ? "Clôture en cours…" : "Clôturer et créer l'exercice suivant"}
+              {advanceMutation.isPending ? "Création en cours…" : "Créer l'exercice suivant"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -213,7 +209,7 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
                     variant={ex.status === "active" ? "default" : "secondary"}
                     className="text-[10px] px-1.5 py-0 h-4"
                   >
-                    {ex.status === "active" ? "En cours" : "Clôturé"}
+                    {ex.status === "active" ? "En cours" : ex.status === "grace" ? "Finalisation" : "Clôturé"}
                   </Badge>
                 </button>
               ))}

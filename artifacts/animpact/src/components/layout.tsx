@@ -111,9 +111,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
   );
   const rootOrg = allOrgs.find((o) => !o.parentId) ?? null;
-  // Exercise selector always shows the root org's exercises so subsidiaries
-  // (which have no exercises of their own) can still see and select an exercise.
-  const exerciseOrgId = rootOrg?.id ?? currentOrgId;
+  const exerciseOrgId = currentOrgId;
 
   const isAdminRoute = location.startsWith("/admin");
   const isOnboardingRoute = location.startsWith("/onboarding");
@@ -135,7 +133,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     query: { queryKey: ["/api/organizations", exerciseOrgId, "exercises"], enabled: showExerciseUi },
   });
   const currentExercise = exercises?.find((e) => e.id === currentExerciseId);
-  // When the active exercise is closed, the whole workspace becomes
+  // Closed exercises are read-only; active and grace exercises remain writable.
   // read-only: mutating controls (forms, buttons, inputs) in the main
   // content area are made inert. Navigation (sidebar) and the exercise
   // selector itself stay interactive so the user can switch/reopen.
@@ -332,8 +330,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         )}
         <div
           className="flex-1 p-4 md:p-8 w-full max-w-6xl mx-auto"
-          // @ts-expect-error -- `inert` is a valid HTML boolean attribute (React 19+) not yet in JSX types.
-          inert={isExerciseClosed ? "" : undefined}
+          inert={isExerciseClosed || undefined}
         >
           {showExerciseUi && <ClosedExerciseBanner />}
           {children}

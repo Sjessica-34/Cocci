@@ -3,6 +3,10 @@ import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { Request, Response } from "express";
 import { db, exercisesTable, organizationsTable } from "@workspace/db";
 import type { Exercise } from "@workspace/db";
+import {
+  ensureAnnualLifecycleIfNeeded,
+  isExerciseGraceOpen,
+} from "./exerciseLifecycle";
 
 /** Returns the parentId of an org, or null if it is a root org. */
 async function getParentOrgId(orgId: number): Promise<number | null> {
@@ -31,6 +35,7 @@ async function getParentOrgId(orgId: number): Promise<number | null> {
  * by the exercise returned here.
  */
 export async function resolveExercise(orgId: number, req: Request): Promise<Exercise | null> {
+  await ensureAnnualLifecycleIfNeeded(orgId);
   const headerVal = req.header("x-exercise-id");
   if (headerVal) {
     const exId = Number(headerVal);
@@ -40,28 +45,26 @@ export async function resolveExercise(orgId: number, req: Request): Promise<Exer
         .from(exercisesTable)
         .where(and(eq(exercisesTable.id, exId), eq(exercisesTable.organizationId, orgId)))
         .limit(1);
-      // Header exercise belongs to this org → use it.
       if (ex) return ex;
-      // Header is stale (e.g. from a previous org context stored in localStorage) —
-      // fall through to the latest-exercise fallback below rather than returning null.
-      // This avoids spurious "Exercise not found" 400s during org switches.
     }
+    // Never silently substitute an exercise belonging to another organization.
+    return null;
   }
 
-  // No header (or stale header): find latest exercise owned by this org.
-  // Every org has its own exercise — no parent fallback needed.
+  // No header: use the organization's current active exercise.
   const [ex] = await db
     .select()
     .from(exercisesTable)
-    .where(eq(exercisesTable.organizationId, orgId))
+    .where(and(eq(exercisesTable.organizationId, orgId), eq(exercisesTable.status, "active")))
     .orderBy(desc(exercisesTable.year))
     .limit(1);
   return ex ?? null;
 }
 
-/** An exercise is writable only while its status is "active" ("En cours"). */
-export function isExerciseWritable(exercise: Exercise): boolean {
-  return exercise.status === "active";
+/** Current and previous-year grace exercises are writable until 1 March. */
+export function isExerciseWritable(exercise: Exercise, now = new Date()): boolean {
+  return exercise.status === "active" ||
+    (exercise.status === "grace" && isExerciseGraceOpen(exercise.year, now));
 }
 
 /**

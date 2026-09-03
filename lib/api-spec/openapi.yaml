@@ -408,13 +408,11 @@ paths:
     post:
       operationId: advanceExercise
       tags: [exercises]
-      summary: Close the current active exercise and automatically create + populate the next one
+      summary: Superadministrator recovery command to create and populate the next exercise
       description: >
-        The only way an exercise is ever closed or created. Computes the next year automatically
-        (current active exercise's year + 1), refuses if the current month is before the
-        organization's configured exerciseOpeningMonth, then atomically closes the current
-        exercise, creates the next one, duplicates all business data into it, and re-links
-        (never duplicates) documents.
+        Uses the same idempotent and transactional lifecycle service as scheduled annual
+        maintenance. The previous exercise enters its grace period; physical documents are
+        not copied, only their immutable links are shared with the new exercise.
       parameters:
         - name: orgId
           in: path
@@ -435,7 +433,7 @@ paths:
         "404":
           description: Organization not found
         "409":
-          description: Not yet allowed this month, no active exercise found, or next year already exists
+          description: Exercise transition could not be completed
 
   # ─── ADMIN ───────────────────────────────────────────────────────────────────
   /admin/stats:
@@ -3885,7 +3883,7 @@ components:
           type: integer
         status:
           type: string
-          enum: [active, closed]
+          enum: [active, grace, closed]
         createdAt:
           type: string
           format: date-time

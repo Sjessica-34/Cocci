@@ -3,7 +3,7 @@ import multer from "multer";
 import { db, documentsTable, documentExerciseLinksTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
-import { requireActiveOrgMembership, requireExerciseScope, requireWritableExerciseScope, requireWritableOrgMembership } from "../middlewares/exerciseScope";
+import { requireActiveOrgMembership, requireExerciseScope, requireWritableExerciseScope, requireWritableOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
 
 const router = Router();
 const upload = multer({
@@ -124,13 +124,20 @@ router.get("/organizations/:orgId/documents/:docId/download", requireAuth, requi
 });
 
 // DELETE /organizations/:orgId/documents/:docId
-router.delete("/organizations/:orgId/documents/:docId", requireAuth, requireWritableOrgMembership, requireWritableExerciseScope, async (req, res): Promise<void> => {
+router.delete("/organizations/:orgId/documents/:docId", requireAuth, requireOrgRole(["owner", "admin"]), requireWritableExerciseScope, async (req, res): Promise<void> => {
   const docId = parseId(req.params.docId);
   if (!docId || isNaN(docId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
+  const [document] = await db
+    .select({ id: documentsTable.id })
+    .from(documentsTable)
+    .where(and(eq(documentsTable.id, docId), eq(documentsTable.organizationId, req.orgId!)))
+    .limit(1);
+  if (!document) { res.status(404).json({ error: "Not found" }); return; }
+
   const deletedLink = await db
     .delete(documentExerciseLinksTable)
-    .where(and(eq(documentExerciseLinksTable.documentId, docId), eq(documentExerciseLinksTable.exerciseId, req.exercise!.id)))
+    .where(and(eq(documentExerciseLinksTable.documentId, document.id), eq(documentExerciseLinksTable.exerciseId, req.exercise!.id)))
     .returning({ id: documentExerciseLinksTable.id });
 
   if (!deletedLink.length) { res.status(404).json({ error: "Not found" }); return; }

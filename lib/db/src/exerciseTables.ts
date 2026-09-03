@@ -15,6 +15,14 @@ import { labelsTable } from "./schema/labels";
 import { nrMetaTable, nrResponsesTable } from "./schema/numeriqueResponsable";
 import { stakeholdersTable } from "./schema/stakeholders";
 import { suppliersTable } from "./schema/suppliers";
+import { captationCarboneTable } from "./schema/captationCarbone";
+import { diagnosticResponsesTable } from "./schema/diagnosticResponses";
+import { organizationActionPlansTable } from "./schema/actionPlan";
+import { planSlotsTable } from "./schema/planSlots";
+import { publicLinksTable } from "./schema/publicLinks";
+import { responsiblePurchasesTable } from "./schema/responsiblePurchases";
+import { rseReportDraftsTable } from "./schema/rseReportDrafts";
+import { barometreCampaignsTable } from "./schema/barometreSocial";
 
 export type ScopedTable = PgTable & { id: PgColumn; organizationId: PgColumn; exerciseId: PgColumn };
 
@@ -25,7 +33,7 @@ export type ScopedTable = PgTable & { id: PgColumn; organizationId: PgColumn; ex
  * `artifacts/api-server/src/routes/exercises.ts` for the handler
  * implementations, keyed by this tag.
  */
-export type ExerciseTableRemap = "bioConnections" | "bioIssues";
+export type ExerciseTableRemap = "bioConnections" | "bioIssues" | "rseReportDrafts" | "publicLinks";
 
 export interface ExerciseScopedTableEntry {
   /** SQL table name, used in logs/verification output. */
@@ -39,6 +47,15 @@ export interface ExerciseScopedTableEntry {
    */
   remap?: ExerciseTableRemap;
 }
+
+/**
+ * Tables whose exercise data is intentionally reset rather than copied.
+ * Keeping this explicit prevents a new annual workflow from accidentally
+ * treating a reset module as ordinary copyable business data.
+ */
+export const EXERCISE_RESET_TABLES = [
+  { name: "barometre_campaigns", table: barometreCampaignsTable },
+] as const;
 
 /**
  * Single source of truth for every exercise-scoped business table.
@@ -68,7 +85,9 @@ export const EXERCISE_SCOPED_TABLES: ExerciseScopedTableEntry[] = [
   { name: "bio_connections", table: bioConnectionsTable, remap: "bioConnections" },
   { name: "bio_issues", table: bioIssuesTable, remap: "bioIssues" },
   { name: "carbon_bilans", table: carbonBilansTable },
+  { name: "captation_carbone", table: captationCarboneTable },
   { name: "custom_issues", table: customIssuesTable },
+  { name: "diagnostic_responses", table: diagnosticResponsesTable },
   { name: "employment_workforce", table: employmentWorkforceTable },
   { name: "employment_diversity", table: employmentDiversityTable },
   { name: "employment_training", table: employmentTrainingTable },
@@ -79,6 +98,18 @@ export const EXERCISE_SCOPED_TABLES: ExerciseScopedTableEntry[] = [
   { name: "labels", table: labelsTable },
   { name: "nr_meta", table: nrMetaTable },
   { name: "nr_responses", table: nrResponsesTable },
+  { name: "organization_action_plans", table: organizationActionPlansTable },
+  { name: "plan_slots", table: planSlotsTable },
+  { name: "public_links", table: publicLinksTable, remap: "publicLinks" },
+  { name: "responsible_purchases", table: responsiblePurchasesTable },
+  { name: "rse_report_drafts", table: rseReportDraftsTable, remap: "rseReportDrafts" },
   { name: "stakeholders", table: stakeholdersTable },
   { name: "suppliers", table: suppliersTable },
 ];
+
+/** Names used by verification to ensure no exercise-bearing module is omitted. */
+export const EXERCISE_TABLE_NAMES = [
+  ...EXERCISE_SCOPED_TABLES.map(({ name }) => name),
+  ...EXERCISE_RESET_TABLES.map(({ name }) => name),
+  "document_exercise_links",
+] as const;

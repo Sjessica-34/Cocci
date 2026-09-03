@@ -11,5 +11,6 @@ export type ExerciseStatus = typeof ExerciseStatus[keyof typeof ExerciseStatus];
 
 export const ExerciseStatus = {
   active: 'active',
+  grace: 'grace',
   closed: 'closed',
 } as const;

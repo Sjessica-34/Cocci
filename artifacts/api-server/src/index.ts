@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { ensureAllOrganizationsAnnualLifecycle } from "./lib/exerciseLifecycle";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,12 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  void ensureAllOrganizationsAnnualLifecycle().catch((error) => {
+    logger.error({ err: error }, "Initial annual exercise maintenance failed");
+  });
 });
+
+const annualMaintenanceInterval = setInterval(() => {
+  void ensureAllOrganizationsAnnualLifecycle();
+}, 6 * 60 * 60 * 1000);
+annualMaintenanceInterval.unref();
