@@ -1,0 +1,44 @@
+Merci, les avancées me conviennent et couvrent les principaux points que je souhaitais sécuriser.
+
+Avant de clôturer définitivement cette tâche, je souhaite toutefois valider deux derniers sujets qui sont essentiels pour moi.
+
+## 1. Suppression / anonymisation des comptes
+
+Je souhaite que la suppression d'un compte utilisateur respecte les principes suivants :
+
+- la suppression ou l'anonymisation des données personnelles de l'utilisateur concerné ;
+- la conservation de toutes les données métier de l'organisation ;
+- aucune suppression des exercices, rapports, documents, plans d'action, fournisseurs ou historiques parce qu'un utilisateur quitte l'entreprise ;
+- les documents déposés doivent rester disponibles pour l'organisation, sans dépendre de l'existence du compte ayant effectué le dépôt ;
+- les traces d'audit doivent être conservées, avec un utilisateur anonymisé si nécessaire.
+
+Je souhaite une solution robuste et pérenne, compatible avec le RGPD tout en garantissant l'intégrité des données de l'entreprise.
+
+## 2. Sauvegardes et restauration
+
+Je souhaite également mettre en place une véritable stratégie de sauvegarde et de restauration.
+
+Je souhaite que tu précises et implémentes :
+
+- la stratégie de sauvegarde de la base de données ;
+- la stratégie de sauvegarde des documents et fichiers ;
+- la fréquence des sauvegardes ;
+- leur durée de conservation ;
+- qui est autorisé à lancer une restauration ;
+- la procédure complète de restauration.
+
+Je souhaite également qu'un test réel de restauration soit effectué afin de vérifier que :
+
+- la base de données est correctement restaurée ;
+- les documents sont également restaurés ;
+- la cohérence entre PostgreSQL, Clerk, Stripe et le stockage des fichiers est préservée.
+
+Enfin, j'aimerais une précision concernant cette phrase :
+
+> « partage immuable des documents entre exercices »
+
+Peux-tu m'expliquer précisément son fonctionnement ?
+
+Je veux m'assurer qu'un document modifié ou remplacé dans un exercice futur ne puisse jamais modifier les documents visibles dans un exercice historique. Je souhaite que chaque exercice conserve toujours l'état des documents qui lui étaient associés.
+
+Une fois ces deux derniers sujets traités et validés, je considérerai que cette partie de l'architecture est finalisée.
