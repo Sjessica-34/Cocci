@@ -140,8 +140,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
          WHERE organization_id = $1 AND exercise_id = $2`,
         [orgId, exerciseId],
       ),
-      pool.query<{ checked: boolean }>(
-        `SELECT checked
+      pool.query<{ criterion_id: string; checked: boolean }>(
+        `SELECT criterion_id, checked
          FROM nr_responses
          WHERE organization_id = $1 AND exercise_id = $2`,
         [orgId, exerciseId],
@@ -225,8 +225,8 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
              WHERE ${pairs}`,
             flatParams,
           ),
-          pool.query<{ checked: boolean }>(
-            `SELECT checked FROM nr_responses WHERE ${pairs}`,
+          pool.query<{ criterion_id: string; checked: boolean }>(
+            `SELECT criterion_id, checked FROM nr_responses WHERE ${pairs}`,
             flatParams,
           ),
           pool.query<{ nb_hommes: number | null; nb_femmes: number | null }>(
@@ -331,10 +331,13 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
       : null;
 
     // 9. Synthèses publiques complémentaires
-    const nrTotal = allNrResponseRows.length;
-    const nrChecked = allNrResponseRows.filter((row) => row.checked).length;
-    const numeriqueResponsable = nrTotal > 0
-      ? { scorePercent: Math.round((nrChecked / nrTotal) * 100) }
+    const numeriqueResponsable = allNrResponseRows.length > 0
+      ? {
+          responses: allNrResponseRows.map((row) => ({
+            criterionId: row.criterion_id,
+            checked: row.checked,
+          })),
+        }
       : null;
 
     const diversityTotals = allDiversityRows.reduce(

@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "wouter";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
+} from "recharts";
+import { PILLARS, computeScores, maturityLabel } from "../numerique-responsable/data";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,7 +32,9 @@ type PublicData = {
     circularPercent: number;
     byCategory: Array<{ category: string; sharePercent: number }>;
   } | null;
-  numeriqueResponsable: { scorePercent: number } | null;
+  numeriqueResponsable: {
+    responses: Array<{ criterionId: string; checked: boolean }>;
+  } | null;
   parite: { womenPercent: number; menPercent: number } | null;
   progression: { diagnostic: boolean; stakeholders: boolean; materiality: boolean; actionPlan: boolean; actionsInProgress: boolean; reportGenerated: boolean };
   reportGenerationCount: number;
@@ -201,6 +207,27 @@ export function PublicRsePage() {
     customDescription,
   } = data;
   const pctDone = actionPlan.total > 0 ? Math.round((actionPlan.done / actionPlan.total) * 100) : 0;
+  const nrResponsesMap = numeriqueResponsable
+    ? Object.fromEntries(numeriqueResponsable.responses.map((response) => [response.criterionId, response.checked]))
+    : null;
+  const nrScores = nrResponsesMap ? computeScores(nrResponsesMap) : null;
+  const nrGlobalPct = nrScores && nrScores.totalPossible > 0
+    ? Math.round((nrScores.totalChecked / nrScores.totalPossible) * 100)
+    : 0;
+  const nrMaturity = maturityLabel(nrGlobalPct);
+  const nrMaturityColor = nrGlobalPct < 20
+    ? "#dc2626"
+    : nrGlobalPct < 40
+      ? "#ea580c"
+      : nrGlobalPct < 60
+        ? "#ca8a04"
+        : nrGlobalPct < 80
+          ? "#2563eb"
+          : "#059669";
+  const nrRadarData = PILLARS.map((pillar) => ({
+    pillar: pillar.shortTitle,
+    value: nrScores?.pillarPcts[pillar.id] ?? 0,
+  }));
 
   const progressionSteps = [
     { label: "Diagnostic réalisé", done: progression.diagnostic },
@@ -442,23 +469,54 @@ export function PublicRsePage() {
         )}
 
         {/* ── Synthèses complémentaires ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 16 }}>
           <Card>
             <SectionTitle>Numérique responsable</SectionTitle>
-            {numeriqueResponsable ? (
+            {nrScores ? (
               <>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
-                  <span style={{ fontSize: 36, fontWeight: 800, color: C.env }}>{numeriqueResponsable.scorePercent} %</span>
-                  <span style={{ fontSize: 12, color: C.gray400 }}>des critères validés</span>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
+                  <div style={{ border: `1px solid ${C.gray200}`, borderRadius: 10, padding: "16px 12px", textAlign: "center" }}>
+                    <div style={{ fontSize: 11, color: C.gray600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Score global</div>
+                    <div style={{ marginTop: 6 }}>
+                      <span style={{ fontSize: 36, fontWeight: 800, color: C.gray800 }}>{nrScores.globalScore}</span>
+                      <span style={{ fontSize: 18, color: C.gray400 }}>/500</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: C.gray400, marginTop: 4 }}>{nrGlobalPct}% des critères validés</div>
+                  </div>
+                  <div style={{ border: `1px solid ${C.gray200}`, borderRadius: 10, padding: "16px 12px", textAlign: "center" }}>
+                    <div style={{ fontSize: 11, color: C.gray600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Niveau de maturité</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: nrMaturityColor, marginTop: 10 }}>{nrMaturity.label}</div>
+                    <div style={{ height: 8, borderRadius: 4, background: C.gray100, overflow: "hidden", marginTop: 10 }}>
+                      <div style={{ width: `${nrGlobalPct}%`, height: "100%", borderRadius: 4, background: nrMaturityColor }} />
+                    </div>
+                  </div>
+                  <div style={{ border: `1px solid ${C.gray200}`, borderRadius: 10, padding: "16px 12px", textAlign: "center" }}>
+                    <div style={{ fontSize: 11, color: C.gray600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Critères validés</div>
+                    <div style={{ marginTop: 6 }}>
+                      <span style={{ fontSize: 36, fontWeight: 800, color: C.gray800 }}>{nrScores.totalChecked}</span>
+                      <span style={{ fontSize: 18, color: C.gray400 }}>/{nrScores.totalPossible}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: C.gray400, marginTop: 4 }}>sur l'ensemble du référentiel</div>
+                  </div>
                 </div>
-                <ProgressBar value={numeriqueResponsable.scorePercent} color={C.env} />
-                <p style={{ fontSize: 12, color: C.gray600, lineHeight: 1.5, margin: "10px 0 0" }}>
-                  {numeriqueResponsable.scorePercent >= 75
-                    ? "Une démarche numérique responsable bien engagée et structurée."
-                    : numeriqueResponsable.scorePercent >= 50
-                      ? "Une démarche numérique responsable est engagée et continue de progresser."
-                      : "La démarche numérique responsable est en cours de construction."}
-                </p>
+                <div style={{ border: `1px solid ${C.gray200}`, borderRadius: 12, padding: "16px 12px" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.gray800, margin: "0 0 4px 8px" }}>
+                    Vue d'ensemble — radar global (7 piliers)
+                  </div>
+                  {nrScores.totalChecked === 0 ? (
+                    <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: C.gray400 }}>
+                      Commencez l'évaluation pour voir le radar.
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <RadarChart data={nrRadarData}>
+                        <PolarGrid stroke="#e5e7eb" />
+                        <PolarAngleAxis dataKey="pillar" tick={{ fontSize: 11, fill: "#6b7280" }} />
+                        <Radar dataKey="value" stroke="#10b981" fill="#10b981" fillOpacity={0.2} strokeWidth={2} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
               </>
             ) : (
               <p style={{ fontSize: 13, color: C.gray400, margin: 0 }}>
