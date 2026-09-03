@@ -1,4 +1,4 @@
-import { useListSuppliers } from "@workspace/api-client-react";
+import { useListSuppliers, useListResponsiblePurchases } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import {
   Building2, AlertTriangle, ShieldAlert, CheckCircle2, Award,
+  ShoppingCart, Leaf, MapPin, Recycle, Euro, BarChart3
 } from "lucide-react";
 import { computeGeoDistribution } from "../data";
 
@@ -47,22 +48,50 @@ function KpiCard({
 }
 
 export function TabDashboard({ orgId }: Props) {
-  const { data, isLoading } = useListSuppliers(orgId);
-  const suppliers = data?.items ?? [];
+  const { data: suppData, isLoading: isLoadingSupp } = useListSuppliers(orgId);
+  const { data: purchData, isLoading: isLoadingPurch } = useListResponsiblePurchases(orgId);
+  const suppliers = suppData?.items ?? [];
+  const purchases = purchData?.items ?? [];
 
-  if (isLoading) {
+  if (isLoadingSupp || isLoadingPurch) {
     return <div className="text-sm text-muted-foreground py-8 text-center">Chargement…</div>;
   }
 
-  if (suppliers.length === 0) {
+  if (suppliers.length === 0 && purchases.length === 0) {
     return (
       <div className="border-2 border-dashed rounded-lg py-16 flex flex-col items-center gap-3 text-muted-foreground">
-        <Building2 className="h-10 w-10 opacity-30" />
+        <BarChart3 className="h-10 w-10 opacity-30" />
         <p className="font-medium">Aucune donnée disponible</p>
-        <p className="text-sm">Ajoutez des fournisseurs dans l'onglet "Mes fournisseurs" pour voir les indicateurs.</p>
+        <p className="text-sm">Ajoutez des fournisseurs ou des catégories d'achats pour voir les indicateurs.</p>
       </div>
     );
   }
+
+  // Purchases KPIs
+  let totalAchats = 0;
+  let totalResp = 0;
+  let totalLocal = 0;
+  let totalCirc = 0;
+  const purchasesCatMap: Record<string, { amount: number, responsible: number }> = {};
+
+  for (const p of purchases) {
+    totalAchats += p.amount;
+    totalResp += p.responsibleAmount;
+    totalLocal += p.localAmount;
+    totalCirc += p.circularAmount;
+    if (!purchasesCatMap[p.category]) {
+      purchasesCatMap[p.category] = { amount: 0, responsible: 0 };
+    }
+    purchasesCatMap[p.category].amount += p.amount;
+    purchasesCatMap[p.category].responsible += p.responsibleAmount;
+  }
+
+  const purchCatData = Object.entries(purchasesCatMap)
+    .map(([name, vals]) => ({ name, amount: vals.amount, responsible: vals.responsible }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const formatEur = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  const formatPct = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 1 }).format(v / 100);
 
   const total      = suppliers.length;
   const evaluated  = suppliers.filter((s) => s.criticality != null || s.riskLevel != null || s.dependency != null).length;
@@ -106,8 +135,68 @@ export function TabDashboard({ orgId }: Props) {
   return (
     <div className="space-y-6">
 
-      {/* ── KPIs ─────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ── Achats ────────────────────────────────────────────────────────────── */}
+      {purchases.length > 0 && (
+        <>
+          <h2 className="text-lg font-semibold mt-2 mb-4 flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5 text-primary" />
+            Performances Achats
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiCard icon={Euro} label="Volume d'achats" value={formatEur(totalAchats)} iconClass="bg-blue-100 text-blue-700" />
+            <KpiCard
+              icon={Leaf}
+              label="Part responsable"
+              value={formatPct(totalAchats ? totalResp / totalAchats * 100 : 0)}
+              sub={`${formatEur(totalResp)}`}
+              iconClass="bg-emerald-100 text-emerald-700"
+            />
+            <KpiCard
+              icon={MapPin}
+              label="Part locale"
+              value={formatPct(totalAchats ? totalLocal / totalAchats * 100 : 0)}
+              sub={`${formatEur(totalLocal)}`}
+              iconClass="bg-orange-100 text-orange-600"
+            />
+            <KpiCard
+              icon={Recycle}
+              label="Part circulaire"
+              value={formatPct(totalAchats ? totalCirc / totalAchats * 100 : 0)}
+              sub={`${formatEur(totalCirc)}`}
+              iconClass="bg-teal-100 text-teal-700"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 mt-6 mb-8">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">Répartition des achats par catégorie</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={purchCatData} margin={{ left: 20, right: 20 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tickFormatter={(v) => new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(v)} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number) => formatEur(v)} />
+                    <Legend />
+                    <Bar dataKey="amount" name="Volume total" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="responsible" name="Volume responsable" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* ── Fournisseurs ─────────────────────────────────────────────────────── */}
+      {suppliers.length > 0 && (
+        <>
+          <h2 className="text-lg font-semibold mt-8 mb-4 flex items-center gap-2 border-t pt-8">
+            <Building2 className="h-5 w-5 text-primary" />
+            Suivi des Fournisseurs
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard icon={Building2}    label="Fournisseurs total"    value={total}     iconClass="bg-blue-100 text-blue-700" />
         <KpiCard
           icon={CheckCircle2}
@@ -276,6 +365,8 @@ export function TabDashboard({ orgId }: Props) {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      )}
+        </>
       )}
     </div>
   );

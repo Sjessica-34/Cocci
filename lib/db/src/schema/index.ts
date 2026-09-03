@@ -13,6 +13,7 @@ export * from "./documents";
 export * from "./numeriqueResponsable";
 export * from "./impactScoreResult";
 export * from "./suppliers";
+export * from "./responsiblePurchases";
 export * from "./biodiversite";
 export * from "./labels";
 export * from "./barometreSocial";

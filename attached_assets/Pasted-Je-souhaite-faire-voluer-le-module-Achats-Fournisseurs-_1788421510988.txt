@@ -1,0 +1,44 @@
+Je souhaite faire évoluer le module **Achats & Fournisseurs Responsables**, mais avec un périmètre très strict.
+
+⚠️ Merci de ne modifier en aucun cas l'onglet **Mes fournisseurs** existant. Je suis satisfait de son fonctionnement actuel et je ne souhaite aucune modification de son interface, de ses données, de sa logique métier ou de ses indicateurs.
+
+Je souhaite uniquement ajouter un nouvel onglet intitulé **Achats responsables**.
+
+## Objectif
+
+Cet onglet ne doit pas gérer les fournisseurs, mais permettre de piloter la politique d'achats responsables de l'entreprise. Il doit être complémentaire à l'onglet "Mes fournisseurs", sans redondance.
+
+## Contenu attendu
+
+Je souhaite un tableau de bord simple et orienté pilotage comprenant notamment :
+
+- le montant total des achats ;
+- la répartition des achats par catégorie (informatique, fournitures, prestations, énergie, déplacements, véhicules, mobilier, etc.) ;
+- la part des achats responsables ;
+- la part des achats locaux ;
+- la part des achats circulaires (reconditionné, occasion, recyclé...) ;
+- quelques indicateurs visuels (cartes KPI, graphiques, jauges) permettant d'identifier rapidement les axes de progression.
+
+Je souhaite également un tableau présentant les principales catégories d'achats avec, par exemple :
+
+- catégorie ;
+- montant des achats ;
+- pourcentage d'achats responsables ;
+- objectif éventuel.
+
+Une section "Opportunités d'amélioration" ou "Actions prioritaires" serait également pertinente afin de mettre en évidence les principales pistes de progression.
+
+## Synthèse
+
+Je souhaite également enrichir l'onglet **Synthèse** existant afin qu'il consolide les informations des deux modules :
+
+- les indicateurs liés aux fournisseurs (existants) ;
+- les nouveaux indicateurs liés aux achats responsables.
+
+L'objectif est que la synthèse offre une vision globale de la politique d'achats responsables de l'entreprise.
+
+⚠️ Important :
+- ne pas modifier l'onglet **Mes fournisseurs** ;
+- ne pas déplacer les fonctionnalités existantes ;
+- ne pas changer les modèles de données déjà en place pour les fournisseurs ;
+- uniquement ajouter un nouvel onglet **Achats responsables** et compléter la **Synthèse** pour intégrer les nouveaux indicateurs.

@@ -119,6 +119,9 @@ import type {
   Resource,
   ResourceInput,
   ResourcePublishUpdate,
+  ResponsiblePurchase,
+  ResponsiblePurchaseInput,
+  ResponsiblePurchaseListResponse,
   Stakeholder,
   StakeholderInput,
   StakeholderUpdate,
@@ -6140,6 +6143,299 @@ export const useDeleteSupplier = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteSupplierMutationOptions(options));
+    }
+
+export const getListResponsiblePurchasesUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/responsible-purchases`
+}
+
+/**
+ * @summary List responsible purchasing categories for an organization
+ */
+export const listResponsiblePurchases = async (orgId: number, options?: RequestInit): Promise<ResponsiblePurchaseListResponse> => {
+
+  return customFetch<ResponsiblePurchaseListResponse>(getListResponsiblePurchasesUrl(orgId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListResponsiblePurchasesQueryKey = (orgId: number,) => {
+    return [
+    `/api/organizations/${orgId}/responsible-purchases`
+    ] as const;
+    }
+
+
+export const getListResponsiblePurchasesQueryOptions = <TData = Awaited<ReturnType<typeof listResponsiblePurchases>>, TError = ErrorType<void>>(orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePurchases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListResponsiblePurchasesQueryKey(orgId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listResponsiblePurchases>>> = ({ signal }) => listResponsiblePurchases(orgId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgId !== null && orgId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePurchases>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListResponsiblePurchasesQueryResult = NonNullable<Awaited<ReturnType<typeof listResponsiblePurchases>>>
+export type ListResponsiblePurchasesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List responsible purchasing categories for an organization
+ */
+
+export function useListResponsiblePurchases<TData = Awaited<ReturnType<typeof listResponsiblePurchases>>, TError = ErrorType<void>>(
+ orgId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listResponsiblePurchases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListResponsiblePurchasesQueryOptions(orgId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateResponsiblePurchaseUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/responsible-purchases`
+}
+
+/**
+ * @summary Create a responsible purchasing category
+ */
+export const createResponsiblePurchase = async (orgId: number,
+    responsiblePurchaseInput: ResponsiblePurchaseInput, options?: RequestInit): Promise<ResponsiblePurchase> => {
+
+  return customFetch<ResponsiblePurchase>(getCreateResponsiblePurchaseUrl(orgId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(responsiblePurchaseInput)
+  }
+);}
+
+
+
+
+export const getCreateResponsiblePurchaseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createResponsiblePurchase>>, TError,{orgId: number;data: BodyType<ResponsiblePurchaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createResponsiblePurchase>>, TError,{orgId: number;data: BodyType<ResponsiblePurchaseInput>}, TContext> => {
+
+const mutationKey = ['createResponsiblePurchase'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createResponsiblePurchase>>, {orgId: number;data: BodyType<ResponsiblePurchaseInput>}> = (props) => {
+          const {orgId,data} = props ?? {};
+
+          return  createResponsiblePurchase(orgId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateResponsiblePurchaseMutationResult = NonNullable<Awaited<ReturnType<typeof createResponsiblePurchase>>>
+    export type CreateResponsiblePurchaseMutationBody = BodyType<ResponsiblePurchaseInput>
+    export type CreateResponsiblePurchaseMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a responsible purchasing category
+ */
+export const useCreateResponsiblePurchase = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createResponsiblePurchase>>, TError,{orgId: number;data: BodyType<ResponsiblePurchaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createResponsiblePurchase>>,
+        TError,
+        {orgId: number;data: BodyType<ResponsiblePurchaseInput>},
+        TContext
+      > => {
+      return useMutation(getCreateResponsiblePurchaseMutationOptions(options));
+    }
+
+export const getUpdateResponsiblePurchaseUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/responsible-purchases/${id}`
+}
+
+/**
+ * @summary Update a responsible purchasing category
+ */
+export const updateResponsiblePurchase = async (orgId: number,
+    id: number,
+    responsiblePurchaseInput: ResponsiblePurchaseInput, options?: RequestInit): Promise<ResponsiblePurchase> => {
+
+  return customFetch<ResponsiblePurchase>(getUpdateResponsiblePurchaseUrl(orgId,id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(responsiblePurchaseInput)
+  }
+);}
+
+
+
+
+export const getUpdateResponsiblePurchaseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateResponsiblePurchase>>, TError,{orgId: number;id: number;data: BodyType<ResponsiblePurchaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateResponsiblePurchase>>, TError,{orgId: number;id: number;data: BodyType<ResponsiblePurchaseInput>}, TContext> => {
+
+const mutationKey = ['updateResponsiblePurchase'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateResponsiblePurchase>>, {orgId: number;id: number;data: BodyType<ResponsiblePurchaseInput>}> = (props) => {
+          const {orgId,id,data} = props ?? {};
+
+          return  updateResponsiblePurchase(orgId,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateResponsiblePurchaseMutationResult = NonNullable<Awaited<ReturnType<typeof updateResponsiblePurchase>>>
+    export type UpdateResponsiblePurchaseMutationBody = BodyType<ResponsiblePurchaseInput>
+    export type UpdateResponsiblePurchaseMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a responsible purchasing category
+ */
+export const useUpdateResponsiblePurchase = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateResponsiblePurchase>>, TError,{orgId: number;id: number;data: BodyType<ResponsiblePurchaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateResponsiblePurchase>>,
+        TError,
+        {orgId: number;id: number;data: BodyType<ResponsiblePurchaseInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateResponsiblePurchaseMutationOptions(options));
+    }
+
+export const getDeleteResponsiblePurchaseUrl = (orgId: number,
+    id: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/responsible-purchases/${id}`
+}
+
+/**
+ * @summary Delete a responsible purchasing category
+ */
+export const deleteResponsiblePurchase = async (orgId: number,
+    id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteResponsiblePurchaseUrl(orgId,id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteResponsiblePurchaseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteResponsiblePurchase>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteResponsiblePurchase>>, TError,{orgId: number;id: number}, TContext> => {
+
+const mutationKey = ['deleteResponsiblePurchase'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteResponsiblePurchase>>, {orgId: number;id: number}> = (props) => {
+          const {orgId,id} = props ?? {};
+
+          return  deleteResponsiblePurchase(orgId,id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteResponsiblePurchaseMutationResult = NonNullable<Awaited<ReturnType<typeof deleteResponsiblePurchase>>>
+
+    export type DeleteResponsiblePurchaseMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a responsible purchasing category
+ */
+export const useDeleteResponsiblePurchase = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteResponsiblePurchase>>, TError,{orgId: number;id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteResponsiblePurchase>>,
+        TError,
+        {orgId: number;id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteResponsiblePurchaseMutationOptions(options));
     }
 
 export const getListBarometreCampaignsUrl = (orgId: number,) => {

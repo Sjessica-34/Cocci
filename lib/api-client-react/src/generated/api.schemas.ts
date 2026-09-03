@@ -1382,6 +1382,52 @@ export interface SupplierListResponse {
   items: Supplier[];
 }
 
+export interface ResponsiblePurchase {
+  id: number;
+  organizationId: number;
+  /** @minLength 1 */
+  category: string;
+  /** @minimum 0 */
+  amount: number;
+  /** @minimum 0 */
+  responsibleAmount: number;
+  /** @minimum 0 */
+  localAmount: number;
+  /** @minimum 0 */
+  circularAmount: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  objectivePercent?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ResponsiblePurchaseInput {
+  /** @minLength 1 */
+  category: string;
+  /** @minimum 0 */
+  amount: number;
+  /** @minimum 0 */
+  responsibleAmount: number;
+  /** @minimum 0 */
+  localAmount: number;
+  /** @minimum 0 */
+  circularAmount: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  objectivePercent?: number | null;
+}
+
+export interface ResponsiblePurchaseListResponse {
+  items: ResponsiblePurchase[];
+}
+
 export interface ImpactScoreResult {
   id: number;
   organizationId: number;

@@ -1986,6 +1986,118 @@ paths:
         "404":
           description: Not found
 
+  /organizations/{orgId}/responsible-purchases:
+    get:
+      operationId: listResponsiblePurchases
+      tags: [responsible-purchases]
+      summary: List responsible purchasing categories for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of responsible purchasing categories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponsiblePurchaseListResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    post:
+      operationId: createResponsiblePurchase
+      tags: [responsible-purchases]
+      summary: Create a responsible purchasing category
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResponsiblePurchaseInput"
+      responses:
+        "201":
+          description: Created responsible purchasing category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponsiblePurchase"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden
+        "409":
+          description: Category already exists for the exercise
+
+  /organizations/{orgId}/responsible-purchases/{id}:
+    put:
+      operationId: updateResponsiblePurchase
+      tags: [responsible-purchases]
+      summary: Update a responsible purchasing category
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResponsiblePurchaseInput"
+      responses:
+        "200":
+          description: Updated responsible purchasing category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponsiblePurchase"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+        "409":
+          description: Category already exists for the exercise
+    delete:
+      operationId: deleteResponsiblePurchase
+      tags: [responsible-purchases]
+      summary: Delete a responsible purchasing category
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
   # ─── BAROMÈTRE SOCIAL ───────────────────────────────────────────────────────
   /organizations/{orgId}/barometre-campaigns:
     get:
@@ -4475,6 +4587,47 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Supplier"
+
+    ResponsiblePurchase:
+      type: object
+      required: [id, organizationId, category, amount, responsibleAmount, localAmount, circularAmount, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        organizationId: { type: integer }
+        category: { type: string, minLength: 1 }
+        amount: { type: number, minimum: 0 }
+        responsibleAmount: { type: number, minimum: 0 }
+        localAmount: { type: number, minimum: 0 }
+        circularAmount: { type: number, minimum: 0 }
+        objectivePercent:
+          type: ["integer", "null"]
+          minimum: 0
+          maximum: 100
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ResponsiblePurchaseInput:
+      type: object
+      required: [category, amount, responsibleAmount, localAmount, circularAmount]
+      properties:
+        category: { type: string, minLength: 1 }
+        amount: { type: number, minimum: 0 }
+        responsibleAmount: { type: number, minimum: 0 }
+        localAmount: { type: number, minimum: 0 }
+        circularAmount: { type: number, minimum: 0 }
+        objectivePercent:
+          type: ["integer", "null"]
+          minimum: 0
+          maximum: 100
+
+    ResponsiblePurchaseListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResponsiblePurchase"
 
     ImpactScoreResult:
       type: object
