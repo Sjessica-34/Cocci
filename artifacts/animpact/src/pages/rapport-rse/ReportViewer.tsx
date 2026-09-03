@@ -218,7 +218,9 @@ function ReportContent({ orgId }: { orgId: number | null }) {
     ((draft?.highlights as unknown[]) ?? []).length > 0 ||
     !!(draft?.engagementStatement) ||
     ((draft?.goals as unknown[]) ?? []).length > 0;
-  const hasAchats = ((data as any).suppliers as unknown[] ?? []).length > 0;
+  const hasAchats =
+    ((data as any).suppliers as unknown[] ?? []).length > 0 ||
+    ((data as any).responsiblePurchases as unknown[] ?? []).length > 0;
 
   // Numéros dynamiques
   let n = 4;

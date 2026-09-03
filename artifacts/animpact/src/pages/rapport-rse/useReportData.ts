@@ -23,6 +23,7 @@ import {
   useGetNrData,
   useListOrganizations,
   useListSuppliers,
+  useListResponsiblePurchases,
   useListPlanSlots,
   useListBioConnections,
 } from "@workspace/api-client-react";
@@ -54,6 +55,7 @@ export function useReportData(orgId: number | null) {
   const orgs         = useListOrganizations(q(enabled));
   const bioIssues    = useListBioIssues(id, q(enabled));
   const suppliers    = useListSuppliers(id, q(enabled));
+  const responsiblePurchases = useListResponsiblePurchases(id, q(enabled));
   const planSlots    = useListPlanSlots(id, q(enabled));
   const bioConns     = useListBioConnections(id, q(enabled));
 
@@ -65,7 +67,8 @@ export function useReportData(orgId: number | null) {
     draft.isLoading || diagScores.isLoading || carbon.isLoading ||
     captation.isLoading || bioDeps.isLoading || issues.isLoading ||
     stakeholders.isLoading || labels.isLoading || actions.isLoading ||
-    impactScore.isLoading || workforce.isLoading || nrData.isLoading;
+    impactScore.isLoading || workforce.isLoading || nrData.isLoading ||
+    responsiblePurchases.isLoading;
 
   return {
     isLoading,
@@ -89,6 +92,7 @@ export function useReportData(orgId: number | null) {
     orgs:          ((orgs.data as unknown as Array<unknown>) ?? []),
     bioIssues:     (bioIssues.data?.items ?? []) as unknown[],
     suppliers:     (suppliers.data?.items ?? []) as unknown[],
+    responsiblePurchases: (responsiblePurchases.data?.items ?? []) as unknown[],
     planSlots:     ((planSlots.data ?? []) as unknown[]),
     bioConns:      (bioConns.data?.items ?? []) as unknown[],
   };

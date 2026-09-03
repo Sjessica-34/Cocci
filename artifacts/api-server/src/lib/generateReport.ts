@@ -9,7 +9,7 @@ import {
   rseReportDraftsTable, organizationsTable, exercisesTable,
   impactScoreResultsTable, diagnosticResponsesTable,
   carbonBilansTable, captationCarboneTable,
-  bioDependenciesTable, stakeholdersTable, suppliersTable,
+  bioDependenciesTable, stakeholdersTable, suppliersTable, responsiblePurchasesTable,
   nrResponsesTable, nrMetaTable,
   employmentWorkforceTable, employmentDiversityTable, employmentTrainingTable,
   labelsTable, organizationActionPlansTable, actionLibraryTable,
@@ -233,7 +233,7 @@ export async function loadReportData(orgId: number, exerciseId: number) {
     [org], [exercise], [draft],
     [impactScore], workforce, diversity, training,
     carbonRows, [captation],
-    bioItems, stakeholderItems, supplierItems,
+    bioItems, stakeholderItems, supplierItems, responsiblePurchaseItems,
     nrResponses, [nrMeta],
     labelItems, actionItems,
     diagResponses,
@@ -252,6 +252,7 @@ export async function loadReportData(orgId: number, exerciseId: number) {
     db.select().from(bioDependenciesTable).where(and(eq(bioDependenciesTable.organizationId, orgId), eq(bioDependenciesTable.exerciseId, exerciseId))),
     db.select().from(stakeholdersTable).where(and(eq(stakeholdersTable.organizationId, orgId), eq(stakeholdersTable.exerciseId, exerciseId))),
     db.select().from(suppliersTable).where(and(eq(suppliersTable.organizationId, orgId), eq(suppliersTable.exerciseId, exerciseId))),
+    db.select().from(responsiblePurchasesTable).where(and(eq(responsiblePurchasesTable.organizationId, orgId), eq(responsiblePurchasesTable.exerciseId, exerciseId))),
     db.select().from(nrResponsesTable).where(and(eq(nrResponsesTable.organizationId, orgId), eq(nrResponsesTable.exerciseId, exerciseId))),
     db.select().from(nrMetaTable).where(and(eq(nrMetaTable.organizationId, orgId), eq(nrMetaTable.exerciseId, exerciseId))).limit(1),
     db.select().from(labelsTable).where(and(eq(labelsTable.organizationId, orgId), eq(labelsTable.exerciseId, exerciseId))),
@@ -309,7 +310,7 @@ export async function loadReportData(orgId: number, exerciseId: number) {
     wf: workforce[0] ?? null, div: diversity[0] ?? null, tr: training[0] ?? null,
     carbonRows, carbonTotal,
     captation: captation ?? null,
-    bioItems, stakeholderItems, supplierItems,
+    bioItems, stakeholderItems, supplierItems, responsiblePurchaseItems,
     nrScore, nrMeta: nrMeta ?? null,
     obtainedLabels, labelItems,
     actionItems, doneActions, actionRate,
@@ -734,6 +735,66 @@ function buildPlanete(data: Data, ai: Record<string, string | null>): El[] {
       if (supRows.length > 0) parts.push(simpleTable(["Fournisseur", "Évalué RSE", "Certifications"], supRows, [4500, 2000, 2700]));
     }
     parts.push(...aiBlock(ai.suppliers));
+    parts.push(spacer());
+  }
+
+  // Achats responsables — placé après la partie fournisseurs
+  if (data.responsiblePurchaseItems.length > 0) {
+    parts.push(sectionTitle("Achats responsables"));
+    parts.push(explainer("Les montants responsables sont calculés automatiquement à partir de vos estimations."));
+
+    let totalAmount = 0;
+    let responsibleAmount = 0;
+    let localAmount = 0;
+    let circularAmount = 0;
+    const byCategory: Record<string, { amount: number; responsible: number }> = {};
+
+    for (const purchase of data.responsiblePurchaseItems) {
+      const amount = Number(purchase.amount ?? 0);
+      const responsible = amount * Number(purchase.responsiblePercent ?? 0) / 100;
+      totalAmount += amount;
+      responsibleAmount += responsible;
+      localAmount += amount * Number(purchase.localPercent ?? 0) / 100;
+      circularAmount += amount * Number(purchase.circularPercent ?? 0) / 100;
+
+      const category = purchase.category ?? "Non catégorisé";
+      const current = byCategory[category] ?? { amount: 0, responsible: 0 };
+      current.amount += amount;
+      current.responsible += responsible;
+      byCategory[category] = current;
+    }
+
+    const pct = (amount: number) =>
+      totalAmount > 0 ? `${Math.round(amount / totalAmount * 100)}%` : "0%";
+    const euro = (amount: number) =>
+      `${Math.round(amount).toLocaleString("fr-FR")} €`;
+
+    parts.push(simpleTable(
+      ["Indicateur", "Valeur"],
+      [
+        ["Achats annuels", euro(totalAmount)],
+        ["Part responsable", `${pct(responsibleAmount)} (${euro(responsibleAmount)})`],
+        ["Part locale", `${pct(localAmount)} (${euro(localAmount)})`],
+        ["Part circulaire", `${pct(circularAmount)} (${euro(circularAmount)})`],
+      ],
+      [5500, 3700],
+    ));
+
+    const categoryRows = Object.entries(byCategory)
+      .sort(([, a], [, b]) => b.amount - a.amount)
+      .map(([category, values]) => [
+        category,
+        euro(values.amount),
+        euro(values.responsible),
+      ]);
+    if (categoryRows.length > 0) {
+      parts.push(spacer());
+      parts.push(simpleTable(
+        ["Catégorie", "Achats annuels", "Achats responsables"],
+        categoryRows,
+        [3600, 2800, 2800],
+      ));
+    }
     parts.push(spacer());
   }
 
