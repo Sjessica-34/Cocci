@@ -1,0 +1,56 @@
+L'architecture proposée me convient dans son ensemble et je souhaite partir sur cette base.
+
+En revanche, avant de lancer l'implémentation, je souhaite clarifier quelques points d'architecture.
+
+## 1. Duplication des documents
+
+Tu proposes de ne pas dupliquer les fichiers physiques mais uniquement de créer une nouvelle liaison avec le nouvel exercice.
+
+Peux-tu me confirmer que cela ne créera aucun effet de bord ?
+
+Je veux notamment garantir que :
+
+- un document modifié ou remplacé dans un exercice futur ne modifie jamais les exercices historiques ;
+- chaque exercice conserve toujours les documents qui lui étaient associés à la date de clôture ;
+- aucune suppression ou modification dans un exercice ne puisse impacter un autre exercice.
+
+Si cette architecture ne garantit pas cela, je préfère une autre solution.
+
+## 2. Duplication des données métier
+
+Avant d'implémenter la duplication complète, je souhaite que nous validions ensemble quelles données doivent réellement être dupliquées.
+
+Merci de me fournir la liste exhaustive des tables contenant un `exercise_id` en indiquant, pour chacune :
+
+- dupliquer ;
+- réinitialiser ;
+- ne pas dupliquer ;
+- traitement spécifique.
+
+Je souhaite valider cette matrice avant toute implémentation.
+
+## 3. Création manuelle d'un exercice
+
+Même si le mécanisme automatique est mis en place, je souhaite disposer d'un mode manuel réservé au superadministrateur permettant de :
+
+- créer le nouvel exercice immédiatement ;
+- relancer une duplication si nécessaire ;
+- relancer le mécanisme annuel en cas d'incident.
+
+Ce mode manuel devra utiliser exactement la même logique que le traitement automatique afin qu'il n'existe qu'un seul mécanisme métier.
+
+## 4. Archivage des rapports
+
+L'architecture proposée prévoit l'archivage des DOCX/PDF générés.
+
+Je trouve l'idée pertinente, mais je souhaite connaître l'impact technique et le coût de cette fonctionnalité.
+
+Merci de me préciser :
+
+- la complexité de développement ;
+- le volume de stockage estimé ;
+- les impacts sur la maintenance.
+
+Si cette fonctionnalité représente un coût important, nous pourrons la repousser en V2. Je préfère concentrer la V1 sur la fiabilité des exercices, des données, des sauvegardes et des filiales.
+
+Une fois ces points clarifiés, tu peux lancer l'implémentation de l'architecture proposée.
