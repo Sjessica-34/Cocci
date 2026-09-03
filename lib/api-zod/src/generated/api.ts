@@ -2569,11 +2569,14 @@ export const ListResponsiblePurchasesParams = zod.object({
 
 export const listResponsiblePurchasesResponseItemsItemAmountMin = 0;
 
-export const listResponsiblePurchasesResponseItemsItemResponsibleAmountMin = 0;
+export const listResponsiblePurchasesResponseItemsItemResponsiblePercentMin = 0;
+export const listResponsiblePurchasesResponseItemsItemResponsiblePercentMax = 100;
 
-export const listResponsiblePurchasesResponseItemsItemLocalAmountMin = 0;
+export const listResponsiblePurchasesResponseItemsItemLocalPercentMin = 0;
+export const listResponsiblePurchasesResponseItemsItemLocalPercentMax = 100;
 
-export const listResponsiblePurchasesResponseItemsItemCircularAmountMin = 0;
+export const listResponsiblePurchasesResponseItemsItemCircularPercentMin = 0;
+export const listResponsiblePurchasesResponseItemsItemCircularPercentMax = 100;
 
 export const listResponsiblePurchasesResponseItemsItemObjectivePercentMin = 0;
 export const listResponsiblePurchasesResponseItemsItemObjectivePercentMax = 100;
@@ -2586,9 +2589,9 @@ export const ListResponsiblePurchasesResponse = zod.object({
   "organizationId": zod.number(),
   "category": zod.string().min(1),
   "amount": zod.number().min(listResponsiblePurchasesResponseItemsItemAmountMin),
-  "responsibleAmount": zod.number().min(listResponsiblePurchasesResponseItemsItemResponsibleAmountMin),
-  "localAmount": zod.number().min(listResponsiblePurchasesResponseItemsItemLocalAmountMin),
-  "circularAmount": zod.number().min(listResponsiblePurchasesResponseItemsItemCircularAmountMin),
+  "responsiblePercent": zod.number().min(listResponsiblePurchasesResponseItemsItemResponsiblePercentMin).max(listResponsiblePurchasesResponseItemsItemResponsiblePercentMax),
+  "localPercent": zod.number().min(listResponsiblePurchasesResponseItemsItemLocalPercentMin).max(listResponsiblePurchasesResponseItemsItemLocalPercentMax),
+  "circularPercent": zod.number().min(listResponsiblePurchasesResponseItemsItemCircularPercentMin).max(listResponsiblePurchasesResponseItemsItemCircularPercentMax),
   "objectivePercent": zod.number().min(listResponsiblePurchasesResponseItemsItemObjectivePercentMin).max(listResponsiblePurchasesResponseItemsItemObjectivePercentMax).nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2606,11 +2609,14 @@ export const CreateResponsiblePurchaseParams = zod.object({
 
 export const createResponsiblePurchaseBodyAmountMin = 0;
 
-export const createResponsiblePurchaseBodyResponsibleAmountMin = 0;
+export const createResponsiblePurchaseBodyResponsiblePercentMin = 0;
+export const createResponsiblePurchaseBodyResponsiblePercentMax = 100;
 
-export const createResponsiblePurchaseBodyLocalAmountMin = 0;
+export const createResponsiblePurchaseBodyLocalPercentMin = 0;
+export const createResponsiblePurchaseBodyLocalPercentMax = 100;
 
-export const createResponsiblePurchaseBodyCircularAmountMin = 0;
+export const createResponsiblePurchaseBodyCircularPercentMin = 0;
+export const createResponsiblePurchaseBodyCircularPercentMax = 100;
 
 export const createResponsiblePurchaseBodyObjectivePercentMin = 0;
 export const createResponsiblePurchaseBodyObjectivePercentMax = 100;
@@ -2620,20 +2626,23 @@ export const createResponsiblePurchaseBodyObjectivePercentMax = 100;
 export const CreateResponsiblePurchaseBody = zod.object({
   "category": zod.string().min(1),
   "amount": zod.number().min(createResponsiblePurchaseBodyAmountMin),
-  "responsibleAmount": zod.number().min(createResponsiblePurchaseBodyResponsibleAmountMin),
-  "localAmount": zod.number().min(createResponsiblePurchaseBodyLocalAmountMin),
-  "circularAmount": zod.number().min(createResponsiblePurchaseBodyCircularAmountMin),
+  "responsiblePercent": zod.number().min(createResponsiblePurchaseBodyResponsiblePercentMin).max(createResponsiblePurchaseBodyResponsiblePercentMax),
+  "localPercent": zod.number().min(createResponsiblePurchaseBodyLocalPercentMin).max(createResponsiblePurchaseBodyLocalPercentMax),
+  "circularPercent": zod.number().min(createResponsiblePurchaseBodyCircularPercentMin).max(createResponsiblePurchaseBodyCircularPercentMax),
   "objectivePercent": zod.number().min(createResponsiblePurchaseBodyObjectivePercentMin).max(createResponsiblePurchaseBodyObjectivePercentMax).nullish()
 })
 
 
 export const createResponsiblePurchaseResponseAmountMin = 0;
 
-export const createResponsiblePurchaseResponseResponsibleAmountMin = 0;
+export const createResponsiblePurchaseResponseResponsiblePercentMin = 0;
+export const createResponsiblePurchaseResponseResponsiblePercentMax = 100;
 
-export const createResponsiblePurchaseResponseLocalAmountMin = 0;
+export const createResponsiblePurchaseResponseLocalPercentMin = 0;
+export const createResponsiblePurchaseResponseLocalPercentMax = 100;
 
-export const createResponsiblePurchaseResponseCircularAmountMin = 0;
+export const createResponsiblePurchaseResponseCircularPercentMin = 0;
+export const createResponsiblePurchaseResponseCircularPercentMax = 100;
 
 export const createResponsiblePurchaseResponseObjectivePercentMin = 0;
 export const createResponsiblePurchaseResponseObjectivePercentMax = 100;
@@ -2645,9 +2654,9 @@ export const CreateResponsiblePurchaseResponse = zod.object({
   "organizationId": zod.number(),
   "category": zod.string().min(1),
   "amount": zod.number().min(createResponsiblePurchaseResponseAmountMin),
-  "responsibleAmount": zod.number().min(createResponsiblePurchaseResponseResponsibleAmountMin),
-  "localAmount": zod.number().min(createResponsiblePurchaseResponseLocalAmountMin),
-  "circularAmount": zod.number().min(createResponsiblePurchaseResponseCircularAmountMin),
+  "responsiblePercent": zod.number().min(createResponsiblePurchaseResponseResponsiblePercentMin).max(createResponsiblePurchaseResponseResponsiblePercentMax),
+  "localPercent": zod.number().min(createResponsiblePurchaseResponseLocalPercentMin).max(createResponsiblePurchaseResponseLocalPercentMax),
+  "circularPercent": zod.number().min(createResponsiblePurchaseResponseCircularPercentMin).max(createResponsiblePurchaseResponseCircularPercentMax),
   "objectivePercent": zod.number().min(createResponsiblePurchaseResponseObjectivePercentMin).max(createResponsiblePurchaseResponseObjectivePercentMax).nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2665,11 +2674,14 @@ export const UpdateResponsiblePurchaseParams = zod.object({
 
 export const updateResponsiblePurchaseBodyAmountMin = 0;
 
-export const updateResponsiblePurchaseBodyResponsibleAmountMin = 0;
+export const updateResponsiblePurchaseBodyResponsiblePercentMin = 0;
+export const updateResponsiblePurchaseBodyResponsiblePercentMax = 100;
 
-export const updateResponsiblePurchaseBodyLocalAmountMin = 0;
+export const updateResponsiblePurchaseBodyLocalPercentMin = 0;
+export const updateResponsiblePurchaseBodyLocalPercentMax = 100;
 
-export const updateResponsiblePurchaseBodyCircularAmountMin = 0;
+export const updateResponsiblePurchaseBodyCircularPercentMin = 0;
+export const updateResponsiblePurchaseBodyCircularPercentMax = 100;
 
 export const updateResponsiblePurchaseBodyObjectivePercentMin = 0;
 export const updateResponsiblePurchaseBodyObjectivePercentMax = 100;
@@ -2679,20 +2691,23 @@ export const updateResponsiblePurchaseBodyObjectivePercentMax = 100;
 export const UpdateResponsiblePurchaseBody = zod.object({
   "category": zod.string().min(1),
   "amount": zod.number().min(updateResponsiblePurchaseBodyAmountMin),
-  "responsibleAmount": zod.number().min(updateResponsiblePurchaseBodyResponsibleAmountMin),
-  "localAmount": zod.number().min(updateResponsiblePurchaseBodyLocalAmountMin),
-  "circularAmount": zod.number().min(updateResponsiblePurchaseBodyCircularAmountMin),
+  "responsiblePercent": zod.number().min(updateResponsiblePurchaseBodyResponsiblePercentMin).max(updateResponsiblePurchaseBodyResponsiblePercentMax),
+  "localPercent": zod.number().min(updateResponsiblePurchaseBodyLocalPercentMin).max(updateResponsiblePurchaseBodyLocalPercentMax),
+  "circularPercent": zod.number().min(updateResponsiblePurchaseBodyCircularPercentMin).max(updateResponsiblePurchaseBodyCircularPercentMax),
   "objectivePercent": zod.number().min(updateResponsiblePurchaseBodyObjectivePercentMin).max(updateResponsiblePurchaseBodyObjectivePercentMax).nullish()
 })
 
 
 export const updateResponsiblePurchaseResponseAmountMin = 0;
 
-export const updateResponsiblePurchaseResponseResponsibleAmountMin = 0;
+export const updateResponsiblePurchaseResponseResponsiblePercentMin = 0;
+export const updateResponsiblePurchaseResponseResponsiblePercentMax = 100;
 
-export const updateResponsiblePurchaseResponseLocalAmountMin = 0;
+export const updateResponsiblePurchaseResponseLocalPercentMin = 0;
+export const updateResponsiblePurchaseResponseLocalPercentMax = 100;
 
-export const updateResponsiblePurchaseResponseCircularAmountMin = 0;
+export const updateResponsiblePurchaseResponseCircularPercentMin = 0;
+export const updateResponsiblePurchaseResponseCircularPercentMax = 100;
 
 export const updateResponsiblePurchaseResponseObjectivePercentMin = 0;
 export const updateResponsiblePurchaseResponseObjectivePercentMax = 100;
@@ -2704,9 +2719,9 @@ export const UpdateResponsiblePurchaseResponse = zod.object({
   "organizationId": zod.number(),
   "category": zod.string().min(1),
   "amount": zod.number().min(updateResponsiblePurchaseResponseAmountMin),
-  "responsibleAmount": zod.number().min(updateResponsiblePurchaseResponseResponsibleAmountMin),
-  "localAmount": zod.number().min(updateResponsiblePurchaseResponseLocalAmountMin),
-  "circularAmount": zod.number().min(updateResponsiblePurchaseResponseCircularAmountMin),
+  "responsiblePercent": zod.number().min(updateResponsiblePurchaseResponseResponsiblePercentMin).max(updateResponsiblePurchaseResponseResponsiblePercentMax),
+  "localPercent": zod.number().min(updateResponsiblePurchaseResponseLocalPercentMin).max(updateResponsiblePurchaseResponseLocalPercentMax),
+  "circularPercent": zod.number().min(updateResponsiblePurchaseResponseCircularPercentMin).max(updateResponsiblePurchaseResponseCircularPercentMax),
   "objectivePercent": zod.number().min(updateResponsiblePurchaseResponseObjectivePercentMin).max(updateResponsiblePurchaseResponseObjectivePercentMax).nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()

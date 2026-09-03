@@ -1,0 +1,78 @@
+Je souhaite faire évoluer uniquement le nouvel onglet **Achats responsables** afin qu'il soit beaucoup plus simple et accessible pour un dirigeant de TPE/PME qui ne connaît pas forcément les notions d'achats responsables.
+
+⚠️ Important :
+- Ne modifier en aucun cas l'onglet **Mes fournisseurs**.
+- Ne modifier ni sa logique, ni son interface, ni ses données.
+- Ne modifier que l'onglet **Achats responsables** ainsi que l'onglet **Synthèse** si nécessaire.
+
+## 1. Ajouter une icône
+
+Je souhaite que l'onglet **Achats responsables** dispose d'une petite icône, au même titre que les autres onglets (Découvrir, Mes fournisseurs, Synthèse), afin d'assurer une cohérence visuelle.
+
+## 2. Ajouter une explication dans l'onglet Découvrir
+
+Je souhaite ajouter une section pédagogique expliquant simplement :
+
+- ce qu'est un achat responsable ;
+- pourquoi c'est important dans une démarche RSE ;
+- ce que mesure ce module ;
+- comment compléter les informations demandées.
+
+L'objectif est qu'un utilisateur sans connaissance particulière comprenne immédiatement comment utiliser ce module.
+
+## 3. Simplifier complètement la saisie
+
+Je ne souhaite plus demander à l'utilisateur de saisir directement :
+
+- un montant responsable ;
+- un montant local ;
+- un montant circulaire.
+
+La plupart des dirigeants ne connaissent pas ces montants.
+
+Je souhaite uniquement conserver :
+
+- la catégorie d'achat ;
+- le montant annuel estimé.
+
+Puis remplacer les autres champs par trois curseurs très simples :
+
+### Part locale
+
+Curseur de 0 à 100 %
+
+Texte d'aide :
+"Quelle part de vos achats dans cette catégorie est réalisée auprès de fournisseurs locaux ou français ?"
+
+### Part responsable
+
+Curseur de 0 à 100 %
+
+Texte d'aide :
+"Selon vous, quelle part de ces achats répond à des critères environnementaux, sociaux ou éthiques ?"
+
+### Part circulaire
+
+Curseur de 0 à 100 %
+
+Texte d'aide :
+"Quelle part concerne des produits reconditionnés, recyclés ou issus de l'économie circulaire ?"
+
+Chaque curseur doit afficher clairement son pourcentage.
+
+Cette approche doit être beaucoup plus intuitive qu'une saisie de montants.
+
+## 4. Conserver les indicateurs
+
+Les KPI du tableau de bord peuvent continuer à être calculés automatiquement à partir :
+
+- du montant annuel ;
+- des trois curseurs.
+
+L'utilisateur ne doit pas avoir à faire de calcul lui-même.
+
+## 5. Synthèse
+
+Je souhaite que l'onglet **Synthèse** intègre également ces nouveaux indicateurs d'achats responsables afin de donner une vision globale de la politique d'achats responsables de l'entreprise.
+
+L'objectif est que ce module reste extrêmement simple à compléter : un dirigeant de PME doit pouvoir le renseigner en quelques minutes, sans connaissances techniques en achats responsables.

@@ -76,14 +76,14 @@ export function TabDashboard({ orgId }: Props) {
 
   for (const p of purchases) {
     totalAchats += p.amount;
-    totalResp += p.responsibleAmount;
-    totalLocal += p.localAmount;
-    totalCirc += p.circularAmount;
+    totalResp += (p.amount * p.responsiblePercent) / 100;
+    totalLocal += (p.amount * p.localPercent) / 100;
+    totalCirc += (p.amount * p.circularPercent) / 100;
     if (!purchasesCatMap[p.category]) {
       purchasesCatMap[p.category] = { amount: 0, responsible: 0 };
     }
     purchasesCatMap[p.category].amount += p.amount;
-    purchasesCatMap[p.category].responsible += p.responsibleAmount;
+    purchasesCatMap[p.category].responsible += (p.amount * p.responsiblePercent) / 100;
   }
 
   const purchCatData = Object.entries(purchasesCatMap)

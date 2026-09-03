@@ -83,7 +83,30 @@ export function TabDecouvrir() {
         </ExampleBox>
       </Section>
 
-      <Section number="2" title="Pourquoi évaluer ses fournisseurs ?">
+      <Section number="2" title="Comment compléter l'onglet Achats responsables ?">
+        <p>
+          Cet onglet vous aide à estimer la place des achats responsables dans vos dépenses, sans vous demander
+          de calculs complexes. Il mesure le montant annuel de vos achats et la part que vous estimez locale,
+          responsable ou circulaire.
+        </p>
+        <p>Pour chaque grande catégorie d'achat, il suffit de :</p>
+        <ol className="list-decimal list-inside space-y-1 mt-1">
+          <li>indiquer un nom simple, par exemple « informatique » ou « matières premières » ;</li>
+          <li>saisir le montant annuel estimé, même approximatif ;</li>
+          <li>déplacer les trois curseurs selon votre meilleure estimation ;</li>
+          <li>enregistrer : les indicateurs et graphiques sont calculés automatiquement.</li>
+        </ol>
+        <p>
+          Ces estimations permettent d'identifier rapidement les catégories où privilégier davantage de
+          fournisseurs locaux, de critères sociaux et environnementaux, ou de solutions recyclées et reconditionnées.
+        </p>
+        <ExampleBox>
+          Pour 20 000 € d'achats informatiques annuels, vous pouvez estimer 40 % d'achats locaux, 50 % d'achats
+          responsables et 20 % de matériel reconditionné. Cocci calcule automatiquement les indicateurs associés.
+        </ExampleBox>
+      </Section>
+
+      <Section number="3" title="Pourquoi évaluer ses fournisseurs ?">
         <p>
           Évaluer ses fournisseurs permet d'identifier les risques cachés dans votre chaîne d'approvisionnement :
           défaillance d'un fournisseur clé, risque réputationnel, dépendance excessive, non-conformité
@@ -99,7 +122,7 @@ export function TabDecouvrir() {
         </ExampleBox>
       </Section>
 
-      <Section number="3" title="Qu'est-ce que la criticité ?">
+      <Section number="4" title="Qu'est-ce que la criticité ?">
         <p>
           La <strong>criticité</strong> mesure l'importance stratégique d'un fournisseur pour votre activité.
           Un fournisseur <em>critique</em> est celui dont la défaillance aurait un impact majeur sur votre
@@ -112,7 +135,7 @@ export function TabDecouvrir() {
         ]} />
       </Section>
 
-      <Section number="4" title="Qu'est-ce que le niveau de risque ?">
+      <Section number="5" title="Qu'est-ce que le niveau de risque ?">
         <p>
           Le <strong>niveau de risque</strong> évalue la probabilité qu'un problème survienne avec ce fournisseur :
           difficultés financières, incidents qualité, problèmes éthiques, risques géopolitiques ou climatiques.
@@ -124,7 +147,7 @@ export function TabDecouvrir() {
         ]} />
       </Section>
 
-      <Section number="5" title="Quelle est la différence entre criticité, risque et dépendance ?">
+      <Section number="6" title="Quelle est la différence entre criticité, risque et dépendance ?">
         <DefinitionGrid items={[
           { term: "Criticité", def: "IMPACT si le fournisseur fait défaut. Dépend de votre organisation, pas du fournisseur." },
           { term: "Niveau de risque", def: "PROBABILITÉ que le fournisseur fasse défaut. Dépend du fournisseur lui-même." },
@@ -137,7 +160,7 @@ export function TabDecouvrir() {
         </ExampleBox>
       </Section>
 
-      <Section number="6" title="Comment interpréter la matrice de criticité ?">
+      <Section number="7" title="Comment interpréter la matrice de criticité ?">
         <p>
           En croisant la <strong>criticité</strong> et le <strong>niveau de risque</strong>, vous obtenez une
           matrice de priorisation :
@@ -157,7 +180,7 @@ export function TabDecouvrir() {
         </div>
       </Section>
 
-      <Section number="7" title="Comment Cocci calcule les indicateurs ?">
+      <Section number="8" title="Comment Cocci calcule les indicateurs ?">
         <p>
           Cocci ne calcule pas automatiquement la criticité, le risque ou la dépendance : c'est votre expertise
           métier qui prime. Vous saisissez une note de 1 à 5 pour chaque dimension.
@@ -172,7 +195,7 @@ export function TabDecouvrir() {
         </p>
       </Section>
 
-      <Section number="8" title="Comment utiliser ce module dans une démarche RSE ?">
+      <Section number="9" title="Comment utiliser ce module dans une démarche RSE ?">
         <p>Suivez ces étapes progressivement :</p>
         <ol className="list-decimal list-inside space-y-1 mt-1">
           <li>Listez tous vos fournisseurs actifs (même sans toutes les informations)</li>

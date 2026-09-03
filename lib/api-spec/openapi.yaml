@@ -4590,15 +4590,15 @@ components:
 
     ResponsiblePurchase:
       type: object
-      required: [id, organizationId, category, amount, responsibleAmount, localAmount, circularAmount, createdAt, updatedAt]
+      required: [id, organizationId, category, amount, responsiblePercent, localPercent, circularPercent, createdAt, updatedAt]
       properties:
         id: { type: integer }
         organizationId: { type: integer }
         category: { type: string, minLength: 1 }
         amount: { type: number, minimum: 0 }
-        responsibleAmount: { type: number, minimum: 0 }
-        localAmount: { type: number, minimum: 0 }
-        circularAmount: { type: number, minimum: 0 }
+        responsiblePercent: { type: integer, minimum: 0, maximum: 100 }
+        localPercent: { type: integer, minimum: 0, maximum: 100 }
+        circularPercent: { type: integer, minimum: 0, maximum: 100 }
         objectivePercent:
           type: ["integer", "null"]
           minimum: 0
@@ -4608,13 +4608,13 @@ components:
 
     ResponsiblePurchaseInput:
       type: object
-      required: [category, amount, responsibleAmount, localAmount, circularAmount]
+      required: [category, amount, responsiblePercent, localPercent, circularPercent]
       properties:
         category: { type: string, minLength: 1 }
         amount: { type: number, minimum: 0 }
-        responsibleAmount: { type: number, minimum: 0 }
-        localAmount: { type: number, minimum: 0 }
-        circularAmount: { type: number, minimum: 0 }
+        responsiblePercent: { type: integer, minimum: 0, maximum: 100 }
+        localPercent: { type: integer, minimum: 0, maximum: 100 }
+        circularPercent: { type: integer, minimum: 0, maximum: 100 }
         objectivePercent:
           type: ["integer", "null"]
           minimum: 0

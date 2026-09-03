@@ -11,12 +11,21 @@ export interface ResponsiblePurchaseInput {
   category: string;
   /** @minimum 0 */
   amount: number;
-  /** @minimum 0 */
-  responsibleAmount: number;
-  /** @minimum 0 */
-  localAmount: number;
-  /** @minimum 0 */
-  circularAmount: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  responsiblePercent: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  localPercent: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  circularPercent: number;
   /**
      * @minimum 0
      * @maximum 100

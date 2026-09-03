@@ -30,24 +30,31 @@ function mapRow(row: typeof responsiblePurchasesTable.$inferSelect) {
     organizationId: row.organizationId,
     category: row.category,
     amount: Number(row.amount),
-    responsibleAmount: Number(row.responsibleAmount),
-    localAmount: Number(row.localAmount),
-    circularAmount: Number(row.circularAmount),
+    responsiblePercent: row.responsiblePercent,
+    localPercent: row.localPercent,
+    circularPercent: row.circularPercent,
     objectivePercent: row.objectivePercent,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-function validateAmounts(body: ResponsiblePurchaseInput): string | null {
+function validatePercentages(body: ResponsiblePurchaseInput): string | null {
   if (
-    body.responsibleAmount > body.amount ||
-    body.localAmount > body.amount ||
-    body.circularAmount > body.amount
+    body.responsiblePercent < 0 ||
+    body.responsiblePercent > 100 ||
+    body.localPercent < 0 ||
+    body.localPercent > 100 ||
+    body.circularPercent < 0 ||
+    body.circularPercent > 100
   ) {
-    return "Les montants responsables, locaux et circulaires ne peuvent pas dépasser le montant total.";
+    return "Les parts doivent être comprises entre 0 et 100 %.";
   }
   return null;
+}
+
+function derivedAmount(amount: number, percent: number): string {
+  return String((amount * percent) / 100);
 }
 
 router.get(
@@ -104,9 +111,9 @@ router.post(
       res.status(400).json({ error: parsed.error.message });
       return;
     }
-    const amountError = validateAmounts(parsed.data);
-    if (amountError) {
-      res.status(400).json({ error: amountError });
+    const percentageError = validatePercentages(parsed.data);
+    if (percentageError) {
+      res.status(400).json({ error: percentageError });
       return;
     }
 
@@ -132,9 +139,12 @@ router.post(
         withExerciseValues(req, {
           category: parsed.data.category,
           amount: String(parsed.data.amount),
-          responsibleAmount: String(parsed.data.responsibleAmount),
-          localAmount: String(parsed.data.localAmount),
-          circularAmount: String(parsed.data.circularAmount),
+          responsibleAmount: derivedAmount(parsed.data.amount, parsed.data.responsiblePercent),
+          localAmount: derivedAmount(parsed.data.amount, parsed.data.localPercent),
+          circularAmount: derivedAmount(parsed.data.amount, parsed.data.circularPercent),
+          responsiblePercent: parsed.data.responsiblePercent,
+          localPercent: parsed.data.localPercent,
+          circularPercent: parsed.data.circularPercent,
           objectivePercent: parsed.data.objectivePercent ?? null,
         }),
       )
@@ -168,9 +178,9 @@ router.put(
       res.status(400).json({ error: parsed.error.message });
       return;
     }
-    const amountError = validateAmounts(parsed.data);
-    if (amountError) {
-      res.status(400).json({ error: amountError });
+    const percentageError = validatePercentages(parsed.data);
+    if (percentageError) {
+      res.status(400).json({ error: percentageError });
       return;
     }
 
@@ -195,9 +205,12 @@ router.put(
       .set({
         category: parsed.data.category,
         amount: String(parsed.data.amount),
-        responsibleAmount: String(parsed.data.responsibleAmount),
-        localAmount: String(parsed.data.localAmount),
-        circularAmount: String(parsed.data.circularAmount),
+        responsibleAmount: derivedAmount(parsed.data.amount, parsed.data.responsiblePercent),
+        localAmount: derivedAmount(parsed.data.amount, parsed.data.localPercent),
+        circularAmount: derivedAmount(parsed.data.amount, parsed.data.circularPercent),
+        responsiblePercent: parsed.data.responsiblePercent,
+        localPercent: parsed.data.localPercent,
+        circularPercent: parsed.data.circularPercent,
         objectivePercent: parsed.data.objectivePercent ?? null,
         updatedAt: new Date(),
       })
