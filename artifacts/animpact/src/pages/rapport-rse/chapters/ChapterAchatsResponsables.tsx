@@ -105,7 +105,7 @@ export function ChapterAchatsResponsables({
     new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value) + " %";
 
   return (
-    <ChapterWrapper num={chapterNum} title="Achats responsables">
+    <ChapterWrapper num={chapterNum} title="Achats et fournisseurs responsables">
       {suppliers.length > 0 && (
         <>
           <ExplainerText>
@@ -266,7 +266,10 @@ export function ChapterAchatsResponsables({
               <BarChart data={purchaseCategoryData} layout="vertical" margin={{ left: 8, right: 20 }}>
                 <XAxis type="number" tickFormatter={(value) => formatEur(Number(value))} tick={{ fontSize: 10 }} />
                 <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(value: number) => formatEur(Number(value))} />
+                <Legend
+                  verticalAlign="bottom"
+                  wrapperStyle={{ fontSize: 11, fontFamily: "sans-serif", paddingTop: 8 }}
+                />
                 <Bar dataKey="amount" name="Achats annuels" fill="#A7DCCB" radius={[0, 4, 4, 0]} />
                 <Bar dataKey="responsible" name="Achats responsables" fill="#10B981" radius={[0, 4, 4, 0]} />
               </BarChart>

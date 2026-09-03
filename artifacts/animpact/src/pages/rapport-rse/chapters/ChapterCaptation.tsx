@@ -4,7 +4,7 @@ import {
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
 
-export function ChapterCaptation({ data, ai }: { data: ReportData; ai: AiAnalyses }) {
+export function ChapterCaptation({ data, ai, chapterNum }: { data: ReportData; ai: AiAnalyses; chapterNum: number }) {
   const cap = data.captation as Record<string, unknown> | null;
   const carbon = data.carbon as Record<string, unknown> | null;
 
@@ -22,7 +22,7 @@ export function ChapterCaptation({ data, ai }: { data: ReportData; ai: AiAnalyse
     : null;
 
   return (
-    <ChapterWrapper num={10} title="Notre captation carbone">
+    <ChapterWrapper num={chapterNum} title="Notre captation carbone">
 
       <NoteBox>
         Rappel : la captation carbone intervient en dernier recours, après avoir réduit au maximum les émissions.

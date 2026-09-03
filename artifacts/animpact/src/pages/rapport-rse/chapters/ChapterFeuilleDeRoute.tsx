@@ -596,7 +596,7 @@ function SectionPlan({ slots }: { slots: Array<Record<string, unknown>> }) {
 
 // ─── Chapitre principal ────────────────────────────────────────────────────────
 
-export function ChapterFeuilleDeRoute({ data, ai }: { data: ReportData; ai: AiAnalyses }) {
+export function ChapterFeuilleDeRoute({ data, ai, chapterNum }: { data: ReportData; ai: AiAnalyses; chapterNum: number }) {
   const actions   = data.actions as Array<Record<string, unknown>>;
   const planSlots = ((data as any).planSlots as Array<Record<string, unknown>>) ?? [];
 
@@ -608,7 +608,7 @@ export function ChapterFeuilleDeRoute({ data, ai }: { data: ReportData; ai: AiAn
   const isEmpty = actions.length === 0 && planSlots.length === 0;
 
   return (
-    <ChapterWrapper num={7} title="Notre feuille de route">
+    <ChapterWrapper num={chapterNum} title="Notre feuille de route">
       <ExplainerText>
         Le suivi des actions RSE s'organise autour de deux dispositifs complémentaires : le catalogue d'actions, qui recense les bonnes pratiques sélectionnées par l'organisation, et la feuille de route, qui structure les actions planifiées avec un pilotage individualisé. Ensemble, ils témoignent de la dynamique de mise en œuvre de la démarche RSE.
       </ExplainerText>

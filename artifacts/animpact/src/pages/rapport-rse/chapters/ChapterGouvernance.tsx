@@ -4,13 +4,13 @@ import {
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
 
-export function ChapterGouvernance({ data, ai }: { data: ReportData; ai: AiAnalyses }) {
+export function ChapterGouvernance({ data, ai, chapterNum }: { data: ReportData; ai: AiAnalyses; chapterNum: number }) {
   type AnyItem = Record<string, unknown>;
   const diagScores = data.diagScores as unknown as AnyItem[];
   const govScores  = diagScores.filter((s) => s.categoryId === "GOV");
 
   return (
-    <ChapterWrapper num={6} title="Piloter une entreprise responsable">
+    <ChapterWrapper num={chapterNum} title="Piloter une entreprise responsable">
       <ExplainerText>
         La gouvernance responsable repose sur des structures décisionnelles transparentes, une éthique des affaires irréprochable et une intégration des enjeux RSE au cœur de la stratégie de l'organisation. Elle garantit la cohérence entre les engagements affichés et les pratiques opérationnelles.
       </ExplainerText>

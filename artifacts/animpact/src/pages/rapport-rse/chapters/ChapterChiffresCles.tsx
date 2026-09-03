@@ -1,5 +1,5 @@
 /**
- * Chapitre "Les 10 chiffres clés"
+ * Chapitre "Les 12 chiffres clés"
  * Sélection automatique des indicateurs les plus représentatifs,
  * en priorisant ceux ayant une évolution N/N-1 disponible.
  */
@@ -259,11 +259,44 @@ function extractKpis(data: ReportData): KpiCard[] {
     });
   }
 
+  // ── Achats responsables ──
+  const purchases = data.responsiblePurchases as Array<Record<string, unknown>>;
+  if (purchases.length > 0) {
+    let total = 0;
+    let responsible = 0;
+    let local = 0;
+    let circular = 0;
+    for (const purchase of purchases) {
+      const amount = num(purchase.amount) ?? 0;
+      total += amount;
+      responsible += amount * (num(purchase.responsiblePercent) ?? 0) / 100;
+      local += amount * (num(purchase.localPercent) ?? 0) / 100;
+      circular += amount * (num(purchase.circularPercent) ?? 0) / 100;
+    }
+    const addPurchaseKpi = (label: string, value: number, color: string, icon: string) => {
+      cards.push({
+        label,
+        value: String(total > 0 ? Math.round(value / total * 100) : 0),
+        unit: "%",
+        prev: null,
+        delta: null,
+        trend: null,
+        trendPositive: true,
+        color,
+        icon,
+        category: "Achats",
+      });
+    };
+    addPurchaseKpi("Part d'achats responsables", responsible, "#10b981", "🌱");
+    addPurchaseKpi("Part d'achats locaux", local, "#f59e0b", "📍");
+    addPurchaseKpi("Part d'achats circulaires", circular, "#14b8a6", "♻️");
+  }
+
   // ─── Tri : N/N-1 disponibles en premier, puis par couleur catégorie ────────
   const withTrend    = cards.filter((c) => c.delta != null);
   const withoutTrend = cards.filter((c) => c.delta == null);
 
-  return [...withTrend, ...withoutTrend].slice(0, 10);
+  return [...withTrend, ...withoutTrend].slice(0, 12);
 }
 
 // ─── Composant flèche de tendance ─────────────────────────────────────────────
@@ -298,7 +331,7 @@ export function ChapterChiffresCles({ data, chapterNum }: { data: ReportData; ch
   const kpis = extractKpis(data);
 
   return (
-    <ChapterWrapper num={chapterNum} title="Les 10 chiffres clés">
+    <ChapterWrapper num={chapterNum} title="Les 12 chiffres clés">
       <ExplainerText>
         Synthèse des principaux indicateurs de la démarche RSE. Les indicateurs disposant d'une comparaison N-1 sont présentés en priorité afin de mettre en évidence les évolutions les plus significatives de l'exercice.
       </ExplainerText>

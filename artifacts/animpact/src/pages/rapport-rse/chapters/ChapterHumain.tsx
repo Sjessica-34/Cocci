@@ -22,7 +22,7 @@ function TrendBadge({ current, previous }: { current: number | null; previous: n
   );
 }
 
-export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }) {
+export function ChapterHumain({ data, ai, chapterNum }: { data: ReportData; ai: AiAnalyses; chapterNum: number }) {
   type AnyItem = Record<string, unknown>;
   const diagScores = data.diagScores as unknown as AnyItem[];
   const socScores  = diagScores.filter((s) => s.categoryId === "SOC");
@@ -50,7 +50,7 @@ export function ChapterHumain({ data, ai }: { data: ReportData; ai: AiAnalyses }
   const aiSummary = baro?.aiSummary as Record<string, unknown> | null;
 
   return (
-    <ChapterWrapper num={5} title="Placer l'humain au cœur de notre développement">
+    <ChapterWrapper num={chapterNum} title="Placer l'humain au cœur de notre développement">
 
       {/* Grand donut SOC */}
       {socScores.length > 0 && (

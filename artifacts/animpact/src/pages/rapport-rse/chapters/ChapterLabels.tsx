@@ -9,14 +9,14 @@ const LABEL_COLORS: Record<string, { bg: string; text: string; border: string }>
   "Non retenu":      { bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0" },
 };
 
-export function ChapterLabels({ data }: { data: ReportData }) {
+export function ChapterLabels({ data, chapterNum }: { data: ReportData; chapterNum: number }) {
   type AnyLabel = Record<string, unknown>;
   const labels = data.labels as unknown as AnyLabel[];
   const obtained = labels.filter((l) => l.year != null);
   const inProgress = labels.filter((l) => l.year == null && l.isTargeted);
 
   return (
-    <ChapterWrapper num={9} title="Labels &amp; Certifications">
+    <ChapterWrapper num={chapterNum} title="Labels &amp; Certifications">
       <ExplainerText>
         Les labels et certifications RSE constituent des reconnaissances officielles de l'engagement de l'organisation dans une démarche de responsabilité sociétale. Ils renforcent la crédibilité de la démarche, facilitent la communication transparente avec les parties prenantes et valorisent les efforts accomplis dans une logique d'amélioration continue.
       </ExplainerText>

@@ -6,12 +6,12 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
 
-export function ChapterImpactScore({ data, ai }: { data: ReportData; ai: AiAnalyses }) {
+export function ChapterImpactScore({ data, ai, chapterNum }: { data: ReportData; ai: AiAnalyses; chapterNum: number }) {
   const is_ = data.impactScore as Record<string, unknown> | null;
 
   if (!is_) {
     return (
-      <ChapterWrapper num={8} title="Mon Impact Score">
+      <ChapterWrapper num={chapterNum} title="Mon Impact Score">
         <ExplainerText>
           L'Impact Score est un indicateur synthétique qui mesure l'alignement de l'organisation avec une performance globale durable. Il évalue trois piliers fondamentaux : la limitation des impacts négatifs, le partage équitable de la valeur créée, et la mise en œuvre d'une stratégie orientée vers un impact positif.
         </ExplainerText>
@@ -34,7 +34,7 @@ export function ChapterImpactScore({ data, ai }: { data: ReportData; ai: AiAnaly
   ].filter((p) => p.value != null) as Array<{ label: string; value: number; color: string }>;
 
   return (
-    <ChapterWrapper num={8} title="Mon Impact Score">
+    <ChapterWrapper num={chapterNum} title="Mon Impact Score">
       <ExplainerText>
         L'Impact Score est un indicateur synthétique qui mesure l'alignement de l'organisation avec une performance globale durable. Il évalue trois piliers fondamentaux : la limitation des impacts négatifs sur la société et l'environnement, le partage équitable de la valeur créée, et la mise en œuvre d'une stratégie orientée vers un impact positif.
       </ExplainerText>

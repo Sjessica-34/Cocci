@@ -720,7 +720,7 @@ function buildPlanete(data: Data, ai: Record<string, string | null>): El[] {
 
   // Achats responsables
   if (data.supplierItems.length > 0) {
-    parts.push(sectionTitle("Achats & fournisseurs responsables"));
+    parts.push(sectionTitle("Achats et fournisseurs responsables"));
     parts.push(explainer("La politique d'achats responsables vise à intégrer des critères environnementaux, sociaux et de gouvernance dans la sélection et l'évaluation des fournisseurs. Elle contribue à la réduction des impacts indirects de l'organisation tout au long de sa chaîne d'approvisionnement."));
     const evalCount = data.supplierItems.filter((s) => s.rsePolicy || s.evalComments).length;
     const certCount = data.supplierItems.filter((s) => s.certifications).length;

@@ -140,7 +140,7 @@ function TableOfContents({
     { num: n++, title: "Qui sommes-nous ?" },
     { num: n++, title: "Notre démarche RSE" },
     { num: n++, title: "Agir pour la planète" },
-    ...(hasAchats ? [{ num: n++, title: "Achats responsables" }] : []),
+    ...(hasAchats ? [{ num: n++, title: "Achats et fournisseurs responsables" }] : []),
     { num: n++, title: "Placer l'humain au cœur de notre développement" },
     { num: n++, title: "Piloter une entreprise responsable" },
     { num: n++, title: "Notre feuille de route" },
@@ -148,7 +148,7 @@ function TableOfContents({
     { num: n++, title: "Nos labels et engagements" },
     ...(hasCaptation ? [{ num: n++, title: "Notre captation carbone" }] : []),
     ...(hasTempsForts ? [{ num: n++, title: "Les temps forts de l'année" }] : []),
-    { num: n++, title: "Les 10 chiffres clés" },
+    { num: n++, title: "Les 12 chiffres clés" },
     { num: n++, title: "Perspectives" },
     { num: n++, title: "Annexes" },
     { num: n++, title: "Notes complémentaires" },
@@ -254,13 +254,13 @@ function ReportContent({ orgId }: { orgId: number | null }) {
         <ChapterAchatsResponsables data={data} ai={ai} chapterNum={achatsNum} />
       )}
 
-      <ChapterHumain data={data} ai={ai} />
-      <ChapterGouvernance data={data} ai={ai} />
-      <ChapterFeuilleDeRoute data={data} ai={ai} />
-      <ChapterImpactScore data={data} ai={ai} />
-      <ChapterLabels data={data} />
+      <ChapterHumain data={data} ai={ai} chapterNum={humainNum} />
+      <ChapterGouvernance data={data} ai={ai} chapterNum={gouv} />
+      <ChapterFeuilleDeRoute data={data} ai={ai} chapterNum={fdr} />
+      <ChapterImpactScore data={data} ai={ai} chapterNum={impact} />
+      <ChapterLabels data={data} chapterNum={labels} />
 
-      {hasCaptation && captNum !== null && <ChapterCaptation data={data} ai={ai} />}
+      {hasCaptation && captNum !== null && <ChapterCaptation data={data} ai={ai} chapterNum={captNum} />}
       {hasTempsForts && tempsNum !== null && <ChapterTempsForts data={data} chapterNum={tempsNum} />}
 
       <ChapterChiffresCles data={data} chapterNum={chiffresNum} />
