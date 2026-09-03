@@ -18,8 +18,7 @@ export const cocciFeedbackTable = pgTable("cocci_feedback", {
     .notNull()
     .references(() => organizationsTable.id, { onDelete: "cascade" }),
   userId: integer("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => usersTable.id, { onDelete: "set null" }),
   subject: text("subject").notNull(),
   // 'suggestion' | 'bug' | 'evolution' | 'question' | 'other'
   requestType: text("request_type").notNull(),
@@ -44,8 +43,7 @@ export const cocciRatingsTable = pgTable("cocci_ratings", {
     .notNull()
     .references(() => organizationsTable.id, { onDelete: "cascade" }),
   userId: integer("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => usersTable.id, { onDelete: "set null" }),
   stars: integer("stars").notNull(), // 1–5
   comment: text("comment"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

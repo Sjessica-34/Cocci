@@ -60,6 +60,7 @@ import type {
   CaptationCarboneInput,
   CarbonBilan,
   CarbonBilanInput,
+  CompleteUploadRequest,
   CustomIssue,
   CustomIssueInput,
   DashboardSummary,
@@ -2108,6 +2109,76 @@ export function useGetStorageObject<TData = Awaited<ReturnType<typeof getStorage
 
 
 
+
+export const getCompleteStorageUploadUrl = () => {
+
+
+
+
+  return `/api/storage/uploads/complete`
+}
+
+/**
+ * @summary Finalize a private upload and attach its ACL
+ */
+export const completeStorageUpload = async (completeUploadRequest: CompleteUploadRequest, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getCompleteStorageUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(completeUploadRequest)
+  }
+);}
+
+
+
+
+export const getCompleteStorageUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeStorageUpload>>, TError,{data: BodyType<CompleteUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeStorageUpload>>, TError,{data: BodyType<CompleteUploadRequest>}, TContext> => {
+
+const mutationKey = ['completeStorageUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeStorageUpload>>, {data: BodyType<CompleteUploadRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  completeStorageUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteStorageUploadMutationResult = NonNullable<Awaited<ReturnType<typeof completeStorageUpload>>>
+    export type CompleteStorageUploadMutationBody = BodyType<CompleteUploadRequest>
+    export type CompleteStorageUploadMutationError = ErrorType<void>
+
+    /**
+ * @summary Finalize a private upload and attach its ACL
+ */
+export const useCompleteStorageUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeStorageUpload>>, TError,{data: BodyType<CompleteUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeStorageUpload>>,
+        TError,
+        {data: BodyType<CompleteUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getCompleteStorageUploadMutationOptions(options));
+    }
 
 export const getListAdminGlobalResourcesUrl = () => {
 

@@ -668,6 +668,23 @@ paths:
         '404':
           description: Object not found.
 
+  /storage/uploads/complete:
+    post:
+      tags: [Storage]
+      operationId: completeStorageUpload
+      summary: Finalize a private upload and attach its ACL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteUploadRequest'
+      responses:
+        '200':
+          description: ACL attached.
+        '403':
+          description: Forbidden.
+
   /admin/global-resources:
     get:
       operationId: listAdminGlobalResources
@@ -4076,7 +4093,7 @@ components:
         organizationId:
           type: integer
         uploadedByUserId:
-          type: integer
+          type: [integer, "null"]
         category:
           type: string
         label:
@@ -6004,6 +6021,18 @@ components:
         contentType:
           type: string
           minLength: 1
+        organizationId:
+          type: integer
+          minimum: 1
+    CompleteUploadRequest:
+      type: object
+      required: [objectPath]
+      properties:
+        objectPath:
+          type: string
+        organizationId:
+          type: integer
+          minimum: 1
     UploadUrlResponse:
       type: object
       required: [uploadURL, objectPath]

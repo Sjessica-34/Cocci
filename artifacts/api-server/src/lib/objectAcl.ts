@@ -1,4 +1,6 @@
 import { File } from '@google-cloud/storage';
+import { and, eq } from 'drizzle-orm';
+import { db, membersTable, usersTable } from '@workspace/db';
 
 const ACL_POLICY_METADATA_KEY = 'custom:aclPolicy';
 
@@ -10,7 +12,9 @@ const ACL_POLICY_METADATA_KEY = 'custom:aclPolicy';
 // - GROUP_MEMBER: the users who are members of a specific group;
 // - SUBSCRIBER: the users who are subscribers of a specific service / content
 //   creator.
-export enum ObjectAccessGroupType {}
+export enum ObjectAccessGroupType {
+  ORGANIZATION = 'organization',
+}
 
 export interface ObjectAccessGroup {
   type: ObjectAccessGroupType;
@@ -55,13 +59,30 @@ abstract class BaseObjectAccessGroup implements ObjectAccessGroup {
   public abstract hasMember(userId: string): Promise<boolean>;
 }
 
+class OrganizationAccessGroup extends BaseObjectAccessGroup {
+  public async hasMember(clerkUserId: string): Promise<boolean> {
+    const organizationId = Number(this.id);
+    if (!Number.isInteger(organizationId)) return false;
+    const [membership] = await db
+      .select({ id: membersTable.id })
+      .from(membersTable)
+      .innerJoin(usersTable, eq(usersTable.id, membersTable.userId))
+      .where(and(
+        eq(usersTable.clerkId, clerkUserId),
+        eq(membersTable.organizationId, organizationId),
+        eq(membersTable.status, 'active'),
+      ))
+      .limit(1);
+    return !!membership;
+  }
+}
+
 function createObjectAccessGroup(
   group: ObjectAccessGroup,
 ): BaseObjectAccessGroup {
   switch (group.type) {
-    // Implement per access group type, e.g.:
-    // case "USER_LIST":
-    //   return new UserListAccessGroup(group.id);
+    case ObjectAccessGroupType.ORGANIZATION:
+      return new OrganizationAccessGroup(group.type, group.id);
     default:
       throw new Error(`Unknown access group type: ${group.type}`);
   }

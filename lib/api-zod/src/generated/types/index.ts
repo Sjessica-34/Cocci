@@ -78,6 +78,7 @@ export * from './carbonBilan';
 export * from './carbonBilanInput';
 export * from './carbonBilanInputMode';
 export * from './carbonBilanInputStatus';
+export * from './completeUploadRequest';
 export * from './customIssue';
 export * from './customIssueInput';
 export * from './dashboardIndicator';

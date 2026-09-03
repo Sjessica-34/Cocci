@@ -9,8 +9,7 @@ import { usersTable } from "./users";
 export const userConsentsTable = pgTable("user_consents", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => usersTable.id, { onDelete: "set null" }),
   documentType: text("document_type").notNull(), // "cgu" | "privacy"
   documentVersion: text("document_version").notNull(), // ex. "2025-01"
   acceptedAt: timestamp("accepted_at", { withTimezone: true }).defaultNow().notNull(),

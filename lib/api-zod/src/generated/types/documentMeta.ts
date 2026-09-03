@@ -9,7 +9,8 @@
 export interface DocumentMeta {
   id: number;
   organizationId: number;
-  uploadedByUserId: number;
+  /** @nullable */
+  uploadedByUserId: number | null;
   category: string;
   /**
      * Custom label for personalized documents

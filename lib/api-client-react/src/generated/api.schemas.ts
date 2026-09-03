@@ -827,7 +827,8 @@ export interface IssueAnalysisResult {
 export interface DocumentMeta {
   id: number;
   organizationId: number;
-  uploadedByUserId: number;
+  /** @nullable */
+  uploadedByUserId: number | null;
   category: string;
   /**
      * Custom label for personalized documents
@@ -2487,6 +2488,14 @@ export interface UploadUrlRequest {
   size: number;
   /** @minLength 1 */
   contentType: string;
+  /** @minimum 1 */
+  organizationId?: number;
+}
+
+export interface CompleteUploadRequest {
+  objectPath: string;
+  /** @minimum 1 */
+  organizationId?: number;
 }
 
 export interface UploadUrlResponse {

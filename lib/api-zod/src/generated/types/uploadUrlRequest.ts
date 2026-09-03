@@ -13,4 +13,6 @@ export interface UploadUrlRequest {
   size: number;
   /** @minLength 1 */
   contentType: string;
+  /** @minimum 1 */
+  organizationId?: number;
 }

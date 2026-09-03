@@ -688,10 +688,12 @@ export const CreateAdminResourceResponse = zod.object({
 
 
 
+
 export const RequestUploadUrlBody = zod.object({
   "name": zod.string().min(1),
   "size": zod.number().min(1),
-  "contentType": zod.string().min(1)
+  "contentType": zod.string().min(1),
+  "organizationId": zod.number().min(1).optional()
 })
 
 export const RequestUploadUrlResponse = zod.object({
@@ -708,6 +710,20 @@ export const GetStorageObjectParams = zod.object({
 })
 
 export const GetStorageObjectResponse = zod.unknown()
+
+
+/**
+ * @summary Finalize a private upload and attach its ACL
+ */
+
+
+
+export const CompleteStorageUploadBody = zod.object({
+  "objectPath": zod.string(),
+  "organizationId": zod.number().min(1).optional()
+})
+
+export const CompleteStorageUploadResponse = zod.unknown()
 
 
 /**
@@ -1591,7 +1607,7 @@ export const ListDocumentsParams = zod.object({
 export const ListDocumentsResponseItem = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
-  "uploadedByUserId": zod.number(),
+  "uploadedByUserId": zod.number().nullable(),
   "category": zod.string(),
   "label": zod.string().nullish().describe('Custom label for personalized documents'),
   "description": zod.string().nullish().describe('Custom description for personalized documents'),

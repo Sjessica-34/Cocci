@@ -18,7 +18,7 @@ export const stakeholdersTable = pgTable("stakeholders", {
   influence: integer("influence").notNull().default(3),
   interest: integer("interest").notNull().default(3),
   notes: text("notes"),
-  createdBy: integer("created_by").references(() => usersTable.id),
+  createdBy: integer("created_by").references(() => usersTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

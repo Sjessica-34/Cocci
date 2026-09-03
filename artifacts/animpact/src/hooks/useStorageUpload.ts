@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import { requestUploadUrl } from "@workspace/api-client-react";
+import { customFetch } from "@workspace/api-client-react";
+import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 
 interface UploadResult {
   objectPath: string;
@@ -17,6 +19,7 @@ interface UseStorageUploadOptions {
  * (with the Clerk Bearer token) for step 1, then PUTs directly to GCS.
  */
 export function useStorageUpload(options: UseStorageUploadOptions = {}) {
+  const { currentOrgId } = useCurrentOrganization();
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -30,6 +33,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
           name: file.name,
           size: file.size,
           contentType: file.type || "application/octet-stream",
+          organizationId: currentOrgId ?? undefined,
         });
 
         setProgress(40);
@@ -42,6 +46,10 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
         });
 
         if (!putRes.ok) throw new Error("Échec de l'envoi vers le stockage.");
+        await customFetch("/api/storage/uploads/complete", {
+          method: "POST",
+          body: JSON.stringify({ objectPath, organizationId: currentOrgId ?? undefined }),
+        });
 
         setProgress(100);
         const result: UploadResult = {
@@ -60,7 +68,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [currentOrgId],
   );
 
   return { uploadFile, isUploading, progress };

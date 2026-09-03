@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
+import { clerkClient } from "@clerk/express";
 import { z } from "zod";
-import { db, usersTable, membersTable, organizationsTable, userConsentsTable } from "@workspace/db";
+import { db, pool, usersTable, membersTable, organizationsTable, userConsentsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sensitiveLimiter } from "../middlewares/rateLimit";
 import { getOrCreateUser } from "../lib/auth";
@@ -98,8 +99,8 @@ const deletionReasonSchema = z.object({
 
 /**
  * POST /users/me/deletion-request
- * Enregistre une demande de suppression (traitement manuel sous 30 jours, RGPD art. 17).
- * Ne supprime rien immédiatement. Journalise l'opération.
+ * Anonymise immédiatement les données personnelles locales, conserve les
+ * données métier et supprime ensuite l'identité Clerk.
  */
 router.post(
   "/users/me/deletion-request",
@@ -108,18 +109,64 @@ router.post(
   async (req, res): Promise<void> => {
     const parsed = deletionReasonSchema.safeParse(req.body);
     const user = await getOrCreateUser(req.clerkUserId!);
+    const soleOwner = await pool.query(
+      `SELECT m.organization_id
+       FROM members m
+       WHERE m.user_id = $1 AND m.role = 'owner'
+         AND NOT EXISTS (
+           SELECT 1 FROM members other
+           WHERE other.organization_id = m.organization_id
+             AND other.role = 'owner' AND other.user_id <> $1
+         )
+       LIMIT 1`,
+      [user.id],
+    );
+    if (soleOwner.rowCount) {
+      res.status(409).json({
+        error: "Transférez d'abord la propriété de vos organisations avant de supprimer votre compte.",
+      });
+      return;
+    }
+
+    const stamp = Date.now();
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(${user.id})`);
+      await tx.update(usersTable).set({
+        email: `deleted-${user.id}-${stamp}@anonymized.invalid`,
+        firstName: null,
+        lastName: null,
+        avatarUrl: null,
+        updatedAt: new Date(),
+      }).where(eq(usersTable.id, user.id));
+      await tx.delete(membersTable).where(eq(membersTable.userId, user.id));
+    });
 
     await logAuditEvent(req, "user.delete_request", {
-      userId: user.id,
-      metadata: parsed.success && parsed.data.reason
-        ? { reasonProvided: true }
-        : { reasonProvided: false },
+      userId: null,
+      metadata: { anonymized: true, reasonProvided: parsed.success && !!parsed.data.reason },
     });
+
+    try {
+      await clerkClient.users.deleteUser(req.clerkUserId!);
+      await db.update(usersTable).set({
+        clerkId: `deleted_${user.id}_${stamp}`,
+        updatedAt: new Date(),
+      }).where(eq(usersTable.id, user.id));
+    } catch (error) {
+      await logAuditEvent(req, "user.delete_provider_failed", {
+        userId: null,
+        success: false,
+        metadata: { provider: "clerk" },
+      });
+      res.status(502).json({
+        error: "Les données personnelles ont été anonymisées, mais la suppression de l'identité doit être relancée.",
+      });
+      return;
+    }
 
     res.json({
       success: true,
-      message:
-        "Votre demande de suppression a bien été enregistrée. Notre équipe la traitera dans un délai de 30 jours ouvrés conformément au RGPD (art. 17).",
+      message: "Votre compte et vos données personnelles ont été supprimés.",
     });
   },
 );
