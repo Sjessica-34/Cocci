@@ -1,0 +1,72 @@
+a tâche #67 étant désormais finalisée, je souhaite que nous préparions la migration définitive de Cocci hors de Replit.
+
+⚠️ Je ne souhaite pas encore lancer la migration.
+
+Je souhaite d'abord disposer d'un plan de migration complet, validé et documenté.
+
+Mon objectif est que la première version publique de Cocci soit hébergée sur son infrastructure définitive, avec une préproduction et une production totalement indépendantes.
+
+Je dispose déjà d'un compte Infomaniak.
+
+Merci de me fournir un plan de migration détaillé comprenant notamment :
+
+## 1. Architecture cible
+
+- l'infrastructure recommandée (VPS, Public Cloud ou autre) et la justification du choix ;
+- les ressources à créer chez Infomaniak ;
+- l'organisation des environnements Préproduction et Production ;
+- les bases de données ;
+- le stockage des documents ;
+- les sauvegardes ;
+- Docker et les différents services ;
+- les sous-domaines à prévoir.
+
+## 2. Dépendances actuelles à Replit
+
+Je souhaite que tu identifies précisément tout ce qui dépend encore de Replit :
+
+- stockage ;
+- variables d'environnement ;
+- workflows ;
+- tâches planifiées ;
+- domaine ;
+- secrets ;
+- tout autre service spécifique à Replit.
+
+Pour chaque dépendance, indique par quoi elle sera remplacée.
+
+## 3. Plan de migration
+
+Je souhaite une procédure détaillée, étape par étape, comprenant :
+
+- les ressources à créer ;
+- leur ordre de création ;
+- les migrations SQL à exécuter ;
+- les variables d'environnement à configurer ;
+- la migration des documents ;
+- la migration de la base de données ;
+- la configuration de Clerk ;
+- la configuration de Stripe ;
+- les DNS ;
+- les certificats SSL ;
+- les tests à effectuer avant l'ouverture au public.
+
+## 4. Vérifications
+
+Pour chaque étape, indique :
+
+- comment vérifier qu'elle est correctement réalisée ;
+- quels sont les critères de validation ;
+- quelles seraient les conséquences d'une erreur.
+
+## 5. Rollback
+
+Je souhaite également une procédure de retour arrière permettant d'annuler la migration si un problème majeur est détecté avant l'ouverture au public.
+
+## 6. Exploitation future
+
+Je souhaite enfin que l'architecture permette de continuer à développer Cocci sur Replit tout en hébergeant la préproduction et la production sur l'infrastructure définitive.
+
+Merci de concevoir cette architecture de manière pérenne, afin qu'aucune nouvelle migration majeure ne soit nécessaire à court ou moyen terme.
+
+À ce stade, je souhaite uniquement le plan d'architecture et de migration. Aucune ressource ne devra être créée et aucune migration ne devra être lancée tant que je n'aurai pas validé ce document.
