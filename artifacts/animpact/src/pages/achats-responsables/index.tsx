@@ -25,20 +25,32 @@ export function AchatsResponsables() {
       <h1 className="text-xl font-bold mb-6">📦 Achats &amp; Fournisseurs Responsables</h1>
 
       <Tabs defaultValue="decouvrir" className="space-y-6">
-          <TabsList className="flex flex-wrap w-full md:grid md:grid-cols-4 md:max-w-3xl h-auto p-1 bg-muted rounded-lg">
-            <TabsTrigger value="decouvrir" className="flex items-center gap-2 flex-1 md:flex-none">
+          <TabsList className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-1 h-auto rounded-lg bg-muted p-1 md:grid-cols-4">
+            <TabsTrigger
+              value="decouvrir"
+              className="w-full min-w-0 gap-2 whitespace-normal px-2 text-center leading-tight sm:px-3 md:whitespace-nowrap"
+            >
               <BookOpen className="h-4 w-4" />
               Découvrir
             </TabsTrigger>
-            <TabsTrigger value="fournisseurs" className="flex items-center gap-2 flex-1 md:flex-none">
+            <TabsTrigger
+              value="fournisseurs"
+              className="w-full min-w-0 gap-2 whitespace-normal px-2 text-center leading-tight sm:px-3 md:whitespace-nowrap"
+            >
               <Building2 className="h-4 w-4" />
               Mes fournisseurs
             </TabsTrigger>
-            <TabsTrigger value="achats" className="flex items-center gap-2 flex-1 md:flex-none">
+            <TabsTrigger
+              value="achats"
+              className="w-full min-w-0 gap-2 whitespace-normal px-2 text-center leading-tight sm:px-3 md:whitespace-nowrap"
+            >
               <ShoppingCart aria-hidden="true" className="h-4 w-4 shrink-0" />
               Achats responsables
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="flex items-center gap-2 flex-1 md:flex-none">
+            <TabsTrigger
+              value="dashboard"
+              className="w-full min-w-0 gap-2 whitespace-normal px-2 text-center leading-tight sm:px-3 md:whitespace-nowrap"
+            >
               <BarChart3 className="h-4 w-4" />
               Synthèse
             </TabsTrigger>

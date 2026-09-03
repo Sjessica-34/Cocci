@@ -9,6 +9,8 @@
 export interface ResponsiblePurchaseInput {
   /** @minLength 1 */
   category: string;
+  /** @nullable */
+  subcategory?: string | null;
   /** @minimum 0 */
   amount: number;
   /**

@@ -17,7 +17,7 @@ router.get("/stripe/plans", async (_req, res): Promise<void> => {
       configuredEffectifOffers().map(async (offer) => {
         const price = await stripe.prices.retrieve(offer.priceId);
         const productId = typeof price.product === "string" ? price.product : price.product.id;
-        if (!price.active || productId !== offer.productId || !price.recurring) {
+        if (!price.active || productId !== offer.productId || !price.recurring || price.recurring.interval !== "month") {
           throw new Error("Configured Stripe price is unavailable");
         }
 
@@ -122,7 +122,7 @@ router.post(
       // pointer vers un prix actif rattaché au produit Cocci attendu.
       const price = await stripe.prices.retrieve(offer.priceId);
       const priceProductId = typeof price.product === "string" ? price.product : price.product.id;
-      if (!price.active || priceProductId !== offer.productId) {
+       if (!price.active || priceProductId !== offer.productId || !price.recurring || price.recurring.interval !== "month") {
         logger.error({ offerName: offer.offerName }, "Invalid Stripe checkout catalog configuration");
         res.status(500).json({ error: "Stripe catalog configuration is invalid" });
         return;

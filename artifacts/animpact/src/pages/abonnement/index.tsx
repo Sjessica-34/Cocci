@@ -27,7 +27,12 @@ type Plan = {
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatAmount(cents: number, currency: string) {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: currency.toUpperCase(), maximumFractionDigits: 0 }).format(cents / 100);
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
 }
 
 const TIER_ICONS: Record<string, typeof Zap> = {
@@ -77,7 +82,6 @@ export function Abonnement() {
   } = useOrganizationSubscription(currentOrgId);
 
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [billing, setBilling] = useState<"month" | "year">("month");
   const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
@@ -200,20 +204,6 @@ export function Abonnement() {
           </div>
         )}
 
-        {/* ── Toggle facturation ── */}
-        {plans.length > 0 && (
-          <div className="flex justify-center mb-8">
-            <div className="bg-gray-100 rounded-full p-1 flex gap-1 text-sm">
-              {(["month", "year"] as const).map((b) => (
-                <button key={b} onClick={() => setBilling(b)}
-                  className={`px-5 py-1.5 rounded-full font-medium transition-all ${billing === b ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
-                  {b === "month" ? "Mensuel" : "Annuel"}{b === "year" && <span className="ml-1.5 text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">−17 %</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* ── Plans ── */}
         {plans.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
@@ -226,8 +216,7 @@ export function Abonnement() {
               const tier = plan.tier ?? "tpe";
               const Icon = TIER_ICONS[tier] ?? Zap;
               const features = TIER_FEATURES[tier] ?? [];
-              const price = plan.prices.find((p) => p.recurring.interval === billing)
-                ?? plan.prices[0];
+              const price = plan.prices.find((p) => p.recurring.interval === "month");
               const isFeatured = i === 1;
               const isLoading = loadingPlanKey === plan.key;
 
@@ -255,12 +244,7 @@ export function Abonnement() {
                       <span className="text-3xl font-extrabold text-gray-900">
                         {formatAmount(price.unitAmount, price.currency)}
                       </span>
-                      <span className="text-sm text-gray-400 ml-1">/{price.recurring.interval === "month" ? "mois" : "an"}</span>
-                      {billing === "year" && (
-                        <p className="text-xs text-green-700 mt-1 font-medium">
-                          Soit {formatAmount(Math.round(price.unitAmount / 12), price.currency)}/mois
-                        </p>
-                      )}
+                        <span className="text-sm text-gray-400 ml-1">/mois</span>
                     </div>
                   )}
 

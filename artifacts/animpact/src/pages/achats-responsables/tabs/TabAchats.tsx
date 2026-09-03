@@ -210,6 +210,7 @@ export function TabAchats({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [categorySelection, setCategorySelection] = useState("");
   const [customCategory, setCustomCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
   const items = useMemo(
@@ -279,6 +280,7 @@ export function TabAchats({
     setForm({ ...EMPTY_FORM });
     setCategorySelection("");
     setCustomCategory("");
+    setSubcategory("");
     setFormError(null);
     setDialogOpen(true);
   };
@@ -288,6 +290,7 @@ export function TabAchats({
     const isKnownCategory = PURCHASE_CATEGORIES.includes(item.category as (typeof PURCHASE_CATEGORIES)[number]);
     setCategorySelection(isKnownCategory ? item.category : OTHER_PURCHASE_CATEGORY);
     setCustomCategory(isKnownCategory ? "" : item.category);
+    setSubcategory(item.subcategory ?? "");
     setForm({
       amount: item.amount,
       responsiblePercent: item.responsiblePercent,
@@ -306,12 +309,17 @@ export function TabAchats({
       categorySelection === OTHER_PURCHASE_CATEGORY
         ? customCategory.trim()
         : categorySelection.trim();
+    const normalizedSubcategory = subcategory.trim();
     if (!category) {
       setFormError(
         categorySelection === OTHER_PURCHASE_CATEGORY
           ? "Écrivez le nom de votre catégorie d'achat."
           : "Sélectionnez une catégorie d'achat.",
       );
+      return;
+    }
+    if (category === OTHER_PURCHASE_CATEGORY && !normalizedSubcategory) {
+      setFormError("Écrivez le nom de votre catégorie d'achat.");
       return;
     }
     if (!Number.isFinite(form.amount) || form.amount < 0) {
@@ -321,6 +329,7 @@ export function TabAchats({
 
     const payload: ResponsiblePurchaseInput = {
       category,
+      subcategory: normalizedSubcategory || null,
       amount: form.amount,
       responsiblePercent: form.responsiblePercent,
       localPercent: form.localPercent,
@@ -506,7 +515,12 @@ export function TabAchats({
                 ) : (
                   items.map((item) => (
                     <TableRow key={`${item.category}-${item.id}`}>
-                      <TableCell className="font-medium">{item.category}</TableCell>
+                      <TableCell>
+                        <p className="font-medium">{item.category}</p>
+                        {item.subcategory && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">{item.subcategory}</p>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right font-semibold">{formatEur(item.amount)}</TableCell>
                       <TableCell>
                         <div className="flex min-w-[145px] items-center gap-2">
@@ -598,21 +612,39 @@ export function TabAchats({
                 </SelectContent>
               </Select>
               {categorySelection === OTHER_PURCHASE_CATEGORY && (
-                <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3 pt-3">
+                <div className="mt-3 space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
                   <Label htmlFor="purchase-custom-category">Écrivez votre catégorie</Label>
                   <Input
                     id="purchase-custom-category"
                     value={customCategory}
-                    onChange={(event) => setCustomCategory(event.target.value)}
+                    onChange={(event) => {
+                      setCustomCategory(event.target.value);
+                      setFormError(null);
+                    }}
                     placeholder="Ex. cadeaux clients, achats événementiels…"
                     aria-required="true"
                     autoFocus
                   />
                   <p className="text-xs text-muted-foreground">
-                    Ce champ s&apos;ouvre parce que vous avez choisi « Autres achats ».
+                    Ce champ précise la catégorie choisie dans « Autres achats ».
                   </p>
                 </div>
               )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="purchase-subcategory">Sous-catégorie</Label>
+              <Input
+                id="purchase-subcategory"
+                value={subcategory}
+                onChange={(event) => {
+                  setSubcategory(event.target.value);
+                  setFormError(null);
+                }}
+                placeholder="Précisez la sous-catégorie…"
+              />
+              <p className="text-xs text-muted-foreground">
+                Vous pouvez préciser ici le type d’achat concerné, y compris pour « Autres achats ».
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="purchase-amount">Montant annuel estimé (€)</Label>

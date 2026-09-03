@@ -2588,6 +2588,7 @@ export const ListResponsiblePurchasesResponse = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "category": zod.string().min(1),
+  "subcategory": zod.string().nullish(),
   "amount": zod.number().min(listResponsiblePurchasesResponseItemsItemAmountMin),
   "responsiblePercent": zod.number().min(listResponsiblePurchasesResponseItemsItemResponsiblePercentMin).max(listResponsiblePurchasesResponseItemsItemResponsiblePercentMax),
   "localPercent": zod.number().min(listResponsiblePurchasesResponseItemsItemLocalPercentMin).max(listResponsiblePurchasesResponseItemsItemLocalPercentMax),
@@ -2625,6 +2626,7 @@ export const createResponsiblePurchaseBodyObjectivePercentMax = 100;
 
 export const CreateResponsiblePurchaseBody = zod.object({
   "category": zod.string().min(1),
+  "subcategory": zod.string().nullish(),
   "amount": zod.number().min(createResponsiblePurchaseBodyAmountMin),
   "responsiblePercent": zod.number().min(createResponsiblePurchaseBodyResponsiblePercentMin).max(createResponsiblePurchaseBodyResponsiblePercentMax),
   "localPercent": zod.number().min(createResponsiblePurchaseBodyLocalPercentMin).max(createResponsiblePurchaseBodyLocalPercentMax),
@@ -2653,6 +2655,7 @@ export const CreateResponsiblePurchaseResponse = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "category": zod.string().min(1),
+  "subcategory": zod.string().nullish(),
   "amount": zod.number().min(createResponsiblePurchaseResponseAmountMin),
   "responsiblePercent": zod.number().min(createResponsiblePurchaseResponseResponsiblePercentMin).max(createResponsiblePurchaseResponseResponsiblePercentMax),
   "localPercent": zod.number().min(createResponsiblePurchaseResponseLocalPercentMin).max(createResponsiblePurchaseResponseLocalPercentMax),
@@ -2690,6 +2693,7 @@ export const updateResponsiblePurchaseBodyObjectivePercentMax = 100;
 
 export const UpdateResponsiblePurchaseBody = zod.object({
   "category": zod.string().min(1),
+  "subcategory": zod.string().nullish(),
   "amount": zod.number().min(updateResponsiblePurchaseBodyAmountMin),
   "responsiblePercent": zod.number().min(updateResponsiblePurchaseBodyResponsiblePercentMin).max(updateResponsiblePurchaseBodyResponsiblePercentMax),
   "localPercent": zod.number().min(updateResponsiblePurchaseBodyLocalPercentMin).max(updateResponsiblePurchaseBodyLocalPercentMax),
@@ -2718,6 +2722,7 @@ export const UpdateResponsiblePurchaseResponse = zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
   "category": zod.string().min(1),
+  "subcategory": zod.string().nullish(),
   "amount": zod.number().min(updateResponsiblePurchaseResponseAmountMin),
   "responsiblePercent": zod.number().min(updateResponsiblePurchaseResponseResponsiblePercentMin).max(updateResponsiblePurchaseResponseResponsiblePercentMax),
   "localPercent": zod.number().min(updateResponsiblePurchaseResponseLocalPercentMin).max(updateResponsiblePurchaseResponseLocalPercentMax),

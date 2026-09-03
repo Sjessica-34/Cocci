@@ -29,6 +29,7 @@ function mapRow(row: typeof responsiblePurchasesTable.$inferSelect) {
     id: row.id,
     organizationId: row.organizationId,
     category: row.category,
+    subcategory: row.subcategory,
     amount: Number(row.amount),
     responsiblePercent: row.responsiblePercent,
     localPercent: row.localPercent,
@@ -138,6 +139,7 @@ router.post(
       .values(
         withExerciseValues(req, {
           category: parsed.data.category,
+          subcategory: parsed.data.subcategory ?? null,
           amount: String(parsed.data.amount),
           responsibleAmount: derivedAmount(parsed.data.amount, parsed.data.responsiblePercent),
           localAmount: derivedAmount(parsed.data.amount, parsed.data.localPercent),
@@ -204,6 +206,7 @@ router.put(
       .update(responsiblePurchasesTable)
       .set({
         category: parsed.data.category,
+        subcategory: parsed.data.subcategory ?? null,
         amount: String(parsed.data.amount),
         responsibleAmount: derivedAmount(parsed.data.amount, parsed.data.responsiblePercent),
         localAmount: derivedAmount(parsed.data.amount, parsed.data.localPercent),

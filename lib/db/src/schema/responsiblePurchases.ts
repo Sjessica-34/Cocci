@@ -15,6 +15,7 @@ export const responsiblePurchasesTable = pgTable(
       .notNull()
       .references(() => exercisesTable.id, { onDelete: "cascade" }),
     category: text("category").notNull(),
+    subcategory: text("subcategory"),
     amount: numeric("amount").notNull().default("0"),
     responsibleAmount: numeric("responsible_amount").notNull().default("0"),
     localAmount: numeric("local_amount").notNull().default("0"),
