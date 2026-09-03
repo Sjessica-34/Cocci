@@ -33,6 +33,7 @@ export function TabEvaluation({
   const [collapsedSections,setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const executeSaveRef = useRef<() => void>(() => {});
 
   const executeSave = useCallback(() => {
     if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
@@ -42,10 +43,14 @@ export function TabEvaluation({
     setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2500); }, 600);
   }, [onSave]);
 
+  useEffect(() => {
+    executeSaveRef.current = executeSave;
+  }, [executeSave]);
+
   const scheduleAutoSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => executeSave(), 800);
-  }, [executeSave]);
+    saveTimer.current = setTimeout(() => executeSaveRef.current(), 800);
+  }, []);
 
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
