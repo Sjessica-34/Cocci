@@ -35,3 +35,6 @@ STRIPE_COCCI_PRICE_51_100 = "price_1U6De3H5VRrO7ldCD5vkuPiW"
 STRIPE_COCCI_PRICE_6_10 = "price_1U6DcTH5VRrO7ldCVRwYflV6"
 STRIPE_COCCI_PRODUCT_ID = "prod_V6QS7rmnvoNSoY"
 APP_URL = "https://b7c7b77b-c3ca-42fd-84a3-660c43f48709-00-1c7h6w5mwqpr4.kirk.replit.dev/"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-32f38cb7-411c-4618-8ef2-5e3abb91b1c2"
