@@ -68,16 +68,16 @@ Les détails de configuration sont documentés dans `docs/stripe-deployment.md`.
 - comportement de retry des webhooks : une erreur métier persistante doit produire une
   réponse non-2xx pour permettre une nouvelle tentative Stripe.
 
-### 3.2 Authentification Clerk gérée par Replit
+### 3.2 Authentification Clerk externe après migration
 
 **Criticité : Bloquant pour toute route authentifiée**
 
-| Élément Replit | Preuves | Impact hors Replit | Remplacement portable |
+| Ancien élément dépendant de Replit | Preuves historiques | Remplacement appliqué |
 |---|---|---|---|
-| Tenant Clerk géré par Replit | `replit.md:19,39,76-79` | Les clés et la configuration du tenant ne sont pas automatiquement disponibles chez le nouvel hébergeur. | Application Clerk standard détenue par le projet, ou fournisseur alternatif avec migration explicite des identités. |
-| Résolution de clé par hostname | `artifacts/animpact/src/App.tsx:2-4,66-77`, `artifacts/api-server/src/app.ts:5-7,123-131` | `publishableKeyFromHost` et le package interne Clerk supposent la configuration Replit. | Clé publiable fixe de l’instance cible, injectée côté web ; clé secrète uniquement côté API. |
-| Proxy Clerk spécifique | `artifacts/api-server/src/middlewares/clerkProxyMiddleware.ts:1-81`, `artifacts/api-server/src/app.ts:69-70`, `artifacts/animpact/src/App.tsx:70,282-290` | `VITE_CLERK_PROXY_URL` peut pointer vers un proxy absent ou incorrect. | Accès Clerk standard sans proxy, ou proxy/custom domain Clerk configuré selon la documentation du fournisseur. |
-| Dépendance interne frontend | `artifacts/animpact/package.json:79-89` | Le lien `@clerk/react/internal` n’est pas un contrat public à conserver. | API publique de `@clerk/react` et configuration Clerk standard. |
+| Tenant Clerk géré par Replit | `replit.md` et audit initial | Les clés sont désormais injectées par Render depuis le tenant externe du projet. | Application Clerk externe Cocci. |
+| Résolution de clé par hostname | `App.tsx` et `app.ts` avant migration | Les clés sont désormais fixes et explicites pour l’instance cible. | `VITE_CLERK_PUBLISHABLE_KEY` côté web ; `CLERK_PUBLISHABLE_KEY` et `CLERK_SECRET_KEY` côté API. |
+| Proxy Clerk spécifique | `clerkProxyMiddleware.ts` et montage dans `app.ts` avant migration | Le proxy Replit n’est plus utilisé. | Accès direct standard à Clerk sans `VITE_CLERK_PROXY_URL`. |
+| Dépendance interne frontend | `@clerk/react/internal` avant migration | Le helper interne n’est plus utilisé. | API publique de `@clerk/react`. |
 
 Les éléments standard peuvent rester : `@clerk/react`, `@clerk/express`,
 `clerkMiddleware`, `getAuth`, le bearer token et le RBAC stocké en base.
@@ -231,8 +231,8 @@ design et n’ont aucun effet d’exécution.
 - `CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
 
-`VITE_CLERK_PROXY_URL` doit être supprimée si le futur Clerk fonctionne sans proxy, ou
-reconfigurée uniquement si un proxy Clerk standard est volontairement maintenu.
+`VITE_CLERK_PROXY_URL` n’est plus nécessaire : le tenant Clerk externe est utilisé directement
+sans proxy.
 
 `BASE_PATH` reste une convention générique, mais doit être explicitement fixée à `/`
 ou au chemin publié par le nouvel hébergeur.

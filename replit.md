@@ -16,7 +16,7 @@ Plateforme SaaS de pilotage RSE (Responsabilité Sociétale des Entreprises) des
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - **Frontend:** React + Vite, Tailwind v4, shadcn/ui, Wouter, React Query
-- **Auth:** Clerk (Replit-managed tenant) — `@clerk/react` (frontend) + `@clerk/express` (backend)
+- **Auth:** Clerk (external project-owned tenant) — `@clerk/react` (frontend) + `@clerk/express` (backend)
 - **API:** Express 5, OpenAPI-first (lib/api-spec/openapi.yaml)
 - **DB:** PostgreSQL + Drizzle ORM
 - **Validation:** Zod (zod/v4), drizzle-zod
@@ -28,7 +28,7 @@ Plateforme SaaS de pilotage RSE (Responsabilité Sociétale des Entreprises) des
 - `lib/api-spec/openapi.yaml` — source de vérité du contrat API
 - `lib/db/src/schema/` — schémas Drizzle (users.ts, organizations.ts, members.ts)
 - `artifacts/api-server/src/routes/` — routes Express (users, organizations, members, dashboard, health)
-- `artifacts/api-server/src/middlewares/` — requireAuth.ts, clerkProxyMiddleware.ts
+- `artifacts/api-server/src/middlewares/` — requireAuth.ts, requireMembership.ts, role checks
 - `artifacts/animpact/src/` — frontend React (pages, components, hooks)
 - `lib/api-client-react/src/generated/` — hooks React Query générés par Orval
 - `lib/api-zod/src/generated/` — schémas Zod générés par Orval
@@ -36,7 +36,7 @@ Plateforme SaaS de pilotage RSE (Responsabilité Sociétale des Entreprises) des
 ## Architecture decisions
 
 - **OpenAPI-first** : toute modification d'API part du fichier `openapi.yaml`, jamais du code. Toujours relancer le codegen après.
-- **Clerk multi-tenant** : Clerk gère l'authentification. Le concept "organisation" est géré dans notre DB (pas via les Clerk Organizations, non supportées par Replit-managed Clerk). JIT-provisioning des users à la première requête.
+- **Clerk multi-tenant** : Clerk gère l'authentification. Le concept "organisation" est géré dans notre DB (pas via les Clerk Organizations). JIT-provisioning des users à la première requête.
 - **requireAuth middleware** : extrait `clerkUserId` depuis `getAuth(req)` et le place sur `req.clerkUserId`. Toutes les routes protégées l'utilisent.
 - **RBAC simple** : rôles owner/admin/member/viewer stockés en DB. Les rôles owner et admin peuvent gérer les membres.
 - **Développement module par module** : chaque fonctionnalité RSE est un module indépendant. Ne jamais développer plusieurs modules en même temps.
@@ -73,9 +73,7 @@ Plateforme SaaS de pilotage RSE (Responsabilité Sociétale des Entreprises) des
 
 ## Gotchas
 
-- **Clerk + Replit-managed** : les Clerk Organizations ne sont pas supportées → gérer le multi-tenant en DB.
-- **`publishableKeyFromHost`** : toujours utiliser cette fonction (jamais la raw env var) dans le frontend Clerk.
-- **`proxyUrl={clerkProxyUrl}`** est inconditionnel (vide en dev, auto-peuplé en prod).
+- **Clerk externe** : injecter directement `VITE_CLERK_PUBLISHABLE_KEY` dans le frontend et `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` dans l'API. Aucun proxy Clerk n'est requis.
 - **Routes Clerk** : MUST be exactly `path="/sign-in/*?"` and `path="/sign-up/*?"` — le `/*?` est obligatoire.
 - **Body schemas OpenAPI** : nommer les composants avec des noms d'entité (NoteInput, OrgUpdate), jamais operation-shaped (CreateNoteBody) pour éviter les collisions TS2308.
 - **Express 5** : wildcard routes → `/{*splat}` pas `*`. Optional params → `/todos{/:id}` pas `/todos/:id?`.

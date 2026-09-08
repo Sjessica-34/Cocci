@@ -85,7 +85,6 @@
     "@uppy/dashboard": "^5.1.1",
     "@uppy/react": "^5.2.0",
     "@xyflow/react": "^12.11.1",
-    "internal": "link:@clerk/react/internal",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "qrcode.react": "^4.2.0"
