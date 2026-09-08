@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/react";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/apiUrl";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Constantes niveaux ─────────────────────────────────────────────────────
@@ -120,7 +121,7 @@ function ProofsUploader({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("category", docCategory);
-      const res = await fetch(`/api/organizations/${orgId}/documents`, {
+      const res = await fetch(apiUrl(`/api/organizations/${orgId}/documents`), {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
@@ -137,7 +138,7 @@ function ProofsUploader({
 
   const handleDownload = async (doc: DocumentMeta) => {
     const token = await getToken();
-    const res = await fetch(`/api/organizations/${orgId}/documents/${doc.id}/download`, {
+      const res = await fetch(apiUrl(`/api/organizations/${orgId}/documents/${doc.id}/download`), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return;

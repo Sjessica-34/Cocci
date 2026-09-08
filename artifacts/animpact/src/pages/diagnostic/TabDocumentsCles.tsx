@@ -21,6 +21,7 @@ import {
   History, ChevronDown, ChevronUp, AlertCircle, Plus, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/apiUrl";
 
 // ── Définition des documents clés prédéfinis ────────────────────────────────
 const KEY_DOCUMENTS = [
@@ -456,7 +457,7 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
       formData.append("category", category);
       if (label)       formData.append("label", label);
       if (description) formData.append("description", description);
-      const res = await fetch(`/api/organizations/${orgId}/documents`, {
+      const res = await fetch(apiUrl(`/api/organizations/${orgId}/documents`), {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
@@ -478,7 +479,7 @@ export function TabDocumentsCles({ orgId }: { orgId: number }) {
 
   const handleDownload = async (doc: DocumentMeta) => {
     const token = await getToken();
-    const res = await fetch(`/api/organizations/${orgId}/documents/${doc.id}/download`, {
+      const res = await fetch(apiUrl(`/api/organizations/${orgId}/documents/${doc.id}/download`), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return;

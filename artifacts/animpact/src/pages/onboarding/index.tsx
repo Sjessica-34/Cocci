@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useCreateOrganization, getListOrganizationsQueryKey } from "@workspace/api-client-react";
+import { customFetch, useCreateOrganization, getListOrganizationsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,16 +55,12 @@ export function Onboarding() {
 
     // Enregistrement du consentement côté backend
     try {
-      await fetch("/api/users/me/consents", {
+      await customFetch("/api/users/me/consents", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ documentType: "cgu", documentVersion: LEGAL_VERSION }),
       });
-      await fetch("/api/users/me/consents", {
+      await customFetch("/api/users/me/consents", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ documentType: "privacy", documentVersion: LEGAL_VERSION }),
       });
     } catch {

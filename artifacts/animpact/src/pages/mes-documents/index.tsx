@@ -14,6 +14,7 @@ import {
   ChevronDown, ChevronRight, Award, ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/apiUrl";
 import { CATEGORY_LABELS, isDiagnosticCategory, isDocumentsClesCategory, getDocumentsClesSlug, getDiagnosticSubcategoryId } from "@/components/DocumentUploader";
 import { getDocumentsClesLabel } from "@/pages/diagnostic/TabDocumentsCles";
 import { DIAGNOSTIC_CATEGORIES } from "@workspace/rse-referentials";
@@ -584,7 +585,7 @@ export function MesDocuments() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("category", category);
-      const res = await fetch(`/api/organizations/${currentOrgId}/documents`, {
+      const res = await fetch(apiUrl(`/api/organizations/${currentOrgId}/documents`), {
         method: "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -604,7 +605,7 @@ export function MesDocuments() {
 
   const handleDownload = async (doc: DocumentMeta) => {
     const token = await getToken();
-    const res = await fetch(`/api/organizations/${currentOrgId}/documents/${doc.id}/download`, {
+    const res = await fetch(apiUrl(`/api/organizations/${currentOrgId}/documents/${doc.id}/download`), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return;

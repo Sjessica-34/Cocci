@@ -60,7 +60,7 @@ import { SUBSCRIPTION_INTENT_SESSION_KEY } from "@/pages/onboarding/plans";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
-import { setAuthTokenGetter, setExerciseIdGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -73,6 +73,7 @@ function stripBase(path: string): string {
 if (!clerkPubKey) throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
 
 setExerciseIdGetter(() => getCurrentExerciseId());
+setBaseUrl(import.meta.env.VITE_API_URL);
 
 const clerkLocalization = {
   ...frFR,

@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { requestUploadUrl } from "@workspace/api-client-react";
 import { customFetch } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { apiUrl } from "@/lib/apiUrl";
 
 interface UploadResult {
   objectPath: string;
@@ -54,7 +55,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
         setProgress(100);
         const result: UploadResult = {
           objectPath,
-          fileUrl: `/api/storage${objectPath}`,
+          fileUrl: apiUrl(`/api/storage${objectPath}`),
         };
         options.onSuccess?.(result);
         return result;

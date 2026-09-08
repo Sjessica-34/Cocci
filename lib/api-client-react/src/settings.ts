@@ -21,12 +21,10 @@ export interface DeletionRequestResponse {
  */
 export function useExportMyData() {
   async function triggerExport() {
-    const response = await fetch("/api/users/me/export", {
+    const blob = await customFetch<Blob>("/api/users/me/export", {
+      responseType: "blob",
       headers: { Accept: "application/json" },
-      credentials: "include",
     });
-    if (!response.ok) throw new Error("Échec de l'export de données.");
-    const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

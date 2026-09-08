@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import type { ReportData } from "./useReportData";
+import { apiUrl } from "@/lib/apiUrl";
 
 export type AiAnalyses = Record<string, string | null>;
 
@@ -250,7 +251,7 @@ export function useReportAI(data: ReportData, orgId: number | null): AiAnalyses 
       const results = await Promise.all(
         entries.map(async ([key, context]) => {
           try {
-            const res = await fetch(`/api/organizations/${orgId}/report/ai-section`, {
+            const res = await fetch(apiUrl(`/api/organizations/${orgId}/report/ai-section`), {
               method: "POST",
               headers,
               body: JSON.stringify({ section: "analyse", context }),

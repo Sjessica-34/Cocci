@@ -5,6 +5,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
 } from "recharts";
 import { PILLARS, computeScores, maturityLabel } from "../numerique-responsable/data";
+import { apiUrl } from "@/lib/apiUrl";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -156,7 +157,7 @@ export function PublicRsePage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`/api/public/rse/${token}`)
+    fetch(apiUrl(`/api/public/rse/${token}`))
       .then(async (r) => {
         if (!r.ok) { setNotFound(true); return; }
         const json = await r.json();

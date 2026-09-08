@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@clerk/react";
+import { apiUrl } from "@/lib/apiUrl";
 import {
   Loader2,
   Check,
@@ -182,14 +183,14 @@ function SlotRow({ slot, orgId, members }: { slot: PlanSlot; orgId: number; memb
       const form = new FormData();
       form.append("file", file);
       form.append("category", "mes-actions");
-      const res = await fetch(`/api/organizations/${orgId}/documents`, {
+      const res = await fetch(apiUrl(`/api/organizations/${orgId}/documents`), {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,
       });
       if (!res.ok) throw new Error(await res.text());
       const doc = await res.json();
-      const url = `/api/organizations/${orgId}/documents/${doc.id}/download`;
+      const url = apiUrl(`/api/organizations/${orgId}/documents/${doc.id}/download`);
       setJustificationUrl(url);
       setJustificationName(file.name);
       await updateSlot({
@@ -209,7 +210,7 @@ function SlotRow({ slot, orgId, members }: { slot: PlanSlot; orgId: number; memb
   async function handleDownload() {
     if (!justificationUrl) return;
     const token = await getToken();
-    const res = await fetch(justificationUrl, {
+    const res = await fetch(apiUrl(justificationUrl), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return;

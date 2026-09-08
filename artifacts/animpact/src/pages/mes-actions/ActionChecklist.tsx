@@ -20,6 +20,7 @@ import {
   Download, Calendar, MessageSquare, Paperclip, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/apiUrl";
 
 interface Props {
   orgId: number;
@@ -127,14 +128,14 @@ function InlineForm({ planItem, orgId }: InlineFormProps) {
       const form = new FormData();
       form.append("file", file);
       form.append("category", "mes-actions");
-      const res = await fetch(`/api/organizations/${orgId}/documents`, {
+      const res = await fetch(apiUrl(`/api/organizations/${orgId}/documents`), {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,
       });
       if (!res.ok) throw new Error(await res.text());
       const doc = await res.json();
-      const url = `/api/organizations/${orgId}/documents/${doc.id}/download`;
+      const url = apiUrl(`/api/organizations/${orgId}/documents/${doc.id}/download`);
       setJustificationUrl(url);
       setJustificationName(file.name);
       await updateItem({
@@ -158,7 +159,7 @@ function InlineForm({ planItem, orgId }: InlineFormProps) {
   async function handleDownload() {
     if (!justificationUrl) return;
     const token = await getToken();
-    const res = await fetch(justificationUrl, {
+    const res = await fetch(apiUrl(justificationUrl), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return;

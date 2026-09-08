@@ -13,6 +13,7 @@ import {
   Upload, FileText, Trash2, Download, Loader2, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/apiUrl";
 
 // ── Category labels ─────────────────────────────────────────────────────────
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -116,7 +117,7 @@ export function DocumentUploader({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("category", category);
-      const res = await fetch(`/api/organizations/${orgId}/documents`, {
+      const res = await fetch(apiUrl(`/api/organizations/${orgId}/documents`), {
         method: "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -136,7 +137,7 @@ export function DocumentUploader({
 
   const handleDownload = async (doc: DocumentMeta) => {
     const token = await getToken();
-    const res = await fetch(`/api/organizations/${orgId}/documents/${doc.id}/download`, {
+    const res = await fetch(apiUrl(`/api/organizations/${orgId}/documents/${doc.id}/download`), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return;
