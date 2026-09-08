@@ -1,8 +1,22 @@
-import { File } from '@google-cloud/storage';
 import { and, eq } from 'drizzle-orm';
 import { db, membersTable, usersTable } from '@workspace/db';
 
-const ACL_POLICY_METADATA_KEY = 'custom:aclPolicy';
+export interface ObjectStorageMetadata {
+  contentType?: string;
+  size?: number;
+  metadata?: Record<string, string>;
+}
+
+export interface ObjectStorageFile {
+  name: string;
+  exists(): Promise<[boolean]>;
+  getMetadata(): Promise<[ObjectStorageMetadata]>;
+  setMetadata(metadata: { metadata: Record<string, string> }): Promise<void>;
+  getObjectBody(): Promise<unknown>;
+}
+
+const ACL_POLICY_METADATA_KEY = 'custom-acl-policy';
+const LEGACY_ACL_POLICY_METADATA_KEY = 'custom:aclPolicy';
 
 // Can be flexibly defined according to the use case.
 //
@@ -89,7 +103,7 @@ function createObjectAccessGroup(
 }
 
 export async function setObjectAclPolicy(
-  objectFile: File,
+  objectFile: ObjectStorageFile,
   aclPolicy: ObjectAclPolicy,
 ): Promise<void> {
   const [exists] = await objectFile.exists();
@@ -105,10 +119,12 @@ export async function setObjectAclPolicy(
 }
 
 export async function getObjectAclPolicy(
-  objectFile: File,
+  objectFile: ObjectStorageFile,
 ): Promise<ObjectAclPolicy | null> {
   const [metadata] = await objectFile.getMetadata();
-  const aclPolicy = metadata?.metadata?.[ACL_POLICY_METADATA_KEY];
+  const aclPolicy =
+    metadata?.metadata?.[ACL_POLICY_METADATA_KEY] ??
+    metadata?.metadata?.[LEGACY_ACL_POLICY_METADATA_KEY];
   if (!aclPolicy) {
     return null;
   }
@@ -121,7 +137,7 @@ export async function canAccessObject({
   requestedPermission,
 }: {
   userId?: string;
-  objectFile: File;
+  objectFile: ObjectStorageFile;
   requestedPermission: ObjectPermission;
 }): Promise<boolean> {
   const aclPolicy = await getObjectAclPolicy(objectFile);

@@ -11,3 +11,4 @@
 - [Pagination des graphiques parties prenantes](stakeholder-chart-print-pagination.md) — en PDF, fragmenter la pile de graphiques mais jamais une carte, son SVG ou sa légende.
 - [Cycle annuel des exercices](annual-exercise-lifecycle.md) — un seul service transactionnel pour planifié, rattrapage et manuel; précédent modifiable jusqu’au 28 février.
 - [Invariants objets privés et propriétaires](private-object-and-owner-invariants.md) — finalisation réessayable sous verrou; droits par organisation; seul un propriétaire actif compte.
+- [Cloudflare R2 sur Render](r2-render-storage.md) — URLs présignées S3, ACL en métadonnées compatibles et CORS obligatoire pour les uploads navigateur.
