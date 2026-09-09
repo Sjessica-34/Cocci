@@ -35,6 +35,27 @@ import { requireActiveSubscription } from "../middlewares/requireActiveSubscript
 
 const router: IRouter = Router();
 
+function requireActiveSubscriptionExceptOrganizationSetup(
+  req: Parameters<typeof requireActiveSubscription>[0],
+  res: Parameters<typeof requireActiveSubscription>[1],
+  next: Parameters<typeof requireActiveSubscription>[2],
+): void {
+  // Choosing the group calculation mode is part of onboarding, before the
+  // first subscription exists. Its own route still enforces auth and role.
+  const isGroupModeSetupUpdate =
+    req.method === "PATCH"
+    && (req.path === "/" || req.path === "")
+    && req.body
+    && Object.keys(req.body).length === 1
+    && Object.prototype.hasOwnProperty.call(req.body, "groupMode");
+
+  if (isGroupModeSetupUpdate) {
+    next();
+    return;
+  }
+  requireActiveSubscription(req, res, next);
+}
+
 router.use(healthRouter);
 router.use(storageRouter);
 router.use(usersRouter);
@@ -50,7 +71,12 @@ router.use(subscriptionsRouter);
 // sur l'abonnement, et expose req.orgId pour requireActiveSubscription.
 // Les super_admin sont exemptés dans requireOrgMembership (pas de vérif membres)
 // et dans requireActiveSubscription (pas de vérif abonnement).
-router.use("/organizations/:orgId", requireAuth, requireOrgMembership, requireActiveSubscription);
+router.use(
+  "/organizations/:orgId",
+  requireAuth,
+  requireOrgMembership,
+  requireActiveSubscriptionExceptOrganizationSetup,
+);
 
 router.use(organizationsRouter);
 router.use(exercisesRouter);
