@@ -6,6 +6,7 @@ import { requireActiveOrgMembership, requireExerciseScope, requireWritableExerci
 import { generateReport } from "../lib/generateReport";
 import { logger } from "../lib/logger";
 import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 const router = Router();
 
@@ -50,6 +51,44 @@ function serializeDraft(row: typeof rseReportDraftsTable.$inferSelect) {
     additionalGenerations: row.generationBonus ?? 0,
     maxGenerations: MAX_REPORT_GENERATIONS + (row.generationBonus ?? 0),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function summarizeAnthropicError(error: unknown): Record<string, unknown> {
+  if (!error || typeof error !== "object") {
+    return { message: String(error) };
+  }
+
+  const candidate = error as Record<string, unknown>;
+  const details = candidate.error && typeof candidate.error === "object"
+    ? candidate.error as Record<string, unknown>
+    : null;
+  const fault = details?.fault && typeof details.fault === "object"
+    ? details.fault as Record<string, unknown>
+    : null;
+  const faultDetail = fault?.detail && typeof fault.detail === "object"
+    ? fault.detail as Record<string, unknown>
+    : null;
+
+  return {
+    name: typeof candidate.name === "string" ? candidate.name : undefined,
+    status: typeof candidate.status === "number" ? candidate.status : undefined,
+    message: typeof candidate.message === "string" ? candidate.message : undefined,
+    providerMessage: typeof details?.message === "string"
+      ? details.message
+      : typeof fault?.faultstring === "string"
+        ? fault.faultstring
+        : undefined,
+    providerCode: typeof details?.type === "string"
+      ? details.type
+      : typeof faultDetail?.errorcode === "string"
+        ? faultDetail.errorcode
+        : undefined,
+    requestId: typeof candidate.requestID === "string"
+      ? candidate.requestID
+      : typeof candidate.request_id === "string"
+        ? candidate.request_id
+        : undefined,
   };
 }
 
@@ -199,14 +238,6 @@ router.post("/organizations/:orgId/report/ai-section", requireAuth, requireWrita
     data?: Record<string, unknown>;
   };
 
-  const baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-
-  if (!baseUrl || !apiKey) {
-    res.status(503).json({ error: "AI integration not configured" });
-    return;
-  }
-
   const lengthMap: Record<string, string> = {
     courte: "80 à 100 mots",
     standard: "130 à 160 mots",
@@ -251,33 +282,30 @@ router.post("/organizations/:orgId/report/ai-section", requireAuth, requireWrita
   }
 
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-5.6-luna",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_completion_tokens: 400,
-      }),
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 8192,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
     });
 
-    if (!response.ok) {
-      const err = await response.text();
-      logger.error({ err }, "AI API error");
+    const textBlock = response.content.find((block) => block.type === "text");
+    if (!textBlock || !("text" in textBlock) || !textBlock.text.trim()) {
+      logger.error({
+        model: response.model,
+        stopReason: response.stop_reason,
+        contentBlockTypes: response.content.map((block) => block.type),
+      }, "Report AI returned no text block");
       res.status(502).json({ error: "AI generation failed" });
       return;
     }
 
-    const json = await response.json() as { choices: Array<{ message: { content: string } }> };
-    res.json({ content: json.choices[0]?.message?.content?.trim() ?? "" });
-  } catch (e) {
-    logger.error({ e }, "AI section generation error");
+    res.json({ content: textBlock.text.trim() });
+  } catch (error) {
+    logger.error(
+      { anthropicError: summarizeAnthropicError(error) },
+      "Report AI Anthropic generation error",
+    );
     res.status(502).json({ error: "AI generation failed" });
   }
 });
