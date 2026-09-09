@@ -1,6 +1,7 @@
 import { getAuth } from "@clerk/express";
 import { pool } from "@workspace/db";
 import type { Request, Response, NextFunction } from "express";
+import { getBillingOrganizationId } from "../lib/billingOrganization";
 
 export function hasActiveSubscriptionStatus(status: string | null | undefined): boolean {
   return status === "active" || status === "trial";
@@ -49,9 +50,10 @@ export async function requireActiveSubscription(
       return;
     }
 
+    const billingOrgId = await getBillingOrganizationId(orgId);
     const subRow = await pool.query<{ status: string }>(
       "SELECT status FROM subscriptions WHERE organization_id = $1 LIMIT 1",
-      [orgId],
+      [billingOrgId],
     );
     const status = subRow.rows[0]?.status;
 

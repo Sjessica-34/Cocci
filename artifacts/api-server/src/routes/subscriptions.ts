@@ -6,6 +6,7 @@ import { getUncachableStripeClient } from "../stripeClient";
 import { configuredEffectifOffers, resolveCheckoutOffer } from "../stripeCatalog";
 import { logger } from "../lib/logger";
 import { getPublicAppUrl } from "../appUrl";
+import { getBillingOrganizationId } from "../lib/billingOrganization";
 
 const router = Router();
 
@@ -56,11 +57,12 @@ router.get(
   async (req, res): Promise<void> => {
     const orgId = req.orgId!;
     try {
+      const billingOrgId = await getBillingOrganizationId(orgId);
       const row = await pool.query(
         `SELECT mode, status, offer_name, stripe_customer_id, stripe_subscription_id,
                 start_at, end_at, trial_end_at, max_users, override_max_users
          FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
-        [orgId],
+        [billingOrgId],
       );
       const sub = row.rows[0] ?? null;
 
@@ -93,6 +95,7 @@ router.post(
     }
 
     try {
+      const billingOrgId = await getBillingOrganizationId(orgId);
       const offer = resolveCheckoutOffer({
         effectifKey: body.effectifKey,
         action: body.action,
@@ -104,7 +107,7 @@ router.post(
 
       const currentSubscription = await pool.query<{ mode: string | null; status: string | null }>(
         "SELECT mode, status FROM subscriptions WHERE organization_id = $1 LIMIT 1",
-        [orgId],
+        [billingOrgId],
       );
       const hasActiveStripeSubscription = currentSubscription.rows[0]?.mode === "stripe"
         && currentSubscription.rows[0]?.status === "active";
@@ -125,7 +128,7 @@ router.post(
            (
              SELECT ew.total_headcount
              FROM employment_workforce ew
-             WHERE ew.organization_id = o.id
+              WHERE ew.organization_id = o.id
              ORDER BY ew.updated_at DESC NULLS LAST, ew.id DESC
              LIMIT 1
            )
@@ -133,7 +136,7 @@ router.post(
          FROM organizations o
          WHERE o.id = $1
          LIMIT 1`,
-        [orgId],
+        [billingOrgId],
       );
       const employeeCount = organizationRow.rows[0]?.employee_count ?? null;
       if (
@@ -165,18 +168,18 @@ router.post(
       // Récupérer ou créer le customer Stripe pour cette org
       const subRow = await pool.query(
         "SELECT stripe_customer_id FROM subscriptions WHERE organization_id = $1 LIMIT 1",
-        [orgId],
+        [billingOrgId],
       );
       let customerId: string | undefined = subRow.rows[0]?.stripe_customer_id;
 
       if (!customerId) {
         const orgRow = await pool.query(
           "SELECT name FROM organizations WHERE id = $1 LIMIT 1",
-          [orgId],
+          [billingOrgId],
         );
         const customer = await stripe.customers.create({
           name: orgRow.rows[0]?.name ?? undefined,
-          metadata: { orgId: String(orgId) },
+          metadata: { orgId: String(billingOrgId) },
         });
         customerId = customer.id;
       }
@@ -198,7 +201,7 @@ router.post(
         )}`,
         cancel_url: `${baseUrl}/abonnement?cancelled=1`,
         metadata: {
-          orgId: String(orgId),
+          orgId: String(billingOrgId),
           offerName: offer.offerName,
           ...(offer.effectifKey ? { effectifKey: offer.effectifKey } : {}),
           ...(offer.action ? { action: offer.action } : {}),
@@ -223,9 +226,10 @@ router.post(
   async (req, res): Promise<void> => {
     const orgId = req.orgId!;
     try {
+      const billingOrgId = await getBillingOrganizationId(orgId);
       const subRow = await pool.query(
         "SELECT stripe_customer_id FROM subscriptions WHERE organization_id = $1 LIMIT 1",
-        [orgId],
+        [billingOrgId],
       );
       const customerId = subRow.rows[0]?.stripe_customer_id;
       if (!customerId) {

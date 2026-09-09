@@ -260,7 +260,10 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
   const { data: orgs, isLoading } = useListOrganizations();
   const { currentOrgId } = useCurrentOrganization();
   const { isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin();
-  const subscriptionOrgId = currentOrgId ?? orgs?.[0]?.id ?? null;
+  // L'abonnement d'un groupe est porté par son organisation racine. La vue
+  // peut toutefois être positionnée sur une filiale.
+  const rootOrg = orgs?.find((org) => !org.parentId) ?? null;
+  const subscriptionOrgId = rootOrg?.id ?? currentOrgId ?? orgs?.[0]?.id ?? null;
   const {
     subscription,
     isLoading: subscriptionLoading,
