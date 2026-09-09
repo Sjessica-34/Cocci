@@ -1,6 +1,7 @@
 import {
   ChapterWrapper, SectionTitle, ExplainerText, KpiGrid, R,
 } from "./_shared";
+import { AuthenticatedReportImage } from "./AuthenticatedReportImage";
 import type { ReportData } from "../useReportData";
 
 export function ChapterQuiSommesNous({ data }: { data: ReportData }) {
@@ -38,6 +39,17 @@ export function ChapterQuiSommesNous({ data }: { data: ReportData }) {
         <p style={{ fontSize: 14, lineHeight: 1.8, color: "#1C2340", textAlign: "justify", fontFamily: "sans-serif" }}>
           {desc}
         </p>
+      )}
+
+      {orgChartUrl && (
+        <>
+          <SectionTitle>Organigramme</SectionTitle>
+          <AuthenticatedReportImage
+            source={orgChartUrl}
+            alt="Organigramme"
+            style={{ maxWidth: "100%", borderRadius: 8, border: "1px solid #E2E8F0" }}
+          />
+        </>
       )}
 
       {mission && (
@@ -138,17 +150,6 @@ export function ChapterQuiSommesNous({ data }: { data: ReportData }) {
         </>
       )}
 
-      {orgChartUrl && (
-        <>
-          <SectionTitle>Organigramme</SectionTitle>
-          <img
-            src={orgChartUrl}
-            alt="Organigramme"
-            style={{ maxWidth: "100%", borderRadius: 8, border: "1px solid #E2E8F0" }}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-          />
-        </>
-      )}
     </ChapterWrapper>
   );
 }

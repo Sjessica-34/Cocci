@@ -78,6 +78,7 @@ interface Props {
   category: string;
   question?: string;
   compact?: boolean;
+  onUploaded?: (document: DocumentMeta) => void;
 }
 
 export function DocumentUploader({
@@ -85,6 +86,7 @@ export function DocumentUploader({
   category,
   question = "Avez-vous déjà un document à joindre ?",
   compact = false,
+  onUploaded,
 }: Props) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
@@ -131,6 +133,8 @@ export function DocumentUploader({
         body: formData,
       });
       if (!res.ok) throw new Error(await res.text());
+      const uploadedDocument = await res.json() as DocumentMeta;
+      onUploaded?.(uploadedDocument);
       queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey(orgId) });
     } catch (e) {
       setError("Erreur lors de l'upload. Réessayez.");

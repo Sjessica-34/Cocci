@@ -868,7 +868,17 @@ export function RapportRse() {
                   {!isReadOnly && (
                     <div className="border-t pt-3">
                       <p className="text-xs text-muted-foreground mb-2">Ou uploadez le document ici pour archivage :</p>
-                      <DocumentUploader orgId={orgId} category="organigramme" question="Organigramme de l'entreprise" />
+                      <DocumentUploader
+                        orgId={orgId}
+                        category="organigramme"
+                        question="Organigramme de l'entreprise"
+                        onUploaded={(document) => {
+                          update(
+                            "orgChartUrl",
+                            apiUrl(`/api/organizations/${orgId}/documents/${document.id}/download`),
+                          );
+                        }}
+                      />
                     </div>
                   )}
                 </SectionCard>

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ChapterWrapper, SectionTitle, ExplainerText, R } from "./_shared";
+import { AuthenticatedReportImage } from "./AuthenticatedReportImage";
 import type { ReportData } from "../useReportData";
 
 export function ChapterTempsForts({ data, chapterNum }: { data: ReportData; chapterNum: number }) {
@@ -104,16 +105,15 @@ export function ChapterTempsForts({ data, chapterNum }: { data: ReportData; chap
                     {photos.length > 0 ? (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
                         {photos.filter(Boolean).map((url, pi) => (
-                          <img
+                          <AuthenticatedReportImage
                             key={pi}
-                            src={url}
+                            source={url}
                             alt={`Photo ${pi + 1}`}
                             style={{
                               height: 140, width: "auto", maxWidth: "48%",
                               borderRadius: 8, objectFit: "cover",
                               border: "1px solid #E2E8F0",
                             }}
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                           />
                         ))}
                       </div>
