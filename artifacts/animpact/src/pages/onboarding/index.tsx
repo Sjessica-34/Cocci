@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { customFetch, useCreateOrganization, getListOrganizationsQueryKey } from "@workspace/api-client-react";
+import {
+  customFetch,
+  useCreateOrganization,
+  getListOrganizationsQueryKey,
+  useListOrganizations,
+} from "@workspace/api-client-react";
 import type { Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building, Network, Loader2 } from "lucide-react";
@@ -20,11 +25,19 @@ export function Onboarding() {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
+  const { data: organizations, isLoading: organizationsLoading } = useListOrganizations();
+  const hasSubmittedRef = useRef(false);
 
   const [name, setName] = useState("");
   const [type, setType] = useState<"entreprise" | "groupe">("entreprise");
   const [consentChecked, setConsentChecked] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!organizationsLoading && (organizations?.length ?? 0) > 0 && !hasSubmittedRef.current) {
+      setLocation("/dashboard", { replace: true });
+    }
+  }, [organizations, organizationsLoading, setLocation]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,6 +50,7 @@ export function Onboarding() {
       return;
     }
     setError("");
+    hasSubmittedRef.current = true;
 
     let org;
     try {
@@ -48,6 +62,7 @@ export function Onboarding() {
         setLocation("/dashboard");
         return;
       }
+      hasSubmittedRef.current = false;
       setError("Une erreur est survenue. Veuillez réessayer.");
       return;
     }
@@ -85,6 +100,10 @@ export function Onboarding() {
     } else {
       setLocation("/onboarding/effectif");
     }
+  }
+
+  if (organizationsLoading || (organizations?.length ?? 0) > 0) {
+    return null;
   }
 
   return (

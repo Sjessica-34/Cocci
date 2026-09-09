@@ -5,7 +5,10 @@ import { frFR } from "@clerk/localizations";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
-import { useListOrganizations } from "@workspace/api-client-react";
+import {
+  useListOrganizations,
+  getListOrganizationsQueryKey,
+} from "@workspace/api-client-react";
 
 import NotFound from "@/pages/not-found";
 import { Home } from "@/pages/home";
@@ -185,15 +188,39 @@ function AuthBrand() {
 function usePostAuthRedirect() {
   const [, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
+  const { data: organizations, isLoading: organizationsLoading } = useListOrganizations(
+    undefined,
+    {
+      query: {
+        enabled: isLoaded && isSignedIn,
+        queryKey: getListOrganizationsQueryKey(),
+      },
+    },
+  );
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn || organizationsLoading || !organizations) return;
 
     const hasSubscriptionIntent = Boolean(
       sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
     );
-    setLocation(hasSubscriptionIntent ? "/onboarding" : "/dashboard", { replace: true });
-  }, [isLoaded, isSignedIn, setLocation]);
+    const hasExistingOrganization = organizations.length > 0;
+
+    // An existing account must never restart onboarding, even if a stale
+    // subscription intent remained in sessionStorage from an earlier visit.
+    if (hasExistingOrganization) {
+      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+    }
+
+    setLocation(
+      hasExistingOrganization
+        ? "/dashboard"
+        : hasSubscriptionIntent
+          ? "/onboarding"
+          : "/dashboard",
+      { replace: true },
+    );
+  }, [isLoaded, isSignedIn, organizations, organizationsLoading, setLocation]);
 }
 
 function SignInPage() {
