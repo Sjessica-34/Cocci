@@ -188,7 +188,11 @@ function AuthBrand() {
 function usePostAuthRedirect() {
   const [, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
-  const { data: organizations, isLoading: organizationsLoading } = useListOrganizations(
+  const {
+    data: organizations,
+    isLoading: organizationsLoading,
+    isFetching: organizationsFetching,
+  } = useListOrganizations(
     undefined,
     {
       query: {
@@ -199,7 +203,13 @@ function usePostAuthRedirect() {
   );
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || organizationsLoading || !organizations) return;
+    if (
+      !isLoaded
+      || !isSignedIn
+      || organizationsLoading
+      || organizationsFetching
+      || !organizations
+    ) return;
 
     const hasSubscriptionIntent = Boolean(
       sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
@@ -220,7 +230,14 @@ function usePostAuthRedirect() {
           : "/dashboard",
       { replace: true },
     );
-  }, [isLoaded, isSignedIn, organizations, organizationsLoading, setLocation]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    organizations,
+    organizationsFetching,
+    organizationsLoading,
+    setLocation,
+  ]);
 }
 
 function SignInPage() {
@@ -230,7 +247,13 @@ function SignInPage() {
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-[440px]">
         <AuthBrand />
-        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+        <SignIn
+          routing="path"
+          path={`${basePath}/sign-in`}
+          signUpUrl={`${basePath}/sign-up`}
+          forceRedirectUrl={`${basePath}/dashboard`}
+          fallbackRedirectUrl={`${basePath}/dashboard`}
+        />
       </div>
     </div>
   );
@@ -284,7 +307,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
  */
 function WorkspaceGuard({ component: Component }: { component: React.ComponentType }) {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
-  const { data: orgs, isLoading } = useListOrganizations();
+  const { data: orgs, isLoading, isFetching } = useListOrganizations();
   const { currentOrgId } = useCurrentOrganization();
   const { isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin();
   // L'abonnement d'un groupe est porté par son organisation racine. La vue
@@ -299,7 +322,7 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
 
   if (!isAuthLoaded) return null;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
-  if (isLoading) return null;
+  if (isLoading || isFetching) return null;
   if (orgs && orgs.length === 0) return <Redirect to="/onboarding" />;
   if (isSuperAdminLoading || subscriptionLoading) return null;
   if (
