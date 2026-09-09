@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiUrl } from "@/lib/apiUrl";
-import { CATEGORY_LABELS, isDiagnosticCategory, isDocumentsClesCategory, getDocumentsClesSlug, getDiagnosticSubcategoryId } from "@/components/DocumentUploader";
+import { CATEGORY_LABELS, isDiagnosticCategory, isDocumentsClesCategory, isNumeriqueResponsableCategory, getDocumentsClesSlug, getDiagnosticSubcategoryId } from "@/components/DocumentUploader";
 import { getDocumentsClesLabel } from "@/pages/diagnostic/TabDocumentsCles";
 import { DIAGNOSTIC_CATEGORIES } from "@workspace/rse-referentials";
 
@@ -631,7 +631,11 @@ export function MesDocuments() {
   const regularDocs = allDocs.filter((d) => !isDiagnosticCategory(d.category));
 
   const docsByCategory = ORDERED_CATEGORIES.reduce<Record<string, DocumentMeta[]>>((acc, cat) => {
-    acc[cat] = regularDocs.filter((d) => d.category === cat);
+    acc[cat] = regularDocs.filter((d) =>
+      cat === "numerique-responsable"
+        ? isNumeriqueResponsableCategory(d.category)
+        : d.category === cat,
+    );
     return acc;
   }, {});
 
