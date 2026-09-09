@@ -70,6 +70,7 @@ import {
 } from "@/hooks/useOrganizationSubscription";
 import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
+import { resolvePostAuthRedirect } from "@/lib/authRedirect";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -214,22 +215,18 @@ function usePostAuthRedirect() {
     const hasSubscriptionIntent = Boolean(
       sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
     );
-    const hasExistingOrganization = organizations.length > 0;
+    const { path, clearSubscriptionIntent } = resolvePostAuthRedirect({
+      organizationCount: organizations.length,
+      hasSubscriptionIntent,
+    });
 
     // An existing account must never restart onboarding, even if a stale
     // subscription intent remained in sessionStorage from an earlier visit.
-    if (hasExistingOrganization) {
+    if (clearSubscriptionIntent) {
       sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
     }
 
-    setLocation(
-      hasExistingOrganization
-        ? "/dashboard"
-        : hasSubscriptionIntent
-          ? "/onboarding"
-          : "/dashboard",
-      { replace: true },
-    );
+    setLocation(path, { replace: true });
   }, [
     isLoaded,
     isSignedIn,

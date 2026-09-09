@@ -6,6 +6,10 @@ import {
   isOrganizationSubscriptionReady,
   isSubscriptionCheckoutButtonDisabled,
 } from "@/hooks/useOrganizationSubscription";
+import {
+  resolvePostAuthRedirect,
+  shouldRedirectOnboardingToDashboard,
+} from "@/lib/authRedirect";
 
 test("une réponse subscription: null laisse le bouton Souscrire utilisable", () => {
   const subscriptionReady = isOrganizationSubscriptionReady(42, null, false);
@@ -72,4 +76,48 @@ test("un abonnement actif ou trial est reconnu comme accès workspace", () => {
     }),
     true,
   );
+});
+
+test("un compte existant reprend toujours le dashboard après authentification", () => {
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 1,
+      hasSubscriptionIntent: true,
+    }),
+    {
+      path: "/dashboard",
+      clearSubscriptionIntent: true,
+    },
+  );
+});
+
+test("un nouvel utilisateur avec une intention d'abonnement commence l'onboarding", () => {
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 0,
+      hasSubscriptionIntent: true,
+    }),
+    {
+      path: "/onboarding",
+      clearSubscriptionIntent: false,
+    },
+  );
+});
+
+test("un nouvel utilisateur sans intention d'abonnement arrive au dashboard", () => {
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 0,
+      hasSubscriptionIntent: false,
+    }),
+    {
+      path: "/dashboard",
+      clearSubscriptionIntent: false,
+    },
+  );
+});
+
+test("l'accès direct à l'onboarding redirige un compte déjà configuré", () => {
+  assert.equal(shouldRedirectOnboardingToDashboard(1), true);
+  assert.equal(shouldRedirectOnboardingToDashboard(0), false);
 });

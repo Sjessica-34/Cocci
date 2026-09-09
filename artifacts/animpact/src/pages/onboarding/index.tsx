@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { shouldRedirectOnboardingToDashboard } from "@/lib/authRedirect";
 import { SUBSCRIPTION_INTENT_SESSION_KEY } from "./plans";
 
 // Version des documents légaux en vigueur
@@ -34,7 +35,11 @@ export function Onboarding() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!organizationsLoading && (organizations?.length ?? 0) > 0 && !hasSubmittedRef.current) {
+    if (
+      !organizationsLoading
+      && shouldRedirectOnboardingToDashboard(organizations?.length ?? 0)
+      && !hasSubmittedRef.current
+    ) {
       setLocation("/dashboard", { replace: true });
     }
   }, [organizations, organizationsLoading, setLocation]);
