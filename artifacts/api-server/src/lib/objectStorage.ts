@@ -278,6 +278,9 @@ function getR2StorageConfig(): {
     objectStorageClient = new S3Client({
       region: 'auto',
       endpoint,
+      // R2 presigned browser uploads do not provide a checksum header. The
+      // AWS SDK otherwise adds an empty CRC32 checksum to the signed URL.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
       credentials: { accessKeyId, secretAccessKey },
     });
   }
