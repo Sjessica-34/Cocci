@@ -18,10 +18,15 @@ export function isActiveStripeSubscription(
 }
 
 const AUTH_RETRY_DELAY_MS = 350;
-const MAX_AUTH_ATTEMPTS = 2;
-const TOKEN_TIMEOUT_MS = 2_500;
+const TOKEN_ATTEMPT_TIMEOUT_MS = 2_500;
+const TOKEN_WAIT_TIMEOUT_MS = 12_000;
+const MAX_REQUEST_ATTEMPTS = 2;
 const REQUEST_TIMEOUT_MS = 4_000;
-const LOAD_TIMEOUT_MS = 8_000;
+const LOAD_TIMEOUT_MS = 20_000;
+
+type ClerkTokenGetter = (options?: {
+  skipCache?: boolean;
+}) => Promise<string | null>;
 
 class SubscriptionStatusTimeoutError extends Error {
   constructor(message: string) {
@@ -51,6 +56,53 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForClerkToken(
+  getToken: ClerkTokenGetter,
+  isCancelled: () => boolean,
+  forceRefresh = false,
+) {
+  const startedAt = Date.now();
+  let attempt = 0;
+  let lastError: Error | null = null;
+
+  while (Date.now() - startedAt < TOKEN_WAIT_TIMEOUT_MS) {
+    if (isCancelled()) {
+      throw new DOMException("Subscription check cancelled.", "AbortError");
+    }
+
+    const remainingMs = TOKEN_WAIT_TIMEOUT_MS - (Date.now() - startedAt);
+    try {
+      // Clerk peut avoir une session valide dans ses cookies avant que son
+      // token local soit immédiatement disponible. Une tentative individuelle
+      // reste bornée à 2,5 s, mais un retour null est traité comme transitoire.
+      const token = await withTimeout(
+        getToken({ skipCache: forceRefresh || attempt > 0 }),
+        Math.min(TOKEN_ATTEMPT_TIMEOUT_MS, remainingMs),
+        "Le jeton d'authentification n'est pas disponible.",
+      );
+
+      if (token) return token;
+      lastError = new Error("Authentication token unavailable");
+    } catch (err) {
+      lastError = err instanceof Error
+        ? err
+        : new Error("Subscription authentication unavailable");
+    }
+
+    attempt += 1;
+    const waitMs = Math.min(
+      AUTH_RETRY_DELAY_MS,
+      TOKEN_WAIT_TIMEOUT_MS - (Date.now() - startedAt),
+    );
+    if (waitMs <= 0) break;
+    await wait(waitMs);
+  }
+
+  throw lastError ?? new SubscriptionStatusTimeoutError(
+    "Le jeton d'authentification n'est pas disponible.",
+  );
 }
 
 function isRetryableStatusError(error: unknown) {
@@ -109,52 +161,55 @@ export function useOrganizationSubscription(orgId: number | null | undefined) {
       setSubscription(undefined);
 
       let lastError: Error | null = null;
-      for (let attempt = 0; attempt < MAX_AUTH_ATTEMPTS; attempt += 1) {
+      for (let requestAttempt = 0; requestAttempt < MAX_REQUEST_ATTEMPTS; requestAttempt += 1) {
+        let token: string;
         try {
-          // Une session Clerk fraîchement créée peut ne pas encore disposer d'un
-          // JWT exploitable. Le second essai force donc un jeton non mis en cache.
-          const token = await withTimeout(
-            getToken({ skipCache: attempt > 0 }),
-            TOKEN_TIMEOUT_MS,
-            "Le jeton d'authentification n'est pas disponible.",
+          token = await waitForClerkToken(
+            getToken,
+            () => cancelled,
+            requestAttempt > 0,
           );
-          if (!token) {
-            lastError = new Error("Authentication token unavailable");
-          } else {
-            const controller = new AbortController();
-            const requestTimeoutId = window.setTimeout(
-              () => controller.abort(),
-              REQUEST_TIMEOUT_MS,
-            );
-            let data: { subscription: OrganizationSubscription };
-            try {
-              data = await customFetch<{ subscription: OrganizationSubscription }>(
-                `/api/organizations/${orgId}/subscription`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                  signal: controller.signal,
-                },
-              );
-            } finally {
-              window.clearTimeout(requestTimeoutId);
-            }
-            if (!cancelled) {
-              setSubscription(data.subscription ?? null);
-              setError(null);
-            }
-            return;
-          }
         } catch (err) {
           lastError = err instanceof Error ? err : new Error("Subscription status unavailable");
-          // Seuls les échecs d'authentification transitoires et les erreurs
-          // serveur sont relancés automatiquement. Les refus d'accès restent
-          // visibles pour ne pas masquer une erreur de droits.
-          if (!isRetryableStatusError(err)) {
-            break;
-          }
+          break;
         }
 
-        if (attempt < MAX_AUTH_ATTEMPTS - 1 && !cancelled) {
+        if (cancelled) return;
+
+        try {
+          const controller = new AbortController();
+          const requestTimeoutId = window.setTimeout(
+            () => controller.abort(),
+            REQUEST_TIMEOUT_MS,
+          );
+          let data: { subscription: OrganizationSubscription };
+          try {
+            data = await customFetch<{ subscription: OrganizationSubscription }>(
+              `/api/organizations/${orgId}/subscription`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+                signal: controller.signal,
+              },
+            );
+          } finally {
+            window.clearTimeout(requestTimeoutId);
+          }
+          if (!cancelled) {
+            setSubscription(data.subscription ?? null);
+            setError(null);
+          }
+          return;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error("Subscription status unavailable");
+          // Les refus d'accès restent visibles. Une erreur 401/5xx ou un
+          // timeout réseau peut en revanche être retenté avec un token frais.
+          if (
+            !isRetryableStatusError(err)
+            || requestAttempt >= MAX_REQUEST_ATTEMPTS - 1
+            || cancelled
+          ) {
+            break;
+          }
           await wait(AUTH_RETRY_DELAY_MS);
         }
       }
