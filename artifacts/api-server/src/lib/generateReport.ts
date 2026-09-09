@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm";
 import {
   db,
   rseReportDraftsTable, organizationsTable, exercisesTable,
+  documentsTable, documentExerciseLinksTable,
   impactScoreResultsTable, diagnosticResponsesTable,
   carbonBilansTable, captationCarboneTable,
   bioDependenciesTable, stakeholdersTable, suppliersTable, responsiblePurchasesTable,
@@ -185,15 +186,128 @@ function simpleTable(headers: string[], rows: string[][], widths?: number[]): Ta
   });
 }
 
-async function fetchImageBuffer(url: string): Promise<Buffer | null> {
+type ReportImageType = "jpg" | "png" | "gif" | "bmp";
+
+type ReportImage = {
+  data: Buffer;
+  type: ReportImageType;
+  width: number;
+  height: number;
+};
+
+type ReportMedia = {
+  orgChart: ReportImage | null;
+  highlightPhotos: Map<string, ReportImage>;
+};
+
+function imageTypeFromMime(mimeType: string | null | undefined): ReportImageType | null {
+  const normalized = mimeType?.split(";")[0]?.trim().toLowerCase();
+  if (normalized === "image/jpeg") return "jpg";
+  if (normalized === "image/png") return "png";
+  if (normalized === "image/gif") return "gif";
+  if (normalized === "image/bmp") return "bmp";
+  return null;
+}
+
+function imageTypeFromUrl(url: string, contentType?: string | null): ReportImageType | null {
+  const fromMime = imageTypeFromMime(contentType);
+  if (fromMime) return fromMime;
+
   try {
-    const res = await fetch(url);
+    const extension = new URL(url).pathname.split(".").pop()?.toLowerCase();
+    if (extension === "jpeg" || extension === "jpg") return "jpg";
+    if (extension === "png") return "png";
+    if (extension === "gif") return "gif";
+    if (extension === "bmp") return "bmp";
+  } catch {
+    // An invalid URL is handled by the caller.
+  }
+  return null;
+}
+
+function readImageDimensions(data: Buffer, type: ReportImageType): { width: number; height: number } {
+  try {
+    if (type === "png" && data.length >= 24) {
+      return { width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
+    }
+    if (type === "gif" && data.length >= 10) {
+      return { width: data.readUInt16LE(6), height: data.readUInt16LE(8) };
+    }
+    if (type === "bmp" && data.length >= 26) {
+      return { width: Math.abs(data.readInt32LE(18)), height: Math.abs(data.readInt32LE(22)) };
+    }
+    if (type === "jpg" && data.length >= 4) {
+      let offset = 2;
+      while (offset + 9 < data.length) {
+        if (data[offset] !== 0xff) {
+          offset += 1;
+          continue;
+        }
+        const marker = data[offset + 1];
+        const segmentLength = data.readUInt16BE(offset + 2);
+        const isStartOfFrame = marker >= 0xc0 && marker <= 0xc3
+          || marker >= 0xc5 && marker <= 0xc7
+          || marker >= 0xc9 && marker <= 0xcb
+          || marker >= 0xcd && marker <= 0xcf;
+        if (isStartOfFrame && offset + 8 < data.length) {
+          return {
+            width: data.readUInt16BE(offset + 7),
+            height: data.readUInt16BE(offset + 5),
+          };
+        }
+        offset += 2 + segmentLength;
+      }
+    }
+  } catch {
+    // Fall back to a neutral aspect ratio if a malformed image is uploaded.
+  }
+  return { width: 4, height: 3 };
+}
+
+function createReportImage(data: Buffer, type: ReportImageType): ReportImage {
+  const dimensions = readImageDimensions(data, type);
+  return { data, type, ...dimensions };
+}
+
+async function fetchExternalImage(url: string): Promise<ReportImage | null> {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+
+    const res = await fetch(parsed);
     if (!res.ok) return null;
+    const type = imageTypeFromUrl(url, res.headers.get("content-type"));
+    if (!type) return null;
     const ab = await res.arrayBuffer();
-    return Buffer.from(ab);
+    return createReportImage(Buffer.from(ab), type);
   } catch {
     return null;
   }
+}
+
+function imageTransformation(image: ReportImage) {
+  const maxWidth = 600;
+  const maxHeight = 420;
+  const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
+  return {
+    width: Math.max(1, Math.round(image.width * scale)),
+    height: Math.max(1, Math.round(image.height * scale)),
+  };
+}
+
+function imageParagraph(image: ReportImage, altText: string): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 100, after: 160 },
+    children: [
+      new ImageRun({
+        type: image.type,
+        data: image.data,
+        transformation: imageTransformation(image),
+        altText: { title: altText, description: altText, name: altText },
+      }),
+    ],
+  });
 }
 
 // ─── AI helper ────────────────────────────────────────────────────────────────
@@ -322,6 +436,72 @@ export async function loadReportData(orgId: number, exerciseId: number) {
 }
 
 type Data = Awaited<ReturnType<typeof loadReportData>>;
+
+function protectedDocumentId(source: string): number | null {
+  const match = source.match(/\/documents\/(\d+)\/download(?:[?#]|$)/);
+  if (!match) return null;
+  const documentId = Number(match[1]);
+  return Number.isInteger(documentId) && documentId > 0 ? documentId : null;
+}
+
+async function loadReportImage(
+  source: string,
+  orgId: number,
+  exerciseId: number,
+): Promise<ReportImage | null> {
+  const documentId = protectedDocumentId(source);
+  if (documentId != null) {
+    try {
+      const [document] = await db
+        .select({
+          content: documentsTable.content,
+          mimeType: documentsTable.mimeType,
+        })
+        .from(documentsTable)
+        .innerJoin(
+          documentExerciseLinksTable,
+          eq(documentExerciseLinksTable.documentId, documentsTable.id),
+        )
+        .where(and(
+          eq(documentsTable.id, documentId),
+          eq(documentsTable.organizationId, orgId),
+          eq(documentExerciseLinksTable.exerciseId, exerciseId),
+        ))
+        .limit(1);
+
+      const type = imageTypeFromMime(document?.mimeType);
+      return document && type ? createReportImage(document.content, type) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  return fetchExternalImage(source);
+}
+
+async function loadReportMedia(data: Data, orgId: number, exerciseId: number): Promise<ReportMedia> {
+  const draft = data.draft as Record<string, unknown> | null;
+  const orgChart = typeof draft?.orgChartUrl === "string" ? draft.orgChartUrl : null;
+  const highlights = (draft?.highlights as Array<{ photos?: unknown }> | null) ?? [];
+  const photoSources = highlights.flatMap((highlight) =>
+    Array.isArray(highlight.photos)
+      ? highlight.photos.filter((photo): photo is string => typeof photo === "string" && photo.length > 0)
+      : [],
+  );
+  const sources = [...new Set([orgChart, ...photoSources].filter((source): source is string => Boolean(source)))];
+  const loaded = await Promise.all(
+    sources.map(async (source) => [source, await loadReportImage(source, orgId, exerciseId)] as const),
+  );
+  const images = new Map(loaded.filter(([, image]) => image != null) as Array<[string, ReportImage]>);
+
+  return {
+    orgChart: orgChart ? images.get(orgChart) ?? null : null,
+    highlightPhotos: new Map(photoSources.flatMap((source) => {
+      const image = images.get(source);
+      return image ? [[source, image] as [string, ReportImage]] : [];
+    })),
+  };
+}
 
 // ─── Pre-generate all AI analyses in parallel ─────────────────────────────────
 
@@ -525,13 +705,22 @@ function buildEditorial(data: Data): El[] {
   return parts;
 }
 
-function buildQuiSommesNous(data: Data): El[] {
+function buildQuiSommesNous(data: Data, media: ReportMedia): El[] {
   const d = data.draft;
   const parts: El[] = [chapterHeading(2, "Qui sommes-nous ?")];
 
   if (d?.companyDescription) {
     parts.push(body(d.companyDescription));
     parts.push(spacer());
+  }
+
+  if (d?.orgChartUrl) {
+    parts.push(sectionTitle("Organigramme"));
+    if (media.orgChart) {
+      parts.push(imageParagraph(media.orgChart, "Organigramme"));
+    } else {
+      parts.push(body(`📎 Voir l'organigramme joint : ${d.orgChartUrl}`, { color: GRAY, italic: true }));
+    }
   }
 
   if (d?.companyMission) {
@@ -585,12 +774,6 @@ function buildQuiSommesNous(data: Data): El[] {
     const rows = timeline.map((e) => [e.date, e.title, e.description]);
     parts.push(simpleTable(["Date", "Événement", "Description"], rows, [1400, 2600, 5200]));
     parts.push(spacer());
-  }
-
-  // Organigramme
-  if (d?.orgChartUrl) {
-    parts.push(sectionTitle("Organigramme"));
-    parts.push(body(`📎 Voir l'organigramme joint : ${d.orgChartUrl}`, { color: GRAY, italic: true }));
   }
 
   return parts;
@@ -1070,7 +1253,7 @@ function buildCaptation(data: Data, ai: Record<string, string | null>): El[] {
   return parts;
 }
 
-function buildTempsForts(data: Data): El[] {
+function buildTempsForts(data: Data, media: ReportMedia): El[] {
   const parts: El[] = [chapterHeading(11, "Les temps forts de l'année")];
 
   const highlights = (data.draft?.highlights as Array<{ date: string; title: string; category: string; description: string; photos?: string[] }> | null) ?? [];
@@ -1095,6 +1278,10 @@ function buildTempsForts(data: Data): El[] {
       }));
     }
     if (ev.description) parts.push(body(ev.description));
+    for (const photoUrl of ev.photos ?? []) {
+      const image = media.highlightPhotos.get(photoUrl);
+      if (image) parts.push(imageParagraph(image, `Photo du temps fort : ${ev.title}`));
+    }
     parts.push(spacer(1));
     parts.push(divider());
     parts.push(spacer(1));
@@ -1161,7 +1348,10 @@ function buildAnnexes(data: Data): El[] {
 export async function generateReport(orgId: number, exerciseId: number, year: number): Promise<Buffer> {
   // Load all data + run all AI analyses in parallel
   const data = await loadReportData(orgId, exerciseId);
-  const ai   = await generateAllAI(data);
+  const [ai, media] = await Promise.all([
+    generateAllAI(data),
+    loadReportMedia(data, orgId, exerciseId),
+  ]);
 
   const nrChecked = (data as any).nrResponses?.length
     ? (data as any).nrResponses.filter((r: { checked: boolean }) => r.checked).length
@@ -1172,7 +1362,7 @@ export async function generateReport(orgId: number, exerciseId: number, year: nu
     ...buildCover(data),
     ...buildTOC(),
     ...buildEditorial(data),
-    ...buildQuiSommesNous(data),
+    ...buildQuiSommesNous(data, media),
     ...buildDemarcheRSE(data, ai),
     ...buildPlanete(data, ai),
     ...buildHumain(data, ai),
@@ -1181,7 +1371,7 @@ export async function generateReport(orgId: number, exerciseId: number, year: nu
     ...buildImpactScore(data, ai),
     ...buildLabels(data),
     ...buildCaptation(data, ai),
-    ...buildTempsForts(data),
+    ...buildTempsForts(data, media),
     ...buildPerspectives(data),
     ...buildAnnexes(data),
   ];
