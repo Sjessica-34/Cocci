@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useStorageUpload } from "@/hooks/useStorageUpload";
 import { useAuth } from "@clerk/react";
 import { useLocation } from "wouter";
 import { useModuleContext } from "@/hooks/useModuleContext";
-import { useCurrentExercise } from "@/hooks/useCurrentExercise";
+import { getCurrentExerciseId, useCurrentExercise } from "@/hooks/useCurrentExercise";
 import {
   useGetReportDraft, useUpdateReportDraft, useGenerateReportAiSection,
   customFetch,
@@ -36,6 +35,7 @@ import {
   PenLine, Info, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/apiUrl";
 import { getGetReportDraftQueryKey } from "@workspace/api-client-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -148,9 +148,53 @@ function HighlightEditor({ items, onChange, orgId }: {
   const updPhoto = (id: string, url: string) =>
     onChange(items.map((h) => h.id === id ? { ...h, photos: url ? [url] : [] } : h));
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const { uploadFile, isUploading } = useStorageUpload({
-    onError: (err) => setUploadError(err.message ?? "Échec de l'envoi"),
-  });
+  const [isUploading, setIsUploading] = useState(false);
+  const { getToken } = useAuth();
+
+  const uploadPhoto = async (file: File, highlightId: string) => {
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("Fichier trop volumineux (max 10 Mo).");
+      return;
+    }
+
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      const token = await getToken();
+      const exerciseId = getCurrentExerciseId();
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("category", "rapport-rse");
+      formData.append("label", "Photo - Temps forts de l'année");
+
+      const response = await fetch(apiUrl(`/api/organizations/${orgId}/documents`), {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(exerciseId != null ? { "x-exercise-id": String(exerciseId) } : {}),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const document = await response.json() as { id?: number };
+      if (!document.id) {
+        throw new Error("Réponse d'upload invalide");
+      }
+
+      updPhoto(
+        highlightId,
+        apiUrl(`/api/organizations/${orgId}/documents/${document.id}/download`),
+      );
+    } catch {
+      setUploadError("Échec de l'upload. Réessayez.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -234,8 +278,7 @@ function HighlightEditor({ items, onChange, orgId }: {
                         setUploadError(null);
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const result = await uploadFile(file);
-                        if (result) updPhoto(hl.id, result.fileUrl);
+                        await uploadPhoto(file, hl.id);
                         e.target.value = "";
                       }}
                     />
