@@ -23,6 +23,14 @@ export function hasActiveOrganizationSubscription(
   return subscription?.status === "active" || subscription?.status === "trial";
 }
 
+export function isOrganizationSubscriptionReady(
+  orgId: number | null | undefined,
+  subscription: OrganizationSubscription | undefined,
+  isLoading: boolean,
+) {
+  return Boolean(orgId) && subscription !== undefined && !isLoading;
+}
+
 const AUTH_RETRY_DELAY_MS = 350;
 const TOKEN_ATTEMPT_TIMEOUT_MS = 2_500;
 const TOKEN_WAIT_TIMEOUT_MS = 12_000;
@@ -244,4 +252,52 @@ export function useOrganizationSubscription(orgId: number | null | undefined) {
     isActive: isActiveStripeSubscription(subscription),
     refresh,
   };
+}
+
+export function canStartSubscriptionCheckout({
+  currentOrgId,
+  effectifKey,
+  isAuthLoaded,
+  isSignedIn,
+  isActive,
+  checkoutStarted,
+}: {
+  currentOrgId: number | null | undefined;
+  effectifKey: string | null;
+  isAuthLoaded: boolean;
+  isSignedIn: boolean | undefined;
+  isActive: boolean;
+  checkoutStarted: boolean;
+}) {
+  return Boolean(currentOrgId)
+    && Boolean(effectifKey)
+    && isAuthLoaded
+    && isSignedIn
+    && !isActive
+    && !checkoutStarted;
+}
+
+export function isSubscriptionCheckoutButtonDisabled({
+  checkoutLoading,
+  subscriptionLoading,
+  currentOrgId,
+  subscriptionReady,
+  subscriptionError,
+  isActive,
+}: {
+  checkoutLoading: boolean;
+  subscriptionLoading: boolean;
+  currentOrgId: number | null | undefined;
+  subscriptionReady: boolean;
+  subscriptionError: unknown;
+  isActive: boolean;
+}) {
+  return checkoutLoading
+    || subscriptionLoading
+    || (
+      Boolean(currentOrgId)
+      && !subscriptionReady
+      && !subscriptionError
+    )
+    || isActive;
 }

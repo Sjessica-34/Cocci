@@ -2,6 +2,10 @@ import { getAuth } from "@clerk/express";
 import { pool } from "@workspace/db";
 import type { Request, Response, NextFunction } from "express";
 
+export function hasActiveSubscriptionStatus(status: string | null | undefined): boolean {
+  return status === "active" || status === "trial";
+}
+
 /**
  * Vérifie qu'une organisation a un abonnement actif.
  *
@@ -51,7 +55,7 @@ export async function requireActiveSubscription(
     );
     const status = subRow.rows[0]?.status;
 
-    if (status === "active" || status === "trial") {
+    if (hasActiveSubscriptionStatus(status)) {
       next();
       return;
     }

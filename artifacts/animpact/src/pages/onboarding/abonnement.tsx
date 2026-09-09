@@ -4,7 +4,10 @@ import { useAuth } from "@clerk/react";
 import { customFetch } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import {
+  canStartSubscriptionCheckout,
   isActiveStripeSubscription,
+  isOrganizationSubscriptionReady,
+  isSubscriptionCheckoutButtonDisabled,
   useOrganizationSubscription,
 } from "@/hooks/useOrganizationSubscription";
 import { Button } from "@/components/ui/button";
@@ -47,9 +50,11 @@ export function OnboardingAbonnement() {
   }, [setLocation]);
 
   const isActive = isActiveStripeSubscription(subscription);
-  const subscriptionReady = Boolean(currentOrgId)
-    && subscription !== undefined
-    && !subscriptionLoading;
+  const subscriptionReady = isOrganizationSubscriptionReady(
+    currentOrgId,
+    subscription,
+    subscriptionLoading,
+  );
   const isDevis = plan?.pricePerMonth === null;
 
   const handlePortal = async () => {
@@ -75,14 +80,14 @@ export function OnboardingAbonnement() {
   };
 
   const startCheckout = useCallback(async () => {
-    if (
-      !currentOrgId
-      || !effectifKey
-      || !isAuthLoaded
-      || !isSignedIn
-      || isActive
-      || checkoutStartedRef.current
-    ) {
+    if (!canStartSubscriptionCheckout({
+      currentOrgId,
+      effectifKey,
+      isAuthLoaded,
+      isSignedIn,
+      isActive,
+      checkoutStarted: checkoutStartedRef.current,
+    })) {
       return;
     }
 
@@ -307,16 +312,14 @@ export function OnboardingAbonnement() {
               <Button
                 className="w-full gap-2"
                 onClick={handleSouscrire}
-                disabled={
-                  checkoutLoading
-                  || subscriptionLoading
-                    || (
-                      Boolean(currentOrgId)
-                      && !subscriptionReady
-                      && !subscriptionError
-                    )
-                  || isActive
-                }
+                disabled={isSubscriptionCheckoutButtonDisabled({
+                  checkoutLoading,
+                  subscriptionLoading,
+                  currentOrgId,
+                  subscriptionReady,
+                  subscriptionError,
+                  isActive,
+                })}
               >
                 {checkoutLoading ? (
                   <>
