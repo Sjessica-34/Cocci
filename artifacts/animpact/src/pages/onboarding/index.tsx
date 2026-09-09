@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { customFetch, useCreateOrganization, getListOrganizationsQueryKey } from "@workspace/api-client-react";
+import type { Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,14 @@ export function Onboarding() {
       setError("Une erreur est survenue. Veuillez réessayer.");
       return;
     }
+    // Mettre à jour immédiatement le cache avant de changer de route.
+    // L'invalidation seule peut laisser WorkspaceGuard voir [] si la query
+    // n'a plus d'observateur actif pendant l'onboarding.
+    qc.setQueryData<Organization[]>(getListOrganizationsQueryKey(), (organizations = []) => {
+      return organizations.some((organization) => organization.id === org.id)
+        ? organizations
+        : [...organizations, org];
+    });
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
     setCurrentOrg(org.id);
 
