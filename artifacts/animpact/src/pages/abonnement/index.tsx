@@ -331,6 +331,8 @@ export function Abonnement() {
               const price = plan.prices.find((p) => p.recurring.interval === "month");
               const isFeatured = i === 1;
               const isLoading = loadingPlanKey === plan.key;
+               const isCurrentPlan =
+                 isActive && subscription?.offer_name?.trim() === plan.name.trim();
               const maxEmployees = getPlanMaxEmployees(plan.key);
               const planTooSmall =
                 employeeCount !== null &&
@@ -389,7 +391,7 @@ export function Abonnement() {
                   >
                     {isLoading ? (
                       <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Redirection…</>
-                    ) : isActive ? "Offre en cours" : planTooSmall ? "Effectif trop élevé" : "Choisir cette offre"}
+                     ) : isCurrentPlan ? "Offre en cours" : planTooSmall ? "Effectif trop élevé" : "Choisir cette offre"}
                   </Button>
                 </div>
               );
