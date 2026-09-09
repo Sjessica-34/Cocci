@@ -1,0 +1,35 @@
+Corrige le parcours d’abonnement de Cocci.
+
+Contexte fonctionnel important : Cocci n’a aucune fonctionnalité gratuite. Un utilisateur doit avoir un abonnement actif pour accéder à l’application.
+
+Le parcours attendu est :
+
+Inscription Clerk → onboarding → choix de la formule → souscription Stripe → paiement réussi → accès à Cocci.
+
+Actuellement, sur /onboarding/abonnement, l’application affiche « Impossible de vérifier votre abonnement » et bloque le bouton « Souscrire » lorsque la vérification de l’abonnement échoue. Cela empêche justement un nouvel utilisateur sans abonnement de souscrire.
+
+Je veux le comportement suivant :
+
+Utilisateur sans abonnement : il doit pouvoir choisir une formule et cliquer sur « Souscrire » pour lancer Stripe Checkout.
+Utilisateur avec abonnement actif : il doit pouvoir accéder à Cocci.
+Utilisateur connecté mais sans abonnement actif : il ne doit pas pouvoir accéder aux fonctionnalités de Cocci et doit être redirigé vers le parcours d’abonnement.
+Une absence d’abonnement (subscription: null) doit être considérée comme un état normal pour un nouvel utilisateur, pas comme une erreur.
+Une véritable erreur technique lors de la vérification de l’abonnement ne doit pas empêcher l’utilisateur de tenter de souscrire.
+Le contrôle d’abonnement doit protéger l’accès à l’application après l’onboarding, idéalement côté frontend et côté API, afin qu’il ne soit pas contournable.
+Les pages nécessaires à l’inscription, l’onboarding, la souscription Stripe et le retour de paiement doivent évidemment rester accessibles sans abonnement actif.
+
+Avant de modifier le code, vérifie le système existant afin de réutiliser les guards, hooks, routes Stripe et middlewares déjà présents plutôt que de créer un second système parallèle.
+
+Ensuite effectue les modifications nécessaires.
+
+Ne modifie pas la configuration Clerk, Neon, R2, les tarifs Stripe, les Price IDs ni les clés d’environnement.
+
+Lance pnpm run typecheck et le build complet après modification.
+
+À la fin, indique-moi :
+
+les fichiers modifiés ;
+comment l’accès sans abonnement est désormais bloqué ;
+comment un nouvel utilisateur peut désormais atteindre Stripe Checkout ;
+quelles routes restent accessibles avant paiement ;
+le résultat du typecheck et du build.
