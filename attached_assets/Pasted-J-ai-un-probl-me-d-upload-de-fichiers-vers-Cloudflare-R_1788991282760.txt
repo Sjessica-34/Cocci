@@ -1,0 +1,96 @@
+J’ai un problème d’upload de fichiers vers Cloudflare R2 uniquement sur certaines fonctionnalités de Cocci.
+
+En préproduction, le frontend est :
+https://cocci-1.onrender.com
+
+Le backend est sur Render.
+
+Lors d’un upload :
+
+Cocci appelle :
+POST /api/storage/uploads/request-url
+et cette requête répond 200.
+Le navigateur reçoit ensuite une URL présignée vers le bucket R2 cocci-preprod.
+Avant le PUT, le navigateur effectue une requête OPTIONS vers :
+cocci-preprod....r2.cloudflarestorage.com
+Cette requête OPTIONS répond :
+403 Forbidden / CORS Missing Allow Origin
+
+J’ai vérifié la requête navigateur :
+
+Origin: https://cocci-1.onrender.com
+
+Access-Control-Request-Method: PUT
+
+Access-Control-Request-Headers: content-type
+
+La configuration CORS du bucket cocci-preprod contient déjà :
+
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "https://cocci-1.onrender.com"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "PUT",
+      "HEAD"
+    ],
+    "AllowedHeaders": [
+      "Content-Type",
+      "Content-Length",
+      "Authorization",
+      "x-amz-*"
+    ],
+    "ExposeHeaders": [
+      "ETag"
+    ],
+    "MaxAgeSeconds": 3600
+  }
+]
+
+L’URL présignée générée contient également :
+
+X-Amz-Content-Sha256=UNSIGNED-PAYLOAD
+
+x-amz-checksum-crc32=AAAAAA==
+
+x-amz-sdk-checksum-algorithm=CRC32
+
+X-Amz-SignedHeaders=host
+
+Je sais également qu’au moins un autre import de fichier dans Cocci a déjà fonctionné.
+
+Je veux que tu identifies la cause exacte avant de modifier le code.
+
+Vérifie en particulier :
+
+le code qui génère les URL présignées R2 ;
+le SDK AWS/S3 utilisé ;
+la configuration du S3Client pour Cloudflare R2 ;
+l’endpoint R2 et la région utilisés ;
+le PutObjectCommand ;
+l’ajout automatique des checksums CRC32 par le SDK ;
+si ces paramètres de checksum sont compatibles avec l’upload navigateur vers R2 ;
+le Content-Type utilisé lors de la signature et celui envoyé lors du PUT ;
+si le frontend ajoute des headers qui ne correspondent pas à ceux attendus par l’URL présignée ;
+pourquoi le preflight OPTIONS reçoit un 403 malgré une origine, une méthode et un Content-Type autorisés par la politique CORS ;
+la différence entre ce système d’upload et les uploads de Cocci qui fonctionnent déjà.
+
+Compare l’implémentation actuelle aux exigences de Cloudflare R2 pour les presigned PUT.
+
+Ne modifie pas Stripe, Clerk, Neon, l’authentification, les abonnements ou les autres fonctionnalités de Cocci.
+
+Ne modifie pas non plus la configuration CORS Cloudflare pour contourner le problème sans avoir identifié la cause.
+
+Une fois la cause identifiée, corrige uniquement le flux d’upload R2 concerné.
+
+Ensuite :
+
+lance le typecheck ;
+lance le build complet ;
+indique-moi la cause exacte trouvée ;
+indique les fichiers modifiés ;
+explique précisément ce que tu as changé ;
+indique-moi s’il reste une modification manuelle à effectuer dans Cloudflare ou Render.
