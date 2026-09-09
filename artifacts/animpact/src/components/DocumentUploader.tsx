@@ -42,6 +42,11 @@ export function isDocumentsClesCategory(category: string): boolean {
   return category.startsWith("diagnostic-rse/documents-cles/");
 }
 
+/** Retourne true pour les documents généraux et les justificatifs du module Numérique Responsable */
+export function isNumeriqueResponsableCategory(category: string): boolean {
+  return category === "numerique-responsable" || category.startsWith("nr:");
+}
+
 /** Extrait le slug d'un document clé depuis sa catégorie */
 export function getDocumentsClesSlug(category: string): string {
   return category.replace("diagnostic-rse/documents-cles/", "");
