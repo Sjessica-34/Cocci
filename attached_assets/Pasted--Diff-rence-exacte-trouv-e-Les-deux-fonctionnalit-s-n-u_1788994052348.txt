@@ -1,0 +1,88 @@
+## Différence exacte trouvée
+
+Les deux fonctionnalités n’utilisaient pas le même flux.
+
+| Élément | Organigramme — fonctionne | Temps forts — échouait |
+|---|---|---|
+| Composant | `DocumentUploader` | `HighlightEditor` |
+| Hook | Aucun hook R2 | `useStorageUpload` |
+| Demande d’URL | Pas d’URL présignée | `POST /api/storage/uploads/request-url` |
+| Upload du fichier | `POST /api/organizations/:orgId/documents` avec `FormData` | `PUT` direct vers l’URL R2 |
+| Headers | Token Clerk + `x-exercise-id` | `Content-Type` envoyé directement vers R2 |
+| Content-Type | Géré automatiquement par `FormData` avec sa boundary multipart | `file.type` envoyé sur le `PUT` R2 |
+| Finalisation | Incluse côté API : insertion du document et lien avec l’exercice | Appel séparé à `/api/storage/uploads/complete` |
+| CORS R2 | Aucun preflight direct vers R2 | Preflight `OPTIONS` vers R2, puis erreur CORS |
+| Stockage | Backend via `multer`, dans `documentsTable` | Upload navigateur direct vers R2 |
+
+Le composant photo n’utilisait pas directement `ObjectUploader` ou le package générique `object-storage-web`. Il utilisait le hook spécifique `useStorageUpload`, qui repose sur l’ancien flux d’upload présigné direct vers R2.
+
+## Correction appliquée
+
+Fichier modifié :
+
+```text
+artifacts/animpact/src/pages/rapport-rse/index.tsx
+```
+
+Le composant photo utilise maintenant exactement le même parcours que `DocumentUploader` :
+
+1. récupération du token Clerk ;
+2. récupération de l’exercice courant ;
+3. création d’un `FormData` ;
+4. ajout du fichier dans `file` ;
+5. envoi vers :
+
+```text
+POST /api/organizations/:orgId/documents
+```
+
+avec :
+
+```http
+Authorization: Bearer ...
+x-exercise-id: ...
+```
+
+6. le backend stocke le fichier et crée le lien avec l’exercice ;
+7. l’URL de téléchargement du document créé est enregistrée dans `highlights[].photos`.
+
+L’URL enregistrée est de la forme :
+
+```text
+/api/organizations/:orgId/documents/:documentId/download
+```
+
+Le composant photo ne fait donc plus :
+
+- de demande d’URL présignée ;
+- de `PUT` direct vers R2 ;
+- de preflight CORS vers R2 ;
+- d’appel séparé à `/api/storage/uploads/complete`.
+
+La photo est classée avec la catégorie :
+
+```text
+rapport-rse
+```
+
+et le libellé :
+
+```text
+Photo - Temps forts de l'année
+```
+
+## Configuration Cloudflare/R2
+
+Aucune configuration Cloudflare ou R2 n’a été modifiée.
+
+Le flux photo ne dépend désormais plus du CORS R2, comme le flux d’archivage des documents.
+
+## Vérifications
+
+- `pnpm run typecheck` : réussi.
+- Build complet : réussi.
+- Frontend redémarré avec succès.
+- API toujours opérationnelle.
+- `git diff --check` : réussi.
+
+Les seuls avertissements du build concernent les sourcemaps et la taille de certains bundles frontend déjà existants.
