@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { useListBarometreCampaigns, getListBarometreCampaignsQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,14 +22,29 @@ export function BarometreSocial() {
   const { effectiveOrgId } = useModuleContext("subsidiary");
   const [activeTab, setActiveTab] = useState("campagnes");
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+  const campaignListQueryKey = useMemo(
+    () => getListBarometreCampaignsQueryKey(effectiveOrgId ?? 0),
+    [effectiveOrgId],
+  );
 
   const { data: campaignsData, isLoading } = useListBarometreCampaigns(effectiveOrgId ?? 0, {
     query: {
       enabled: !!effectiveOrgId,
-      queryKey: getListBarometreCampaignsQueryKey(effectiveOrgId ?? 0),
+      queryKey: campaignListQueryKey,
+      // Les réponses sont envoyées depuis la page publique, dans un autre
+      // contexte navigateur : ne pas conserver le compteur pendant 5 minutes.
+      staleTime: 0,
+      refetchOnWindowFocus: true,
+      refetchInterval: activeTab === "campagnes" ? 15_000 : false,
     },
   });
   const campaigns = campaignsData?.items ?? [];
+
+  useEffect(() => {
+    if (activeTab !== "campagnes" || !effectiveOrgId) return;
+    void queryClient.invalidateQueries({ queryKey: campaignListQueryKey });
+  }, [activeTab, campaignListQueryKey, effectiveOrgId, queryClient]);
 
   useEffect(() => {
     if (selectedCampaignId != null && campaigns.some((c) => c.id === selectedCampaignId)) return;
