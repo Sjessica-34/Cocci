@@ -60,6 +60,11 @@ import { SUBSCRIPTION_INTENT_SESSION_KEY } from "@/pages/onboarding/plans";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import {
+  hasActiveOrganizationSubscription,
+  useOrganizationSubscription,
+} from "@/hooks/useOrganizationSubscription";
 import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 
@@ -251,9 +256,32 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
  * Uses React Query cache (already loaded by AppLayout) so no extra fetch.
  */
 function WorkspaceGuard({ component: Component }: { component: React.ComponentType }) {
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const { data: orgs, isLoading } = useListOrganizations();
+  const { currentOrgId } = useCurrentOrganization();
+  const { isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin();
+  const subscriptionOrgId = currentOrgId ?? orgs?.[0]?.id ?? null;
+  const {
+    subscription,
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
+  } = useOrganizationSubscription(subscriptionOrgId);
+
+  if (!isAuthLoaded) return null;
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
   if (isLoading) return null;
   if (orgs && orgs.length === 0) return <Redirect to="/onboarding" />;
+  if (isSuperAdminLoading || subscriptionLoading) return null;
+  if (
+    !isSuperAdmin
+    && (
+      subscriptionError
+      || !hasActiveOrganizationSubscription(subscription)
+    )
+  ) {
+    return <Redirect to="/abonnement?reason=subscription_required" />;
+  }
+
   return (
     <>
       <Show when="signed-in">

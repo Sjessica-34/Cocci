@@ -17,6 +17,12 @@ export function isActiveStripeSubscription(
   return subscription?.status === "active" && subscription.mode === "stripe";
 }
 
+export function hasActiveOrganizationSubscription(
+  subscription: OrganizationSubscription | undefined,
+) {
+  return subscription?.status === "active" || subscription?.status === "trial";
+}
+
 const AUTH_RETRY_DELAY_MS = 350;
 const TOKEN_ATTEMPT_TIMEOUT_MS = 2_500;
 const TOKEN_WAIT_TIMEOUT_MS = 12_000;

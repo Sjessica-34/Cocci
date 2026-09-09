@@ -115,7 +115,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const isAdminRoute = location.startsWith("/admin");
   const isOnboardingRoute = location.startsWith("/onboarding");
-  const showExerciseUi = !isAdminRoute && !isOnboardingRoute && exerciseOrgId != null;
+  const isBillingRoute =
+    location === "/abonnement"
+    || location.startsWith("/abonnement/");
+  const showExerciseUi =
+    !isAdminRoute
+    && !isOnboardingRoute
+    && !isBillingRoute
+    && exerciseOrgId != null;
 
   const { data: dbUser } = useGetMe();
   const displayName =

@@ -91,12 +91,19 @@ export function Abonnement() {
   const { getToken } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
   const {
+    subscription,
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
+    isActive,
+    refresh: refreshSubscription,
+  } = useOrganizationSubscription(currentOrgId);
+  const {
     data: organization,
     isLoading: organizationLoading,
     error: organizationError,
   } = useGetOrganization(currentOrgId ?? 0, {
     query: {
-      enabled: Boolean(currentOrgId),
+      enabled: Boolean(currentOrgId) && isActive,
       queryKey: getGetOrganizationQueryKey(currentOrgId ?? 0),
     },
   });
@@ -106,17 +113,10 @@ export function Abonnement() {
     error: workforceError,
   } = useGetEmploymentWorkforce(currentOrgId ?? 0, {
     query: {
-      enabled: Boolean(currentOrgId),
+      enabled: Boolean(currentOrgId) && isActive,
       queryKey: getGetEmploymentWorkforceQueryKey(currentOrgId ?? 0),
     },
   });
-  const {
-    subscription,
-    isLoading: subscriptionLoading,
-    error: subscriptionError,
-    isActive,
-    refresh: refreshSubscription,
-  } = useOrganizationSubscription(currentOrgId);
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
@@ -145,7 +145,6 @@ export function Abonnement() {
       organizationError ||
       planTooSmall ||
       subscriptionLoading ||
-      subscriptionError ||
       isActive
     ) return;
     setLoadingPlanKey(effectifKey);
@@ -266,8 +265,7 @@ export function Abonnement() {
         {subscriptionError && currentOrgId && (
           <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 space-y-3">
             <p>
-              Impossible de vérifier votre abonnement. Les actions de souscription restent désactivées
-              jusqu&apos;à la prochaine tentative.
+              Impossible de vérifier votre abonnement. Vous pouvez toutefois tenter la souscription.
             </p>
             <Button
               type="button"

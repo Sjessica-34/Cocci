@@ -4,7 +4,8 @@ import { ApiError } from "@workspace/api-client-react";
 function handle402(error: unknown): void {
   if (error instanceof ApiError && error.status === 402) {
     // Rediriger vers la page d'abonnement avec un message explicatif
-    const url = new URL("/abonnement", window.location.origin);
+    const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+    const url = new URL(`${basePath}/abonnement`, window.location.origin);
     url.searchParams.set("reason", "subscription_required");
     window.location.href = url.toString();
   }

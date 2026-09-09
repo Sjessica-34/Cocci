@@ -8,7 +8,7 @@ import type { Request, Response, NextFunction } from "express";
  * Règles :
  * - is_super_admin → toujours autorisé (accès Cocci gratuit)
  * - subscription.status IN ('active', 'trial') → autorisé
- * - Pas de ligne subscription → autorisé (période de grâce / free)
+ * - Pas de ligne subscription → 402
  * - subscription.status IN ('suspended', 'expired') → 402
  *
  * Doit être utilisé APRÈS requireAuth et requireOrgMembership
@@ -50,12 +50,6 @@ export async function requireActiveSubscription(
       [orgId],
     );
     const status = subRow.rows[0]?.status;
-
-    // Pas de ligne → période de grâce, on laisse passer
-    if (!status) {
-      next();
-      return;
-    }
 
     if (status === "active" || status === "trial") {
       next();

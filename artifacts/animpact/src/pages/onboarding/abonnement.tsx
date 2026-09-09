@@ -49,8 +49,7 @@ export function OnboardingAbonnement() {
   const isActive = isActiveStripeSubscription(subscription);
   const subscriptionReady = Boolean(currentOrgId)
     && subscription !== undefined
-    && !subscriptionLoading
-    && !subscriptionError;
+    && !subscriptionLoading;
   const isDevis = plan?.pricePerMonth === null;
 
   const handlePortal = async () => {
@@ -79,7 +78,6 @@ export function OnboardingAbonnement() {
     if (
       !currentOrgId
       || !effectifKey
-      || !subscriptionReady
       || !isAuthLoaded
       || !isSignedIn
       || isActive
@@ -126,7 +124,6 @@ export function OnboardingAbonnement() {
     isActive,
     isAuthLoaded,
     isSignedIn,
-    subscriptionReady,
   ]);
 
   useEffect(() => {
@@ -177,7 +174,7 @@ export function OnboardingAbonnement() {
       setLocation("/dashboard");
       return;
     }
-    if (subscriptionError || !subscriptionReady) {
+    if (!subscriptionReady && !subscriptionError) {
       setCheckoutError("Impossible de vérifier votre abonnement. Réessayez.");
       return;
     }
@@ -313,8 +310,11 @@ export function OnboardingAbonnement() {
                 disabled={
                   checkoutLoading
                   || subscriptionLoading
-                  || Boolean(subscriptionError)
-                  || (Boolean(currentOrgId) && !subscriptionReady)
+                    || (
+                      Boolean(currentOrgId)
+                      && !subscriptionReady
+                      && !subscriptionError
+                    )
                   || isActive
                 }
               >
