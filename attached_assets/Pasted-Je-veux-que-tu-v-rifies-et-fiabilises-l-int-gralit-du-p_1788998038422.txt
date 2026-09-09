@@ -1,0 +1,281 @@
+Je veux que tu vérifies et fiabilises l’intégralité du parcours d’authentification et d’onboarding de Cocci.
+
+Plusieurs modifications récentes ont été faites sur Clerk, les organisations, WorkspaceGuard, l’abonnement et les redirections. Je constate maintenant des comportements incohérents, notamment dans l’environnement Replit.
+
+Avant toute modification, analyse le fonctionnement actuel et identifie les incohérences ou régressions. Ensuite seulement, corrige ce qui est nécessaire.
+
+1. Règle fonctionnelle fondamentale : utilisateurs et organisations
+
+Le modèle attendu dans Cocci est :
+
+Une organisation peut avoir plusieurs utilisateurs, mais un utilisateur standard ne peut appartenir qu’à une seule organisation principale.
+
+Donc :
+
+1 organisation → plusieurs utilisateurs : autorisé ;
+1 utilisateur → 1 seule organisation principale ;
+plusieurs utilisateurs peuvent travailler sur la même organisation Cocci ;
+lorsqu’un utilisateur est invité ou ajouté à une organisation existante, il rejoint cette organisation et n’en crée pas une nouvelle ;
+lorsqu’un utilisateur possède déjà une organisation, une reconnexion, un rafraîchissement, une reprise d’onboarding ou une réinitialisation de mot de passe ne doit jamais créer une nouvelle organisation ;
+la création d’une organisation principale ne doit avoir lieu que lorsqu’un nouvel utilisateur qui n’appartient encore à aucune organisation effectue son premier onboarding ;
+cette règle doit être garantie côté backend/base de données, et pas seulement par le frontend.
+
+Les filiales ne doivent pas être considérées comme de nouvelles organisations principales auxquelles l’utilisateur appartient. Elles font partie de la structure du groupe gérée depuis son organisation principale.
+
+Les superadmins sont un cas particulier : ils peuvent consulter et administrer plusieurs organisations depuis leur espace admin sans devenir membres de chacune de ces organisations.
+
+Vérifie donc la structure actuelle de users, organizations et members.
+
+La cardinalité métier attendue est :
+
+ORGANISATION 1 ──────── N UTILISATEURS
+
+UTILISATEUR  ───────── 1 ORGANISATION
+
+Si la structure actuelle permet à un utilisateur standard d'avoir plusieurs memberships vers plusieurs organisations, identifie cette situation comme incompatible avec cette règle métier.
+
+Ne modifie pas le schéma PostgreSQL et ne supprime aucune donnée sans m’expliquer auparavant précisément la modification nécessaire.
+
+2. Nouveau compte
+
+Lorsqu’une personne clique sur Commencer / Créer un compte, le parcours attendu est :
+
+Création du compte Clerk
+→ création/récupération de l’utilisateur dans PostgreSQL
+→ création de son organisation principale
+→ création du lien utilisateur ↔ organisation
+→ onboarding
+→ configuration éventuelle des filiales
+→ effectif
+→ choix de l’abonnement
+→ Stripe Checkout
+→ confirmation du paiement
+→ tableau de bord Cocci
+
+Une fois l’onboarding terminé et le paiement validé, l’utilisateur doit arriver sur le tableau de bord.
+
+L’onboarding doit alors être considéré comme terminé et ne doit plus lui être présenté.
+
+3. Connexion d’un utilisateur existant
+
+Lorsqu’un utilisateur possède déjà un compte et clique sur Se connecter, le parcours attendu est simplement :
+
+identifiant + mot de passe
+→ authentification Clerk
+→ récupération de l’utilisateur existant dans PostgreSQL
+→ récupération de son organisation
+→ vérification de son abonnement
+→ tableau de bord
+
+Un utilisateur existant ne doit PAS :
+
+recommencer l’onboarding ;
+repasser par la création d’organisation ;
+créer une deuxième organisation ;
+repasser par Stripe si son abonnement est actif.
+4. Mot de passe oublié
+
+Le parcours attendu est :
+
+Mot de passe oublié
+→ procédure de réinitialisation Clerk
+→ définition du nouveau mot de passe
+→ retour vers la connexion si nécessaire
+→ connexion avec identifiant + nouveau mot de passe
+→ récupération du compte et de l’organisation existants
+→ tableau de bord
+
+Une réinitialisation du mot de passe ne doit jamais :
+
+créer un nouvel utilisateur PostgreSQL ;
+créer une nouvelle organisation ;
+relancer l’onboarding ;
+modifier le membership existant.
+5. Rechargement / fermeture du navigateur
+
+Si un utilisateur déjà configuré :
+
+recharge la page ;
+ferme puis rouvre Cocci ;
+revient plus tard ;
+renouvelle sa session Clerk ;
+se déconnecte puis se reconnecte ;
+
+son utilisateur, son organisation, son membership, son état d’onboarding et son abonnement doivent être retrouvés.
+
+Si tout est valide, il doit arriver sur le tableau de bord.
+
+Aucune de ces actions ne doit provoquer la création d’une organisation supplémentaire.
+
+6. Onboarding interrompu
+
+Si un nouvel utilisateur commence l’onboarding mais quitte Cocci avant de l’avoir terminé :
+
+son utilisateur existant doit être retrouvé ;
+son organisation déjà créée doit être retrouvée ;
+aucun doublon ne doit être créé ;
+l’onboarding doit reprendre à l’étape pertinente.
+
+Il ne doit surtout pas repartir dans un nouveau processus de création d’organisation.
+
+La création de l’organisation doit être idempotente : relancer accidentellement le même parcours ne doit jamais créer plusieurs organisations.
+
+7. Abonnement Stripe
+
+Vérifie les comportements suivants :
+
+Nouvel utilisateur
+
+onboarding → choix formule → Stripe → paiement confirmé → tableau de bord.
+
+Utilisateur existant avec abonnement actif
+
+connexion → tableau de bord directement.
+
+Utilisateur existant sans abonnement actif
+
+connexion → page d’abonnement appropriée.
+
+Retour Stripe après paiement
+
+l’organisation et l’utilisateur existants doivent être retrouvés → abonnement actualisé → tableau de bord.
+
+Une erreur temporaire de vérification d’abonnement ne doit jamais provoquer :
+
+un nouvel onboarding ;
+une nouvelle organisation ;
+un nouveau membership.
+8. Superadmin
+
+Le superadmin doit pouvoir accéder à son espace d’administration et consulter les différentes organisations.
+
+Le fait qu’il puisse administrer plusieurs organisations ne signifie pas qu’il appartient à toutes ces organisations.
+
+Ne contourne donc pas la règle 1 utilisateur standard = 1 organisation en créant artificiellement des memberships pour le superadmin.
+
+9. Points techniques à auditer
+
+Vérifie notamment :
+
+Clerk ;
+/sign-in ;
+/sign-up ;
+mot de passe oublié ;
+réinitialisation du mot de passe ;
+création/récupération de users ;
+création/récupération de organizations ;
+table members ;
+contraintes existantes sur members ;
+création d’une organisation ;
+invitations/ajout d’utilisateurs à une organisation existante ;
+currentOrgId ;
+persistance/restauration de l’organisation courante ;
+état d’onboarding ;
+WorkspaceGuard ;
+useOrganizationSubscription ;
+redirections après connexion ;
+redirections après inscription ;
+redirections après Stripe ;
+toutes les routes /onboarding/* ;
+comportement après refresh ;
+comportement après déconnexion/reconnexion ;
+différences éventuelles entre l’environnement Replit et la préproduction Render.
+
+Recherche tous les endroits du code où une organisation peut être créée.
+
+Aucun de ces chemins ne doit permettre à un utilisateur qui possède déjà une organisation d’en créer accidentellement une deuxième.
+
+10. Scénarios à vérifier
+
+Je veux au minimum vérifier ces parcours :
+
+A. Nouveau compte
+
+inscription → création utilisateur → organisation → onboarding complet → Stripe → tableau de bord.
+
+Résultat attendu : 1 utilisateur, 1 organisation, 1 membership.
+
+B. Compte existant
+
+déconnexion → connexion avec identifiant/mot de passe → tableau de bord.
+
+Résultat attendu : aucune nouvelle ligne utilisateur, organisation ou membership.
+
+C. Mot de passe oublié
+
+réinitialisation → connexion → tableau de bord.
+
+Résultat attendu : même utilisateur et même organisation.
+
+D. Onboarding interrompu
+
+commencer l’onboarding → quitter → revenir/se reconnecter → reprendre l’onboarding.
+
+Résultat attendu : aucune nouvelle organisation.
+
+E. Refresh
+
+recharger plusieurs fois pendant et après l’onboarding.
+
+Résultat attendu : aucun doublon.
+
+F. Plusieurs utilisateurs dans une organisation
+
+Ajouter/inviter un deuxième utilisateur dans une organisation existante.
+
+Résultat attendu :
+
+Organisation A
+├── Utilisateur 1
+└── Utilisateur 2
+
+et PAS :
+
+Organisation A → Utilisateur 1
+Organisation B → Utilisateur 2
+
+sauf si l’utilisateur 2 crée volontairement son propre compte/organisation au lieu d’accepter l’invitation.
+
+G. Tentative d’appartenance multiple
+
+Vérifie qu’un utilisateur standard déjà membre d’une organisation ne peut pas devenir membre d’une deuxième organisation principale.
+
+Cette protection doit exister côté serveur et, si nécessaire, être garantie par la structure de données.
+
+11. Important concernant les modifications
+
+Dans cette tâche, ne touche pas :
+
+aux modules métier RSE ;
+à R2 ;
+aux uploads ;
+à l’IA ;
+au générateur de rapport ;
+aux tarifs Stripe ;
+aux fonctionnalités des filiales hors logique nécessaire à l’onboarding.
+
+Ne considère surtout pas qu’un typecheck ou un build réussi signifie que le parcours fonctionne.
+
+Je veux une vérification de la logique réelle des états et redirections.
+
+Avant toute modification, donne-moi :
+
+les problèmes identifiés ;
+leur cause ;
+les endroits du code concernés ;
+les éventuelles incohérences du modèle users / organizations / members ;
+les modifications que tu proposes.
+
+Si une modification de schéma PostgreSQL est nécessaire pour garantir qu’un utilisateur n’appartient qu’à une organisation, ne l'applique pas immédiatement : explique-moi d’abord précisément la migration proposée et ses conséquences.
+
+Après validation et correction, donne-moi :
+
+chaque bug trouvé ;
+sa cause ;
+la correction appliquée ;
+tous les fichiers modifiés ;
+le parcours final de chacun des scénarios A à G ;
+le résultat du typecheck ;
+le résultat du build ;
+les éventuelles différences Replit / Render ;
+et confirme qu’un utilisateur standard ne peut plus créer ou rejoindre accidentellement plusieurs organisations principales.
