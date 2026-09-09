@@ -182,8 +182,6 @@ export function Abonnement() {
         alert(
           `Cette formule ne couvre pas votre effectif de ${count} salarié${count === 1 ? "" : "s"}. Choisissez une formule supérieure.`,
         );
-      } else {
-        alert("Erreur lors de la création de la session de paiement. Réessayez.");
       }
       return;
     }

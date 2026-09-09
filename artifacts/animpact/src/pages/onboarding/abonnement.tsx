@@ -352,9 +352,6 @@ export function OnboardingAbonnement() {
                   </Button>
                 </div>
               )}
-              {checkoutError && (
-                <p className="text-xs text-center text-destructive">{checkoutError}</p>
-              )}
             </>
           )}
 
