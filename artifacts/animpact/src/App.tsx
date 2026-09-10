@@ -59,7 +59,10 @@ import { Onboarding } from "@/pages/onboarding/index";
 import { OnboardingFiliales } from "@/pages/onboarding/filiales";
 import { OnboardingEffectif } from "@/pages/onboarding/effectif";
 import { OnboardingAbonnement } from "@/pages/onboarding/abonnement";
-import { SUBSCRIPTION_INTENT_SESSION_KEY } from "@/pages/onboarding/plans";
+import {
+  ONBOARDING_CONTINUATION_SESSION_KEY,
+  SUBSCRIPTION_INTENT_SESSION_KEY,
+} from "@/pages/onboarding/plans";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
@@ -224,6 +227,7 @@ function usePostAuthRedirect() {
     // subscription intent remained in sessionStorage from an earlier visit.
     if (clearSubscriptionIntent) {
       sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
     }
 
     setLocation(path, { replace: true });
@@ -299,6 +303,75 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 }
 
 /**
+ * Protects the secondary onboarding URLs from reopening setup for an existing
+ * account. The continuation marker is set immediately after the first
+ * organization is created so the normal onboarding flow can still reach these
+ * steps.
+ */
+function OnboardingStepGuard({
+  component: Component,
+  requiresAuth = false,
+}: {
+  component: React.ComponentType;
+  requiresAuth?: boolean;
+}) {
+  const [, setLocation] = useLocation();
+  const { isLoaded: isAuthLoaded, isSignedIn, userId } = useAuth();
+  const {
+    data: orgs,
+    isLoading,
+    isFetching,
+  } = useListOrganizations(
+    undefined,
+    {
+      query: {
+        enabled: isAuthLoaded && isSignedIn,
+        queryKey: getListOrganizationsQueryKey(),
+      },
+    },
+  );
+
+  const hasOnboardingContinuation = Boolean(
+    isSignedIn
+    && userId
+    && sessionStorage.getItem(ONBOARDING_CONTINUATION_SESSION_KEY) === userId,
+  );
+
+  useEffect(() => {
+    if (
+      !isAuthLoaded
+      || !isSignedIn
+      || isLoading
+      || isFetching
+      || !orgs
+      || orgs.length === 0
+      || hasOnboardingContinuation
+    ) return;
+
+    sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+    sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
+    setLocation("/dashboard", { replace: true });
+  }, [
+    hasOnboardingContinuation,
+    isAuthLoaded,
+    isFetching,
+    isLoading,
+    isSignedIn,
+    orgs,
+    setLocation,
+  ]);
+
+  if (!isAuthLoaded) return null;
+  if (!isSignedIn) {
+    return requiresAuth ? <Redirect to="/sign-in" /> : <Component />;
+  }
+  if (isLoading || isFetching || !orgs) return null;
+  if (orgs.length > 0 && !hasOnboardingContinuation) return null;
+
+  return <Component />;
+}
+
+/**
  * Wraps workspace pages: if the user has no org yet, redirect to onboarding.
  * Uses React Query cache (already loaded by AppLayout) so no extra fetch.
  */
@@ -307,6 +380,13 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
   const { data: orgs, isLoading, isFetching } = useListOrganizations();
   const { currentOrgId } = useCurrentOrganization();
   const { isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin();
+
+  useEffect(() => {
+    if (orgs && orgs.length > 0) {
+      sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
+    }
+  }, [orgs]);
+
   // L'abonnement d'un groupe est porté par son organisation racine. La vue
   // peut toutefois être positionnée sur une filiale.
   const rootOrg = orgs?.find((org) => !org.parentId) ?? null;
@@ -386,13 +466,13 @@ function ClerkProviderWithRoutes() {
               <ProtectedRoute component={Onboarding} />
             </Route>
             <Route path="/onboarding/filiales">
-              <ProtectedRoute component={OnboardingFiliales} />
+              <OnboardingStepGuard component={OnboardingFiliales} requiresAuth />
             </Route>
             <Route path="/onboarding/effectif">
-              <OnboardingEffectif />
+              <OnboardingStepGuard component={OnboardingEffectif} />
             </Route>
             <Route path="/onboarding/abonnement">
-              <OnboardingAbonnement />
+              <OnboardingStepGuard component={OnboardingAbonnement} />
             </Route>
 
             {/* Workspace module pages — redirect to onboarding if no org */}

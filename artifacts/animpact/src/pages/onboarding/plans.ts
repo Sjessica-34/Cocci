@@ -57,6 +57,9 @@ export const EFFECTIF_SESSION_KEY = "cocci_onboarding_effectif";
  */
 export const SUBSCRIPTION_INTENT_SESSION_KEY = "cocci_subscription_intent_effectif";
 
+/** Marque la continuation immédiate du parcours après la création de l'organisation. */
+export const ONBOARDING_CONTINUATION_SESSION_KEY = "cocci_onboarding_continuation";
+
 /** Retourne la formule correspondant à une clé d'effectif. */
 export function effectifToPlan(key: EffectifKey): Plan {
   return PLANS[key];

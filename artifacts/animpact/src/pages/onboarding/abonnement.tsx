@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Check, CreditCard, ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import {
   EFFECTIF_SESSION_KEY,
+  ONBOARDING_CONTINUATION_SESSION_KEY,
   SUBSCRIPTION_INTENT_SESSION_KEY,
   effectifToPlan,
   type EffectifKey,
@@ -111,6 +112,7 @@ export function OnboardingAbonnement() {
         // Checkout est lancé : l'intention est consommée pour ne jamais
         // redéclencher une seconde session après un retour ou un rechargement.
         sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+        sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
         // Stripe Checkout ne peut pas être rendu dans l'iframe de prévisualisation.
         const targetWindow = window.top ?? window;
         targetWindow.location.href = url;
@@ -164,6 +166,15 @@ export function OnboardingAbonnement() {
   const handleSouscrire = async () => {
     if (!effectifKey) {
       setCheckoutError("La formule sélectionnée est introuvable. Recommencez le parcours.");
+      return;
+    }
+
+    // Un compte déjà configuré ne peut pas créer une intention de paiement
+    // depuis une ancienne URL d'onboarding.
+    if (isSignedIn && currentOrgId) {
+      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
+      setLocation("/dashboard");
       return;
     }
 
@@ -358,7 +369,12 @@ export function OnboardingAbonnement() {
           {/* Lien secondaire : accéder à l'espace ou s'inscrire */}
           <button
             type="button"
-            onClick={() => setLocation(isSignedIn ? "/dashboard" : "/sign-up")}
+            onClick={() => {
+              if (isSignedIn) {
+                sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
+              }
+              setLocation(isSignedIn ? "/dashboard" : "/sign-up");
+            }}
             className="w-full text-center text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
           >
             Accéder à mon espace →

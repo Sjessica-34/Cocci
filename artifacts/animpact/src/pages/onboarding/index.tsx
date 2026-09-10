@@ -8,6 +8,7 @@ import {
 } from "@workspace/api-client-react";
 import type { Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@clerk/react";
 import { Building, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,13 +18,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
 import { shouldRedirectOnboardingToDashboard } from "@/lib/authRedirect";
-import { SUBSCRIPTION_INTENT_SESSION_KEY } from "./plans";
+import {
+  ONBOARDING_CONTINUATION_SESSION_KEY,
+  SUBSCRIPTION_INTENT_SESSION_KEY,
+} from "./plans";
 
 // Version des documents légaux en vigueur
 const LEGAL_VERSION = "2025-01";
 
 export function Onboarding() {
   const [, setLocation] = useLocation();
+  const { userId } = useAuth();
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
   const { data: organizations, isLoading: organizationsLoading } = useListOrganizations();
@@ -40,6 +45,8 @@ export function Onboarding() {
       && shouldRedirectOnboardingToDashboard(organizations?.length ?? 0)
       && !hasSubmittedRef.current
     ) {
+      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
       setLocation("/dashboard", { replace: true });
     }
   }, [organizations, organizationsLoading, setLocation]);
@@ -81,6 +88,9 @@ export function Onboarding() {
     });
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
     setCurrentOrg(org.id);
+    if (userId) {
+      sessionStorage.setItem(ONBOARDING_CONTINUATION_SESSION_KEY, userId);
+    }
 
     // Enregistrement du consentement côté backend
     try {
