@@ -42,7 +42,6 @@ export function OnboardingAbonnement() {
     subscription,
     isLoading: subscriptionLoading,
     error: subscriptionError,
-    refresh: refreshSubscription,
   } = useOrganizationSubscription(effectiveOrgId);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [effectifKey, setEffectifKey] = useState<EffectifKey | null>(null);
@@ -211,7 +210,6 @@ export function OnboardingAbonnement() {
       return;
     }
     if (!subscriptionReady && !subscriptionError) {
-      setCheckoutError("Impossible de vérifier votre abonnement. Réessayez.");
       return;
     }
     if (isActive) {
@@ -220,11 +218,6 @@ export function OnboardingAbonnement() {
     }
 
     await startCheckout();
-  };
-
-  const handleRetrySubscriptionCheck = () => {
-    setCheckoutError(null);
-    refreshSubscription();
   };
 
   if (!plan) return null;
@@ -366,23 +359,6 @@ export function OnboardingAbonnement() {
                   </>
                 )}
               </Button>
-              {subscriptionError && (
-                <div className="space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-center">
-                  <p className="text-xs text-destructive">
-                    Impossible de vérifier votre abonnement.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={handleRetrySubscriptionCheck}
-                    disabled={subscriptionLoading}
-                  >
-                    Réessayer la vérification
-                  </Button>
-                </div>
-              )}
             </>
           )}
 

@@ -93,9 +93,7 @@ export function Abonnement() {
   const {
     subscription,
     isLoading: subscriptionLoading,
-    error: subscriptionError,
     isActive,
-    refresh: refreshSubscription,
   } = useOrganizationSubscription(currentOrgId);
   const {
     data: organization,
@@ -260,22 +258,6 @@ export function Abonnement() {
             Vérification de votre abonnement…
           </div>
         )}
-        {subscriptionError && currentOrgId && (
-          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 space-y-3">
-            <p>
-              Impossible de vérifier votre abonnement. Vous pouvez toutefois tenter la souscription.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={refreshSubscription}
-              disabled={subscriptionLoading}
-            >
-              Réessayer la vérification
-            </Button>
-          </div>
-        )}
         {subscription !== undefined && (
           <div className="mb-8 flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-5">
             <div>
@@ -385,7 +367,7 @@ export function Abonnement() {
 
                   <Button
                     onClick={() => price && !unavailable && handleCheckout(plan.key)}
-                    disabled={!price || isLoading || unavailable || Boolean(subscriptionError) || isActive}
+                    disabled={!price || isLoading || unavailable || isActive}
                     className={`w-full ${isFeatured ? "bg-[#163028] hover:bg-[#1e4438] text-white" : "variant-outline"}`}
                     variant={isFeatured ? "default" : "outline"}
                   >
