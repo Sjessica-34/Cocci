@@ -8,6 +8,7 @@ import {
 } from "@/hooks/useOrganizationSubscription";
 import {
   resolvePostAuthRedirect,
+  runPostAuthRedirect,
   shouldRedirectOnboardingToDashboard,
 } from "@/lib/authRedirect";
 
@@ -115,6 +116,94 @@ test("un nouvel utilisateur sans intention d'abonnement arrive au dashboard", ()
       clearSubscriptionIntent: false,
     },
   );
+});
+
+test("le branchement Clerk/React Query envoie un compte configuré au dashboard", () => {
+  const navigationCalls: Array<{
+    path: "/dashboard" | "/onboarding";
+    options: { replace: true };
+  }> = [];
+  let onboardingSessionCleared = false;
+
+  const redirected = runPostAuthRedirect(
+    {
+      isLoaded: true,
+      isSignedIn: true,
+      organizations: [{ id: "org_existing" }],
+      organizationsLoading: false,
+      organizationsFetching: false,
+      hasSubscriptionIntent: true,
+    },
+    {
+      navigate: (path, options) => navigationCalls.push({ path, options }),
+      clearOnboardingSession: () => {
+        onboardingSessionCleared = true;
+      },
+    },
+  );
+
+  assert.equal(redirected, true);
+  assert.deepEqual(navigationCalls, [
+    { path: "/dashboard", options: { replace: true } },
+  ]);
+  assert.equal(onboardingSessionCleared, true);
+  assert.notEqual(navigationCalls[0]?.path, "/onboarding");
+});
+
+test("la redirection post-auth attend que Clerk et les organisations soient prêts", () => {
+  const navigatedTo: string[] = [];
+  const effects = {
+    navigate: (path: "/dashboard" | "/onboarding") => navigatedTo.push(path),
+    clearOnboardingSession: () => {},
+  };
+
+  assert.equal(
+    runPostAuthRedirect(
+      {
+        isLoaded: false,
+        isSignedIn: true,
+        organizations: undefined,
+        organizationsLoading: true,
+        organizationsFetching: false,
+        hasSubscriptionIntent: true,
+      },
+      effects,
+    ),
+    false,
+  );
+  assert.deepEqual(navigatedTo, []);
+
+  assert.equal(
+    runPostAuthRedirect(
+      {
+        isLoaded: true,
+        isSignedIn: true,
+        organizations: [],
+        organizationsLoading: false,
+        organizationsFetching: true,
+        hasSubscriptionIntent: true,
+      },
+      effects,
+    ),
+    false,
+  );
+  assert.deepEqual(navigatedTo, []);
+
+  assert.equal(
+    runPostAuthRedirect(
+      {
+        isLoaded: true,
+        isSignedIn: true,
+        organizations: [{ id: "org_existing" }],
+        organizationsLoading: false,
+        organizationsFetching: false,
+        hasSubscriptionIntent: true,
+      },
+      effects,
+    ),
+    true,
+  );
+  assert.deepEqual(navigatedTo, ["/dashboard"]);
 });
 
 test("l'accès direct à l'onboarding redirige un compte déjà configuré", () => {

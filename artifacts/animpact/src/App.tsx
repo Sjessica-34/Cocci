@@ -73,7 +73,7 @@ import {
 } from "@/hooks/useOrganizationSubscription";
 import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
-import { resolvePostAuthRedirect } from "@/lib/authRedirect";
+import { runPostAuthRedirect } from "@/lib/authRedirect";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -207,30 +207,25 @@ function usePostAuthRedirect() {
   );
 
   useEffect(() => {
-    if (
-      !isLoaded
-      || !isSignedIn
-      || organizationsLoading
-      || organizationsFetching
-      || !organizations
-    ) return;
-
-    const hasSubscriptionIntent = Boolean(
-      sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
+    runPostAuthRedirect(
+      {
+        isLoaded,
+        isSignedIn,
+        organizations,
+        organizationsLoading,
+        organizationsFetching,
+        hasSubscriptionIntent: Boolean(
+          sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
+        ),
+      },
+      {
+        navigate: setLocation,
+        clearOnboardingSession: () => {
+          sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+          sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
+        },
+      },
     );
-    const { path, clearSubscriptionIntent } = resolvePostAuthRedirect({
-      organizationCount: organizations.length,
-      hasSubscriptionIntent,
-    });
-
-    // An existing account must never restart onboarding, even if a stale
-    // subscription intent remained in sessionStorage from an earlier visit.
-    if (clearSubscriptionIntent) {
-      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
-      sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
-    }
-
-    setLocation(path, { replace: true });
   }, [
     isLoaded,
     isSignedIn,
