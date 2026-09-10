@@ -34,9 +34,9 @@ async function upsertSubscriptionFromStripe(opts: {
 
   // Mapper le statut Stripe vers notre statut interne
   const internalStatus =
-    status === "active" || status === "trialing" ? "active"
-    : status === "past_due" ? "trial" // grâce de paiement
-    : "suspended";
+    status === "active" || status === "trialing"
+      ? "active"
+      : "suspended";
 
   await pool.query(
     `INSERT INTO subscriptions
