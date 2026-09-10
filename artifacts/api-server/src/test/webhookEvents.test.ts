@@ -48,6 +48,18 @@ async function main() {
     "INSERT INTO organizations (name) VALUES ('__test_webhook_org__') RETURNING id",
   );
   const orgId = org.rows[0].id;
+  const user = await pool.query<{ id: number }>(
+    `INSERT INTO users (clerk_id, email, primary_organization_id)
+     VALUES ($1, $2, $3)
+     RETURNING id`,
+    [`__test_webhook_clerk_${orgId}`, `__test_webhook_${orgId}@example.test`, orgId],
+  );
+  const userId = user.rows[0].id;
+  await pool.query(
+    `INSERT INTO onboarding_progress (user_id, status)
+     VALUES ($1, 'payment_pending')`,
+    [userId],
+  );
   const subId = "sub_test_webhook_1";
 
   try {
@@ -67,6 +79,10 @@ async function main() {
     assert(sub?.stripe_subscription_id === subId, "stripe_subscription_id enregistré");
 
     // 2. Checkout non payé (SEPA en attente) → trial
+    await pool.query(
+      "UPDATE onboarding_progress SET status = 'payment_pending', completed_at = NULL WHERE user_id = $1",
+      [userId],
+    );
     console.log("checkout.session.completed (unpaid / SEPA)");
     await handleStripeEvent(makeEvent("checkout.session.completed", {
       customer: "cus_test_1",
@@ -85,6 +101,12 @@ async function main() {
     }));
     sub = await getSub(orgId);
     assert(sub?.status === "active", "trial → active après paiement");
+    const onboarding = await pool.query<{ status: string; completed_at: Date | null }>(
+      "SELECT status, completed_at FROM onboarding_progress WHERE user_id = $1",
+      [userId],
+    );
+    assert(onboarding.rows[0]?.status === "completed", "payment_pending → completed après paiement");
+    assert(onboarding.rows[0]?.completed_at != null, "completed_at est renseigné après paiement");
 
     // 4. Paiement échoué → suspended
     console.log("invoice.payment_failed");
@@ -100,6 +122,7 @@ async function main() {
     assert(sub?.status === "suspended", "suspended après résiliation");
   } finally {
     await pool.query("DELETE FROM subscriptions WHERE organization_id = $1", [orgId]);
+    await pool.query("DELETE FROM users WHERE id = $1", [userId]);
     await pool.query("DELETE FROM organizations WHERE id = $1", [orgId]);
     await pool.end();
   }

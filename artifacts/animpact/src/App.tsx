@@ -439,9 +439,9 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
   } = useOrganizationSubscription(subscriptionOrgId);
   const hasWorkspaceSubscription = hasActiveOrganizationSubscription(subscription);
   const onboardingAllowsWorkspace =
-    onboarding.status === "completed"
+    onboarding?.status === "completed"
     || (
-      onboarding.status === "payment_pending"
+      onboarding?.status === "payment_pending"
       && subscription?.status === "trial"
       && hasWorkspaceSubscription
     );
