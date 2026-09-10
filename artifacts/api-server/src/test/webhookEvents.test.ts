@@ -114,7 +114,17 @@ async function main() {
     sub = await getSub(orgId);
     assert(sub?.status === "suspended", "suspended après échec de paiement");
 
-    // 5. Résiliation → suspended (après réactivation simulée)
+    // 5. PaymentIntent échoué depuis un abonnement trial → suspended
+    await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
+    console.log("payment_intent.payment_failed");
+    await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
+      customer: "cus_test_1",
+      status: "requires_payment_method",
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "suspended", "trial → suspended après payment_intent.payment_failed");
+
+    // 6. Résiliation → suspended (après réactivation simulée)
     console.log("customer.subscription.deleted");
     await pool.query("UPDATE subscriptions SET status = 'active' WHERE organization_id = $1", [orgId]);
     await handleStripeEvent(makeEvent("customer.subscription.deleted", { id: subId, customer: "cus_test_1" }));

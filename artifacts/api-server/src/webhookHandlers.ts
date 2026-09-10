@@ -231,6 +231,28 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           break;
         }
 
+        // SEPA rejeté : PaymentIntent échoué avant ou à la place de
+        // invoice.payment_failed. Le client Stripe permet de retrouver
+        // l'abonnement local créé lors du Checkout.
+        case "payment_intent.payment_failed": {
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          const customerId = typeof paymentIntent.customer === "string"
+            ? paymentIntent.customer
+            : paymentIntent.customer?.id;
+          if (!customerId) break;
+          const result = await pool.query(
+            `UPDATE subscriptions
+             SET status = 'suspended', updated_at = NOW()
+             WHERE stripe_customer_id = $1 AND status = 'trial'`,
+            [customerId],
+          );
+          logger.info(
+            { customer: customerId, suspendedCount: result.rowCount ?? 0 },
+            "Subscription suspended after payment_intent.payment_failed",
+          );
+          break;
+        }
+
         case "customer.subscription.updated": {
           const sub = event.data.object as Stripe.Subscription;
           // Retrouver l'org depuis stripe_subscription_id
