@@ -135,9 +135,16 @@ router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
           .set({ status: "organization_created", updatedAt: new Date() })
           .where(eq(onboardingProgressTable.userId, user.id));
       } else {
+        // Une filiale créée depuis l'espace déjà configuré ne doit jamais
+        // faire régresser l'onboarding vers une étape de premier parcours.
+        // Seule la création de filiales pendant l'onboarding initial avance
+        // organization_created → subsidiaries_configured.
         await tx.update(onboardingProgressTable)
           .set({ status: "subsidiaries_configured", updatedAt: new Date() })
-          .where(eq(onboardingProgressTable.userId, user.id));
+          .where(and(
+            eq(onboardingProgressTable.userId, user.id),
+            eq(onboardingProgressTable.status, "organization_created"),
+          ));
       }
 
       await tx.insert(exercisesTable).values({
