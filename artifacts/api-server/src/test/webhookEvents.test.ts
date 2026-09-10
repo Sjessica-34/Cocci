@@ -12,7 +12,7 @@
  */
 import { pool } from "@workspace/db";
 import type Stripe from "stripe";
-import { handleStripeEvent } from "../webhookHandlers";
+import { getInvoiceSubscriptionId, handleStripeEvent } from "../webhookHandlers";
 
 let failures = 0;
 function assert(cond: boolean, label: string): void {
@@ -23,6 +23,17 @@ function assert(cond: boolean, label: string): void {
 function makeEvent(type: string, object: object): Stripe.Event {
   return { id: "evt_test", type, data: { object } } as unknown as Stripe.Event;
 }
+
+assert(
+  getInvoiceSubscriptionId({ subscription: "sub_legacy" }) === "sub_legacy",
+  "invoice.subscription reste compatible",
+);
+assert(
+  getInvoiceSubscriptionId({
+    parent: { subscription_details: { subscription: "sub_nested" } },
+  }) === "sub_nested",
+  "invoice.parent.subscription_details.subscription est supporté",
+);
 
 async function getSub(orgId: number) {
   const r = await pool.query(
@@ -69,7 +80,9 @@ async function main() {
 
     // 3. Paiement confirmé → active
     console.log("invoice.payment_succeeded");
-    await handleStripeEvent(makeEvent("invoice.payment_succeeded", { subscription: subId }));
+    await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
+      parent: { subscription_details: { subscription: subId } },
+    }));
     sub = await getSub(orgId);
     assert(sub?.status === "active", "trial → active après paiement");
 

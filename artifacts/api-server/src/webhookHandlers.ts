@@ -7,6 +7,23 @@ import { getPublicAppUrl } from "./appUrl";
 
 // ── Mise à jour de la table subscriptions selon les événements Stripe ─────────
 
+type InvoiceSubscriptionReference = {
+  subscription?: string | { id: string } | null;
+  parent?: {
+    subscription_details?: {
+      subscription?: string | { id: string } | null;
+    } | null;
+  } | null;
+};
+
+export function getInvoiceSubscriptionId(
+  invoice: InvoiceSubscriptionReference,
+): string | null {
+  const reference =
+    invoice.subscription ?? invoice.parent?.subscription_details?.subscription;
+  return typeof reference === "string" ? reference : reference?.id ?? null;
+}
+
 async function upsertSubscriptionFromStripe(opts: {
   orgId: number;
   stripeCustomerId: string;
@@ -174,8 +191,8 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
 
         // SEPA confirmé : la banque a débité → activer l'abonnement
         case "invoice.payment_succeeded": {
-          const invoice = event.data.object as Stripe.Invoice & { subscription?: string | { id: string } | null };
-          const invoiceSubId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+          const invoice = event.data.object as unknown as InvoiceSubscriptionReference;
+          const invoiceSubId = getInvoiceSubscriptionId(invoice);
           if (!invoiceSubId) break;
           const row = await pool.query<{ organization_id: number }>(
             "SELECT organization_id FROM subscriptions WHERE stripe_subscription_id = $1 LIMIT 1",
@@ -202,8 +219,8 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
 
         // SEPA échoué ou carte refusée → bloquer l'accès
         case "invoice.payment_failed": {
-          const invoice = event.data.object as Stripe.Invoice & { subscription?: string | { id: string } | null };
-          const failedSubId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+          const invoice = event.data.object as unknown as InvoiceSubscriptionReference;
+          const failedSubId = getInvoiceSubscriptionId(invoice);
           if (!failedSubId) break;
           await pool.query(
             `UPDATE subscriptions SET status = 'suspended', updated_at = NOW()

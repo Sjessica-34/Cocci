@@ -437,21 +437,31 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
     isLoading: subscriptionLoading,
     error: subscriptionError,
   } = useOrganizationSubscription(subscriptionOrgId);
+  const hasWorkspaceSubscription = hasActiveOrganizationSubscription(subscription);
+  const onboardingAllowsWorkspace =
+    onboarding.status === "completed"
+    || (
+      onboarding.status === "payment_pending"
+      && subscription?.status === "trial"
+      && hasWorkspaceSubscription
+    );
 
   if (!isAuthLoaded) return null;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
-  if (isLoading || isFetching || onboardingLoading || !onboarding) return null;
-  if (orgs && (orgs.length === 0 || onboarding.status !== "completed")) return <Redirect to="/onboarding" />;
+  if (isLoading || isFetching || onboardingLoading || subscriptionLoading || !onboarding) return null;
+  if (orgs && orgs.length === 0) return <Redirect to="/onboarding" />;
   if (isSuperAdminLoading || subscriptionLoading) return null;
   if (
     !isSuperAdmin
     && (
       subscriptionError
-      || !hasActiveOrganizationSubscription(subscription)
+      || !hasWorkspaceSubscription
     )
+    && (onboarding.status === "completed" || onboarding.status === "payment_pending")
   ) {
     return <Redirect to="/abonnement?reason=subscription_required" />;
   }
+  if (!onboardingAllowsWorkspace) return <Redirect to="/onboarding" />;
 
   return (
     <>

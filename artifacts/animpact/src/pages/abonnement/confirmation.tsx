@@ -8,6 +8,7 @@ import {
 import { CheckCircle2, LayoutDashboard, LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  hasActiveOrganizationSubscription,
   isActiveStripeSubscription,
   useOrganizationSubscription,
 } from "@/hooks/useOrganizationSubscription";
@@ -52,8 +53,16 @@ export function SubscriptionConfirmation() {
     isLoading: subscriptionLoading,
     refresh: refreshSubscription,
   } = useOrganizationSubscription(primaryOrganizationId);
+  const isPaymentPending =
+    onboarding?.status === "payment_pending"
+    && subscription?.status === "trial";
   const isServerConfirmed =
     onboarding?.status === "completed" && isActiveStripeSubscription(subscription);
+  const canAccessWorkspace =
+    (onboarding?.status === "payment_pending" || onboarding?.status === "completed")
+    && hasActiveOrganizationSubscription(subscription);
+  const isSubscriptionDenied =
+    subscription?.status === "suspended" || subscription?.status === "expired";
   const offerLabel = useMemo(
     () => getOfferLabel(new URLSearchParams(window.location.search).get("offer")),
     [],
@@ -81,8 +90,22 @@ export function SubscriptionConfirmation() {
     refreshSubscription,
   ]);
 
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || onboardingLoading || subscriptionLoading) return;
+    if (isSubscriptionDenied) {
+      setLocation("/abonnement?reason=subscription_required", { replace: true });
+    }
+  }, [
+    isLoaded,
+    isSignedIn,
+    isSubscriptionDenied,
+    onboardingLoading,
+    setLocation,
+    subscriptionLoading,
+  ]);
+
   const handleContinue = () => {
-    if (isSignedIn && !isServerConfirmed) {
+    if (isSignedIn && !canAccessWorkspace) {
       refreshSubscription();
       void refetchOnboarding();
       return;
@@ -109,12 +132,16 @@ export function SubscriptionConfirmation() {
           >
             {isServerConfirmed
               ? "Votre abonnement est actif"
-              : "Paiement reçu, confirmation en cours"}
+              : isPaymentPending
+                ? "Votre abonnement est en attente"
+                : "Paiement reçu, confirmation en cours"}
           </h1>
           <p className="text-sm text-muted-foreground" data-testid="text-subscription-confirmation-message">
             {isServerConfirmed
               ? "Merci pour votre confiance. Votre espace Cocci est maintenant disponible."
-              : "Stripe a reçu votre paiement. Nous vérifions encore la confirmation serveur avant d'ouvrir votre espace."}
+              : isPaymentPending
+                ? "Votre prélèvement SEPA est en cours de confirmation bancaire. Votre espace Cocci reste accessible."
+                : "Stripe a reçu votre paiement. Nous vérifions encore la confirmation serveur avant d'ouvrir votre espace."}
           </p>
         </div>
 
@@ -135,13 +162,13 @@ export function SubscriptionConfirmation() {
             type="button"
             className="w-full"
             onClick={handleContinue}
-            disabled={isSignedIn && !isServerConfirmed}
+            disabled={isSignedIn && !canAccessWorkspace}
             data-testid="button-access-workspace"
           >
             {isSignedIn ? (
               <>
                 <LayoutDashboard aria-hidden="true" />
-                {isServerConfirmed ? "Accéder à mon espace" : "Vérifier à nouveau"}
+                {canAccessWorkspace ? "Accéder à mon espace" : "Vérifier à nouveau"}
               </>
             ) : (
               <>
