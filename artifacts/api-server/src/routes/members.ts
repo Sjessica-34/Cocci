@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, count, ne, sql } from "drizzle-orm";
+import { eq, and, count, ne, sql, isNull } from "drizzle-orm";
 import { db, membersTable, usersTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
@@ -106,15 +106,47 @@ router.post(
         .returning();
     }
 
-    const [member] = await db
-      .insert(membersTable)
-      .values({
-        userId: targetUser.id,
-        organizationId: params.data.id,
-        role: parsed.data.role,
-        status: "invited",
-      })
-      .returning();
+    if (targetUser.primaryOrganizationId && targetUser.primaryOrganizationId !== params.data.id) {
+      res.status(409).json({ error: "Cet utilisateur appartient déjà à une autre organisation principale." });
+      return;
+    }
+
+    const [currentRelation] = await db
+      .select({ organizationId: membersTable.organizationId })
+      .from(membersTable)
+      .where(and(
+        eq(membersTable.userId, targetUser.id),
+        isNull(membersTable.archivedAt),
+        ne(membersTable.status, "suspended"),
+      ))
+      .limit(1);
+    if (currentRelation) {
+      res.status(409).json({
+        error: currentRelation.organizationId === params.data.id
+          ? "Cet utilisateur est déjà invité ou membre de cette organisation."
+          : "Cet utilisateur appartient déjà à une autre organisation principale.",
+      });
+      return;
+    }
+
+    let member;
+    try {
+      [member] = await db
+        .insert(membersTable)
+        .values({
+          userId: targetUser.id,
+          organizationId: params.data.id,
+          role: parsed.data.role,
+          status: "invited",
+        })
+        .returning();
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        res.status(409).json({ error: "Cet utilisateur appartient déjà à une organisation principale." });
+        return;
+      }
+      throw error;
+    }
 
     res.status(201).json(InviteMemberResponse.parse({ ...member, user: targetUser }));
   },

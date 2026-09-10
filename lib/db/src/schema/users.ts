@@ -1,6 +1,7 @@
-import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { organizationsTable } from "./organizations";
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -10,6 +11,9 @@ export const usersTable = pgTable("users", {
   lastName: text("last_name"),
   avatarUrl: text("avatar_url"),
   isSuperAdmin: boolean("is_super_admin").notNull().default(false),
+  primaryOrganizationId: integer("primary_organization_id").references(() => organizationsTable.id, {
+    onDelete: "set null",
+  }),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

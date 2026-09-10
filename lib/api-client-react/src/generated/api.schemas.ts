@@ -20,6 +20,8 @@ export interface User {
   /** @nullable */
   avatarUrl?: string | null;
   isSuperAdmin: boolean;
+  /** @nullable */
+  primaryOrganizationId: number | null;
   createdAt: string;
   updatedAt?: string;
 }
@@ -27,6 +29,50 @@ export interface User {
 export interface UserUpdate {
   firstName?: string;
   lastName?: string;
+}
+
+export type OnboardingProgressStatus = typeof OnboardingProgressStatus[keyof typeof OnboardingProgressStatus];
+
+
+export const OnboardingProgressStatus = {
+  not_started: 'not_started',
+  organization_created: 'organization_created',
+  subsidiaries_configured: 'subsidiaries_configured',
+  workforce_completed: 'workforce_completed',
+  subscription_selected: 'subscription_selected',
+  payment_pending: 'payment_pending',
+  completed: 'completed',
+} as const;
+
+export interface OnboardingProgress {
+  status: OnboardingProgressStatus;
+  /** @nullable */
+  effectifKey: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  primaryOrganizationId: number | null;
+}
+
+export type OnboardingProgressUpdateStatus = typeof OnboardingProgressUpdateStatus[keyof typeof OnboardingProgressUpdateStatus];
+
+
+export const OnboardingProgressUpdateStatus = {
+  not_started: 'not_started',
+  organization_created: 'organization_created',
+  subsidiaries_configured: 'subsidiaries_configured',
+  workforce_completed: 'workforce_completed',
+  subscription_selected: 'subscription_selected',
+  payment_pending: 'payment_pending',
+} as const;
+
+export interface OnboardingProgressUpdate {
+  status: OnboardingProgressUpdateStatus;
+  /**
+     * @minLength 1
+     * @maxLength 20
+     */
+  effectifKey?: string;
 }
 
 /**

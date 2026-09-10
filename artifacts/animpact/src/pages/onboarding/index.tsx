@@ -5,10 +5,10 @@ import {
   useCreateOrganization,
   getListOrganizationsQueryKey,
   useListOrganizations,
+  useGetOnboardingProgress,
 } from "@workspace/api-client-react";
 import type { Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@clerk/react";
 import { Building, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
-import { shouldRedirectOnboardingToDashboard } from "@/lib/authRedirect";
 import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
   SUBSCRIPTION_INTENT_SESSION_KEY,
@@ -28,10 +27,10 @@ const LEGAL_VERSION = "2025-01";
 
 export function Onboarding() {
   const [, setLocation] = useLocation();
-  const { userId } = useAuth();
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
   const { data: organizations, isLoading: organizationsLoading } = useListOrganizations();
+  const { data: onboarding, isLoading: onboardingLoading } = useGetOnboardingProgress();
   const hasSubmittedRef = useRef(false);
 
   const [name, setName] = useState("");
@@ -40,16 +39,26 @@ export function Onboarding() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (
-      !organizationsLoading
-      && shouldRedirectOnboardingToDashboard(organizations?.length ?? 0)
-      && !hasSubmittedRef.current
-    ) {
+    if (organizationsLoading || onboardingLoading || !onboarding || hasSubmittedRef.current) return;
+
+    if (onboarding.status === "completed") {
       sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
       sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
       setLocation("/dashboard", { replace: true });
+      return;
     }
-  }, [organizations, organizationsLoading, setLocation]);
+
+    if (organizations && organizations.length > 0) {
+      const root = organizations.find((organization) => !organization.parentId);
+      const nextPath =
+        onboarding.status === "organization_created" && root?.type === "groupe"
+          ? "/onboarding/filiales"
+          : onboarding.status === "organization_created" || onboarding.status === "subsidiaries_configured"
+            ? "/onboarding/effectif"
+            : "/onboarding/abonnement";
+      setLocation(nextPath, { replace: true });
+    }
+  }, [onboarding, onboardingLoading, organizations, organizationsLoading, setLocation]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,9 +78,12 @@ export function Onboarding() {
       org = await createOrg.mutateAsync({ data: { name: name.trim(), type } });
     } catch (err: any) {
       if (err?.status === 409 || err?.message?.includes("409")) {
-        // L'organisation existe déjà — aller directement au dashboard
-        await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
-        setLocation("/dashboard");
+        // Une autre requête a terminé la création : reprendre l'état serveur.
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() }),
+          qc.invalidateQueries({ queryKey: ["/api/users/me/onboarding"] }),
+        ]);
+        setLocation("/onboarding");
         return;
       }
       hasSubmittedRef.current = false;
@@ -88,10 +100,6 @@ export function Onboarding() {
     });
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
     setCurrentOrg(org.id);
-    if (userId) {
-      sessionStorage.setItem(ONBOARDING_CONTINUATION_SESSION_KEY, userId);
-    }
-
     // Enregistrement du consentement côté backend
     try {
       await customFetch("/api/users/me/consents", {
@@ -117,7 +125,7 @@ export function Onboarding() {
     }
   }
 
-  if (organizationsLoading || (organizations?.length ?? 0) > 0) {
+  if (organizationsLoading || onboardingLoading || (organizations?.length ?? 0) > 0) {
     return null;
   }
 

@@ -90,6 +90,44 @@ paths:
         "401":
           description: Unauthorized
 
+  /users/me/onboarding:
+    get:
+      operationId: getOnboardingProgress
+      tags: [users]
+      summary: Get the authenticated user's persisted onboarding state
+      responses:
+        "200":
+          description: Onboarding progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingProgress"
+        "401":
+          description: Unauthorized
+    patch:
+      operationId: updateOnboardingProgress
+      tags: [users]
+      summary: Advance the authenticated user's onboarding state
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingProgressUpdate"
+      responses:
+        "200":
+          description: Updated onboarding progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingProgress"
+        "400":
+          description: Invalid onboarding state
+        "409":
+          description: Onboarding cannot move backwards
+        "401":
+          description: Unauthorized
+
   # ─── ORGANIZATIONS ───────────────────────────────────────────────────────────
   /organizations:
     get:
@@ -3331,7 +3369,7 @@ components:
     # ─── USER ──────────────────────────────────────────────────────────────────
     User:
       type: object
-      required: [id, clerkId, email, isSuperAdmin, createdAt]
+      required: [id, clerkId, email, isSuperAdmin, primaryOrganizationId, createdAt]
       properties:
         id:
           type: integer
@@ -3348,6 +3386,8 @@ components:
           type: ["string", "null"]
         isSuperAdmin:
           type: boolean
+        primaryOrganizationId:
+          type: ["integer", "null"]
         createdAt:
           type: string
           format: date-time
@@ -3362,6 +3402,33 @@ components:
           type: string
         lastName:
           type: string
+
+    OnboardingProgress:
+      type: object
+      required: [status, effectifKey, primaryOrganizationId]
+      properties:
+        status:
+          type: string
+          enum: [not_started, organization_created, subsidiaries_configured, workforce_completed, subscription_selected, payment_pending, completed]
+        effectifKey:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        primaryOrganizationId:
+          type: ["integer", "null"]
+
+    OnboardingProgressUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [not_started, organization_created, subsidiaries_configured, workforce_completed, subscription_selected, payment_pending]
+        effectifKey:
+          type: string
+          minLength: 1
+          maxLength: 20
 
     # ─── ORGANIZATION ──────────────────────────────────────────────────────────
     Organization:

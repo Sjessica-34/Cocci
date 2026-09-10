@@ -1,6 +1,6 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
-import { db, membersTable } from "@workspace/db";
+import { db, membersTable, organizationsTable } from "@workspace/db";
 import { getOrCreateUser } from "../lib/auth";
 
 type MemberRole = "owner" | "admin" | "member" | "viewer";
@@ -33,17 +33,18 @@ export function requireMembership(allowedRoles: MemberRole[]) {
 
     // Superadmins bypass the membership check entirely.
     if (!user.isSuperAdmin) {
-      const [membership] = await db
-        .select()
+      const [row] = await db
+        .select({ membership: membersTable })
         .from(membersTable)
-        .where(
-          and(
-            eq(membersTable.userId, user.id),
-            eq(membersTable.organizationId, orgId),
-            eq(membersTable.status, "active"),
-          ),
-        )
+        .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
+        .where(and(
+          eq(membersTable.userId, user.id),
+          eq(membersTable.status, "active"),
+          isNull(membersTable.archivedAt),
+          sql`(${membersTable.organizationId} = ${orgId} OR (${organizationsTable.id} = ${orgId} AND ${organizationsTable.parentId} = ${user.primaryOrganizationId}))`,
+        ))
         .limit(1);
+      const membership = row?.membership;
 
       if (!membership || !allowedRoles.includes(membership.role as MemberRole)) {
         res.status(403).json({ error: "Forbidden" });

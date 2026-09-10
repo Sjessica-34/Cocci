@@ -8,6 +8,8 @@ import { queryClient } from "./lib/queryClient";
 import {
   useListOrganizations,
   getListOrganizationsQueryKey,
+  useGetOnboardingProgress,
+  getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
 
 import NotFound from "@/pages/not-found";
@@ -66,7 +68,7 @@ import {
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
-import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { setCurrentOrg, setCurrentOrgUser, useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import {
   hasActiveOrganizationSubscription,
   useOrganizationSubscription,
@@ -115,10 +117,19 @@ function ClerkQueryClientCacheInvalidator() {
       if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
         qc.clear();
       }
+      setCurrentOrgUser(userId);
       prevUserIdRef.current = userId;
     });
     return unsubscribe;
   }, [addListener, qc]);
+  return null;
+}
+
+function ClerkUserScopedState() {
+  const { isLoaded, userId } = useAuth();
+  useEffect(() => {
+    if (isLoaded) setCurrentOrgUser(userId);
+  }, [isLoaded, userId]);
   return null;
 }
 
@@ -205,6 +216,16 @@ function usePostAuthRedirect() {
       },
     },
   );
+  const {
+    data: onboarding,
+    isLoading: onboardingLoading,
+    isFetching: onboardingFetching,
+  } = useGetOnboardingProgress({
+    query: {
+      enabled: isLoaded && isSignedIn,
+      queryKey: getGetOnboardingProgressQueryKey(),
+    },
+  });
 
   useEffect(() => {
     runPostAuthRedirect(
@@ -217,6 +238,10 @@ function usePostAuthRedirect() {
         hasSubscriptionIntent: Boolean(
           sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
         ),
+        onboardingStatus: onboarding?.status,
+        hasPrimaryOrganization: onboarding?.primaryOrganizationId != null,
+        onboardingLoading,
+        onboardingFetching,
       },
       {
         navigate: setLocation,
@@ -232,6 +257,9 @@ function usePostAuthRedirect() {
     organizations,
     organizationsFetching,
     organizationsLoading,
+    onboarding,
+    onboardingFetching,
+    onboardingLoading,
     setLocation,
   ]);
 }
@@ -311,7 +339,7 @@ function OnboardingStepGuard({
   requiresAuth?: boolean;
 }) {
   const [, setLocation] = useLocation();
-  const { isLoaded: isAuthLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const {
     data: orgs,
     isLoading,
@@ -325,12 +353,16 @@ function OnboardingStepGuard({
       },
     },
   );
-
-  const hasOnboardingContinuation = Boolean(
-    isSignedIn
-    && userId
-    && sessionStorage.getItem(ONBOARDING_CONTINUATION_SESSION_KEY) === userId,
-  );
+  const {
+    data: onboarding,
+    isLoading: onboardingLoading,
+    isFetching: onboardingFetching,
+  } = useGetOnboardingProgress({
+    query: {
+      enabled: isAuthLoaded && isSignedIn,
+      queryKey: getGetOnboardingProgressQueryKey(),
+    },
+  });
 
   useEffect(() => {
     if (
@@ -338,20 +370,24 @@ function OnboardingStepGuard({
       || !isSignedIn
       || isLoading
       || isFetching
+      || onboardingLoading
+      || onboardingFetching
       || !orgs
-      || orgs.length === 0
-      || hasOnboardingContinuation
+      || !onboarding
+      || onboarding.status !== "completed"
     ) return;
 
     sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
     sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
     setLocation("/dashboard", { replace: true });
   }, [
-    hasOnboardingContinuation,
     isAuthLoaded,
     isFetching,
     isLoading,
     isSignedIn,
+    onboarding,
+    onboardingFetching,
+    onboardingLoading,
     orgs,
     setLocation,
   ]);
@@ -360,9 +396,8 @@ function OnboardingStepGuard({
   if (!isSignedIn) {
     return requiresAuth ? <Redirect to="/sign-in" /> : <Component />;
   }
-  if (isLoading || isFetching || !orgs) return null;
-  if (orgs.length > 0 && !hasOnboardingContinuation) return null;
-
+  if (isLoading || isFetching || onboardingLoading || onboardingFetching || !orgs || !onboarding) return null;
+  if (onboarding.status === "completed") return null;
   return <Component />;
 }
 
@@ -374,17 +409,28 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const { data: orgs, isLoading, isFetching } = useListOrganizations();
   const { currentOrgId } = useCurrentOrganization();
+  const { data: onboarding, isLoading: onboardingLoading } = useGetOnboardingProgress({
+    query: {
+      enabled: isAuthLoaded && isSignedIn,
+      queryKey: getGetOnboardingProgressQueryKey(),
+    },
+  });
   const { isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin();
 
   useEffect(() => {
-    if (orgs && orgs.length > 0) {
+    if (orgs && orgs.length > 0 && onboarding?.status === "completed") {
       sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
     }
-  }, [orgs]);
+  }, [onboarding?.status, orgs]);
 
   // L'abonnement d'un groupe est porté par son organisation racine. La vue
   // peut toutefois être positionnée sur une filiale.
   const rootOrg = orgs?.find((org) => !org.parentId) ?? null;
+  useEffect(() => {
+    if (rootOrg && (!currentOrgId || !orgs?.some((org) => org.id === currentOrgId))) {
+      setCurrentOrg(rootOrg.id);
+    }
+  }, [currentOrgId, orgs, rootOrg]);
   const subscriptionOrgId = rootOrg?.id ?? currentOrgId ?? orgs?.[0]?.id ?? null;
   const {
     subscription,
@@ -394,8 +440,8 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
 
   if (!isAuthLoaded) return null;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
-  if (isLoading || isFetching) return null;
-  if (orgs && orgs.length === 0) return <Redirect to="/onboarding" />;
+  if (isLoading || isFetching || onboardingLoading || !onboarding) return null;
+  if (orgs && (orgs.length === 0 || onboarding.status !== "completed")) return <Redirect to="/onboarding" />;
   if (isSuperAdminLoading || subscriptionLoading) return null;
   if (
     !isSuperAdmin
@@ -448,6 +494,7 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
+        <ClerkUserScopedState />
         <ClerkAuthTokenSetup />
         <TooltipProvider>
           <Switch>

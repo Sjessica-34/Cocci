@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { db, membersTable } from "@workspace/db";
+import { organizationsTable } from "@workspace/db";
 import { getOrCreateUser } from "../lib/auth";
 import { requireExercise, requireWritableExercise } from "../lib/exercise";
 
@@ -33,10 +34,12 @@ export async function requireOrgMembership(req: Request, res: Response, next: Ne
     const [membership] = await db
       .select({ id: membersTable.id })
       .from(membersTable)
+      .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
       .where(and(
-        eq(membersTable.organizationId, orgId),
         eq(membersTable.userId, user.id),
         eq(membersTable.status, "active"),
+        isNull(membersTable.archivedAt),
+        sql`(${membersTable.organizationId} = ${orgId} OR (${organizationsTable.id} = ${orgId} AND ${organizationsTable.parentId} = ${user.primaryOrganizationId}))`,
       ))
       .limit(1);
     if (!membership) {
@@ -67,10 +70,12 @@ async function requireActiveOrganizationAccess(
     const [membership] = await db
       .select({ role: membersTable.role })
       .from(membersTable)
+      .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
       .where(and(
-        eq(membersTable.organizationId, orgId),
         eq(membersTable.userId, user.id),
         eq(membersTable.status, "active"),
+        isNull(membersTable.archivedAt),
+        sql`(${membersTable.organizationId} = ${orgId} OR (${organizationsTable.id} = ${orgId} AND ${organizationsTable.parentId} = ${user.primaryOrganizationId}))`,
       ))
       .limit(1);
 

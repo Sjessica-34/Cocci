@@ -17,6 +17,8 @@ export interface User {
   /** @nullable */
   avatarUrl?: string | null;
   isSuperAdmin: boolean;
+  /** @nullable */
+  primaryOrganizationId: number | null;
   createdAt: Date;
   updatedAt?: Date;
 }

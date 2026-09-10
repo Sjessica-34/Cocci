@@ -1,6 +1,8 @@
 export type PostAuthRedirectInput = {
-  organizationCount: number;
+  organizationCount?: number;
   hasSubscriptionIntent: boolean;
+  onboardingStatus?: string | null;
+  hasPrimaryOrganization?: boolean;
 };
 
 export type PostAuthRedirect = {
@@ -15,6 +17,10 @@ export type PostAuthRedirectRuntimeState = {
   organizationsLoading: boolean;
   organizationsFetching: boolean;
   hasSubscriptionIntent: boolean;
+  onboardingStatus?: string | null;
+  hasPrimaryOrganization?: boolean;
+  onboardingLoading?: boolean;
+  onboardingFetching?: boolean;
 };
 
 export type PostAuthRedirectEffects = {
@@ -29,8 +35,18 @@ export type PostAuthRedirectEffects = {
 export function resolvePostAuthRedirect({
   organizationCount,
   hasSubscriptionIntent,
+  onboardingStatus,
+  hasPrimaryOrganization,
 }: PostAuthRedirectInput): PostAuthRedirect {
-  const hasExistingOrganization = organizationCount > 0;
+  if (onboardingStatus !== undefined || hasPrimaryOrganization !== undefined) {
+    const isComplete = onboardingStatus === "completed" && hasPrimaryOrganization === true;
+    return {
+      path: isComplete ? "/dashboard" : "/onboarding",
+      clearSubscriptionIntent: isComplete,
+    };
+  }
+
+  const hasExistingOrganization = (organizationCount ?? 0) > 0;
 
   return {
     path: hasExistingOrganization
@@ -57,6 +73,8 @@ export function runPostAuthRedirect(
     || !state.isSignedIn
     || state.organizationsLoading
     || state.organizationsFetching
+    || state.onboardingLoading
+    || state.onboardingFetching
     || !state.organizations
   ) {
     return false;
@@ -65,6 +83,8 @@ export function runPostAuthRedirect(
   const redirect = resolvePostAuthRedirect({
     organizationCount: state.organizations.length,
     hasSubscriptionIntent: state.hasSubscriptionIntent,
+    onboardingStatus: state.onboardingStatus,
+    hasPrimaryOrganization: state.hasPrimaryOrganization,
   });
 
   if (redirect.clearSubscriptionIntent) {

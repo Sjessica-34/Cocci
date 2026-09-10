@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
-import { customFetch } from "@workspace/api-client-react";
+import {
+  customFetch,
+  useGetOnboardingProgress,
+  useUpdateOnboardingProgress,
+  getGetOnboardingProgressQueryKey,
+} from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import {
   canStartSubscriptionCheckout,
@@ -13,8 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Check, CreditCard, ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import {
-  EFFECTIF_SESSION_KEY,
   ONBOARDING_CONTINUATION_SESSION_KEY,
+  EFFECTIF_SESSION_KEY,
   SUBSCRIPTION_INTENT_SESSION_KEY,
   effectifToPlan,
   type EffectifKey,
@@ -25,12 +30,20 @@ export function OnboardingAbonnement() {
   const [, setLocation] = useLocation();
   const { isLoaded: isAuthLoaded, isSignedIn, getToken } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
+  const { data: onboarding, isLoading: onboardingLoading } = useGetOnboardingProgress({
+    query: {
+      enabled: isAuthLoaded && isSignedIn,
+      queryKey: getGetOnboardingProgressQueryKey(),
+    },
+  });
+  const updateProgress = useUpdateOnboardingProgress();
+  const effectiveOrgId = currentOrgId ?? onboarding?.primaryOrganizationId ?? null;
   const {
     subscription,
     isLoading: subscriptionLoading,
     error: subscriptionError,
     refresh: refreshSubscription,
-  } = useOrganizationSubscription(currentOrgId);
+  } = useOrganizationSubscription(effectiveOrgId);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [effectifKey, setEffectifKey] = useState<EffectifKey | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -40,7 +53,9 @@ export function OnboardingAbonnement() {
   const checkoutStartedRef = useRef(false);
 
   useEffect(() => {
-    const key = sessionStorage.getItem(EFFECTIF_SESSION_KEY) as EffectifKey | null;
+    const key = (onboarding?.effectifKey
+      ?? sessionStorage.getItem(EFFECTIF_SESSION_KEY)) as EffectifKey | null | undefined;
+    if (onboardingLoading) return;
     if (!key) {
       // Pas de tranche sélectionnée → retour à l'étape effectif
       setLocation("/onboarding/effectif");
@@ -48,25 +63,25 @@ export function OnboardingAbonnement() {
     }
     setEffectifKey(key);
     setPlan(effectifToPlan(key));
-  }, [setLocation]);
+  }, [isAuthLoaded, isSignedIn, onboarding?.effectifKey, onboardingLoading, setLocation]);
 
   const isActive = isActiveStripeSubscription(subscription);
   const subscriptionReady = isOrganizationSubscriptionReady(
-    currentOrgId,
+    effectiveOrgId,
     subscription,
     subscriptionLoading,
   );
   const isDevis = plan?.pricePerMonth === null;
 
   const handlePortal = async () => {
-    if (!currentOrgId) return;
+    if (!effectiveOrgId) return;
     setPortalLoading(true);
     setPortalError(null);
     try {
       const token = await getToken({ skipCache: true });
       if (!token) throw new Error("Authentication token unavailable");
       const { url } = await customFetch<{ url: string }>(
-        `/api/organizations/${currentOrgId}/stripe/portal`,
+        `/api/organizations/${effectiveOrgId}/stripe/portal`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -82,7 +97,7 @@ export function OnboardingAbonnement() {
 
   const startCheckout = useCallback(async () => {
     if (!canStartSubscriptionCheckout({
-      currentOrgId,
+      currentOrgId: effectiveOrgId,
       effectifKey,
       isAuthLoaded,
       isSignedIn,
@@ -96,12 +111,15 @@ export function OnboardingAbonnement() {
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
+      await updateProgress.mutateAsync({
+        data: { status: "subscription_selected", effectifKey: effectifKey ?? undefined },
+      });
       const token = await getToken({ skipCache: true });
       if (!token) throw new Error("Authentication token unavailable");
       // Le frontend transmet seulement la tranche d'effectif. Le serveur
       // sélectionne lui-même le Product ID et le Price ID autorisés.
       const { url } = await customFetch<{ url: string }>(
-        `/api/organizations/${currentOrgId}/stripe/checkout`,
+        `/api/organizations/${effectiveOrgId}/stripe/checkout`,
         {
           method: "POST",
           body: JSON.stringify({ effectifKey }),
@@ -112,6 +130,7 @@ export function OnboardingAbonnement() {
         // Checkout est lancé : l'intention est consommée pour ne jamais
         // redéclencher une seconde session après un retour ou un rechargement.
         sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+        sessionStorage.removeItem(EFFECTIF_SESSION_KEY);
         sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
         // Stripe Checkout ne peut pas être rendu dans l'iframe de prévisualisation.
         const targetWindow = window.top ?? window;
@@ -125,19 +144,20 @@ export function OnboardingAbonnement() {
       setCheckoutLoading(false);
     }
   }, [
-    currentOrgId,
+    effectiveOrgId,
     effectifKey,
     getToken,
     isActive,
     isAuthLoaded,
     isSignedIn,
+    updateProgress,
   ]);
 
   useEffect(() => {
     const hasMatchingIntent = effectifKey
       && sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY) === effectifKey;
     const canResumeCheckout = isSignedIn
-      && currentOrgId
+      && effectiveOrgId
       && effectifKey
       && !isDevis
       && hasMatchingIntent
@@ -153,7 +173,7 @@ export function OnboardingAbonnement() {
       void startCheckout();
     }
   }, [
-    currentOrgId,
+    effectiveOrgId,
     effectifKey,
     isActive,
     isDevis,
@@ -171,7 +191,7 @@ export function OnboardingAbonnement() {
 
     // Un compte déjà configuré ne peut pas créer une intention de paiement
     // depuis une ancienne URL d'onboarding.
-    if (isSignedIn && currentOrgId) {
+    if (isSignedIn && effectiveOrgId && onboarding?.status === "completed") {
       sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
       sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
       setLocation("/dashboard");
@@ -186,8 +206,8 @@ export function OnboardingAbonnement() {
       return;
     }
     // Connecté mais sans organisation → création d'espace, puis reprise automatique.
-    if (!currentOrgId) {
-      setLocation("/dashboard");
+    if (!effectiveOrgId) {
+      setLocation("/onboarding");
       return;
     }
     if (!subscriptionReady && !subscriptionError) {
@@ -271,7 +291,7 @@ export function OnboardingAbonnement() {
           </div>
         </div>
 
-        {currentOrgId && subscriptionLoading && (
+        {effectiveOrgId && subscriptionLoading && (
           <p className="text-center text-xs text-muted-foreground">
             Vérification de votre abonnement…
           </p>
@@ -326,7 +346,7 @@ export function OnboardingAbonnement() {
                 disabled={isSubscriptionCheckoutButtonDisabled({
                   checkoutLoading,
                   subscriptionLoading,
-                  currentOrgId,
+                  currentOrgId: effectiveOrgId,
                   subscriptionReady,
                   subscriptionError,
                   isActive,

@@ -4,6 +4,7 @@ import {
   useListOrganizations,
   useCreateOrganization,
   useUpdateOrganization,
+  useUpdateOnboardingProgress,
   getListOrganizationsQueryKey,
 } from "@workspace/api-client-react";
 import type { Organization } from "@workspace/api-client-react";
@@ -134,16 +135,19 @@ export function OnboardingFiliales() {
   const { data: orgs = [], isLoading } = useListOrganizations();
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
+  const updateProgress = useUpdateOnboardingProgress();
 
   const [subName, setSubName] = useState("");
   const [subError, setSubError] = useState("");
   const [showModeDialog, setShowModeDialog] = useState(false);
   const [modeSet, setModeSet] = useState(false);
 
-  function continueToNextOnboardingStep() {
+  async function continueToNextOnboardingStep() {
+    await updateProgress.mutateAsync({ data: { status: "subsidiaries_configured" } });
     const hasSubscriptionIntent = Boolean(
       sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
     );
+    await qc.invalidateQueries({ queryKey: ["/api/users/me/onboarding"] });
     setLocation(hasSubscriptionIntent ? "/onboarding/abonnement" : "/onboarding/effectif");
   }
 
@@ -157,7 +161,7 @@ export function OnboardingFiliales() {
     setShowModeDialog(false);
     // Switch to the group view
     if (rootOrg) setCurrentOrg(rootOrg.id);
-    continueToNextOnboardingStep();
+    void continueToNextOnboardingStep();
   }
 
   async function handleAddSub(e: React.FormEvent) {
@@ -181,9 +185,13 @@ export function OnboardingFiliales() {
     }
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     if (rootOrg) setCurrentOrg(rootOrg.id);
-    continueToNextOnboardingStep();
+    try {
+      await continueToNextOnboardingStep();
+    } catch {
+      setSubError("Impossible d'enregistrer cette étape. Veuillez réessayer.");
+    }
   }
 
   // Redirect outside of render

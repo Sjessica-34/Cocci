@@ -1,6 +1,13 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, organizationsTable, membersTable, exercisesTable } from "@workspace/db";
+import { eq, and, sql } from "drizzle-orm";
+import {
+  db,
+  organizationsTable,
+  membersTable,
+  exercisesTable,
+  onboardingProgressTable,
+  usersTable,
+} from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
 import { getOrCreateUser } from "../lib/auth";
@@ -46,13 +53,27 @@ router.get("/organizations", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const memberships = await db
-    .select({ organization: organizationsTable })
-    .from(membersTable)
-    .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
-    .where(and(eq(membersTable.userId, user.id), eq(membersTable.status, "active")));
-
-  const orgs = memberships.map((m) => m.organization);
+  let orgs: typeof organizationsTable.$inferSelect[] = [];
+  if (user.isSuperAdmin) {
+    const memberships = await db
+      .select({ organization: organizationsTable })
+      .from(membersTable)
+      .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
+      .where(and(eq(membersTable.userId, user.id), eq(membersTable.status, "active")));
+    orgs = memberships.map((m) => m.organization);
+  } else if (user.primaryOrganizationId) {
+    const roots = await db
+      .select()
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, user.primaryOrganizationId));
+    const children = await db
+      .select()
+      .from(organizationsTable)
+      .where(eq(organizationsTable.parentId, user.primaryOrganizationId));
+    orgs = [...roots, ...children];
+  } else {
+    orgs = [];
+  }
   res.json(ListOrganizationsResponse.parse(orgs));
 });
 
@@ -65,86 +86,90 @@ router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // "1 compte = 1 org principale" — block creation of a second root org.
-  if (!parsed.data.parentId) {
-    const memberships = await db
-      .select({ org: organizationsTable })
-      .from(membersTable)
-      .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
-      .where(and(eq(membersTable.userId, user.id), eq(membersTable.status, "active")));
+  class OrganizationOwnershipConflict extends Error {}
 
-    const hasRootOrg = memberships.some((m) => m.org.parentId === null);
-    if (hasRootOrg) {
+  let org;
+  try {
+    org = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(67102, ${user.id})`);
+
+      if (!parsed.data.parentId) {
+        const [lockedUser] = await tx
+          .select({ primaryOrganizationId: usersTable.primaryOrganizationId })
+          .from(usersTable)
+          .where(eq(usersTable.id, user.id))
+          .limit(1);
+        if (lockedUser?.primaryOrganizationId) {
+          throw new OrganizationOwnershipConflict();
+        }
+      } else {
+        if (!user.primaryOrganizationId || parsed.data.parentId !== user.primaryOrganizationId) {
+          throw new OrganizationOwnershipConflict();
+        }
+        const [parent] = await tx
+          .select({ id: organizationsTable.id, type: organizationsTable.type, parentId: organizationsTable.parentId })
+          .from(organizationsTable)
+          .where(eq(organizationsTable.id, parsed.data.parentId))
+          .limit(1);
+        if (!parent || parent.type !== "groupe" || parent.parentId !== null) {
+          throw new OrganizationOwnershipConflict();
+        }
+      }
+
+      const [created] = await tx
+        .insert(organizationsTable)
+        .values(parsed.data)
+        .returning();
+
+      if (!parsed.data.parentId) {
+        await tx.insert(membersTable).values({
+          userId: user.id,
+          organizationId: created.id,
+          role: "owner",
+          status: "active",
+        });
+        await tx.update(usersTable)
+          .set({ primaryOrganizationId: created.id, updatedAt: new Date() })
+          .where(eq(usersTable.id, user.id));
+        await tx.update(onboardingProgressTable)
+          .set({ status: "organization_created", updatedAt: new Date() })
+          .where(eq(onboardingProgressTable.userId, user.id));
+      } else {
+        await tx.update(onboardingProgressTable)
+          .set({ status: "subsidiaries_configured", updatedAt: new Date() })
+          .where(eq(onboardingProgressTable.userId, user.id));
+      }
+
+      await tx.insert(exercisesTable).values({
+        organizationId: created.id,
+        year: new Date().getFullYear(),
+        status: "active",
+      });
+
+      if (!parsed.data.parentId && parsed.data.type === "groupe") {
+        const [maisonMere] = await tx
+          .insert(organizationsTable)
+          .values({
+            name: "Maison mère / Siège social",
+            type: "entreprise",
+            parentId: created.id,
+          })
+          .returning();
+        await tx.insert(exercisesTable).values({
+          organizationId: maisonMere.id,
+          year: new Date().getFullYear(),
+          status: "active",
+        });
+      }
+
+      return created;
+    });
+  } catch (error) {
+    if (error instanceof OrganizationOwnershipConflict) {
       res.status(409).json({ error: "Un compte ne peut avoir qu'une seule organisation principale." });
       return;
     }
-  }
-
-  const [org] = await db
-    .insert(organizationsTable)
-    .values(parsed.data)
-    .returning();
-
-  await db.insert(membersTable).values({
-    userId: user.id,
-    organizationId: org.id,
-    role: "owner",
-    status: "active",
-  });
-
-  // If this organization has a parentId (it's a subsidiary), also ensure the
-  // current user is a member of the parent group so they can navigate to it.
-  // (The user creating the subsidiary is implicitly a member of the group.)
-  if (parsed.data.parentId) {
-    const [existingMembership] = await db
-      .select({ id: membersTable.id })
-      .from(membersTable)
-      .where(and(eq(membersTable.userId, user.id), eq(membersTable.organizationId, parsed.data.parentId)))
-      .limit(1);
-
-    if (!existingMembership) {
-      await db.insert(membersTable).values({
-        userId: user.id,
-        organizationId: parsed.data.parentId,
-        role: "owner",
-        status: "active",
-      });
-    }
-  }
-
-  // Auto-create an exercise for the current year — both root orgs AND subsidiaries
-  // get their own exercise so data is always scoped independently.
-  await db.insert(exercisesTable).values({
-    organizationId: org.id,
-    year: new Date().getFullYear(),
-    status: "active",
-  });
-
-  // When creating a Groupe, automatically create a "Maison mère / Siège social"
-  // subsidiary. It is treated exactly like any other subsidiary (same table, same
-  // modules, same exercise logic) — no special type or business logic.
-  if (!parsed.data.parentId && parsed.data.type === "groupe") {
-    const [maisonMere] = await db
-      .insert(organizationsTable)
-      .values({
-        name: "Maison mère / Siège social",
-        type: "entreprise",
-        parentId: org.id,
-      })
-      .returning();
-
-    await db.insert(membersTable).values({
-      userId: user.id,
-      organizationId: maisonMere.id,
-      role: "owner",
-      status: "active",
-    });
-
-    await db.insert(exercisesTable).values({
-      organizationId: maisonMere.id,
-      year: new Date().getFullYear(),
-      status: "active",
-    });
+    throw error;
   }
 
   res.status(201).json(CreateOrganizationResponse.parse(org));

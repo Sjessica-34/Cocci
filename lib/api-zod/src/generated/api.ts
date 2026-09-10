@@ -29,6 +29,7 @@ export const GetMeResponse = zod.object({
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isSuperAdmin": zod.boolean(),
+  "primaryOrganizationId": zod.number().nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -50,8 +51,40 @@ export const UpdateMeResponse = zod.object({
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isSuperAdmin": zod.boolean(),
+  "primaryOrganizationId": zod.number().nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Get the authenticated user's persisted onboarding state
+ */
+export const GetOnboardingProgressResponse = zod.object({
+  "status": zod.enum(['not_started', 'organization_created', 'subsidiaries_configured', 'workforce_completed', 'subscription_selected', 'payment_pending', 'completed']),
+  "effectifKey": zod.string().nullable(),
+  "completedAt": zod.coerce.date().nullish(),
+  "primaryOrganizationId": zod.number().nullable()
+})
+
+
+/**
+ * @summary Advance the authenticated user's onboarding state
+ */
+export const updateOnboardingProgressBodyEffectifKeyMax = 20;
+
+
+
+export const UpdateOnboardingProgressBody = zod.object({
+  "status": zod.enum(['not_started', 'organization_created', 'subsidiaries_configured', 'workforce_completed', 'subscription_selected', 'payment_pending']),
+  "effectifKey": zod.string().min(1).max(updateOnboardingProgressBodyEffectifKeyMax).optional()
+})
+
+export const UpdateOnboardingProgressResponse = zod.object({
+  "status": zod.enum(['not_started', 'organization_created', 'subsidiaries_configured', 'workforce_completed', 'subscription_selected', 'payment_pending', 'completed']),
+  "effectifKey": zod.string().nullable(),
+  "completedAt": zod.coerce.date().nullish(),
+  "primaryOrganizationId": zod.number().nullable()
 })
 
 
@@ -258,6 +291,7 @@ export const ListMembersResponseItem = zod.object({
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isSuperAdmin": zod.boolean(),
+  "primaryOrganizationId": zod.number().nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 }).optional(),
@@ -292,6 +326,7 @@ export const InviteMemberResponse = zod.object({
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isSuperAdmin": zod.boolean(),
+  "primaryOrganizationId": zod.number().nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 }).optional(),
@@ -326,6 +361,7 @@ export const UpdateMemberResponse = zod.object({
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isSuperAdmin": zod.boolean(),
+  "primaryOrganizationId": zod.number().nullable(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
 }).optional(),

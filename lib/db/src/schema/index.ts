@@ -28,3 +28,4 @@ export * from "./audit";
 export * from "./consents";
 export * from "./publicLinks";
 export * from "./pendingObjectUploads";
+export * from "./onboardingProgress";

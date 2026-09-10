@@ -1,5 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
+import { useAuth } from "@clerk/react";
+import {
+  useGetOnboardingProgress,
+  useUpdateOnboardingProgress,
+} from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
@@ -7,11 +13,26 @@ import { EFFECTIF_OPTIONS, EFFECTIF_SESSION_KEY, type EffectifKey } from "./plan
 
 export function OnboardingEffectif() {
   const [, setLocation] = useLocation();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [selected, setSelected] = useState<EffectifKey | null>(null);
+  const { data: onboarding } = useGetOnboardingProgress();
+  const updateProgress = useUpdateOnboardingProgress();
 
-  function handleContinue() {
+  useEffect(() => {
+    const key = onboarding?.effectifKey as EffectifKey | null | undefined;
+    if (key && EFFECTIF_OPTIONS.some((option) => option.key === key)) {
+      setSelected(key);
+    }
+  }, [onboarding?.effectifKey]);
+
+  async function handleContinue() {
     if (!selected) return;
     sessionStorage.setItem(EFFECTIF_SESSION_KEY, selected);
+    if (isAuthLoaded && isSignedIn) {
+      await updateProgress.mutateAsync({
+        data: { status: "workforce_completed", effectifKey: selected },
+      });
+    }
     setLocation("/onboarding/abonnement");
   }
 
@@ -59,7 +80,7 @@ export function OnboardingEffectif() {
 
         <Button
           className="w-full"
-          disabled={!selected}
+          disabled={!selected || updateProgress.isPending}
           onClick={handleContinue}
         >
           Voir ma formule →

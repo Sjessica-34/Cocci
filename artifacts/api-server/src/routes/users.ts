@@ -2,7 +2,14 @@ import { Router, type IRouter } from "express";
 import { and, eq, desc, ne, sql } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { z } from "zod";
-import { db, usersTable, membersTable, organizationsTable, userConsentsTable } from "@workspace/db";
+import {
+  db,
+  usersTable,
+  membersTable,
+  organizationsTable,
+  userConsentsTable,
+  onboardingProgressTable,
+} from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sensitiveLimiter } from "../middlewares/rateLimit";
 import { getOrCreateUser } from "../lib/auth";
@@ -10,6 +17,28 @@ import { logAuditEvent } from "../lib/audit";
 import { GetMeResponse, UpdateMeBody, UpdateMeResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+const onboardingUpdateSchema = z.object({
+  status: z.enum([
+    "not_started",
+    "organization_created",
+    "subsidiaries_configured",
+    "workforce_completed",
+    "subscription_selected",
+    "payment_pending",
+    "completed",
+  ]),
+  effectifKey: z.string().min(1).max(20).optional(),
+});
+const onboardingStatusOrder = [
+  "not_started",
+  "organization_created",
+  "subsidiaries_configured",
+  "workforce_completed",
+  "subscription_selected",
+  "payment_pending",
+  "completed",
+] as const;
 
 // ─── Profil ───────────────────────────────────────────────────────────────────
 
@@ -34,6 +63,75 @@ router.patch("/users/me", requireAuth, async (req, res): Promise<void> => {
 
   await logAuditEvent(req, "user.update_profile", { userId: user.id });
   res.json(UpdateMeResponse.parse(updated));
+});
+
+router.get("/users/me/onboarding", requireAuth, async (req, res): Promise<void> => {
+  res.setHeader("Cache-Control", "no-store");
+  const user = await getOrCreateUser(req.clerkUserId!);
+  const [progress] = await db
+    .select()
+    .from(onboardingProgressTable)
+    .where(eq(onboardingProgressTable.userId, user.id))
+    .limit(1);
+
+  res.json({
+    status: progress?.status ?? "not_started",
+    effectifKey: progress?.effectifKey ?? null,
+    completedAt: progress?.completedAt ?? null,
+    primaryOrganizationId: user.primaryOrganizationId,
+  });
+});
+
+router.patch("/users/me/onboarding", requireAuth, async (req, res): Promise<void> => {
+  const parsed = onboardingUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const user = await getOrCreateUser(req.clerkUserId!);
+  const [current] = await db
+    .select()
+    .from(onboardingProgressTable)
+    .where(eq(onboardingProgressTable.userId, user.id))
+    .limit(1);
+  const currentIndex = onboardingStatusOrder.indexOf(
+    current?.status as typeof onboardingStatusOrder[number] ?? "not_started",
+  );
+  const nextIndex = onboardingStatusOrder.indexOf(parsed.data.status);
+
+  if (nextIndex < currentIndex) {
+    res.status(409).json({ error: "Une étape d'onboarding déjà validée ne peut pas être annulée." });
+    return;
+  }
+  if (parsed.data.status === "completed") {
+    res.status(403).json({ error: "La finalisation de l'onboarding est réservée au serveur." });
+    return;
+  }
+
+  const [updated] = await db
+    .insert(onboardingProgressTable)
+    .values({
+      userId: user.id,
+      status: parsed.data.status,
+      effectifKey: parsed.data.effectifKey,
+    })
+    .onConflictDoUpdate({
+      target: onboardingProgressTable.userId,
+      set: {
+        status: parsed.data.status,
+        ...(parsed.data.effectifKey ? { effectifKey: parsed.data.effectifKey } : {}),
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+
+  res.json({
+    status: updated.status,
+    effectifKey: updated.effectifKey,
+    completedAt: updated.completedAt,
+    primaryOrganizationId: user.primaryOrganizationId,
+  });
 });
 
 // ─── Export RGPD ─────────────────────────────────────────────────────────────

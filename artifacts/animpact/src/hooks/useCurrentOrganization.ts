@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { setExerciseOrgContext } from "./useCurrentExercise";
 
 const STORAGE_KEY = "animpact:currentOrgId";
+let activeUserId: string | null = null;
 
-function readFromStorage(): number | null {
+function readFromStorage(userId = activeUserId): number | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY;
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = Number(raw);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -15,7 +17,7 @@ function readFromStorage(): number | null {
 }
 
 let listeners: Array<() => void> = [];
-let currentValue: number | null = readFromStorage();
+let currentValue: number | null = null;
 setExerciseOrgContext(currentValue);
 
 function notifyListeners() {
@@ -25,15 +27,25 @@ function notifyListeners() {
 export function setCurrentOrg(id: number | null) {
   currentValue = id;
   try {
+    const key = activeUserId ? `${STORAGE_KEY}:${activeUserId}` : STORAGE_KEY;
     if (id === null) {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(key);
     } else {
-      localStorage.setItem(STORAGE_KEY, String(id));
+      localStorage.setItem(key, String(id));
     }
   } catch {
     // ignore storage errors
   }
   setExerciseOrgContext(id);
+  notifyListeners();
+}
+
+export function setCurrentOrgUser(userId: string | null | undefined) {
+  const nextUserId = userId ?? null;
+  if (nextUserId === activeUserId) return;
+  activeUserId = nextUserId;
+  currentValue = readFromStorage(activeUserId);
+  setExerciseOrgContext(currentValue);
   notifyListeners();
 }
 

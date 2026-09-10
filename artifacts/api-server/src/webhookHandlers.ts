@@ -34,6 +34,18 @@ async function upsertSubscriptionFromStripe(opts: {
        updated_at = NOW()`,
     [orgId, internalStatus, stripeCustomerId, stripeSubscriptionId],
   );
+
+  if (internalStatus === "active") {
+    await pool.query(
+      `UPDATE onboarding_progress p
+       SET status = 'completed', completed_at = COALESCE(p.completed_at, NOW()), updated_at = NOW()
+       FROM users u
+       WHERE p.user_id = u.id
+         AND u.primary_organization_id = $1
+         AND p.status <> 'completed'`,
+      [orgId],
+    );
+  }
 }
 
 async function suspendSubscriptionByStripeSubId(stripeSubscriptionId: string): Promise<void> {
@@ -107,6 +119,17 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
             [orgId, internalStatus, session.customer as string, session.subscription as string,
              offerName, maxEmployees],
           );
+          if (internalStatus === "active") {
+            await pool.query(
+              `UPDATE onboarding_progress p
+               SET status = 'completed', completed_at = COALESCE(p.completed_at, NOW()), updated_at = NOW()
+               FROM users u
+               WHERE p.user_id = u.id
+                 AND u.primary_organization_id = $1
+                 AND p.status <> 'completed'`,
+              [orgId],
+            );
+          }
           logger.info({ orgId, paymentStatus: session.payment_status, internalStatus },
             "Subscription upserted after checkout");
 
@@ -162,6 +185,15 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           await pool.query(
             `UPDATE subscriptions SET status = 'active', updated_at = NOW()
              WHERE organization_id = $1 AND status = 'trial'`,
+            [row.rows[0].organization_id],
+          );
+          await pool.query(
+            `UPDATE onboarding_progress p
+             SET status = 'completed', completed_at = COALESCE(p.completed_at, NOW()), updated_at = NOW()
+             FROM users u
+             WHERE p.user_id = u.id
+               AND u.primary_organization_id = $1
+               AND p.status <> 'completed'`,
             [row.rows[0].organization_id],
           );
           logger.info({ sub: invoiceSubId }, "Subscription activated after payment_succeeded");

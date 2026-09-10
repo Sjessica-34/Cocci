@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { pool } from "@workspace/db";
+import { db, onboardingProgressTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
 import { getUncachableStripeClient } from "../stripeClient";
@@ -7,6 +7,7 @@ import { configuredEffectifOffers, resolveCheckoutOffer } from "../stripeCatalog
 import { logger } from "../lib/logger";
 import { getPublicAppUrl } from "../appUrl";
 import { getBillingOrganizationId } from "../lib/billingOrganization";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -209,6 +210,13 @@ router.post(
         },
         locale: "fr",
       });
+
+      if (req.userId) {
+        await db
+          .update(onboardingProgressTable)
+          .set({ status: "payment_pending", updatedAt: new Date() })
+          .where(eq(onboardingProgressTable.userId, req.userId));
+      }
 
       res.json({ url: session.url });
     } catch (err) {

@@ -102,6 +102,8 @@ import type {
   MemberUpdate,
   NrData,
   NrDataInput,
+  OnboardingProgress,
+  OnboardingProgressUpdate,
   Organization,
   OrganizationDashboard,
   OrganizationInput,
@@ -387,6 +389,153 @@ export const useUpdateMe = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateMeMutationOptions(options));
+    }
+
+export const getGetOnboardingProgressUrl = () => {
+
+
+
+
+  return `/api/users/me/onboarding`
+}
+
+/**
+ * @summary Get the authenticated user's persisted onboarding state
+ */
+export const getOnboardingProgress = async ( options?: RequestInit): Promise<OnboardingProgress> => {
+
+  return customFetch<OnboardingProgress>(getGetOnboardingProgressUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOnboardingProgressQueryKey = () => {
+    return [
+    `/api/users/me/onboarding`
+    ] as const;
+    }
+
+
+export const getGetOnboardingProgressQueryOptions = <TData = Awaited<ReturnType<typeof getOnboardingProgress>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOnboardingProgress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOnboardingProgressQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOnboardingProgress>>> = ({ signal }) => getOnboardingProgress({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOnboardingProgress>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOnboardingProgressQueryResult = NonNullable<Awaited<ReturnType<typeof getOnboardingProgress>>>
+export type GetOnboardingProgressQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the authenticated user's persisted onboarding state
+ */
+
+export function useGetOnboardingProgress<TData = Awaited<ReturnType<typeof getOnboardingProgress>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOnboardingProgress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOnboardingProgressQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateOnboardingProgressUrl = () => {
+
+
+
+
+  return `/api/users/me/onboarding`
+}
+
+/**
+ * @summary Advance the authenticated user's onboarding state
+ */
+export const updateOnboardingProgress = async (onboardingProgressUpdate: OnboardingProgressUpdate, options?: RequestInit): Promise<OnboardingProgress> => {
+
+  return customFetch<OnboardingProgress>(getUpdateOnboardingProgressUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(onboardingProgressUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateOnboardingProgressMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOnboardingProgress>>, TError,{data: BodyType<OnboardingProgressUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOnboardingProgress>>, TError,{data: BodyType<OnboardingProgressUpdate>}, TContext> => {
+
+const mutationKey = ['updateOnboardingProgress'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOnboardingProgress>>, {data: BodyType<OnboardingProgressUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOnboardingProgress(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOnboardingProgressMutationResult = NonNullable<Awaited<ReturnType<typeof updateOnboardingProgress>>>
+    export type UpdateOnboardingProgressMutationBody = BodyType<OnboardingProgressUpdate>
+    export type UpdateOnboardingProgressMutationError = ErrorType<void>
+
+    /**
+ * @summary Advance the authenticated user's onboarding state
+ */
+export const useUpdateOnboardingProgress = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOnboardingProgress>>, TError,{data: BodyType<OnboardingProgressUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOnboardingProgress>>,
+        TError,
+        {data: BodyType<OnboardingProgressUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateOnboardingProgressMutationOptions(options));
     }
 
 export const getListOrganizationsUrl = (params?: ListOrganizationsParams,) => {

@@ -1,8 +1,16 @@
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@clerk/react";
 import { useLocation } from "wouter";
+import {
+  getGetOnboardingProgressQueryKey,
+  useGetOnboardingProgress,
+} from "@workspace/api-client-react";
 import { CheckCircle2, LayoutDashboard, LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  isActiveStripeSubscription,
+  useOrganizationSubscription,
+} from "@/hooks/useOrganizationSubscription";
 import {
   PLANS,
   SUBSCRIPTION_INTENT_SESSION_KEY,
@@ -28,6 +36,24 @@ function getOfferLabel(rawOffer: string | null): string {
 export function SubscriptionConfirmation() {
   const [, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
+  const {
+    data: onboarding,
+    isLoading: onboardingLoading,
+    refetch: refetchOnboarding,
+  } = useGetOnboardingProgress({
+    query: {
+      enabled: isLoaded && isSignedIn,
+      queryKey: getGetOnboardingProgressQueryKey(),
+    },
+  });
+  const primaryOrganizationId = onboarding?.primaryOrganizationId ?? null;
+  const {
+    subscription,
+    isLoading: subscriptionLoading,
+    refresh: refreshSubscription,
+  } = useOrganizationSubscription(primaryOrganizationId);
+  const isServerConfirmed =
+    onboarding?.status === "completed" && isActiveStripeSubscription(subscription);
   const offerLabel = useMemo(
     () => getOfferLabel(new URLSearchParams(window.location.search).get("offer")),
     [],
@@ -39,7 +65,28 @@ export function SubscriptionConfirmation() {
     sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
   }, []);
 
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !primaryOrganizationId || isServerConfirmed) return;
+    const intervalId = window.setInterval(() => {
+      refreshSubscription();
+      void refetchOnboarding();
+    }, 2500);
+    return () => window.clearInterval(intervalId);
+  }, [
+    isLoaded,
+    isServerConfirmed,
+    isSignedIn,
+    primaryOrganizationId,
+    refetchOnboarding,
+    refreshSubscription,
+  ]);
+
   const handleContinue = () => {
+    if (isSignedIn && !isServerConfirmed) {
+      refreshSubscription();
+      void refetchOnboarding();
+      return;
+    }
     setLocation(isSignedIn ? "/dashboard" : "/sign-in");
   };
 
@@ -60,10 +107,14 @@ export function SubscriptionConfirmation() {
             className="text-2xl font-bold tracking-tight text-foreground"
             data-testid="text-subscription-confirmation-title"
           >
-            Votre abonnement est actif
+            {isServerConfirmed
+              ? "Votre abonnement est actif"
+              : "Paiement reçu, confirmation en cours"}
           </h1>
           <p className="text-sm text-muted-foreground" data-testid="text-subscription-confirmation-message">
-            Merci pour votre confiance. Votre espace Cocci est maintenant disponible.
+            {isServerConfirmed
+              ? "Merci pour votre confiance. Votre espace Cocci est maintenant disponible."
+              : "Stripe a reçu votre paiement. Nous vérifions encore la confirmation serveur avant d'ouvrir votre espace."}
           </p>
         </div>
 
@@ -74,7 +125,7 @@ export function SubscriptionConfirmation() {
           </p>
         </div>
 
-        {!isLoaded ? (
+        {!isLoaded || (isSignedIn && (onboardingLoading || subscriptionLoading)) ? (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground" data-testid="status-session-loading">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Vérification de votre session…
@@ -84,12 +135,13 @@ export function SubscriptionConfirmation() {
             type="button"
             className="w-full"
             onClick={handleContinue}
+            disabled={isSignedIn && !isServerConfirmed}
             data-testid="button-access-workspace"
           >
             {isSignedIn ? (
               <>
                 <LayoutDashboard aria-hidden="true" />
-                Accéder à mon espace
+                {isServerConfirmed ? "Accéder à mon espace" : "Vérifier à nouveau"}
               </>
             ) : (
               <>
