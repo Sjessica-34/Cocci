@@ -1,0 +1,209 @@
+Je valide l’option tables détaillées.
+
+Je veux une implémentation propre et durable, sans utiliser de colonnes JSON pour ces nouvelles données.
+
+Crée deux structures détaillées liées au Bilan Carbone :
+
+carbon_bilan_travel_items
+carbon_bilan_usage_items
+1. Déplacements professionnels
+
+La table détaillée doit permettre de stocker séparément :
+
+voiture_thermique
+voiture_hybride
+voiture_electrique
+taxi_vtc
+deux_roues_motorise
+train
+bus_car
+avion_court_courrier
+avion_moyen_courrier
+avion_long_courrier
+
+Chaque ligne doit pouvoir contenir au minimum :
+
+id
+carbon_bilan_id
+category_key
+label
+quantity
+unit
+emission_factor
+emissions
+created_at
+updated_at
+
+Ici :
+
+quantity = km annuels
+unit = km
+
+Les facteurs d’émission ne doivent pas être inventés. Réutilise ceux déjà présents lorsqu’ils existent et signale-moi les facteurs manquants avant d’en ajouter de nouveaux.
+
+Le champ historique :
+
+deplacements
+
+doit continuer d’exister pour compatibilité, mais sa valeur doit être calculée automatiquement comme la somme des lignes détaillées de déplacements.
+
+Il ne doit plus exister plusieurs logiques différentes capables de produire un total deplacements.
+
+2. Utilisation des produits vendus
+
+La table :
+
+carbon_bilan_usage_items
+
+doit permettre plusieurs produits ou catégories de produits par Bilan Carbone.
+
+Chaque ligne doit contenir au minimum :
+
+id
+carbon_bilan_id
+product_name
+units_sold
+lifespan_years
+consumes_energy
+energy_type
+consumption_per_year
+unit
+country
+emission_factor
+emissions
+created_at
+updated_at
+
+Si :
+
+consumes_energy = false
+
+les données énergétiques peuvent être nulles et les émissions de la phase d’utilisation sont égales à 0 dans ce mini-calculateur.
+
+Le champ historique :
+
+utilisation
+
+doit rester présent pour compatibilité, mais doit devenir la somme des émissions de toutes les lignes carbon_bilan_usage_items.
+
+3. Source unique de calcul
+
+Point très important : je veux supprimer la multiplication des listes de champs et calculs fixes actuellement présentes dans plusieurs fichiers.
+
+Crée une logique commune permettant de calculer :
+
+total global
+total Scope 1
+total Scope 2
+total Scope 3
+total par grande catégorie
+total détaillé par sous-catégorie
+
+Cette logique doit être réutilisée partout où c’est possible par :
+
+mini-calculateur
+dashboard carbone
+Rapport RSE web
+Rapport RSE DOCX
+analyse IA
+consolidation des filiales
+
+Je ne veux pas conserver plusieurs listes codées en dur qui risquent ensuite de produire des résultats différents.
+
+4. Rapport RSE
+
+Les nouveaux résultats doivent être transmis jusqu’au Rapport RSE.
+
+Pour les déplacements professionnels, le rapport doit pouvoir présenter :
+
+chaque catégorie de transport
+émissions de chaque catégorie
+total Déplacements professionnels
+
+Pour l’utilisation des produits vendus :
+
+nom du produit / catégorie
+principales hypothèses
+émissions calculées
+total Utilisation des produits vendus
+
+Ces informations doivent être disponibles :
+
+dans le Rapport RSE web
+dans le DOCX généré
+dans les données fournies à l’analyse IA
+
+Le Rapport RSE doit utiliser les mêmes résultats calculés que le mini-calculateur, pas recalculer différemment de son côté.
+
+5. Compatibilité avec les données existantes
+
+Il existe déjà des Bilans Carbone utilisant uniquement les anciens champs :
+
+deplacements
+utilisation
+
+Ne casse pas leur lecture.
+
+Prévois une compatibilité permettant :
+
+aux anciens bilans de continuer à s’afficher ;
+aux nouveaux bilans d’utiliser les tables détaillées ;
+de ne pas perdre les anciennes données.
+
+Ne fais pas de migration destructive des anciennes valeurs.
+
+6. API et persistance
+
+Adapte proprement :
+
+lib/db
+OpenAPI
+types Zod
+client React
+routes API carbone
+frontend du mini-calculateur
+consolidation
+Rapport RSE web
+DOCX
+analyse IA
+
+L’API doit pouvoir sauvegarder et relire les tableaux détaillés avec le Bilan Carbone.
+
+7. Tests obligatoires
+
+Ajoute des tests couvrant au minimum :
+
+plusieurs catégories de déplacements
+plusieurs produits d’utilisation
+sauvegarde
+relecture
+modification
+suppression d’une ligne
+calcul du total déplacements
+calcul du total utilisation
+total global
+scopes
+consolidation filiale
+Rapport RSE web
+DOCX
+données envoyées à l’IA
+compatibilité avec un ancien bilan sans détails
+8. Avant d’appliquer une migration
+
+Tu peux maintenant préparer l’implémentation et le code.
+
+En revanche :
+
+ne lance aucune migration sur Neon préproduction.
+
+Fournis-moi séparément :
+
+le SQL de migration ;
+les fichiers modifiés ;
+les nouveaux contrats API ;
+le fonctionnement de compatibilité avec les anciens bilans ;
+les résultats des tests ;
+le typecheck ;
+le build.
+
+Je validerai et appliquerai moi-même la migration Neon ensuite.
