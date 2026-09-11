@@ -40,20 +40,40 @@ export function DetailedCarbonCalculator({ form, set }: { form: FormState; set: 
   const travelItems = form.travelItems ?? [];
   const usageItems = form.usageItems ?? [];
 
-  const updateTravel = (categoryKey: string, quantity: number | null) => {
+  const addTravel = () => {
+    set("travelItems", [
+      ...travelItems,
+      {
+        categoryKey: "",
+        label: "",
+        quantity: 0,
+        unit: "km",
+        emissionFactor: null,
+        scope: "3",
+      },
+    ]);
+  };
+
+  const updateTravel = (index: number, patch: Partial<CarbonTravelItemInput>) => {
+    set("travelItems", travelItems.map((item, itemIndex) =>
+      itemIndex === index ? { ...item, ...patch } : item,
+    ));
+  };
+
+  const selectTravelCategory = (index: number, categoryKey: string) => {
+    if (travelItems.some((item, itemIndex) => itemIndex !== index && item.categoryKey === categoryKey)) return;
     const category = TRAVEL_CATEGORIES.find((candidate) => candidate.key === categoryKey);
     if (!category) return;
-    const next = travelItems.filter((item) => item.categoryKey !== categoryKey);
-    if (quantity != null && quantity > 0) {
-      next.push({
-        categoryKey,
-        label: category.label,
-        quantity,
-        unit: "km",
-        emissionFactor: TRAVEL_EMISSION_FACTORS[categoryKey] ?? null,
-        scope: category.scope,
-      });
-    }
+    updateTravel(index, {
+      categoryKey,
+      label: category.label,
+      emissionFactor: TRAVEL_EMISSION_FACTORS[categoryKey] ?? null,
+      scope: category.scope,
+    });
+  };
+
+  const removeTravel = (index: number) => {
+    const next = travelItems.filter((_, itemIndex) => itemIndex !== index);
     set("travelItems", next);
     if (next.length === 0) set("deplacements", 0);
   };
@@ -96,30 +116,80 @@ export function DetailedCarbonCalculator({ form, set }: { form: FormState; set: 
             Renseignez les kilomètres annuels. Les émissions utilisent uniquement les facteurs disponibles dans le référentiel actuel.
           </p>
         </div>
-        <div className="divide-y divide-border">
-          {TRAVEL_CATEGORIES.map((category) => {
-            const item = travelItems.find((candidate) => candidate.categoryKey === category.key);
-            const factor = TRAVEL_EMISSION_FACTORS[category.key] ?? null;
-            const emissions = item ? calculateTravelEmissions(category.key, item.quantity, factor) : null;
-            return (
-              <div key={category.key} className="grid grid-cols-1 sm:grid-cols-[1fr_9rem_9rem] gap-3 items-center px-5 py-3">
-                <div>
-                  <p className="text-sm font-medium">{category.label}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {factor == null ? "Facteur ADEME à documenter" : `Facteur : ${(factor * 1_000_000).toLocaleString("fr-FR")} gCO₂e/km`}
-                  </p>
+        <div className="p-5 space-y-3">
+          {travelItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun déplacement ajouté.</p>
+          ) : (
+            travelItems.map((item, index) => {
+              const emissions = item.categoryKey
+                ? calculateTravelEmissions(item.categoryKey, item.quantity, item.emissionFactor ?? undefined)
+                : null;
+              return (
+                <div
+                  key={`${item.categoryKey || "new"}-${index}`}
+                  className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-4 sm:grid-cols-[minmax(12rem,1fr)_10rem_minmax(8rem,10rem)_auto] sm:items-end"
+                >
+                  <label className="text-xs text-muted-foreground">
+                    Type de transport
+                    <select
+                      value={item.categoryKey}
+                      onChange={(event) => selectTravelCategory(index, event.target.value)}
+                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+                    >
+                      <option value="">Sélectionner un transport</option>
+                      {TRAVEL_CATEGORIES.map((category) => (
+                        <option
+                          key={category.key}
+                          value={category.key}
+                          disabled={travelItems.some((candidate, candidateIndex) =>
+                            candidateIndex !== index && candidate.categoryKey === category.key,
+                          )}
+                        >
+                          {category.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs text-muted-foreground">
+                    Distance annuelle
+                    <div className="mt-1">
+                      <NumberInput
+                        value={item.quantity}
+                        placeholder="km/an"
+                        onChange={(value) => updateTravel(index, { quantity: value ?? 0 })}
+                      />
+                    </div>
+                    <span className="mt-1 block text-[11px]">km/an</span>
+                  </label>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="block">Émissions calculées</span>
+                    <span className={cn(
+                      "mt-2 block text-sm font-medium",
+                      emissions == null && item.categoryKey ? "text-muted-foreground" : "text-foreground",
+                    )}>
+                      {emissions != null ? `${emissions.toFixed(3)} tCO₂e` : "—"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeTravel(index)}
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                    aria-label="Supprimer le déplacement"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sm:hidden">Supprimer</span>
+                  </button>
                 </div>
-                <NumberInput
-                  value={item?.quantity}
-                  placeholder="km/an"
-                  onChange={(value) => updateTravel(category.key, value)}
-                />
-                <div className={cn("text-right text-xs font-medium", emissions == null && item ? "text-amber-600" : "text-muted-foreground")}>
-                  {emissions == null && item ? "Non calculé" : emissions != null ? `${emissions.toFixed(3)} tCO₂e` : "—"}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
+          <button
+            type="button"
+            onClick={addTravel}
+            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-primary/50 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/5"
+          >
+            <Plus className="h-3.5 w-3.5" /> Ajouter un déplacement
+          </button>
         </div>
       </div>
 
