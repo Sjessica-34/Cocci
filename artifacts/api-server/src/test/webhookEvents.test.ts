@@ -6,7 +6,10 @@
  *   2. checkout.session.completed (unpaid) → statut "trial" (SEPA en attente)
  *   3. invoice.payment_succeeded           → trial → active
  *   4. invoice.payment_failed              → suspended
- *   5. customer.subscription.deleted       → suspended
+ *   5. payment_intent.payment_failed          → suspended
+ *   6. checkout.session.completed rejoué      → reste suspended
+ *   7. customer.subscription.updated tardif   → reste suspended
+ *   8. customer.subscription.deleted           → suspended
  *
  * Usage : pnpm --filter @workspace/api-server exec tsx src/test/webhookEvents.test.ts
  */
@@ -108,13 +111,7 @@ async function main() {
     assert(onboarding.rows[0]?.status === "completed", "payment_pending → completed après paiement");
     assert(onboarding.rows[0]?.completed_at != null, "completed_at est renseigné après paiement");
 
-    // 4. Paiement échoué → suspended
-    console.log("invoice.payment_failed");
-    await handleStripeEvent(makeEvent("invoice.payment_failed", { subscription: subId }));
-    sub = await getSub(orgId);
-    assert(sub?.status === "suspended", "suspended après échec de paiement");
-
-    // 5. PaymentIntent échoué depuis un abonnement trial → suspended
+    // 4. Paiement SEPA échoué puis Checkout rejoué → suspended reste terminal
     await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
     console.log("payment_intent.payment_failed");
     await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
@@ -124,9 +121,52 @@ async function main() {
     sub = await getSub(orgId);
     assert(sub?.status === "suspended", "trial → suspended après payment_intent.payment_failed");
 
-    // 6. Résiliation → suspended (après réactivation simulée)
+    console.log("checkout.session.completed (unpaid / rejoué après échec)");
+    await handleStripeEvent(makeEvent("checkout.session.completed", {
+      customer: "cus_test_1",
+      subscription: subId,
+      payment_status: "unpaid",
+      metadata: { orgId: String(orgId) },
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "suspended", "checkout rejoué ne réactive pas suspended → trial");
+
+    // 5. Échec puis Checkout tardif dans l'autre ordre de réception
+    await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
+    await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
+      customer: "cus_test_1",
+      status: "requires_payment_method",
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "suspended", "payment_intent.payment_failed → suspended");
+    await handleStripeEvent(makeEvent("checkout.session.completed", {
+      customer: "cus_test_1",
+      subscription: subId,
+      payment_status: "unpaid",
+      metadata: { orgId: String(orgId) },
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "suspended", "Checkout tardif ne réécrit pas suspended → trial");
+
+    // 6. Mise à jour Stripe tardive : suspended ne doit pas redevenir active
+    await handleStripeEvent(makeEvent("customer.subscription.updated", {
+      id: subId,
+      customer: "cus_test_1",
+      status: "active",
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "suspended", "customer.subscription.updated ne réactive pas suspended");
+
+    // 7. trial → active après confirmation SEPA
+    await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
+    await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
+      parent: { subscription_details: { subscription: subId } },
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "active", "trial → active après invoice.payment_succeeded");
+
+    // 8. Résiliation → suspended
     console.log("customer.subscription.deleted");
-    await pool.query("UPDATE subscriptions SET status = 'active' WHERE organization_id = $1", [orgId]);
     await handleStripeEvent(makeEvent("customer.subscription.deleted", { id: subId, customer: "cus_test_1" }));
     sub = await getSub(orgId);
     assert(sub?.status === "suspended", "suspended après résiliation");
