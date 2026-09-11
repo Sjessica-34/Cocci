@@ -620,7 +620,7 @@ export function BilanCarbone() {
 
                   <div className="space-y-5">
                     {/* Déplacements */}
-                    <Section icon={<Plane className="h-4 w-4" />} title="Déplacements professionnels">
+                    <Section icon={<Plane className="h-4 w-4" />} title="Déplacements professionnels détaillés">
                       <Field label="km totaux en train / an (tous salariés)">
                         <NumInput value={form.estTrainKmYear} onChange={(v) => set("estTrainKmYear", v ?? undefined)} placeholder="ex : 50 000" />
                       </Field>
