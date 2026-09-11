@@ -7,6 +7,8 @@ import { useAuth } from "@clerk/react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import type { ReportData } from "./useReportData";
 import { apiUrl } from "@/lib/apiUrl";
+import { calculateCarbonDetailTotals } from "@workspace/rse-referentials";
+import type { CarbonTravelItem, CarbonUsageItem } from "@workspace/rse-referentials";
 
 export type AiAnalyses = Record<string, string | null>;
 
@@ -27,12 +29,14 @@ function buildContexts(data: ReportData): Record<string, string> {
   const avg = (arr: AnyObj[]) =>
     arr.length ? Math.round(arr.reduce((a, s) => a + Number(s.scorePercent ?? 0), 0) / arr.length) : null;
 
-  const carbonFields = ["energie1","energie2","horsEnergie1","horsEnergie2","intrantsBiens",
-    "intrantsServices","futursEmballages","fret","deplacements","dechetsDirects",
-    "immobilisations","utilisation","finDeVie"];
-  const carbonTotal = carbon
-    ? carbonFields.reduce((a, k) => a + (carbon[k] != null ? Number(carbon[k]) : 0), 0)
-    : 0;
+  const carbonTotals = carbon
+    ? calculateCarbonDetailTotals(
+      carbon,
+      (carbon.travelItems as CarbonTravelItem[] | undefined) ?? [],
+      (carbon.usageItems as CarbonUsageItem[] | undefined) ?? [],
+    )
+    : null;
+  const carbonTotal = carbonTotals?.globalTotal ?? 0;
 
   const acts = actions as AnyObj[];
   const doneActions = acts.filter((a) => a.isChecked).length;
@@ -89,8 +93,16 @@ function buildContexts(data: ReportData): Record<string, string> {
 
   if (carbonTotal > 0) {
     const cap = captation;
+    const detailSummary = carbonTotals
+      ? `Scopes : S1 ${Math.round(carbonTotals.scope1)} tCO₂e, S2 ${Math.round(carbonTotals.scope2)} tCO₂e, S3 ${Math.round(carbonTotals.scope3)} tCO₂e. ` +
+        `Déplacements détaillés : ${Math.round(carbonTotals.travelTotal)} tCO₂e. Utilisation détaillée : ${Math.round(carbonTotals.usageTotal)} tCO₂e. ` +
+        (carbonTotals.missingTravelFactors.length > 0
+          ? `Facteurs manquants : ${carbonTotals.missingTravelFactors.join(", ")}. `
+          : "")
+      : "";
     contexts.carbon =
       `Bilan carbone — Émissions totales : ${Math.round(carbonTotal)} tCO₂e. ` +
+      detailSummary +
       `${cap?.captationKgPerYear ? `Captation estimée : ${Number(cap.captationKgPerYear) / 1000} tCO₂/an.` : ""} ` +
       `Formule des recommandations de réduction et des axes de progression.`;
   }

@@ -21,6 +21,8 @@ import {
   type DashboardSummary,
   type DashboardIndicator,
 } from "@workspace/api-client-react";
+import { calculateCarbonDetailTotals } from "@workspace/rse-referentials";
+import type { CarbonTravelItem, CarbonUsageItem } from "@workspace/rse-referentials";
 
 // ─── Diagnostic axis score helper ────────────────────────────────────────────
 
@@ -47,14 +49,12 @@ function axisCounts(scores: DiagnosticSubcategoryScore[], catId: string): { answ
 
 // ─── Carbon total helper ──────────────────────────────────────────────────────
 
-const CARBON_SCOPE_KEYS = [
-  "energie1", "energie2", "horsEnergie1", "horsEnergie2",
-  "intrantsBiens", "intrantsServices", "futursEmballages", "fret",
-  "deplacements", "dechetsDirects", "immobilisations", "utilisation", "finDeVie",
-] as const;
-
 function computeCarbonTotal(b: Record<string, unknown>): number {
-  return CARBON_SCOPE_KEYS.reduce((sum, k) => sum + (Number(b[k]) || 0), 0);
+  return calculateCarbonDetailTotals(
+    b,
+    (b.travelItems as CarbonTravelItem[] | undefined) ?? [],
+    (b.usageItems as CarbonUsageItem[] | undefined) ?? [],
+  ).globalTotal;
 }
 
 // ─── N/N-1 helpers ───────────────────────────────────────────────────────────

@@ -7,6 +7,8 @@
  */
 import type { CarbonBilanInputMode } from './carbonBilanInputMode';
 import type { CarbonBilanInputStatus } from './carbonBilanInputStatus';
+import type { CarbonTravelItemInput } from './carbonTravelItemInput';
+import type { CarbonUsageItemInput } from './carbonUsageItemInput';
 
 export interface CarbonBilanInput {
   year: number;
@@ -82,4 +84,6 @@ export interface CarbonBilanInput {
   utilCountry?: string | null;
   /** @nullable */
   utilCustomFactor?: number | null;
+  travelItems?: CarbonTravelItemInput[];
+  usageItems?: CarbonUsageItemInput[];
 }

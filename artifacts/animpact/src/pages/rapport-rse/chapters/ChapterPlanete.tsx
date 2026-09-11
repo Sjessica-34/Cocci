@@ -15,6 +15,8 @@ import {
 } from "recharts";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
+import { calculateCarbonDetailTotals } from "@workspace/rse-referentials";
+import type { CarbonTravelItem, CarbonUsageItem } from "@workspace/rse-referentials";
 
 // ─── Section NR complète ──────────────────────────────────────────────────────
 
@@ -288,14 +290,15 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
   const envScores  = diagScores.filter((s) => s.categoryId === "ENV");
   const nrRaw      = data.nrData as { meta?: { certificationLabel?: string; certificationOther?: string | null }; responses?: Array<{ criterionId: string; checked: boolean }> } | null;
   const carbon     = data.carbon as Record<string, unknown> | null;
-
-  const carbonFields = ["energie1","energie2","horsEnergie1","horsEnergie2",
-    "intrantsBiens","intrantsServices","futursEmballages","fret","deplacements",
-    "dechetsDirects","immobilisations","utilisation","finDeVie"];
-  const carbonTotal = carbon ? carbonFields.reduce((a, k) => a + (carbon[k] != null ? Number(carbon[k]) : 0), 0) : 0;
-  const s1 = carbon ? (["energie1","horsEnergie1"].reduce((a, k) => a + (carbon[k] != null ? Number(carbon[k]) : 0), 0)) : 0;
-  const s2 = carbon ? (["energie2","horsEnergie2"].reduce((a, k) => a + (carbon[k] != null ? Number(carbon[k]) : 0), 0)) : 0;
-  const s3 = carbon ? (["intrantsBiens","intrantsServices","futursEmballages","fret","deplacements","dechetsDirects","immobilisations","utilisation","finDeVie"].reduce((a, k) => a + (carbon[k] != null ? Number(carbon[k]) : 0), 0)) : 0;
+  const travelItems = (carbon?.travelItems as CarbonTravelItem[] | undefined) ?? [];
+  const usageItems = (carbon?.usageItems as CarbonUsageItem[] | undefined) ?? [];
+  const carbonTotals = carbon
+    ? calculateCarbonDetailTotals(carbon, travelItems, usageItems)
+    : { globalTotal: 0, scope1: 0, scope2: 0, scope3: 0, travelTotal: 0, usageTotal: 0, byCategory: {}, missingTravelFactors: [], missingUsageFactors: [] };
+  const carbonTotal = carbonTotals.globalTotal;
+  const s1 = carbonTotals.scope1;
+  const s2 = carbonTotals.scope2;
+  const s3 = carbonTotals.scope3;
 
   return (
     <ChapterWrapper num={4} title="Agir pour la planète">
@@ -335,7 +338,7 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
       )}
 
       {/* Bilan carbone */}
-      {carbonTotal > 0 && (
+      {(carbonTotal > 0 || travelItems.length > 0 || usageItems.length > 0) && (
         <>
           <SectionTitle>Bilan carbone</SectionTitle>
           <ExplainerText>
@@ -354,6 +357,52 @@ export function ChapterPlanete({ data, ai }: { data: ReportData; ai: AiAnalyses 
             {s2 > 0 && <div style={{ width: `${(s2/carbonTotal)*100}%`, backgroundColor: "#f97316", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 10, color: "white", fontWeight: 700, fontFamily: "sans-serif" }}>{Math.round((s2/carbonTotal)*100)}%</span></div>}
             {s3 > 0 && <div style={{ flex: 1, backgroundColor: "#eab308", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 10, color: "white", fontWeight: 700, fontFamily: "sans-serif" }}>{Math.round((s3/carbonTotal)*100)}%</span></div>}
           </div>
+
+          {travelItems.length > 0 && (
+            <>
+              <SectionTitle>Déplacements professionnels — détail</SectionTitle>
+              <div style={{ border: "1px solid #E2E8F0", borderRadius: 8, overflow: "hidden", fontFamily: "sans-serif" }}>
+                {travelItems.map((item) => (
+                  <div key={`${item.categoryKey}-${item.id ?? item.label}`} style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px", gap: 8, padding: "8px 12px", borderBottom: "1px solid #F1F5F9", fontSize: 11 }}>
+                    <span>{item.label}</span>
+                    <span style={{ textAlign: "right", color: "#64748B" }}>{Number(item.quantity).toLocaleString("fr-FR")} {item.unit}</span>
+                    <span style={{ textAlign: "right", fontWeight: 700 }}>{item.emissions != null ? `${Number(item.emissions).toFixed(3)} tCO₂e` : "Non calculé"}</span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "flex-end", padding: "10px 12px", fontWeight: 700, fontSize: 12 }}>
+                  Total déplacements : {carbonTotals.travelTotal.toFixed(3)} tCO₂e
+                </div>
+              </div>
+            </>
+          )}
+
+          {usageItems.length > 0 && (
+            <>
+              <SectionTitle>Utilisation des produits vendus — détail</SectionTitle>
+              <div style={{ border: "1px solid #E2E8F0", borderRadius: 8, overflow: "hidden", fontFamily: "sans-serif" }}>
+                {usageItems.map((item) => (
+                  <div key={`${item.id ?? item.productName}`} style={{ padding: "10px 12px", borderBottom: "1px solid #F1F5F9", fontSize: 11 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <strong>{item.productName}</strong>
+                      <strong>{item.emissions != null ? `${Number(item.emissions).toFixed(3)} tCO₂e` : "Non calculé"}</strong>
+                    </div>
+                    <div style={{ color: "#64748B", marginTop: 3 }}>
+                      {item.unitsSold} unités · durée de vie {item.lifespanYears} ans · {item.consumesEnergy ? `${item.consumptionPerYear ?? "—"} ${item.unit ?? ""}/an · ${item.country ?? "pays non renseigné"}` : "sans consommation d’énergie"}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "flex-end", padding: "10px 12px", fontWeight: 700, fontSize: 12 }}>
+                  Total utilisation : {carbonTotals.usageTotal.toFixed(3)} tCO₂e
+                </div>
+              </div>
+            </>
+          )}
+
+          {(carbonTotals.missingTravelFactors.length > 0 || carbonTotals.missingUsageFactors.length > 0) && (
+            <p style={{ fontSize: 11, color: "#B45309", fontFamily: "sans-serif" }}>
+              Certaines lignes ne sont pas calculées car leur facteur d’émission n’est pas encore documenté.
+            </p>
+          )}
 
           <EditableAiBlock id="carbon" text={ai.carbon ?? null} label="Analyse du bilan carbone" />
         </>

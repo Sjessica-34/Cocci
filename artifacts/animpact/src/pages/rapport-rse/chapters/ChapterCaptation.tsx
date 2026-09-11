@@ -3,16 +3,19 @@ import {
 } from "./_shared";
 import type { ReportData } from "../useReportData";
 import type { AiAnalyses } from "../useReportAI";
+import { calculateCarbonDetailTotals } from "@workspace/rse-referentials";
+import type { CarbonTravelItem, CarbonUsageItem } from "@workspace/rse-referentials";
 
 export function ChapterCaptation({ data, ai, chapterNum }: { data: ReportData; ai: AiAnalyses; chapterNum: number }) {
   const cap = data.captation as Record<string, unknown> | null;
   const carbon = data.carbon as Record<string, unknown> | null;
 
-  const carbonFields = ["energie1","energie2","horsEnergie1","horsEnergie2",
-    "intrantsBiens","intrantsServices","futursEmballages","fret","deplacements",
-    "dechetsDirects","immobilisations","utilisation","finDeVie"];
   const carbonTotal = carbon
-    ? carbonFields.reduce((a, k) => a + (carbon[k] != null ? Number(carbon[k]) : 0), 0)
+    ? calculateCarbonDetailTotals(
+      carbon,
+      (carbon.travelItems as CarbonTravelItem[] | undefined) ?? [],
+      (carbon.usageItems as CarbonUsageItem[] | undefined) ?? [],
+    ).globalTotal
     : 0;
 
   const captationKg = cap?.captationKgPerYear != null ? Number(cap.captationKgPerYear) : 0;

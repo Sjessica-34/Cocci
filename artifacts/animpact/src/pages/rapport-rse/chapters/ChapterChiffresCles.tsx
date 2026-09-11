@@ -5,6 +5,8 @@
  */
 import { ChapterWrapper, ExplainerText, R } from "./_shared";
 import type { ReportData } from "../useReportData";
+import { calculateCarbonDetailTotals } from "@workspace/rse-referentials";
+import type { CarbonTravelItem, CarbonUsageItem } from "@workspace/rse-referentials";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -72,13 +74,13 @@ function extractKpis(data: ReportData): KpiCard[] {
 
   // ── Bilan carbone ──
   const carbon = data.carbon as Record<string, unknown> | null;
-  const carbonFields = ["energie1","energie2","horsEnergie1","horsEnergie2",
-    "intrantsBiens","intrantsServices","futursEmballages","fret",
-    "deplacements","dechetsDirects","immobilisations","utilisation","finDeVie"];
-  const prevCarbonFields = carbonFields.map((f) => f + "Prev");
   if (carbon) {
-    const total = carbonFields.reduce((a, k) => a + (carbon[k] != null ? Number(carbon[k]) : 0), 0);
-    const prevTotal = prevCarbonFields.reduce((a, k) => a + (carbon[k] != null ? Number(carbon[k]) : 0), 0);
+    const total = calculateCarbonDetailTotals(
+      carbon,
+      (carbon.travelItems as CarbonTravelItem[] | undefined) ?? [],
+      (carbon.usageItems as CarbonUsageItem[] | undefined) ?? [],
+    ).globalTotal;
+    const prevTotal = 0;
     if (total > 0) {
       const t = trend(total, prevTotal > 0 ? prevTotal : null);
       cards.push({

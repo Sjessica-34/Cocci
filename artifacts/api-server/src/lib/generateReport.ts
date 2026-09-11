@@ -9,14 +9,17 @@ import {
   rseReportDraftsTable, organizationsTable, exercisesTable,
   documentsTable, documentExerciseLinksTable,
   impactScoreResultsTable, diagnosticResponsesTable,
-  carbonBilansTable, captationCarboneTable,
+  carbonBilansTable, carbonTravelItemsTable, carbonUsageItemsTable, captationCarboneTable,
   bioDependenciesTable, stakeholdersTable, suppliersTable, responsiblePurchasesTable,
   nrResponsesTable, nrMetaTable,
   employmentWorkforceTable, employmentDiversityTable, employmentTrainingTable,
   labelsTable, organizationActionPlansTable, actionLibraryTable,
   barometreCampaignsTable, barometreAiSummariesTable,
 } from "@workspace/db";
-import { ALL_SUBCATEGORIES, getMaturityLabel, COMPLETENESS_THRESHOLD } from "@workspace/rse-referentials";
+import {
+  ALL_SUBCATEGORIES, getMaturityLabel, COMPLETENESS_THRESHOLD,
+  calculateCarbonDetailTotals,
+} from "@workspace/rse-referentials";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -346,7 +349,7 @@ export async function loadReportData(orgId: number, exerciseId: number) {
   const [
     [org], [exercise], [draft],
     [impactScore], workforce, diversity, training,
-    carbonRows, [captation],
+    carbonRows, carbonTravelRows, carbonUsageRows, [captation],
     bioItems, stakeholderItems, supplierItems, responsiblePurchaseItems,
     nrResponses, [nrMeta],
     labelItems, actionItems,
@@ -362,6 +365,8 @@ export async function loadReportData(orgId: number, exerciseId: number) {
     db.select().from(employmentDiversityTable).where(and(eq(employmentDiversityTable.organizationId, orgId), eq(employmentDiversityTable.exerciseId, exerciseId))),
     db.select().from(employmentTrainingTable).where(and(eq(employmentTrainingTable.organizationId, orgId), eq(employmentTrainingTable.exerciseId, exerciseId))),
     db.select().from(carbonBilansTable).where(and(eq(carbonBilansTable.organizationId, orgId), eq(carbonBilansTable.exerciseId, exerciseId))),
+    db.select().from(carbonTravelItemsTable).where(and(eq(carbonTravelItemsTable.organizationId, orgId), eq(carbonTravelItemsTable.exerciseId, exerciseId))),
+    db.select().from(carbonUsageItemsTable).where(and(eq(carbonUsageItemsTable.organizationId, orgId), eq(carbonUsageItemsTable.exerciseId, exerciseId))),
     db.select().from(captationCarboneTable).where(and(eq(captationCarboneTable.organizationId, orgId), eq(captationCarboneTable.exerciseId, exerciseId))).limit(1),
     db.select().from(bioDependenciesTable).where(and(eq(bioDependenciesTable.organizationId, orgId), eq(bioDependenciesTable.exerciseId, exerciseId))),
     db.select().from(stakeholdersTable).where(and(eq(stakeholdersTable.organizationId, orgId), eq(stakeholdersTable.exerciseId, exerciseId))),
@@ -407,10 +412,30 @@ export async function loadReportData(orgId: number, exerciseId: number) {
     return Math.round(cat.reduce((s, x) => s + (x.scorePercent ?? 0), 0) / cat.length);
   };
 
-  const carbonTotal = carbonRows.reduce((sum, b) => {
-    const fields = [b.energie1, b.energie2, b.horsEnergie1, b.horsEnergie2, b.intrantsBiens, b.intrantsServices, b.futursEmballages, b.fret, b.deplacements, b.dechetsDirects, b.immobilisations, b.utilisation, b.finDeVie];
-    return sum + fields.reduce((a, v) => a + (v != null ? Number(v) : 0), 0);
-  }, 0);
+  const carbonTravelItems = carbonTravelRows.map((item) => ({
+    ...item,
+    quantity: Number(item.quantity),
+    emissionFactor: item.emissionFactor == null ? null : Number(item.emissionFactor),
+    emissions: item.emissions == null ? null : Number(item.emissions),
+    scope: item.scope as "1" | "2" | "3",
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  }));
+  const carbonUsageItems = carbonUsageRows.map((item) => ({
+    ...item,
+    lifespanYears: Number(item.lifespanYears),
+    consumptionPerYear: item.consumptionPerYear == null ? null : Number(item.consumptionPerYear),
+    emissionFactor: item.emissionFactor == null ? null : Number(item.emissionFactor),
+    emissions: item.emissions == null ? null : Number(item.emissions),
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  }));
+  const carbonTotals = calculateCarbonDetailTotals(
+    carbonRows[0] ?? {},
+    carbonTravelItems,
+    carbonUsageItems,
+  );
+  const carbonTotal = carbonTotals.globalTotal;
 
   const nrChecked = nrResponses.filter((r) => r.checked).length;
   const nrScore = nrResponses.length > 0 ? Math.round((nrChecked / nrResponses.length) * 100) : 0;
@@ -422,7 +447,7 @@ export async function loadReportData(orgId: number, exerciseId: number) {
     org, exercise, draft: draft ?? null,
     impactScore: impactScore ?? null,
     wf: workforce[0] ?? null, div: diversity[0] ?? null, tr: training[0] ?? null,
-    carbonRows, carbonTotal,
+    carbonRows, carbonTravelItems, carbonUsageItems, carbonTotals, carbonTotal,
     captation: captation ?? null,
     bioItems, stakeholderItems, supplierItems, responsiblePurchaseItems,
     nrScore, nrMeta: nrMeta ?? null,
@@ -506,7 +531,7 @@ async function loadReportMedia(data: Data, orgId: number, exerciseId: number): P
 // ─── Pre-generate all AI analyses in parallel ─────────────────────────────────
 
 async function generateAllAI(data: Data): Promise<Record<string, string | null>> {
-  const { wf, div, tr, carbonTotal, carbonRows, nrScore, supplierItems, stakeholderItems, bioItems,
+  const { wf, div, tr, carbonTotal, carbonRows, carbonTravelItems, carbonUsageItems, carbonTotals, nrScore, supplierItems, stakeholderItems, bioItems,
     diagScores, actionItems, doneActions, actionRate, impactScore, captation, baroSummaries,
     baroCampaign, envScore, socScore, govScore, obtainedLabels } = data;
 
@@ -529,7 +554,11 @@ async function generateAllAI(data: Data): Promise<Record<string, string | null>>
     ] : ["", ""],
 
     carbon: carbonTotal > 0 ? [SYS,
-      `Analyse le bilan carbone. Émissions totales : ${Math.round(carbonTotal)} tCO₂e. ${carbonRows.length > 0 ? `Postes mesurés : ${carbonRows.length}.` : ""} Formule des recommandations de réduction adaptées et des perspectives de progression.`
+      `Analyse le bilan carbone. Émissions totales : ${Math.round(carbonTotal)} tCO₂e. ` +
+      `Scopes : S1 ${Math.round(carbonTotals.scope1)} tCO₂e, S2 ${Math.round(carbonTotals.scope2)} tCO₂e, S3 ${Math.round(carbonTotals.scope3)} tCO₂e. ` +
+      `${carbonTravelItems.length > 0 ? `Déplacements détaillés : ${carbonTravelItems.map((item) => `${item.label} ${item.emissions ?? "non calculé"} tCO₂e`).join("; ")}. ` : ""}` +
+      `${carbonUsageItems.length > 0 ? `Utilisation détaillée : ${carbonUsageItems.map((item) => `${item.productName} ${item.emissions ?? "non calculé"} tCO₂e`).join("; ")}. ` : ""}` +
+      `${carbonRows.length > 0 ? `Postes mesurés : ${carbonRows.length}.` : ""} Formule des recommandations de réduction adaptées et des perspectives de progression.`
     ] : ["", ""],
 
     nr: nrScore > 0 ? [SYS,
@@ -886,6 +915,33 @@ function buildPlanete(data: Data, ai: Record<string, string | null>): El[] {
         ];
       });
       parts.push(simpleTable(["Scope 1 — Émissions directes", "Scope 2 — Énergie indirecte", "Scope 3 — Émissions indirectes"], carbonTableRows));
+    }
+    if (data.carbonTravelItems.length > 0) {
+      parts.push(sectionTitle("Déplacements professionnels — détail"));
+      parts.push(simpleTable(
+        ["Catégorie", "Kilomètres annuels", "Facteur", "Émissions"],
+        data.carbonTravelItems.map((item) => [
+          item.label,
+          `${Math.round(item.quantity)} ${item.unit}`,
+          item.emissionFactor != null ? `${(item.emissionFactor * 1_000_000).toLocaleString("fr-FR")} gCO₂e/${item.unit}` : "Non documenté",
+          item.emissions != null ? `${item.emissions.toFixed(3)} tCO₂e` : "Non calculé",
+        ]),
+        [3000, 1700, 1800, 1700],
+      ));
+      parts.push(kpiLine("Total déplacements professionnels", data.carbonTotals.travelTotal.toFixed(3), "tCO₂e"));
+    }
+    if (data.carbonUsageItems.length > 0) {
+      parts.push(sectionTitle("Utilisation des produits vendus — détail"));
+      parts.push(simpleTable(
+        ["Produit / catégorie", "Hypothèses principales", "Émissions"],
+        data.carbonUsageItems.map((item) => [
+          item.productName,
+          `${item.unitsSold} unités · ${item.lifespanYears} ans · ${item.consumesEnergy ? `${item.consumptionPerYear ?? "—"} ${item.unit ?? ""}/an · ${item.country ?? "pays non renseigné"}` : "sans énergie"}`,
+          item.emissions != null ? `${item.emissions.toFixed(3)} tCO₂e` : "Non calculé",
+        ]),
+        [2600, 4300, 1700],
+      ));
+      parts.push(kpiLine("Total utilisation des produits vendus", data.carbonTotals.usageTotal.toFixed(3), "tCO₂e"));
     }
     parts.push(...aiBlock(ai.carbon));
     parts.push(spacer());

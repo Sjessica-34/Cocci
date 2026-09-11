@@ -908,6 +908,42 @@ export const CarbonBilanInputStatus = {
   validated: 'validated',
 } as const;
 
+export type CarbonTravelItemInputScope = typeof CarbonTravelItemInputScope[keyof typeof CarbonTravelItemInputScope];
+
+
+export const CarbonTravelItemInputScope = {
+  NUMBER_1: '1',
+  NUMBER_2: '2',
+  NUMBER_3: '3',
+} as const;
+
+export interface CarbonTravelItemInput {
+  categoryKey: string;
+  label: string;
+  quantity: number;
+  unit: string;
+  /** @nullable */
+  emissionFactor?: number | null;
+  scope?: CarbonTravelItemInputScope;
+}
+
+export interface CarbonUsageItemInput {
+  productName: string;
+  unitsSold: number;
+  lifespanYears: number;
+  consumesEnergy: boolean;
+  /** @nullable */
+  energyType?: string | null;
+  /** @nullable */
+  consumptionPerYear?: number | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  emissionFactor?: number | null;
+}
+
 export interface CarbonBilanInput {
   year: number;
   mode: CarbonBilanInputMode;
@@ -982,6 +1018,56 @@ export interface CarbonBilanInput {
   utilCountry?: string | null;
   /** @nullable */
   utilCustomFactor?: number | null;
+  travelItems?: CarbonTravelItemInput[];
+  usageItems?: CarbonUsageItemInput[];
+}
+
+export type CarbonTravelItemScope = typeof CarbonTravelItemScope[keyof typeof CarbonTravelItemScope];
+
+
+export const CarbonTravelItemScope = {
+  NUMBER_1: '1',
+  NUMBER_2: '2',
+  NUMBER_3: '3',
+} as const;
+
+export interface CarbonTravelItem {
+  id?: number;
+  carbonBilanId?: number;
+  categoryKey: string;
+  label: string;
+  quantity: number;
+  unit: string;
+  /** @nullable */
+  emissionFactor: number | null;
+  /** @nullable */
+  emissions: number | null;
+  scope: CarbonTravelItemScope;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CarbonUsageItem {
+  id?: number;
+  carbonBilanId?: number;
+  productName: string;
+  unitsSold: number;
+  lifespanYears: number;
+  consumesEnergy: boolean;
+  /** @nullable */
+  energyType: string | null;
+  /** @nullable */
+  consumptionPerYear: number | null;
+  /** @nullable */
+  unit: string | null;
+  /** @nullable */
+  country: string | null;
+  /** @nullable */
+  emissionFactor: number | null;
+  /** @nullable */
+  emissions: number | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type CarbonBilan = CarbonBilanInput & {

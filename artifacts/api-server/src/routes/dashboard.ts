@@ -5,6 +5,8 @@ import {
   membersTable,
   exercisesTable,
   carbonBilansTable,
+  carbonTravelItemsTable,
+  carbonUsageItemsTable,
   bioDependenciesTable,
   stakeholdersTable,
   suppliersTable,
@@ -18,6 +20,7 @@ import type { CarbonBilan } from "@workspace/db";
 import {
   ALL_SUBCATEGORIES,
   COMPLETENESS_THRESHOLD,
+  calculateCarbonDetailTotals,
 } from "@workspace/rse-referentials";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
@@ -166,6 +169,8 @@ async function computeKpis(orgId: number, exerciseId: number): Promise<KpiValues
 
   const [
     carbonResults,
+    carbonTravelResults,
+    carbonUsageResults,
     bioCountResults,
     stakeCountResults,
     suppliersResults,
@@ -177,6 +182,8 @@ async function computeKpis(orgId: number, exerciseId: number): Promise<KpiValues
     workforceResults,
   ] = await Promise.all([
     db.select().from(carbonBilansTable).where(scope(carbonBilansTable)).limit(1),
+    db.select().from(carbonTravelItemsTable).where(scope(carbonTravelItemsTable)),
+    db.select().from(carbonUsageItemsTable).where(scope(carbonUsageItemsTable)),
     db.select({ count: count() }).from(bioDependenciesTable).where(scope(bioDependenciesTable)),
     db.select({ count: count() }).from(stakeholdersTable).where(scope(stakeholdersTable)),
     db
@@ -219,7 +226,28 @@ async function computeKpis(orgId: number, exerciseId: number): Promise<KpiValues
   ]);
 
   // Carbon
-  const carbon = carbonTotal(carbonResults[0]);
+  const carbonDetails = calculateCarbonDetailTotals(
+    carbonResults[0] ?? {},
+    carbonTravelResults.map((item) => ({
+      ...item,
+      quantity: Number(item.quantity),
+      emissionFactor: item.emissionFactor == null ? null : Number(item.emissionFactor),
+      emissions: item.emissions == null ? null : Number(item.emissions),
+      scope: item.scope as "1" | "2" | "3",
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+    })),
+    carbonUsageResults.map((item) => ({
+      ...item,
+      lifespanYears: Number(item.lifespanYears),
+      consumptionPerYear: item.consumptionPerYear == null ? null : Number(item.consumptionPerYear),
+      emissionFactor: item.emissionFactor == null ? null : Number(item.emissionFactor),
+      emissions: item.emissions == null ? null : Number(item.emissions),
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+    })),
+  );
+  const carbon = carbonResults[0] ? Math.round(carbonDetails.globalTotal * 100) / 100 : null;
 
   // Biodiversité
   const rawBioCount = Number(bioCountResults[0]?.count ?? 0);

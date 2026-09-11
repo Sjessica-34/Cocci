@@ -4265,6 +4265,120 @@ components:
           type: ["string", "null"]
         utilCustomFactor:
           type: ["number", "null"]
+        travelItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/CarbonTravelItemInput"
+        usageItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/CarbonUsageItemInput"
+
+    CarbonTravelItemInput:
+      type: object
+      required: [categoryKey, label, quantity, unit]
+      properties:
+        categoryKey:
+          type: string
+        label:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        emissionFactor:
+          type: ["number", "null"]
+        scope:
+          type: string
+          enum: ["1", "2", "3"]
+
+    CarbonUsageItemInput:
+      type: object
+      required: [productName, unitsSold, lifespanYears, consumesEnergy]
+      properties:
+        productName:
+          type: string
+        unitsSold:
+          type: integer
+        lifespanYears:
+          type: number
+        consumesEnergy:
+          type: boolean
+        energyType:
+          type: ["string", "null"]
+        consumptionPerYear:
+          type: ["number", "null"]
+        unit:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        emissionFactor:
+          type: ["number", "null"]
+
+    CarbonTravelItem:
+      type: object
+      required: [categoryKey, label, quantity, unit, emissionFactor, emissions, scope]
+      properties:
+        id:
+          type: integer
+        carbonBilanId:
+          type: integer
+        categoryKey:
+          type: string
+        label:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        emissionFactor:
+          type: ["number", "null"]
+        emissions:
+          type: ["number", "null"]
+        scope:
+          type: string
+          enum: ["1", "2", "3"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CarbonUsageItem:
+      type: object
+      required: [productName, unitsSold, lifespanYears, consumesEnergy, energyType, consumptionPerYear, unit, country, emissionFactor, emissions]
+      properties:
+        id:
+          type: integer
+        carbonBilanId:
+          type: integer
+        productName:
+          type: string
+        unitsSold:
+          type: integer
+        lifespanYears:
+          type: number
+        consumesEnergy:
+          type: boolean
+        energyType:
+          type: ["string", "null"]
+        consumptionPerYear:
+          type: ["number", "null"]
+        unit:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        emissionFactor:
+          type: ["number", "null"]
+        emissions:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     CarbonBilan:
       allOf:

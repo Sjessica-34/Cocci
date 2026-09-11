@@ -9,6 +9,8 @@ import {
   bioConnectionsTable,
   bioIssuesTable,
   carbonBilansTable,
+  carbonTravelItemsTable,
+  carbonUsageItemsTable,
   captationCarboneTable,
   publicLinksTable,
   rseReportDraftsTable,
@@ -95,6 +97,7 @@ export async function duplicateExerciseData(
 ): Promise<ExerciseDuplicationCheck[]> {
   const checks: ExerciseDuplicationCheck[] = [];
   const bioDependencyIdMap = new Map<number, number>();
+  const carbonBilanIdMap = new Map<number, number>();
   const [targetExercise] = await dbClient
     .select({ year: exercisesTable.year })
     .from(exercisesTable)
@@ -169,6 +172,21 @@ export async function duplicateExerciseData(
           generationYear: 0,
         });
       }
+    } else if (entry.remap === "carbonBilanItems") {
+      const itemTable = table === carbonTravelItemsTable ? carbonTravelItemsTable : carbonUsageItemsTable;
+      for (const row of rows as Record<string, unknown>[]) {
+        const { id: _id, carbonBilanId, ...rest } = row;
+        const newCarbonBilanId = carbonBilanIdMap.get(carbonBilanId as number);
+        if (!newCarbonBilanId) {
+          throw new Error("Impossible de remapper un détail de bilan carbone");
+        }
+        await dbClient.insert(itemTable).values({
+          ...rest,
+          organizationId: orgId,
+          exerciseId: toExerciseId,
+          carbonBilanId: newCarbonBilanId,
+        } as never);
+      }
     } else {
       for (const row of rows as Record<string, unknown>[]) {
         const { id, ...rest } = row;
@@ -182,6 +200,9 @@ export async function duplicateExerciseData(
           .returning();
         if (table === bioDependenciesTable && inserted) {
           bioDependencyIdMap.set(id as number, (inserted as { id: number }).id);
+        }
+        if (table === carbonBilansTable && inserted) {
+          carbonBilanIdMap.set(id as number, (inserted as { id: number }).id);
         }
       }
     }

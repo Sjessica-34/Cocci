@@ -1,5 +1,6 @@
 export * from "./barometreSocial";
 export * from "./diagnosticRcmr";
+export * from "./carbon";
 
 /**
  * Nombre maximum de générations de rapport RSE autorisées par exercice.

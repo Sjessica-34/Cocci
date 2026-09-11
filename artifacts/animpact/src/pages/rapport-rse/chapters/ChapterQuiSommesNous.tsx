@@ -3,6 +3,8 @@ import {
 } from "./_shared";
 import { AuthenticatedReportImage } from "./AuthenticatedReportImage";
 import type { ReportData } from "../useReportData";
+import { calculateCarbonDetailTotals } from "@workspace/rse-referentials";
+import type { CarbonTravelItem, CarbonUsageItem } from "@workspace/rse-referentials";
 
 export function ChapterQuiSommesNous({ data }: { data: ReportData }) {
   const draft = data.draft as Record<string, unknown> | null;
@@ -20,9 +22,11 @@ export function ChapterQuiSommesNous({ data }: { data: ReportData }) {
 
   const carbonVal = data.carbon as Record<string, unknown> | null;
   const carbonTotal = carbonVal
-    ? (["energie1","energie2","horsEnergie1","horsEnergie2","intrantsBiens","intrantsServices",
-        "futursEmballages","fret","deplacements","dechetsDirects","immobilisations","utilisation","finDeVie"]
-      .reduce((a, k) => a + (carbonVal[k] != null ? Number(carbonVal[k]) : 0), 0))
+    ? calculateCarbonDetailTotals(
+      carbonVal,
+      (carbonVal.travelItems as CarbonTravelItem[] | undefined) ?? [],
+      (carbonVal.usageItems as CarbonUsageItem[] | undefined) ?? [],
+    ).globalTotal
     : 0;
 
   const kpis = [];

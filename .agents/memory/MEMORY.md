@@ -17,3 +17,4 @@
 - [Redirection après réinitialisation du mot de passe](password-reset-dashboard.md) — une connexion SignIn réussie va au tableau de bord; l’onboarding reste réservé aux comptes sans organisation.
 - [Autorité des tentatives Checkout](stripe-checkout-attempt-currentness.md) — un webhook Stripe ne peut modifier l’accès que s’il correspond à la tentative pending/courante et à ses identifiants liés.
 - [Patch de fichiers répétés](patch-repeated-files.md) — pour un fichier dupliqué, préférer une mise à jour ciblée ; une suppression puis recréation peut être refusée par l’outil de patch.
+- [Frontière numeric Drizzle](drizzle-numeric-boundary.md) — convertir les numeric en chaînes à l’insertion et en nombres avant les calculs métier.

@@ -3724,7 +3724,26 @@ export const GetCarbonBilanResponse = zod.object({
   "utilConsumptionPerYear": zod.number().nullish(),
   "utilUnit": zod.string().nullish(),
   "utilCountry": zod.string().nullish(),
-  "utilCustomFactor": zod.number().nullish()
+  "utilCustomFactor": zod.number().nullish(),
+  "travelItems": zod.array(zod.object({
+  "categoryKey": zod.string(),
+  "label": zod.string(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "emissionFactor": zod.number().nullish(),
+  "scope": zod.enum(['1', '2', '3']).optional()
+})).optional(),
+  "usageItems": zod.array(zod.object({
+  "productName": zod.string(),
+  "unitsSold": zod.number(),
+  "lifespanYears": zod.number(),
+  "consumesEnergy": zod.boolean(),
+  "energyType": zod.string().nullish(),
+  "consumptionPerYear": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "emissionFactor": zod.number().nullish()
+})).optional()
 }).and(zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),
@@ -3778,7 +3797,26 @@ export const UpsertCarbonBilanBody = zod.object({
   "utilConsumptionPerYear": zod.number().nullish(),
   "utilUnit": zod.string().nullish(),
   "utilCountry": zod.string().nullish(),
-  "utilCustomFactor": zod.number().nullish()
+  "utilCustomFactor": zod.number().nullish(),
+  "travelItems": zod.array(zod.object({
+  "categoryKey": zod.string(),
+  "label": zod.string(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "emissionFactor": zod.number().nullish(),
+  "scope": zod.enum(['1', '2', '3']).optional()
+})).optional(),
+  "usageItems": zod.array(zod.object({
+  "productName": zod.string(),
+  "unitsSold": zod.number(),
+  "lifespanYears": zod.number(),
+  "consumesEnergy": zod.boolean(),
+  "energyType": zod.string().nullish(),
+  "consumptionPerYear": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "emissionFactor": zod.number().nullish()
+})).optional()
 })
 
 export const UpsertCarbonBilanResponse = zod.object({
@@ -3819,7 +3857,26 @@ export const UpsertCarbonBilanResponse = zod.object({
   "utilConsumptionPerYear": zod.number().nullish(),
   "utilUnit": zod.string().nullish(),
   "utilCountry": zod.string().nullish(),
-  "utilCustomFactor": zod.number().nullish()
+  "utilCustomFactor": zod.number().nullish(),
+  "travelItems": zod.array(zod.object({
+  "categoryKey": zod.string(),
+  "label": zod.string(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "emissionFactor": zod.number().nullish(),
+  "scope": zod.enum(['1', '2', '3']).optional()
+})).optional(),
+  "usageItems": zod.array(zod.object({
+  "productName": zod.string(),
+  "unitsSold": zod.number(),
+  "lifespanYears": zod.number(),
+  "consumesEnergy": zod.boolean(),
+  "energyType": zod.string().nullish(),
+  "consumptionPerYear": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "emissionFactor": zod.number().nullish()
+})).optional()
 }).and(zod.object({
   "id": zod.number(),
   "organizationId": zod.number(),

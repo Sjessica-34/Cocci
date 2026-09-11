@@ -8,6 +8,8 @@ export * from "./issueRatings";
 export * from "./customIssues";
 export * from "./issueAnalyses";
 export * from "./carbonBilans";
+export * from "./carbonTravelItems";
+export * from "./carbonUsageItems";
 export * from "./captationCarbone";
 export * from "./documents";
 export * from "./numeriqueResponsable";

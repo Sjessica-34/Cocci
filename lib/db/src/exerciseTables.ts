@@ -1,6 +1,8 @@
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { bioConnectionsTable, bioDependenciesTable, bioIssuesTable } from "./schema/biodiversite";
 import { carbonBilansTable } from "./schema/carbonBilans";
+import { carbonTravelItemsTable } from "./schema/carbonTravelItems";
+import { carbonUsageItemsTable } from "./schema/carbonUsageItems";
 import { customIssuesTable } from "./schema/customIssues";
 import {
   employmentCustomKpisTable,
@@ -33,7 +35,7 @@ export type ScopedTable = PgTable & { id: PgColumn; organizationId: PgColumn; ex
  * `artifacts/api-server/src/routes/exercises.ts` for the handler
  * implementations, keyed by this tag.
  */
-export type ExerciseTableRemap = "bioConnections" | "bioIssues" | "rseReportDrafts" | "publicLinks";
+export type ExerciseTableRemap = "bioConnections" | "bioIssues" | "rseReportDrafts" | "publicLinks" | "carbonBilanItems";
 
 export interface ExerciseScopedTableEntry {
   /** SQL table name, used in logs/verification output. */
@@ -85,6 +87,8 @@ export const EXERCISE_SCOPED_TABLES: ExerciseScopedTableEntry[] = [
   { name: "bio_connections", table: bioConnectionsTable, remap: "bioConnections" },
   { name: "bio_issues", table: bioIssuesTable, remap: "bioIssues" },
   { name: "carbon_bilans", table: carbonBilansTable },
+  { name: "carbon_bilan_travel_items", table: carbonTravelItemsTable, remap: "carbonBilanItems" },
+  { name: "carbon_bilan_usage_items", table: carbonUsageItemsTable, remap: "carbonBilanItems" },
   { name: "captation_carbone", table: captationCarboneTable },
   { name: "custom_issues", table: customIssuesTable },
   { name: "diagnostic_responses", table: diagnosticResponsesTable },

@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import { useGetCarbonBilan, useUpsertCarbonBilan } from "@workspace/api-client-react";
 
-import type { CarbonBilan, CarbonBilanInput } from "@workspace/api-client-react";
+import type { CarbonBilan, CarbonBilanInput, CarbonTravelItemInput, CarbonUsageItemInput } from "@workspace/api-client-react";
 import { UtilisationCalculator, computeUtilisation } from "./UtilisationCalculator";
+import { DetailedCarbonCalculator } from "./DetailedCarbonCalculator";
+import { calculateCarbonDetailTotals, calculateTravelEmissions, calculateUsageEmissions } from "@workspace/rse-referentials";
 import { AppLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -210,7 +212,12 @@ function ResultCard({ total, breakdown, isEstimation }: { total: number; breakdo
 }
 
 // ── Main page ───────────────────────────────────────────────────────────────
-type FormState = Partial<CarbonBilanInput> & { year: number; mode: "saisie" | "estimation" };
+type FormState = Partial<CarbonBilanInput> & {
+  year: number;
+  mode: "saisie" | "estimation";
+  travelItems: CarbonTravelItemInput[];
+  usageItems: CarbonUsageItemInput[];
+};
 
 const defaultForm = (): FormState => ({
   year: new Date().getFullYear(),
@@ -218,6 +225,8 @@ const defaultForm = (): FormState => ({
   status: "draft",
   scope: "1-2-3",
   methodology: "Bilan Carbone®",
+  travelItems: [],
+  usageItems: [],
 });
 
 function fromBilan(b: CarbonBilan): FormState {
@@ -260,6 +269,12 @@ function fromBilan(b: CarbonBilan): FormState {
     utilUnit: b.utilUnit ?? undefined,
     utilCountry: b.utilCountry ?? undefined,
     utilCustomFactor: b.utilCustomFactor ?? undefined,
+    travelItems: (b.travelItems ?? []).map(({ categoryKey, label, quantity, unit, emissionFactor, scope }) => ({
+      categoryKey, label, quantity, unit, emissionFactor, scope,
+    })),
+    usageItems: (b.usageItems ?? []).map(({ productName, unitsSold, lifespanYears, consumesEnergy, energyType, consumptionPerYear, unit, country, emissionFactor }) => ({
+      productName, unitsSold, lifespanYears, consumesEnergy, energyType, consumptionPerYear, unit, country, emissionFactor,
+    })),
   };
 }
 
@@ -305,20 +320,54 @@ export function BilanCarbone() {
   };
 
   const isSaisie = form.mode === "saisie";
-  const saisieTotal = computeSaisieTotal(form);
+  const detailTotals = calculateCarbonDetailTotals(form, form.travelItems, form.usageItems);
+  const saisieTotal = detailTotals.globalTotal;
   const saisieBreakdown: Breakdown[] = SAISIE_CATEGORIES.map((c) => ({
     label: c.label,
-    value: typeof form[c.key] === "number" ? (form[c.key] as number) : 0,
+    value: detailTotals.byCategory[String(c.key)] ?? 0,
     scope: `Scope ${c.scope}`,
   }));
 
   const { breakdown: estBreakdownBase, total: estTotalBase } = computeEstimation(form);
-  const utilResult = computeUtilisation(form);
-  const utilEntry = utilResult && utilResult.tCO2e > 0
-    ? [{ label: "Utilisation des produits/services", value: utilResult.tCO2e, scope: "Scope 3" }]
-    : [];
-  const estBreakdown = [...estBreakdownBase, ...utilEntry];
-  const estTotal = estTotalBase + (utilResult?.tCO2e ?? 0);
+  const legacyUtilResult = form.usageItems.length > 0 ? null : computeUtilisation(form);
+  const detailedTravelEntries = form.travelItems
+    .map((item) => {
+      const emissions = calculateTravelEmissions(item.categoryKey, item.quantity, item.emissionFactor ?? null);
+      return emissions == null ? null : { label: `Déplacements — ${item.label}`, value: emissions, scope: "Scope 3" };
+    })
+    .filter((item): item is Breakdown => item !== null);
+  const detailedUsageEntries = form.usageItems
+    .map((item) => ({
+      label: item.productName || "Produit non nommé",
+      value: calculateUsageEmissions({
+        unitsSold: item.unitsSold,
+        lifespanYears: item.lifespanYears,
+        consumesEnergy: item.consumesEnergy,
+        energyType: item.energyType ?? null,
+        consumptionPerYear: item.consumptionPerYear ?? null,
+        unit: item.unit ?? null,
+        country: item.country ?? null,
+        emissionFactor: item.emissionFactor ?? null,
+      }) ?? 0,
+      scope: "Scope 3",
+    }))
+    .filter((item) => item.value > 0);
+  const utilEntry = form.usageItems.length > 0
+    ? detailedUsageEntries.filter((item) => item.value > 0)
+    : legacyUtilResult && legacyUtilResult.tCO2e > 0
+      ? [{ label: "Utilisation des produits/services", value: legacyUtilResult.tCO2e, scope: "Scope 3" }]
+      : [];
+  const estBreakdown = [
+    ...(form.travelItems.length > 0 ? estBreakdownBase.filter((item) => !item.label.startsWith("Déplacements")) : estBreakdownBase),
+    ...(form.travelItems.length > 0 ? detailedTravelEntries : []),
+    ...utilEntry,
+  ];
+  const legacyTravelTotal = form.travelItems.length > 0
+    ? 0
+    : (form.estTrainKmYear ?? 0) * TRAIN_FACTOR + (form.estPlaneKmYear ?? 0) * PLANE_FACTOR;
+  const detailTravelTotal = detailedTravelEntries.reduce((sum, item) => sum + item.value, 0);
+  const estTotal = estTotalBase - legacyTravelTotal + detailTravelTotal +
+    (form.usageItems.length > 0 ? detailTotals.usageTotal : (legacyUtilResult?.tCO2e ?? 0));
 
   const YEARS = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
@@ -601,7 +650,7 @@ export function BilanCarbone() {
                     </Section>
 
                     {/* Utilisation calculator */}
-                    <UtilisationCalculator form={form} set={set} />
+                    <DetailedCarbonCalculator form={form} set={set} />
 
                     {/* Live result */}
                     <div className="rounded-xl border border-border bg-white dark:bg-muted/10 p-5">
@@ -622,6 +671,8 @@ export function BilanCarbone() {
                 </div>
               </div>
             )}
+
+            {isSaisie && <DetailedCarbonCalculator form={form} set={set} />}
 
             {/* Document import */}
             {!!effectiveOrgId && (

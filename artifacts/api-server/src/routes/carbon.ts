@@ -1,10 +1,22 @@
 import { Router } from "express";
-import { db, carbonBilansTable } from "@workspace/db";
+import {
+  db,
+  carbonBilansTable,
+  carbonTravelItemsTable,
+  carbonUsageItemsTable,
+} from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireExerciseScope, requireWritableExerciseScope } from "../middlewares/exerciseScope";
 import { scopeToExercise, withExerciseValues } from "../lib/exercise";
 import { getSubsidiaryExercises, sumNullable } from "../lib/consolidation";
+import {
+  calculateTravelEmissions,
+  calculateUsageEmissions,
+  TRAVEL_CATEGORIES,
+  TRAVEL_EMISSION_FACTORS,
+  USAGE_EMISSION_FACTORS,
+} from "@workspace/rse-referentials";
 
 const router = Router();
 
@@ -14,7 +26,49 @@ function numOrNull(v: unknown): string | null {
   return isNaN(n) ? null : String(n);
 }
 
-function serialize(b: typeof carbonBilansTable.$inferSelect) {
+function serializeTravel(item: typeof carbonTravelItemsTable.$inferSelect) {
+  return {
+    id: item.id,
+    carbonBilanId: item.carbonBilanId,
+    categoryKey: item.categoryKey,
+    label: item.label,
+    quantity: Number(item.quantity),
+    unit: item.unit,
+    emissionFactor: item.emissionFactor != null ? Number(item.emissionFactor) : null,
+    emissions: item.emissions != null ? Number(item.emissions) : null,
+    scope: item.scope,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  };
+}
+
+function serializeUsage(item: typeof carbonUsageItemsTable.$inferSelect) {
+  return {
+    id: item.id,
+    carbonBilanId: item.carbonBilanId,
+    productName: item.productName,
+    unitsSold: item.unitsSold,
+    lifespanYears: Number(item.lifespanYears),
+    consumesEnergy: item.consumesEnergy,
+    energyType: item.energyType,
+    consumptionPerYear: item.consumptionPerYear != null ? Number(item.consumptionPerYear) : null,
+    unit: item.unit,
+    country: item.country,
+    emissionFactor: item.emissionFactor != null ? Number(item.emissionFactor) : null,
+    emissions: item.emissions != null ? Number(item.emissions) : null,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  };
+}
+
+type TravelResponse = ReturnType<typeof serializeTravel>;
+type UsageResponse = ReturnType<typeof serializeUsage>;
+
+function serialize(
+  b: typeof carbonBilansTable.$inferSelect,
+  travelItems: typeof carbonTravelItemsTable.$inferSelect[] = [],
+  usageItems: typeof carbonUsageItemsTable.$inferSelect[] = [],
+) {
   const toNum = (v: string | null | undefined) => (v != null ? Number(v) : null);
   return {
     id: b.id,
@@ -57,6 +111,8 @@ function serialize(b: typeof carbonBilansTable.$inferSelect) {
     utilUnit: b.utilUnit,
     utilCountry: b.utilCountry,
     utilCustomFactor: toNum(b.utilCustomFactor),
+    travelItems: travelItems.map(serializeTravel),
+    usageItems: usageItems.map(serializeUsage),
     createdAt: b.createdAt.toISOString(),
     updatedAt: b.updatedAt.toISOString(),
   };
@@ -110,6 +166,8 @@ function consolidateBilans(bilans: SerializedBilan[]): SerializedBilan {
     utilUnit: null,
     utilCountry: null,
     utilCustomFactor: null,
+    travelItems: bilans.flatMap((b) => b.travelItems),
+    usageItems: bilans.flatMap((b) => b.usageItems),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -131,7 +189,14 @@ router.get("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, re
             .from(carbonBilansTable)
             .where(and(eq(carbonBilansTable.organizationId, subId), eq(carbonBilansTable.exerciseId, exerciseId)))
             .limit(1)
-            .then((rows) => (rows[0] ? serialize(rows[0]) : null)),
+          .then(async (rows) => {
+            if (!rows[0]) return null;
+            const [travelItems, usageItems] = await Promise.all([
+              db.select().from(carbonTravelItemsTable).where(eq(carbonTravelItemsTable.carbonBilanId, rows[0].id)),
+              db.select().from(carbonUsageItemsTable).where(eq(carbonUsageItemsTable.carbonBilanId, rows[0].id)),
+            ]);
+            return serialize(rows[0], travelItems, usageItems);
+          }),
         ),
       )
     ).filter((b): b is SerializedBilan => b !== null);
@@ -153,7 +218,11 @@ router.get("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, re
     .limit(1);
 
   if (!bilan) { res.status(404).json({ error: "No bilan yet" }); return; }
-  res.json(serialize(bilan));
+  const [travelItems, usageItems] = await Promise.all([
+    db.select().from(carbonTravelItemsTable).where(eq(carbonTravelItemsTable.carbonBilanId, bilan.id)),
+    db.select().from(carbonUsageItemsTable).where(eq(carbonUsageItemsTable.carbonBilanId, bilan.id)),
+  ]);
+  res.json(serialize(bilan, travelItems, usageItems));
 });
 
 // PUT /organizations/:orgId/carbon
@@ -201,6 +270,8 @@ router.put("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, re
     utilCustomFactor: numOrNull(body.utilCustomFactor),
     updatedAt: new Date(),
   });
+  const travelItems = Array.isArray(body.travelItems) ? body.travelItems : null;
+  const usageItems = Array.isArray(body.usageItems) ? body.usageItems : null;
 
   const [existing] = await db
     .select({ id: carbonBilansTable.id })
@@ -208,18 +279,121 @@ router.put("/organizations/:orgId/carbon", requireAuth, requireOrgMembership, re
     .where(scopeToExercise(carbonBilansTable, req))
     .limit(1);
 
-  let bilan;
-  if (existing) {
-    [bilan] = await db
-      .update(carbonBilansTable)
-      .set(payload)
-      .where(eq(carbonBilansTable.id, existing.id))
-      .returning();
-  } else {
-    [bilan] = await db.insert(carbonBilansTable).values(payload).returning();
-  }
+  const result = await db.transaction(async (tx) => {
+    let bilan: typeof carbonBilansTable.$inferSelect | undefined;
+    if (existing) {
+      [bilan] = await tx
+        .update(carbonBilansTable)
+        .set(payload)
+        .where(eq(carbonBilansTable.id, existing.id))
+        .returning();
+    } else {
+      [bilan] = await tx.insert(carbonBilansTable).values(payload).returning();
+    }
+    if (!bilan) throw new Error("Carbon bilan upsert failed");
+    const parent = bilan;
 
-  res.json(serialize(bilan!));
+    if (travelItems !== null) {
+      await tx.delete(carbonTravelItemsTable).where(eq(carbonTravelItemsTable.carbonBilanId, bilan.id));
+    }
+    if (usageItems !== null) {
+      await tx.delete(carbonUsageItemsTable).where(eq(carbonUsageItemsTable.carbonBilanId, bilan.id));
+    }
+
+    const now = new Date();
+    const travelValues = (travelItems ?? []).map((raw) => {
+      const item = raw as Record<string, unknown>;
+      const categoryKey = String(item.categoryKey ?? "");
+      const category = TRAVEL_CATEGORIES.find((candidate) => candidate.key === categoryKey);
+      const quantity = Number(item.quantity ?? 0);
+      const emissionFactor = item.emissionFactor == null
+        ? TRAVEL_EMISSION_FACTORS[categoryKey] ?? null
+        : Number(item.emissionFactor);
+      return {
+        organizationId: parent.organizationId,
+        exerciseId: parent.exerciseId,
+        carbonBilanId: parent.id,
+        categoryKey,
+        label: String(item.label ?? category?.label ?? categoryKey),
+        quantity: String(quantity),
+        unit: String(item.unit ?? "km"),
+        emissionFactor: emissionFactor == null ? null : String(emissionFactor),
+        emissions: (() => {
+          const value = calculateTravelEmissions(categoryKey, quantity, emissionFactor);
+          return value == null ? null : String(value);
+        })(),
+        scope: String(item.scope ?? category?.scope ?? "3"),
+        createdAt: now,
+        updatedAt: now,
+      };
+    }).filter((item) => item.categoryKey && Number.isFinite(Number(item.quantity)) && Number(item.quantity) >= 0);
+    if (travelItems !== null && travelValues.length > 0) await tx.insert(carbonTravelItemsTable).values(travelValues);
+
+    const usageValues = (usageItems ?? []).map((raw) => {
+      const item = raw as Record<string, unknown>;
+      const energyType = item.energyType == null ? null : String(item.energyType);
+      const unit = item.unit == null ? null : String(item.unit);
+      const country = item.country == null ? null : String(item.country);
+      const emissionFactor = item.emissionFactor == null
+        ? (energyType && country ? USAGE_EMISSION_FACTORS[energyType]?.[country] ?? null : null)
+        : Number(item.emissionFactor);
+      const usage = {
+        unitsSold: Number(item.unitsSold ?? 0),
+        lifespanYears: Number(item.lifespanYears ?? 0),
+        consumesEnergy: item.consumesEnergy !== false,
+        energyType,
+        consumptionPerYear: item.consumptionPerYear == null ? null : Number(item.consumptionPerYear),
+        unit,
+        country,
+        emissionFactor,
+      };
+      const calculatedEmissions = calculateUsageEmissions(usage);
+      return {
+        organizationId: parent.organizationId,
+        exerciseId: parent.exerciseId,
+        carbonBilanId: parent.id,
+        productName: String(item.productName ?? ""),
+        unitsSold: usage.unitsSold,
+        lifespanYears: String(usage.lifespanYears),
+        consumesEnergy: usage.consumesEnergy,
+        energyType: usage.energyType,
+        consumptionPerYear: usage.consumptionPerYear == null ? null : String(usage.consumptionPerYear),
+        unit: usage.unit,
+        country: usage.country,
+        emissionFactor: emissionFactor == null ? null : String(emissionFactor),
+        emissions: calculatedEmissions == null ? null : String(calculatedEmissions),
+        createdAt: now,
+        updatedAt: now,
+      };
+    }).filter((item) =>
+      item.productName &&
+      Number.isFinite(item.unitsSold) && item.unitsSold >= 0 &&
+      Number.isFinite(Number(item.lifespanYears)) && Number(item.lifespanYears) >= 0,
+    );
+    if (usageItems !== null && usageValues.length > 0) await tx.insert(carbonUsageItemsTable).values(usageValues);
+
+    const detailedTravelTotal = travelValues.reduce((sum, item) => sum + Number(item.emissions ?? 0), 0);
+    const detailedUsageTotal = usageValues.reduce((sum, item) => sum + Number(item.emissions ?? 0), 0);
+    if (travelItems !== null && travelValues.length > 0 || usageItems !== null && usageValues.length > 0) {
+      [bilan] = await tx
+        .update(carbonBilansTable)
+        .set({
+          deplacements: travelItems !== null && travelValues.length > 0 ? String(detailedTravelTotal) : payload.deplacements,
+          utilisation: usageItems !== null && usageValues.length > 0 ? String(detailedUsageTotal) : payload.utilisation,
+          updatedAt: now,
+        })
+        .where(eq(carbonBilansTable.id, bilan.id))
+        .returning();
+    }
+
+    const [savedTravel, savedUsage] = await Promise.all([
+      tx.select().from(carbonTravelItemsTable).where(eq(carbonTravelItemsTable.carbonBilanId, parent.id)),
+      tx.select().from(carbonUsageItemsTable).where(eq(carbonUsageItemsTable.carbonBilanId, parent.id)),
+    ]);
+    return serialize(bilan, savedTravel, savedUsage);
+  });
+
+  res.json(result);
 });
 
 // DELETE /organizations/:orgId/carbon
