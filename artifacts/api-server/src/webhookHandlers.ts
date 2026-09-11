@@ -45,7 +45,10 @@ async function upsertSubscriptionFromStripe(opts: {
      ON CONFLICT (organization_id)
      DO UPDATE SET
        mode = 'stripe',
-       status = $2,
+       status = CASE
+         WHEN subscriptions.status = 'suspended' THEN 'suspended'
+         ELSE $2
+       END,
        stripe_customer_id = $3,
        stripe_subscription_id = $4,
        updated_at = NOW()`,
@@ -127,7 +130,10 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
              ON CONFLICT (organization_id)
              DO UPDATE SET
                mode = 'stripe',
-               status = $2,
+               status = CASE
+                 WHEN subscriptions.status IN ('active', 'suspended') THEN subscriptions.status
+                 ELSE $2
+               END,
                stripe_customer_id = $3,
                stripe_subscription_id = $4,
                offer_name = COALESCE($5, subscriptions.offer_name),

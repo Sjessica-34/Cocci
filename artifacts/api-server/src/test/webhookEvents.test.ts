@@ -5,11 +5,11 @@
  *   1. checkout.session.completed (paid)   → abonnement actif + formule/plafond enregistrés
  *   2. checkout.session.completed (unpaid) → statut "trial" (SEPA en attente)
  *   3. invoice.payment_succeeded           → trial → active
- *   4. invoice.payment_failed              → suspended
+ *   4. invoice.payment_failed                 → suspended
  *   5. payment_intent.payment_failed          → suspended
  *   6. checkout.session.completed rejoué      → reste suspended
  *   7. customer.subscription.updated tardif   → reste suspended
- *   8. customer.subscription.deleted           → suspended
+ *   8. customer.subscription.deleted          → suspended
  *
  * Usage : pnpm --filter @workspace/api-server exec tsx src/test/webhookEvents.test.ts
  */
@@ -81,12 +81,12 @@ async function main() {
     assert(sub?.max_employees === 5, "max_employees enregistré");
     assert(sub?.stripe_subscription_id === subId, "stripe_subscription_id enregistré");
 
-    // 2. Checkout non payé (SEPA en attente) → trial
+    // 2. Une nouvelle demande non payée ne doit pas faire régresser active
     await pool.query(
       "UPDATE onboarding_progress SET status = 'payment_pending', completed_at = NULL WHERE user_id = $1",
       [userId],
     );
-    console.log("checkout.session.completed (unpaid / SEPA)");
+    console.log("checkout.session.completed (unpaid après active)");
     await handleStripeEvent(makeEvent("checkout.session.completed", {
       customer: "cus_test_1",
       subscription: subId,
@@ -94,10 +94,26 @@ async function main() {
       metadata: { orgId: String(orgId) },
     }));
     sub = await getSub(orgId);
-    assert(sub?.status === "trial", "status = trial en attente de paiement");
-    assert(sub?.offer_name === "Cocci — 1 à 5 salariés", "offer_name conservé (COALESCE)");
+    assert(sub?.status === "active", "active reste active malgré un Checkout unpaid");
 
-    // 3. Paiement confirmé → active
+    // 3. Sans abonnement local, un SEPA unpaid crée bien un abonnement trial
+    await pool.query("DELETE FROM subscriptions WHERE organization_id = $1", [orgId]);
+    console.log("checkout.session.completed (unpaid / SEPA)");
+    await handleStripeEvent(makeEvent("checkout.session.completed", {
+      customer: "cus_test_1",
+      subscription: subId,
+      payment_status: "unpaid",
+      metadata: {
+        orgId: String(orgId),
+        offerName: "Cocci — 1 à 5 salariés",
+        maxEmployees: "5",
+      },
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "trial", "absence d'abonnement → trial en attente de paiement");
+    assert(sub?.offer_name === "Cocci — 1 à 5 salariés", "offer_name enregistré");
+
+    // 4. Paiement confirmé → active
     console.log("invoice.payment_succeeded");
     await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
       parent: { subscription_details: { subscription: subId } },
@@ -111,7 +127,7 @@ async function main() {
     assert(onboarding.rows[0]?.status === "completed", "payment_pending → completed après paiement");
     assert(onboarding.rows[0]?.completed_at != null, "completed_at est renseigné après paiement");
 
-    // 4. Paiement SEPA échoué puis Checkout rejoué → suspended reste terminal
+    // 5. Paiement SEPA échoué puis Checkout rejoué → suspended reste terminal
     await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
     console.log("payment_intent.payment_failed");
     await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
@@ -131,7 +147,7 @@ async function main() {
     sub = await getSub(orgId);
     assert(sub?.status === "suspended", "checkout rejoué ne réactive pas suspended → trial");
 
-    // 5. Échec puis Checkout tardif dans l'autre ordre de réception
+    // 6. Échec puis Checkout tardif dans l'autre ordre de réception
     await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
     await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
       customer: "cus_test_1",
@@ -148,7 +164,7 @@ async function main() {
     sub = await getSub(orgId);
     assert(sub?.status === "suspended", "Checkout tardif ne réécrit pas suspended → trial");
 
-    // 6. Mise à jour Stripe tardive : suspended ne doit pas redevenir active
+    // 7. Mise à jour Stripe tardive : suspended ne doit pas redevenir active
     await handleStripeEvent(makeEvent("customer.subscription.updated", {
       id: subId,
       customer: "cus_test_1",
@@ -157,7 +173,7 @@ async function main() {
     sub = await getSub(orgId);
     assert(sub?.status === "suspended", "customer.subscription.updated ne réactive pas suspended");
 
-    // 7. trial → active après confirmation SEPA
+    // 8. trial → active après confirmation SEPA
     await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
     await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
       parent: { subscription_details: { subscription: subId } },
@@ -165,7 +181,7 @@ async function main() {
     sub = await getSub(orgId);
     assert(sub?.status === "active", "trial → active après invoice.payment_succeeded");
 
-    // 8. Résiliation → suspended
+    // 9. Résiliation → suspended
     console.log("customer.subscription.deleted");
     await handleStripeEvent(makeEvent("customer.subscription.deleted", { id: subId, customer: "cus_test_1" }));
     sub = await getSub(orgId);
