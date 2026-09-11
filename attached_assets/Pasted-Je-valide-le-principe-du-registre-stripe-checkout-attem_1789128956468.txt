@@ -1,0 +1,103 @@
+Je valide le principe du registre stripe_checkout_attempts.
+
+Applique cette solution, avec les précisions suivantes :
+
+Une tentative doit être identifiée non seulement par checkoutAttemptId, mais aussi par le véritable :
+stripe_checkout_session_id
+
+Le webhook checkout.session.completed doit vérifier que session.id correspond bien à la tentative enregistrée. Ne te repose pas uniquement sur les metadata.
+
+Il ne doit y avoir qu'une tentative courante exploitable par organisation.
+
+Si l'utilisateur crée un nouveau Checkout alors qu'une ancienne tentative est encore pending, l'ancienne doit devenir par exemple :
+
+superseded
+
+ou un statut équivalent.
+
+Ainsi, un ancien Checkout terminé plus tard ne peut pas réactiver l'abonnement.
+
+La création de la Checkout Session ne doit toujours donner aucun accès :
+suspended
+→ création Checkout
+→ reste suspended
+
+Ce n'est que :
+
+checkout.session.completed
++ tentative courante valide
++ payment_status = unpaid
+
+qui peut faire :
+
+suspended → trial
+Lors de checkout.session.completed, vérifie également la cohérence entre :
+organization_id
+stripe_customer_id
+stripe_checkout_session_id
+
+avant de modifier l'abonnement.
+
+Enregistre dans la tentative les identifiants Stripe utiles dès qu'ils deviennent disponibles :
+stripe_checkout_session_id
+stripe_subscription_id
+stripe_payment_intent_id si disponible
+
+afin que les événements d'échec puissent être reliés à la bonne tentative.
+
+Corrige payment_intent.payment_failed :
+
+il ne doit plus suspendre un abonnement uniquement grâce au stripe_customer_id.
+
+Il doit retrouver la tentative / souscription réellement concernée par ce PaymentIntent et ne suspendre que si elle correspond à la tentative courante de l'organisation.
+
+invoice.payment_succeeded reste l'autorité pour :
+trial → active
+
+et uniquement pour le stripe_subscription_id courant.
+
+customer.subscription.updated ne doit jamais faire :
+trial → active
+suspended → active
+
+Il peut en revanche suspendre la souscription courante si Stripe indique une résiliation ou un état réellement incompatible avec l'accès.
+
+Ajoute des tests couvrant au minimum :
+Checkout abandonné
+→ aucun accès
+
+suspended
+→ nouveau Checkout créé
+→ reste suspended
+
+suspended
+→ nouveau Checkout réellement complété
+→ trial
+
+nouvelle tentative réussie
+→ active
+
+nouvelle tentative échouée
+→ suspended
+
+ancien checkout.session.completed rejoué
+→ aucun changement
+
+ancien payment_intent.payment_failed
+→ ne suspend pas la nouvelle tentative
+
+deux Checkouts créés successivement
+→ seul le plus récent peut modifier l'abonnement
+
+Tu peux maintenant implémenter la solution.
+
+Comme cela ajoute une nouvelle table, fournis également la migration SQL correspondante, mais ne l'applique pas sur Neon préprod automatiquement. Je l'appliquerai séparément après validation.
+
+À la fin, donne-moi :
+
+les fichiers modifiés ;
+la migration ;
+les transitions d'état finales ;
+les résultats des tests, du typecheck et du build.
+
+Le point « deux Checkouts successifs » est important. Sinon quelqu'un clique deux fois, ouvre deux pages Stripe, et trois jours plus tard on recommence notre merveilleux feuilleton suspended → trial → mais pourquoi ?.
