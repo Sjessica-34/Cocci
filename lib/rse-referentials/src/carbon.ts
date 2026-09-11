@@ -47,7 +47,6 @@ export const TRAVEL_CATEGORIES = [
   { key: "voiture_thermique", label: "Voiture thermique", scope: "3" as const },
   { key: "voiture_hybride", label: "Voiture hybride", scope: "3" as const },
   { key: "voiture_electrique", label: "Voiture électrique", scope: "3" as const },
-  { key: "taxi_vtc", label: "Taxi / VTC", scope: "3" as const },
   { key: "deux_roues_motorise", label: "Deux-roues motorisé", scope: "3" as const },
   { key: "train", label: "Train", scope: "3" as const },
   { key: "bus_car", label: "Bus / car", scope: "3" as const },
@@ -60,14 +59,12 @@ export const TRAVEL_CATEGORIES = [
  * Factors already present in the application.
  *
  * Factors supplied from the ADEME references selected for this calculator.
- * Taxi/VTC remains null because no value was supplied for that category.
  * A missing factor must never silently become zero in a user's carbon assessment.
  */
 export const TRAVEL_EMISSION_FACTORS: Record<string, number | null> = {
   voiture_thermique: 0.000142,
   voiture_hybride: 0.000147,
   voiture_electrique: 0.0000674,
-  taxi_vtc: null,
   deux_roues_motorise: 0.0000763,
   train: 0.00000293,
   bus_car: 0.0000376,
