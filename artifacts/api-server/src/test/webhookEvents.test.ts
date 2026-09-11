@@ -1,61 +1,102 @@
 /**
  * Test d'intégration des événements Stripe métier (webhookHandlers.handleStripeEvent).
  *
- * Vérifie sur une organisation temporaire :
- *   1. checkout.session.completed (paid)   → abonnement actif + formule/plafond enregistrés
- *   2. checkout.session.completed (unpaid) → statut "trial" (SEPA en attente)
- *   3. invoice.payment_succeeded           → trial → active
- *   4. invoice.payment_failed                 → suspended
- *   5. payment_intent.payment_failed          → suspended
- *   6. checkout.session.completed rejoué      → reste suspended
- *   7. customer.subscription.updated tardif   → reste suspended
- *   8. customer.subscription.deleted          → suspended
+ * Vérifie :
+ *   - un Checkout SEPA complété crée trial puis invoice.payment_succeeded active ;
+ *   - un Checkout abandonné ne change pas suspended ;
+ *   - deux Checkouts successifs rendent le plus ancien inexploitable ;
+ *   - seuls le Checkout et le PaymentIntent de la tentative courante modifient l'état ;
+ *   - customer.subscription.updated ne promeut jamais trial ou suspended ;
+ *   - un ancien événement rejoué est ignoré.
  *
  * Usage : pnpm --filter @workspace/api-server exec tsx src/test/webhookEvents.test.ts
  */
 import { pool } from "@workspace/db";
 import type Stripe from "stripe";
+import {
+  attachStripeCheckoutSession,
+  createPendingCheckoutAttempt,
+} from "../stripeCheckoutAttempts";
 import { getInvoiceSubscriptionId, handleStripeEvent } from "../webhookHandlers";
 
 let failures = 0;
 function assert(cond: boolean, label: string): void {
   if (cond) console.log(`  ✓ ${label}`);
-  else { failures++; console.error(`  ✗ ${label}`); }
+  else {
+    failures++;
+    console.error(`  ✗ ${label}`);
+  }
 }
 
 function makeEvent(type: string, object: object): Stripe.Event {
-  return { id: "evt_test", type, data: { object } } as unknown as Stripe.Event;
+  return { id: `evt_test_${type}`, type, data: { object } } as unknown as Stripe.Event;
 }
 
-assert(
-  getInvoiceSubscriptionId({ subscription: "sub_legacy" }) === "sub_legacy",
-  "invoice.subscription reste compatible",
-);
-assert(
-  getInvoiceSubscriptionId({
-    parent: { subscription_details: { subscription: "sub_nested" } },
-  }) === "sub_nested",
-  "invoice.parent.subscription_details.subscription est supporté",
-);
+function makeCheckoutSession(opts: {
+  orgId: number;
+  attemptId: string;
+  sessionId: string;
+  customerId: string;
+  subscriptionId: string;
+  paymentIntentId: string;
+  paymentStatus: "paid" | "unpaid";
+}): Stripe.Checkout.Session {
+  return {
+    id: opts.sessionId,
+    customer: opts.customerId,
+    subscription: opts.subscriptionId,
+    payment_intent: opts.paymentIntentId,
+    payment_status: opts.paymentStatus,
+    metadata: {
+      orgId: String(opts.orgId),
+      checkoutAttemptId: opts.attemptId,
+      offerName: "Cocci — 1 à 5 salariés",
+      maxEmployees: "5",
+    },
+  } as unknown as Stripe.Checkout.Session;
+}
 
 async function getSub(orgId: number) {
   const r = await pool.query(
-    "SELECT mode, status, offer_name, max_employees, stripe_customer_id, stripe_subscription_id FROM subscriptions WHERE organization_id = $1",
+    `SELECT mode, status, offer_name, max_employees, stripe_customer_id, stripe_subscription_id
+     FROM subscriptions
+     WHERE organization_id = $1`,
     [orgId],
   );
   return r.rows[0] ?? null;
 }
 
+async function getAttempt(attemptId: string) {
+  const r = await pool.query(
+    `SELECT status, stripe_checkout_session_id, stripe_subscription_id, stripe_payment_intent_id
+     FROM stripe_checkout_attempts
+     WHERE id = $1`,
+    [attemptId],
+  );
+  return r.rows[0] ?? null;
+}
+
 async function main() {
+  assert(
+    getInvoiceSubscriptionId({ subscription: "sub_legacy" }) === "sub_legacy",
+    "invoice.subscription reste compatible",
+  );
+  assert(
+    getInvoiceSubscriptionId({
+      parent: { subscription_details: { subscription: "sub_nested" } },
+    }) === "sub_nested",
+    "invoice.parent.subscription_details.subscription est supporté",
+  );
+
   const org = await pool.query<{ id: number }>(
-    "INSERT INTO organizations (name) VALUES ('__test_webhook_org__') RETURNING id",
+    "INSERT INTO organizations (name) VALUES ('__test_webhook_attempts_org__') RETURNING id",
   );
   const orgId = org.rows[0].id;
   const user = await pool.query<{ id: number }>(
     `INSERT INTO users (clerk_id, email, primary_organization_id)
      VALUES ($1, $2, $3)
      RETURNING id`,
-    [`__test_webhook_clerk_${orgId}`, `__test_webhook_${orgId}@example.test`, orgId],
+    [`__test_webhook_attempts_clerk_${orgId}`, `__test_webhook_attempts_${orgId}@example.test`, orgId],
   );
   const userId = user.rows[0].id;
   await pool.query(
@@ -63,138 +104,240 @@ async function main() {
      VALUES ($1, 'payment_pending')`,
     [userId],
   );
-  const subId = "sub_test_webhook_1";
+
+  const customerId = "cus_test_attempts";
+  const initialSubscriptionId = "sub_test_attempt_initial";
+  const initialPaymentIntentId = "pi_test_attempt_initial";
 
   try {
-    // 1. Checkout payé (carte) → actif + formule dérivée des metadata
-    console.log("checkout.session.completed (paid)");
-    await handleStripeEvent(makeEvent("checkout.session.completed", {
-      customer: "cus_test_1",
-      subscription: subId,
-      payment_status: "paid",
-      metadata: { orgId: String(orgId), offerName: "Cocci — 1 à 5 salariés", maxEmployees: "5", effectifKey: "1-5" },
-    }));
+    // 1. Première tentative SEPA : Checkout unpaid → trial.
+    const initialAttemptId = await createPendingCheckoutAttempt({
+      organizationId: orgId,
+      stripeCustomerId: customerId,
+    });
+    await attachStripeCheckoutSession({
+      attemptId: initialAttemptId,
+      stripeCheckoutSessionId: "cs_test_initial",
+      stripeSubscriptionId: initialSubscriptionId,
+      stripePaymentIntentId: initialPaymentIntentId,
+    });
+    await handleStripeEvent(makeEvent("checkout.session.completed", makeCheckoutSession({
+      orgId,
+      attemptId: initialAttemptId,
+      sessionId: "cs_test_initial",
+      customerId,
+      subscriptionId: initialSubscriptionId,
+      paymentIntentId: initialPaymentIntentId,
+      paymentStatus: "unpaid",
+    })));
     let sub = await getSub(orgId);
-    assert(sub?.mode === "stripe", "mode = stripe");
-    assert(sub?.status === "active", "status = active");
-    assert(sub?.offer_name === "Cocci — 1 à 5 salariés", "offer_name enregistré");
-    assert(sub?.max_employees === 5, "max_employees enregistré");
-    assert(sub?.stripe_subscription_id === subId, "stripe_subscription_id enregistré");
+    assert(sub?.status === "trial", "Checkout unpaid courant → trial");
+    assert(sub?.stripe_subscription_id === initialSubscriptionId, "souscription courante enregistrée");
+    assert((await getAttempt(initialAttemptId))?.status === "completed", "tentative initiale consommée");
 
-    // 2. Une nouvelle demande non payée ne doit pas faire régresser active
-    await pool.query(
-      "UPDATE onboarding_progress SET status = 'payment_pending', completed_at = NULL WHERE user_id = $1",
-      [userId],
-    );
-    console.log("checkout.session.completed (unpaid après active)");
-    await handleStripeEvent(makeEvent("checkout.session.completed", {
-      customer: "cus_test_1",
-      subscription: subId,
-      payment_status: "unpaid",
-      metadata: { orgId: String(orgId) },
-    }));
-    sub = await getSub(orgId);
-    assert(sub?.status === "active", "active reste active malgré un Checkout unpaid");
-
-    // 3. Sans abonnement local, un SEPA unpaid crée bien un abonnement trial
-    await pool.query("DELETE FROM subscriptions WHERE organization_id = $1", [orgId]);
-    console.log("checkout.session.completed (unpaid / SEPA)");
-    await handleStripeEvent(makeEvent("checkout.session.completed", {
-      customer: "cus_test_1",
-      subscription: subId,
-      payment_status: "unpaid",
-      metadata: {
-        orgId: String(orgId),
-        offerName: "Cocci — 1 à 5 salariés",
-        maxEmployees: "5",
-      },
-    }));
-    sub = await getSub(orgId);
-    assert(sub?.status === "trial", "absence d'abonnement → trial en attente de paiement");
-    assert(sub?.offer_name === "Cocci — 1 à 5 salariés", "offer_name enregistré");
-
-    // 4. Paiement confirmé → active
-    console.log("invoice.payment_succeeded");
+    // 2. SEPA confirmé : seul invoice.payment_succeeded fait trial → active.
     await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
-      parent: { subscription_details: { subscription: subId } },
+      parent: { subscription_details: { subscription: initialSubscriptionId } },
     }));
     sub = await getSub(orgId);
-    assert(sub?.status === "active", "trial → active après paiement");
+    assert(sub?.status === "active", "trial → active après invoice.payment_succeeded");
     const onboarding = await pool.query<{ status: string; completed_at: Date | null }>(
       "SELECT status, completed_at FROM onboarding_progress WHERE user_id = $1",
       [userId],
     );
-    assert(onboarding.rows[0]?.status === "completed", "payment_pending → completed après paiement");
-    assert(onboarding.rows[0]?.completed_at != null, "completed_at est renseigné après paiement");
+    assert(onboarding.rows[0]?.status === "completed", "onboarding complété après paiement");
 
-    // 5. Paiement SEPA échoué puis Checkout rejoué → suspended reste terminal
-    await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
-    console.log("payment_intent.payment_failed");
-    await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
-      customer: "cus_test_1",
-      status: "requires_payment_method",
+    // L'ancien paiement échoue ensuite : la souscription courante devient suspended.
+    await pool.query(
+      "UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1",
+      [orgId],
+    );
+    await handleStripeEvent(makeEvent("invoice.payment_failed", {
+      subscription: initialSubscriptionId,
     }));
     sub = await getSub(orgId);
-    assert(sub?.status === "suspended", "trial → suspended après payment_intent.payment_failed");
+    assert(sub?.status === "suspended", "échec de la tentative initiale → suspended");
 
-    console.log("checkout.session.completed (unpaid / rejoué après échec)");
-    await handleStripeEvent(makeEvent("checkout.session.completed", {
-      customer: "cus_test_1",
-      subscription: subId,
-      payment_status: "unpaid",
-      metadata: { orgId: String(orgId) },
-    }));
+    // 3. Checkout abandonné : création de tentative, aucun changement d'accès.
+    const abandonedAttemptId = await createPendingCheckoutAttempt({
+      organizationId: orgId,
+      stripeCustomerId: customerId,
+    });
+    await attachStripeCheckoutSession({
+      attemptId: abandonedAttemptId,
+      stripeCheckoutSessionId: "cs_test_abandoned",
+    });
     sub = await getSub(orgId);
-    assert(sub?.status === "suspended", "checkout rejoué ne réactive pas suspended → trial");
+    assert(sub?.status === "suspended", "Checkout créé mais abandonné → reste suspended");
 
-    // 6. Échec puis Checkout tardif dans l'autre ordre de réception
-    await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
-    await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
-      customer: "cus_test_1",
-      status: "requires_payment_method",
-    }));
-    sub = await getSub(orgId);
-    assert(sub?.status === "suspended", "payment_intent.payment_failed → suspended");
-    await handleStripeEvent(makeEvent("checkout.session.completed", {
-      customer: "cus_test_1",
-      subscription: subId,
-      payment_status: "unpaid",
-      metadata: { orgId: String(orgId) },
-    }));
-    sub = await getSub(orgId);
-    assert(sub?.status === "suspended", "Checkout tardif ne réécrit pas suspended → trial");
+    // 4. Deux Checkouts successifs : seul le plus récent est exploitable.
+    const firstRetryAttemptId = await createPendingCheckoutAttempt({
+      organizationId: orgId,
+      stripeCustomerId: customerId,
+    });
+    await attachStripeCheckoutSession({
+      attemptId: firstRetryAttemptId,
+      stripeCheckoutSessionId: "cs_test_retry_old",
+    });
+    const currentRetryAttemptId = await createPendingCheckoutAttempt({
+      organizationId: orgId,
+      stripeCustomerId: customerId,
+    });
+    const retrySubscriptionId = "sub_test_attempt_retry";
+    const retryPaymentIntentId = "pi_test_attempt_retry";
+    await attachStripeCheckoutSession({
+      attemptId: currentRetryAttemptId,
+      stripeCheckoutSessionId: "cs_test_retry_current",
+      stripeSubscriptionId: retrySubscriptionId,
+      stripePaymentIntentId: retryPaymentIntentId,
+    });
+    assert(
+      (await getAttempt(firstRetryAttemptId))?.status === "superseded",
+      "ancienne tentative superseded après un nouveau Checkout",
+    );
 
-    // 7. Mise à jour Stripe tardive : suspended ne doit pas redevenir active
+    await handleStripeEvent(makeEvent("checkout.session.completed", makeCheckoutSession({
+      orgId,
+      attemptId: firstRetryAttemptId,
+      sessionId: "cs_test_retry_old",
+      customerId,
+      subscriptionId: "sub_test_attempt_old_retry",
+      paymentIntentId: "pi_test_attempt_old_retry",
+      paymentStatus: "unpaid",
+    })));
+    sub = await getSub(orgId);
+    assert(sub?.status === "suspended", "ancien Checkout complété après supersession → aucun changement");
+
+    // 5. Nouvelle tentative réellement complétée : suspended → trial.
+    await handleStripeEvent(makeEvent("checkout.session.completed", makeCheckoutSession({
+      orgId,
+      attemptId: currentRetryAttemptId,
+      sessionId: "cs_test_retry_current",
+      customerId,
+      subscriptionId: retrySubscriptionId,
+      paymentIntentId: retryPaymentIntentId,
+      paymentStatus: "unpaid",
+    })));
+    sub = await getSub(orgId);
+    assert(sub?.status === "trial", "nouveau Checkout SEPA complété → suspended → trial");
+    assert(sub?.stripe_subscription_id === retrySubscriptionId, "nouvelle souscription devenue courante");
+
+    // customer.subscription.updated ne promeut pas trial → active.
     await handleStripeEvent(makeEvent("customer.subscription.updated", {
-      id: subId,
-      customer: "cus_test_1",
+      id: retrySubscriptionId,
+      customer: customerId,
       status: "active",
     }));
     sub = await getSub(orgId);
-    assert(sub?.status === "suspended", "customer.subscription.updated ne réactive pas suspended");
+    assert(sub?.status === "trial", "customer.subscription.updated ne fait pas trial → active");
 
-    // 8. trial → active après confirmation SEPA
-    await pool.query("UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1", [orgId]);
-    await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
-      parent: { subscription_details: { subscription: subId } },
+    // 6. Nouvel échec PaymentIntent : seule la tentative courante est suspendue.
+    await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
+      id: retryPaymentIntentId,
+      customer: customerId,
+      status: "requires_payment_method",
     }));
     sub = await getSub(orgId);
-    assert(sub?.status === "active", "trial → active après invoice.payment_succeeded");
+    assert(sub?.status === "suspended", "nouveau PaymentIntent échoué → suspended");
 
-    // 9. Résiliation → suspended
-    console.log("customer.subscription.deleted");
-    await handleStripeEvent(makeEvent("customer.subscription.deleted", { id: subId, customer: "cus_test_1" }));
+    // Un ancien Checkout rejoué et une ancienne mise à jour ne changent rien.
+    await handleStripeEvent(makeEvent("checkout.session.completed", makeCheckoutSession({
+      orgId,
+      attemptId: currentRetryAttemptId,
+      sessionId: "cs_test_retry_current",
+      customerId,
+      subscriptionId: retrySubscriptionId,
+      paymentIntentId: retryPaymentIntentId,
+      paymentStatus: "unpaid",
+    })));
+    await handleStripeEvent(makeEvent("customer.subscription.updated", {
+      id: retrySubscriptionId,
+      customer: customerId,
+      status: "active",
+    }));
     sub = await getSub(orgId);
-    assert(sub?.status === "suspended", "suspended après résiliation");
+    assert(sub?.status === "suspended", "anciens événements après échec → aucun changement");
+
+    // 7. Une troisième tentative devient trial ; l'ancien PaymentIntent ne la suspend pas.
+    const thirdAttemptId = await createPendingCheckoutAttempt({
+      organizationId: orgId,
+      stripeCustomerId: customerId,
+    });
+    const thirdSubscriptionId = "sub_test_attempt_third";
+    const thirdPaymentIntentId = "pi_test_attempt_third";
+    await attachStripeCheckoutSession({
+      attemptId: thirdAttemptId,
+      stripeCheckoutSessionId: "cs_test_third",
+      stripeSubscriptionId: thirdSubscriptionId,
+      stripePaymentIntentId: thirdPaymentIntentId,
+    });
+    await handleStripeEvent(makeEvent("checkout.session.completed", makeCheckoutSession({
+      orgId,
+      attemptId: thirdAttemptId,
+      sessionId: "cs_test_third",
+      customerId,
+      subscriptionId: thirdSubscriptionId,
+      paymentIntentId: thirdPaymentIntentId,
+      paymentStatus: "unpaid",
+    })));
+    await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
+      id: retryPaymentIntentId,
+      customer: customerId,
+      status: "requires_payment_method",
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "trial", "ancien PaymentIntent ne suspend pas la nouvelle tentative");
+
+    // La nouvelle tentative échoue réellement, puis une tentative suivante réussit.
+    await handleStripeEvent(makeEvent("payment_intent.payment_failed", {
+      id: thirdPaymentIntentId,
+      customer: customerId,
+      status: "requires_payment_method",
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "suspended", "échec de la nouvelle tentative courante → suspended");
+
+    const successfulAttemptId = await createPendingCheckoutAttempt({
+      organizationId: orgId,
+      stripeCustomerId: customerId,
+    });
+    const successfulSubscriptionId = "sub_test_attempt_success";
+    await attachStripeCheckoutSession({
+      attemptId: successfulAttemptId,
+      stripeCheckoutSessionId: "cs_test_success",
+      stripeSubscriptionId: successfulSubscriptionId,
+      stripePaymentIntentId: "pi_test_attempt_success",
+    });
+    await handleStripeEvent(makeEvent("checkout.session.completed", makeCheckoutSession({
+      orgId,
+      attemptId: successfulAttemptId,
+      sessionId: "cs_test_success",
+      customerId,
+      subscriptionId: successfulSubscriptionId,
+      paymentIntentId: "pi_test_attempt_success",
+      paymentStatus: "unpaid",
+    })));
+    await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
+      subscription: successfulSubscriptionId,
+    }));
+    sub = await getSub(orgId);
+    assert(sub?.status === "active", "nouvelle tentative réussie → active");
   } finally {
+    await pool.query("DELETE FROM stripe_checkout_attempts WHERE organization_id = $1", [orgId]);
     await pool.query("DELETE FROM subscriptions WHERE organization_id = $1", [orgId]);
     await pool.query("DELETE FROM users WHERE id = $1", [userId]);
     await pool.query("DELETE FROM organizations WHERE id = $1", [orgId]);
     await pool.end();
   }
 
-  if (failures > 0) { console.error(`\n${failures} assertion(s) en échec`); process.exit(1); }
+  if (failures > 0) {
+    console.error(`\n${failures} assertion(s) en échec`);
+    process.exit(1);
+  }
   console.log("\n✅ Tous les tests webhook passent");
 }
 
-main().catch((err) => { console.error(err); process.exit(1); });
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

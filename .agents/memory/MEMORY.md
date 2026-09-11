@@ -15,3 +15,4 @@
 - [Inspection des routeurs Express 5](express-router-layer-inspection.md) — les routes montées sont dans handle.stack ; les layers parents n’exposent pas directement path ou regexp.
 - [Médias privés dans le DOCX RSE](rse-docx-media.md) — le fichier généré doit intégrer les octets des images protégées, pas seulement conserver leurs URLs.
 - [Redirection après réinitialisation du mot de passe](password-reset-dashboard.md) — une connexion SignIn réussie va au tableau de bord; l’onboarding reste réservé aux comptes sans organisation.
+- [Autorité des tentatives Checkout](stripe-checkout-attempt-currentness.md) — un webhook Stripe ne peut modifier l’accès que s’il correspond à la tentative pending/courante et à ses identifiants liés.

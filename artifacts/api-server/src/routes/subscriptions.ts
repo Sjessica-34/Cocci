@@ -7,6 +7,12 @@ import { configuredEffectifOffers, resolveCheckoutOffer } from "../stripeCatalog
 import { logger } from "../lib/logger";
 import { getPublicAppUrl } from "../appUrl";
 import { getBillingOrganizationId } from "../lib/billingOrganization";
+import {
+  attachStripeCheckoutSession,
+  cancelCheckoutAttempt,
+  createPendingCheckoutAttempt,
+  getStripeObjectId,
+} from "../stripeCheckoutAttempts";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -185,42 +191,73 @@ router.post(
         customerId = customer.id;
       }
 
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        // Activer SEPA Direct Debit (prélèvement IBAN) + carte bancaire
-        payment_method_types: ["card", "sepa_debit"],
-        line_items: [{ price: offer.priceId, quantity: 1 }],
-        mode: "subscription",
-        // Pour SEPA, Stripe demande un mandat de prélèvement — on l'accepte automatiquement
-        payment_method_options: {
-          sepa_debit: { mandate_options: {} },
-        },
-        // Stripe revient sur une confirmation dédiée, jamais sur le catalogue.
-        // Seule une clé métier issue du catalogue serveur est exposée à l'URL.
-        success_url: `${baseUrl}/abonnement/confirmation?offer=${encodeURIComponent(
-          offer.effectifKey ?? offer.action ?? "subscription",
-        )}`,
-        cancel_url: `${baseUrl}/abonnement?cancelled=1`,
-        metadata: {
-          orgId: String(billingOrgId),
-          offerName: offer.offerName,
-          ...(offer.effectifKey ? { effectifKey: offer.effectifKey } : {}),
-          ...(offer.action ? { action: offer.action } : {}),
-          ...(offer.maxEmployees != null ? { maxEmployees: String(offer.maxEmployees) } : {}),
-        },
-        locale: "fr",
-      });
+       const checkoutAttemptId = await createPendingCheckoutAttempt({
+         organizationId: billingOrgId,
+         stripeCustomerId: customerId,
+       });
 
-      if (req.userId) {
-        await db
-          .update(onboardingProgressTable)
-          .set({ status: "payment_pending", updatedAt: new Date() })
-          .where(eq(onboardingProgressTable.userId, req.userId));
-      }
+       try {
+         const session = await stripe.checkout.sessions.create({
+           customer: customerId,
+           // Activer SEPA Direct Debit (prélèvement IBAN) + carte bancaire
+           payment_method_types: ["card", "sepa_debit"],
+           line_items: [{ price: offer.priceId, quantity: 1 }],
+           mode: "subscription",
+           // Pour SEPA, Stripe demande un mandat de prélèvement — on l'accepte automatiquement
+           payment_method_options: {
+             sepa_debit: { mandate_options: {} },
+           },
+           subscription_data: {
+             metadata: {
+               checkoutAttemptId,
+               orgId: String(billingOrgId),
+             },
+           },
+           // Stripe revient sur une confirmation dédiée, jamais sur le catalogue.
+           // Seule une clé métier issue du catalogue serveur est exposée à l'URL.
+           success_url: `${baseUrl}/abonnement/confirmation?offer=${encodeURIComponent(
+             offer.effectifKey ?? offer.action ?? "subscription",
+           )}`,
+           cancel_url: `${baseUrl}/abonnement?cancelled=1`,
+           metadata: {
+             orgId: String(billingOrgId),
+             checkoutAttemptId,
+             offerName: offer.offerName,
+             ...(offer.effectifKey ? { effectifKey: offer.effectifKey } : {}),
+             ...(offer.action ? { action: offer.action } : {}),
+             ...(offer.maxEmployees != null ? { maxEmployees: String(offer.maxEmployees) } : {}),
+           },
+           locale: "fr",
+         });
 
-      res.json({ url: session.url });
+         await attachStripeCheckoutSession({
+           attemptId: checkoutAttemptId,
+           stripeCheckoutSessionId: session.id,
+           stripeSubscriptionId: getStripeObjectId(session.subscription),
+           stripePaymentIntentId: getStripeObjectId(session.payment_intent),
+         });
+
+         if (req.userId) {
+           await db
+             .update(onboardingProgressTable)
+             .set({ status: "payment_pending", updatedAt: new Date() })
+             .where(eq(onboardingProgressTable.userId, req.userId));
+         }
+
+         res.json({ url: session.url });
+       } catch (err) {
+         await cancelCheckoutAttempt(checkoutAttemptId);
+         throw err;
+       }
     } catch (err) {
       logger.error({ err }, "stripe checkout error");
+       if (typeof err === "object" && err !== null && "code" in err && err.code === "23505") {
+         res.status(409).json({
+           error: "A Stripe checkout is already being created for this organisation",
+           code: "CHECKOUT_ATTEMPT_IN_PROGRESS",
+         });
+         return;
+       }
       res.status(500).json({ error: "Checkout session creation failed" });
     }
   },
