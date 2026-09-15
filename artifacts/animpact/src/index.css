@@ -198,26 +198,12 @@
 
 @layer components {
   .cocci-sidebar-scrollbar {
-    scrollbar-color: transparent transparent;
+    scrollbar-color: #959595 transparent;
     scrollbar-width: thin;
   }
 
   .cocci-sidebar-scrollbar::-webkit-scrollbar {
     width: 2px;
-  }
-
-  .cocci-sidebar-scrollbar:hover {
-    scrollbar-color: #959595 transparent;
-  }
-
-  .cocci-sidebar-scrollbar.is-scrollbar-hovered {
-    scrollbar-color: #959595 #171717;
-    scrollbar-width: auto;
-  }
-
-  .cocci-sidebar-scrollbar.is-scrollbar-hovered::-webkit-scrollbar {
-    width: 15px;
-    background: #171717;
   }
 
   .cocci-sidebar-scrollbar::-webkit-scrollbar-track,
@@ -226,21 +212,7 @@
   }
 
   .cocci-sidebar-scrollbar::-webkit-scrollbar-thumb {
-    background: transparent;
-    border-radius: 9999px;
-  }
-
-  .cocci-sidebar-scrollbar:hover::-webkit-scrollbar-thumb {
     background: #959595;
-  }
-
-  .cocci-sidebar-scrollbar.is-scrollbar-hovered::-webkit-scrollbar-track {
-    background: #171717;
-  }
-
-  .cocci-sidebar-scrollbar.is-scrollbar-hovered::-webkit-scrollbar-thumb {
-    background: #959595;
-    border: 4px solid #171717;
     border-radius: 9999px;
   }
 
@@ -248,12 +220,5 @@
     display: none;
     height: 0;
     width: 0;
-  }
-
-  .cocci-sidebar-scrollbar.is-scrollbar-hovered::-webkit-scrollbar-button {
-    display: block;
-    background: #171717;
-    height: 16px;
-    width: 15px;
   }
 }

@@ -1,4 +1,4 @@
-import { MouseEvent, ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { useListExercises, useListOrganizations, useGetMe } from "@workspace/api-client-react";
@@ -161,19 +161,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
     return location === item.href || location.startsWith(`${item.href}/`);
   }
 
-  const [isSidebarScrollbarHovered, setIsSidebarScrollbarHovered] = useState(false);
-
-  function handleSidebarPointerMove(event: MouseEvent<HTMLDivElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const pointerIsNearScrollbar = event.clientX >= bounds.right - 4;
-    const pointerRemainsOnExpandedScrollbar =
-      isSidebarScrollbarHovered && event.clientX >= bounds.right - 16;
-
-    setIsSidebarScrollbarHovered(
-      pointerIsNearScrollbar || pointerRemainsOnExpandedScrollbar,
-    );
-  }
-
   const sidebarContent = (
     <>
       {/* Brand */}
@@ -181,14 +168,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <img src={`${import.meta.env.BASE_URL}logo-white.png`} alt="Cocci" className="h-7 w-auto" />
       </div>
 
-      <div
-        className={cn(
-          "cocci-sidebar-scrollbar flex-1 py-3 px-3 flex flex-col overflow-y-auto",
-          isSidebarScrollbarHovered && "is-scrollbar-hovered",
-        )}
-        onMouseMove={handleSidebarPointerMove}
-        onMouseLeave={() => setIsSidebarScrollbarHovered(false)}
-      >
+      <div className="cocci-sidebar-scrollbar flex-1 py-3 px-3 flex flex-col overflow-y-auto">
         {/* Entreprise / Groupe + sélecteur de filiale */}
         {!isAdminRoute && (
           <div className="mb-1">
