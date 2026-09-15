@@ -57,6 +57,7 @@ import { SubscriptionConfirmation } from "@/pages/abonnement/confirmation";
 import { CapitalHumain } from "@/pages/employment";
 import { MesActions } from "@/pages/mes-actions";
 import { GuideRSE } from "@/pages/guide-rse";
+import { ConstruireDemarche } from "@/pages/construire-demarche";
 import { Onboarding } from "@/pages/onboarding/index";
 import { OnboardingFiliales } from "@/pages/onboarding/filiales";
 import { OnboardingEffectif } from "@/pages/onboarding/effectif";
@@ -600,6 +601,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/barometre-social"><WorkspaceGuard component={BarometreSocial} /></Route>
             <Route path="/capital-humain"><WorkspaceGuard component={CapitalHumain} /></Route>
             <Route path="/guide-rse"><WorkspaceGuard component={GuideRSE} /></Route>
+            <Route path="/construire-demarche"><WorkspaceGuard component={ConstruireDemarche} /></Route>
             <Route path="/mes-actions"><WorkspaceGuard component={MesActions} /></Route>
             <Route path="/resources"><WorkspaceGuard component={Resources} /></Route>
             <Route path="/settings"><ProtectedRoute component={UserSettings} /></Route>

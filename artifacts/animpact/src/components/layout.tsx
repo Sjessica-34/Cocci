@@ -58,7 +58,10 @@ type NavItem = {
 type MenuSection = {
   title: string;
   groups: NavItem[][];
-  placeholder?: string;
+  placeholder?: {
+    href: string;
+    label: string;
+  };
 };
 
 const menuSections: MenuSection[] = [
@@ -69,7 +72,10 @@ const menuSections: MenuSection[] = [
         { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
       ],
     ],
-    placeholder: "Construire ma démarche RSE",
+    placeholder: {
+      href: "/construire-demarche",
+      label: "Construire ma démarche RSE",
+    },
   },
   {
     title: "🎯 Comprendre mes enjeux",
@@ -270,13 +276,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 ))}
               </div>
               {section.placeholder && (
-                <div
-                  aria-disabled="true"
-                  className="flex h-9 items-center px-3 text-[13px] text-sidebar-foreground/40"
-                >
-                  <span className="mr-3 h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{section.placeholder}</span>
-                </div>
+                <Link href={section.placeholder.href}>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start h-9 px-3 mb-0.5 text-[13px]",
+                      isActive({ ...section.placeholder, icon: BookOpen })
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <span className="mr-3 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{section.placeholder.label}</span>
+                  </Button>
+                </Link>
               )}
             </div>
           ))}
