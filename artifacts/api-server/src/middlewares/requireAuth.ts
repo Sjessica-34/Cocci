@@ -8,6 +8,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  if (req.originalUrl.split("?")[0] === "/api/users/me") {
+    console.log("[auth-trace] middleware received auth().userId", {
+      requestId: (req as any).id ?? null,
+      route: req.originalUrl,
+      authUserId: userId,
+    });
+  }
   (req as any).clerkUserId = userId;
   next();
 }

@@ -44,7 +44,48 @@ const onboardingStatusOrder = [
 
 router.get("/users/me", requireAuth, async (req, res): Promise<void> => {
   res.setHeader("Cache-Control", "no-store");
-  const user = await getOrCreateUser(req.clerkUserId!);
+  const clerkUserId = req.clerkUserId!;
+  const traceContext = {
+    requestId: (req as any).id ?? null,
+    route: "/api/users/me",
+  };
+  const user = await getOrCreateUser(clerkUserId, traceContext);
+
+  let clerkLookupResult: Record<string, unknown>;
+  try {
+    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+    clerkLookupResult = {
+      status: "success",
+      requestedUserId: clerkUserId,
+      returnedUserId: clerkUser.id,
+      returnedEmail: clerkUser.primaryEmailAddress?.emailAddress ?? null,
+    };
+  } catch (error) {
+    clerkLookupResult = {
+      status: "error",
+      requestedUserId: clerkUserId,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStatus: error && typeof error === "object"
+        ? (error as any).status ?? (error as any).statusCode ?? null
+        : null,
+      errorDetails: error instanceof Error
+        ? Object.fromEntries(
+            Object.getOwnPropertyNames(error).map((key) => [key, (error as any)[key]]),
+          )
+        : error,
+    };
+  }
+
+  console.log("[auth-trace] same request auth-to-clerk comparison", {
+    ...traceContext,
+    middlewareAuthUserId: clerkUserId,
+    getOrCreateUser: {
+      localUserId: user.id,
+      storedClerkId: user.clerkId,
+    },
+    clerkClientGetUser: clerkLookupResult,
+  });
+
   res.json(GetMeResponse.parse(user));
 });
 
