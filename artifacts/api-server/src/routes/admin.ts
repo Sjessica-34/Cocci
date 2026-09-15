@@ -909,30 +909,8 @@ router.delete("/admin/members/:memberId", async (req, res): Promise<void> => {
 router.get("/admin/users", async (req, res) => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
   const enrichedUsers = await Promise.all(users.map(async (user) => {
-    const isTracedBetaUser = user.id === 5;
-    const clerkLookupId = user.clerkId;
-
-    if (isTracedBetaUser) {
-      console.log("[admin/users][trace] Clerk lookup starting", {
-        usersId: user.id,
-        usersClerkId: user.clerkId,
-        clerkLookupId,
-      });
-    }
-
     try {
-      const clerkUser = await clerkClient.users.getUser(clerkLookupId);
-
-      if (isTracedBetaUser) {
-        console.log("[admin/users][trace] Clerk lookup succeeded", {
-          usersId: user.id,
-          usersClerkId: user.clerkId,
-          clerkLookupId,
-          clerkResult: JSON.stringify(clerkUser, null, 2),
-          returnedEmail: clerkUser.primaryEmailAddress?.emailAddress ?? null,
-        });
-      }
-
+      const clerkUser = await clerkClient.users.getUser(user.clerkId);
       const email = clerkUser.primaryEmailAddress?.emailAddress ?? user.email;
       const firstName = clerkUser.firstName ?? user.firstName;
       const lastName = clerkUser.lastName ?? user.lastName;
@@ -945,27 +923,7 @@ router.get("/admin/users", async (req, res) => {
         lastName,
         avatarUrl,
       };
-    } catch (error) {
-      if (isTracedBetaUser) {
-        const errorProperties = error instanceof Error
-          ? Object.fromEntries(
-              Object.getOwnPropertyNames(error).map((key) => [key, (error as any)[key]]),
-            )
-          : error;
-        const errorStatus = error && typeof error === "object"
-          ? (error as any).status ?? (error as any).statusCode ?? null
-          : null;
-
-        console.error("[admin/users][trace] Clerk lookup failed", {
-          usersId: user.id,
-          usersClerkId: user.clerkId,
-          clerkLookupId,
-          is404: errorStatus === 404,
-          errorMessage: error instanceof Error ? error.message : String(error),
-          errorDetails: JSON.stringify(errorProperties, null, 2),
-        });
-      }
-
+    } catch {
       // Un compte Clerk supprimé ou temporairement indisponible ne doit pas
       // empêcher l'affichage des autres utilisateurs locaux.
       return user;
