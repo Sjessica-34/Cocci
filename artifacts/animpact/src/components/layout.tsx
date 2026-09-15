@@ -47,6 +47,7 @@ import { ExerciseSelector } from "@/components/ExerciseSelector";
 import { GroupSwitcher } from "@/components/GroupSwitcher";
 import { ClosedExerciseBanner } from "@/components/ClosedExerciseBanner";
 import { cn } from "@/lib/utils";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 type NavItem = {
   href: string;
@@ -273,12 +274,68 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </>
   );
 
+  const mainContent = (
+    <>
+      {/* Admin-view banner */}
+      {adminViewOrgId && rootOrg && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 shrink-0">
+          <span>
+            👁 Vue admin — vous consultez l'espace de <strong>{rootOrg.name}</strong>
+          </span>
+          <Link href="/admin">
+            <button
+              onClick={() => setAdminViewOrg(null)}
+              className="ml-4 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+            >
+              Retourner à l'administration
+            </button>
+          </Link>
+        </div>
+      )}
+      <div
+        className="flex-1 p-4 md:p-8 w-full max-w-6xl mx-auto"
+        inert={isExerciseClosed || undefined}
+      >
+        {showExerciseUi && <ClosedExerciseBanner />}
+        {children}
+        <div className="mt-12 pt-6 border-t border-border/50 text-center">
+          <p className="text-xs text-muted-foreground">Besoin d'un accompagnement ?</p>
+          <a
+            href="mailto:bonjour@a-nim-pact.fr"
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            bonjour@a-nim-pact.fr
+          </a>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row w-full">
-      {/* Sidebar — desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen sticky top-0 shrink-0">
-        {sidebarContent}
-      </aside>
+      {/* Desktop layout */}
+      <div className="hidden md:flex flex-1 min-w-0">
+        <PanelGroup
+          direction="horizontal"
+          autoSaveId="cocci-main-sidebar"
+          className="flex-1 min-w-0"
+        >
+          <Panel defaultSize={20} minSize={18} maxSize={30} className="min-w-0">
+            <aside className="flex flex-col w-full bg-sidebar border-r border-sidebar-border h-screen sticky top-0">
+              {sidebarContent}
+            </aside>
+          </Panel>
+          <PanelResizeHandle
+            className="w-1 shrink-0 bg-transparent transition-colors hover:bg-sidebar-border/70 cursor-col-resize"
+            aria-label="Redimensionner la sidebar"
+          />
+          <Panel minSize={68} className="min-w-0">
+            <main className="flex-1 flex flex-col min-w-0 max-w-full">
+              {mainContent}
+            </main>
+          </Panel>
+        </PanelGroup>
+      </div>
 
       {/* Mobile header */}
       <header className="md:hidden h-14 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-50 shrink-0">
@@ -317,40 +374,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </DropdownMenu>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col min-w-0 max-w-full">
-        {/* Admin-view banner */}
-        {adminViewOrgId && rootOrg && (
-          <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 shrink-0">
-            <span>
-              👁 Vue admin — vous consultez l'espace de <strong>{rootOrg.name}</strong>
-            </span>
-            <Link href="/admin">
-              <button
-                onClick={() => setAdminViewOrg(null)}
-                className="ml-4 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
-              >
-                Retourner à l'administration
-              </button>
-            </Link>
-          </div>
-        )}
-        <div
-          className="flex-1 p-4 md:p-8 w-full max-w-6xl mx-auto"
-          inert={isExerciseClosed || undefined}
-        >
-          {showExerciseUi && <ClosedExerciseBanner />}
-          {children}
-          <div className="mt-12 pt-6 border-t border-border/50 text-center">
-            <p className="text-xs text-muted-foreground">Besoin d'un accompagnement ?</p>
-            <a
-              href="mailto:bonjour@a-nim-pact.fr"
-              className="text-xs font-medium text-primary hover:underline"
-            >
-              bonjour@a-nim-pact.fr
-            </a>
-          </div>
-        </div>
+      {/* Main content — mobile */}
+      <main className="md:hidden flex-1 flex flex-col min-w-0 max-w-full">
+        {mainContent}
       </main>
     </div>
   );
