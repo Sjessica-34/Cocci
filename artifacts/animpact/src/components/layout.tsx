@@ -55,51 +55,102 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
-const navGroups: NavItem[][] = [
-  [
-    { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  ],
-  [
-    { href: "/parties-prenantes", label: "Mes parties prenantes", icon: Users2 },
-    { href: "/enjeux", label: "Matrice de matérialité", icon: Target },
-    { href: "/biodiversite", label: "Mes dépendances à la biodiversité", icon: Sprout },
-    { href: "/achats-responsables", label: "Achats & Fournisseurs Responsables", icon: ShoppingBag },
-  ],
-  [
-    { href: "/bilan-carbone", label: "Mon bilan carbone", icon: Globe },
-    { href: "/numerique-responsable", label: "Ma démarche Numérique Responsable", icon: Monitor },
-  ],
-  [
-    { href: "/barometre-social", label: "Baromètre Social", icon: Smile },
-    { href: "/capital-humain", label: "Capital Humain", icon: GraduationCap },
-  ],
-  [
-    { href: "/mes-actions", label: "Mes actions RSE", icon: ListChecks },
-  ],
-  [
-    { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },
-    { href: "/mes-labels", label: "Mes labels", icon: Award },
-    { href: "/captation-carbone", label: "Ma captation carbone", icon: TreePine },
-  ],
-  [
-    { href: "/diagnostic", label: "Mon diagnostic RSE", icon: BarChart3 },
-    { href: "/rapport-rse", label: "Mon rapport RSE", icon: FileText },
-    { href: "/page-publique-rse", label: "Ma page publique RSE", icon: Globe },
-  ],
-  [
-    { href: "/resources", label: "Mes ressources", icon: BookOpen },
-    { href: "/mes-documents", label: "Mes documents", icon: FolderOpen },
-  ],
-  [
-    { href: "/echanges", label: "Échanges avec Cocci", icon: MessageSquare },
-  ],
-  [
-    { href: "/abonnement", label: "Mon abonnement", icon: CreditCard },
-    { href: "/settings", label: "Mes paramètres", icon: Settings },
-  ],
+type MenuSection = {
+  title: string;
+  groups: NavItem[][];
+  placeholder?: string;
+};
+
+const menuSections: MenuSection[] = [
+  {
+    title: "🚀 Bien démarrer",
+    groups: [
+      [
+        { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+      ],
+    ],
+    placeholder: "Construire ma démarche RSE",
+  },
+  {
+    title: "🎯 Comprendre mes enjeux",
+    groups: [
+      [
+        { href: "/parties-prenantes", label: "Mes parties prenantes", icon: Users2 },
+        { href: "/enjeux", label: "Matrice de matérialité", icon: Target },
+      ],
+    ],
+  },
+  {
+    title: "📊 Collecter mes données",
+    groups: [
+      [
+        { href: "/biodiversite", label: "Mes dépendances à la biodiversité", icon: Sprout },
+        { href: "/achats-responsables", label: "Achats & Fournisseurs Responsables", icon: ShoppingBag },
+      ],
+      [
+        { href: "/bilan-carbone", label: "Mon bilan carbone", icon: Globe },
+        { href: "/numerique-responsable", label: "Ma démarche Numérique Responsable", icon: Monitor },
+      ],
+      [
+        { href: "/barometre-social", label: "Baromètre Social", icon: Smile },
+        { href: "/capital-humain", label: "Capital Humain", icon: GraduationCap },
+      ],
+      [
+        { href: "/captation-carbone", label: "Ma captation carbone", icon: TreePine },
+      ],
+    ],
+  },
+  {
+    title: "📈 Évaluer ma démarche",
+    groups: [
+      [
+        { href: "/diagnostic", label: "Mon diagnostic RSE", icon: BarChart3 },
+        { href: "/impact-score", label: "Mon Impact Score", icon: Sparkles },
+        { href: "/mes-labels", label: "Mes labels", icon: Award },
+      ],
+    ],
+  },
+  {
+    title: "🎯 Passer à l'action",
+    groups: [
+      [
+        { href: "/mes-actions", label: "Mes actions RSE", icon: ListChecks },
+      ],
+    ],
+  },
+  {
+    title: "📢 Communiquer",
+    groups: [
+      [
+        { href: "/rapport-rse", label: "Mon rapport RSE", icon: FileText },
+        { href: "/page-publique-rse", label: "Ma page publique RSE", icon: Globe },
+      ],
+    ],
+  },
+  {
+    title: "📚 Ressources & échanges",
+    groups: [
+      [
+        { href: "/resources", label: "Mes ressources", icon: BookOpen },
+        { href: "/mes-documents", label: "Mes documents", icon: FolderOpen },
+      ],
+      [
+        { href: "/echanges", label: "Échanges avec Cocci", icon: MessageSquare },
+      ],
+    ],
+  },
+  {
+    title: "⚙️ Mon compte",
+    groups: [
+      [
+        { href: "/abonnement", label: "Mon abonnement", icon: CreditCard },
+        { href: "/settings", label: "Mes paramètres", icon: Settings },
+      ],
+    ],
+  },
 ];
 
-const allNavItems = navGroups.flat();
+const allNavItems = menuSections.flatMap((section) => section.groups.flat());
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -184,27 +235,49 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        {/* Nav groups */}
+        {/* Sections du menu */}
         <div className="flex flex-col">
-          {navGroups.map((group, gi) => (
-            <div key={gi}>
-              {gi > 0 && <div className="my-1.5 h-px bg-sidebar-border/35 mx-1" />}
-              {group.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start h-9 px-3 mb-0.5",
-                      isActive(item)
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4 mr-3 shrink-0" />
-                    <span className="truncate text-[13px]">{item.label}</span>
-                  </Button>
-                </Link>
-              ))}
+          {menuSections.map((section, si) => (
+            <div
+              key={section.title}
+              className={cn(
+                si > 0 && "mt-2.5 border-t border-sidebar-border/35 pt-2",
+              )}
+            >
+              <div className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-sidebar-foreground/50">
+                {section.title}
+              </div>
+              <div className={cn("flex flex-col", section.groups.length > 1 && "gap-3")}>
+                {section.groups.map((group, gi) => (
+                  <div key={`${section.title}-${gi}`} className="flex flex-col">
+                    {group.map((item) => (
+                      <Link key={item.href} href={item.href}>
+                        <Button
+                          variant="ghost"
+                          className={cn(
+                            "w-full justify-start h-9 px-3 mb-0.5",
+                            isActive(item)
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                          )}
+                        >
+                          <item.icon className="h-4 w-4 mr-3 shrink-0" />
+                          <span className="truncate text-[13px]">{item.label}</span>
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              {section.placeholder && (
+                <div
+                  aria-disabled="true"
+                  className="flex h-9 items-center px-3 text-[13px] text-sidebar-foreground/40"
+                >
+                  <span className="mr-3 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{section.placeholder}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
