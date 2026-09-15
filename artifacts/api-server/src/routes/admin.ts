@@ -920,6 +920,37 @@ router.get("/admin/users", async (req, res) => {
       ? parsePublishableKey(publishableKey)
       : null;
     const auth = getAuth(req);
+    let authenticatedUserLookup: Record<string, unknown>;
+
+    if (auth.userId) {
+      try {
+        const authenticatedClerkUser = await clerkClient.users.getUser(auth.userId);
+        authenticatedUserLookup = {
+          status: "success",
+          requestedUserId: auth.userId,
+          returnedUserId: authenticatedClerkUser.id,
+          returnedEmail: authenticatedClerkUser.primaryEmailAddress?.emailAddress ?? null,
+        };
+      } catch (error) {
+        authenticatedUserLookup = {
+          status: "error",
+          requestedUserId: auth.userId,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStatus: error && typeof error === "object"
+            ? (error as any).status ?? (error as any).statusCode ?? null
+            : null,
+          errorDetails: error instanceof Error
+            ? Object.fromEntries(
+                Object.getOwnPropertyNames(error).map((key) => [key, (error as any)[key]]),
+              )
+            : error,
+        };
+      }
+    } else {
+      authenticatedUserLookup = {
+        status: "no_authenticated_user",
+      };
+    }
 
     console.log("[admin/users][safe-clerk-trace] users.id=5", {
       middleware: {
@@ -950,6 +981,7 @@ router.get("/admin/users", async (req, res) => {
             : "production"
           : null,
         frontendApi: "not exposed by clerkClient.users.getUser(); resolved by its secret key",
+        authenticatedUserLookup,
       },
       comparison: {
         middlewareAndClerkClientUseSameSecretEnvVar:
