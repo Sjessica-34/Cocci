@@ -1,10 +1,5 @@
 import { Router } from "express";
-import { clerkClient, getAuth } from "@clerk/express";
-import {
-  isDevelopmentFromPublishableKey,
-  isDevelopmentFromSecretKey,
-  parsePublishableKey,
-} from "@clerk/shared/keys";
+import { clerkClient } from "@clerk/express";
 import {
   db,
   usersTable,
@@ -913,84 +908,6 @@ router.delete("/admin/members/:memberId", async (req, res): Promise<void> => {
 // ─── GET /admin/users ─────────────────────────────────────────────────────────
 router.get("/admin/users", async (req, res) => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
-  if (users.some((user) => user.id === 5)) {
-    const publishableKey = process.env.CLERK_PUBLISHABLE_KEY ?? "";
-    const secretKey = process.env.CLERK_SECRET_KEY ?? "";
-    const parsedPublishableKey = publishableKey
-      ? parsePublishableKey(publishableKey)
-      : null;
-    const auth = getAuth(req);
-    let authenticatedUserLookup: Record<string, unknown>;
-
-    if (auth.userId) {
-      try {
-        const authenticatedClerkUser = await clerkClient.users.getUser(auth.userId);
-        authenticatedUserLookup = {
-          status: "success",
-          requestedUserId: auth.userId,
-          returnedUserId: authenticatedClerkUser.id,
-          returnedEmail: authenticatedClerkUser.primaryEmailAddress?.emailAddress ?? null,
-        };
-      } catch (error) {
-        authenticatedUserLookup = {
-          status: "error",
-          requestedUserId: auth.userId,
-          errorMessage: error instanceof Error ? error.message : String(error),
-          errorStatus: error && typeof error === "object"
-            ? (error as any).status ?? (error as any).statusCode ?? null
-            : null,
-          errorDetails: error instanceof Error
-            ? Object.fromEntries(
-                Object.getOwnPropertyNames(error).map((key) => [key, (error as any)[key]]),
-              )
-            : error,
-        };
-      }
-    } else {
-      authenticatedUserLookup = {
-        status: "no_authenticated_user",
-      };
-    }
-
-    console.log("[admin/users][safe-clerk-trace] users.id=5", {
-      middleware: {
-        publishableKeySource: "process.env.CLERK_PUBLISHABLE_KEY",
-        secretKeySource: "process.env.CLERK_SECRET_KEY",
-        sessionIssuer: auth.sessionClaims?.iss ?? null,
-        authenticatedUserId: auth.userId ?? null,
-        frontendApi: parsedPublishableKey?.frontendApi ?? null,
-        environment: parsedPublishableKey
-          ? isDevelopmentFromPublishableKey(publishableKey)
-            ? "development"
-            : "production"
-          : null,
-        secretKeyConfigured: Boolean(secretKey),
-        secretKeyEnvironment: secretKey
-          ? isDevelopmentFromSecretKey(secretKey)
-            ? "development"
-            : "production"
-          : null,
-      },
-      clerkClient: {
-        implementation: "@clerk/express clerkClient singleton",
-        secretKeySource: "@clerk/express loadApiEnv()",
-        secretKeyConfigured: Boolean(secretKey),
-        secretKeyEnvironment: secretKey
-          ? isDevelopmentFromSecretKey(secretKey)
-            ? "development"
-            : "production"
-          : null,
-        frontendApi: "not exposed by clerkClient.users.getUser(); resolved by its secret key",
-        authenticatedUserLookup,
-      },
-      comparison: {
-        middlewareAndClerkClientUseSameSecretEnvVar:
-          "process.env.CLERK_SECRET_KEY",
-        secretValueLogged: false,
-      },
-    });
-  }
-
   const enrichedUsers = await Promise.all(users.map(async (user) => {
     try {
       const clerkUser = await clerkClient.users.getUser(user.clerkId);
