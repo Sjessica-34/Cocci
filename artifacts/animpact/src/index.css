@@ -195,3 +195,34 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer components {
+  .cocci-sidebar-scrollbar {
+    scrollbar-color: hsl(var(--sidebar-foreground) / 0.5) transparent;
+    scrollbar-width: thin;
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-track,
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-foreground) / 0.5);
+    border-radius: 9999px;
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-foreground) / 0.7);
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+}
