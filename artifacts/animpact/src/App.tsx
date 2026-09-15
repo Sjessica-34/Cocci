@@ -57,7 +57,7 @@ import { SubscriptionConfirmation } from "@/pages/abonnement/confirmation";
 import { CapitalHumain } from "@/pages/employment";
 import { MesActions } from "@/pages/mes-actions";
 import { GuideRSE } from "@/pages/guide-rse";
-import { ConstruireDemarche } from "@/pages/construire-demarche/CocciCharter";
+import { ConstruireDemarche } from "@/pages/construire-demarche/CocciReference";
 import { Onboarding } from "@/pages/onboarding/index";
 import { OnboardingFiliales } from "@/pages/onboarding/filiales";
 import { OnboardingEffectif } from "@/pages/onboarding/effectif";
