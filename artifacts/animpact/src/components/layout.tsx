@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { useListExercises, useListOrganizations, useGetMe } from "@workspace/api-client-react";
@@ -161,30 +161,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
     return location === item.href || location.startsWith(`${item.href}/`);
   }
 
-  const [isSidebarScrolling, setIsSidebarScrolling] = useState(false);
-  const sidebarScrollTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (sidebarScrollTimeoutRef.current !== null) {
-        window.clearTimeout(sidebarScrollTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  function handleSidebarScroll() {
-    setIsSidebarScrolling(true);
-
-    if (sidebarScrollTimeoutRef.current !== null) {
-      window.clearTimeout(sidebarScrollTimeoutRef.current);
-    }
-
-    sidebarScrollTimeoutRef.current = window.setTimeout(() => {
-      setIsSidebarScrolling(false);
-      sidebarScrollTimeoutRef.current = null;
-    }, 250);
-  }
-
   const sidebarContent = (
     <>
       {/* Brand */}
@@ -192,13 +168,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <img src={`${import.meta.env.BASE_URL}logo-white.png`} alt="Cocci" className="h-7 w-auto" />
       </div>
 
-      <div
-        className={cn(
-          "cocci-sidebar-scrollbar flex-1 py-3 px-3 flex flex-col overflow-y-auto",
-          isSidebarScrolling && "is-scrolling",
-        )}
-        onScroll={handleSidebarScroll}
-      >
+      <div className="flex-1 py-3 px-3 flex flex-col overflow-y-auto">
         {/* Entreprise / Groupe + sélecteur de filiale */}
         {!isAdminRoute && (
           <div className="mb-1">
