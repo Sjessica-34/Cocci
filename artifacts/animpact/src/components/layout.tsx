@@ -320,7 +320,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           autoSaveId="cocci-main-sidebar"
           className="flex-1 min-w-0 min-h-0 h-full"
         >
-          <Panel defaultSize={20} minSize={18} maxSize={30} className="min-w-0 min-h-0">
+          <Panel defaultSize={20} minSize={18} maxSize={30} className="min-w-0 min-h-0 h-full">
             <aside className="flex flex-col w-full bg-sidebar border-r border-sidebar-border h-full min-h-0">
               {sidebarContent}
             </aside>
@@ -329,8 +329,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             className="relative w-2 shrink-0 bg-transparent cursor-col-resize outline-none after:pointer-events-none after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-transparent after:transition-[width,background-color] hover:bg-transparent hover:after:bg-border data-[resize-handle-state=hover]:after:bg-border data-[resize-handle-state=drag]:after:w-0.5 data-[resize-handle-state=drag]:after:bg-border"
             aria-label="Redimensionner la sidebar"
           />
-          <Panel minSize={68} className="min-w-0 min-h-0">
-            <main className="flex-1 flex flex-col min-w-0 min-h-0 max-w-full overflow-hidden">
+          <Panel minSize={68} className="min-w-0 min-h-0 h-full">
+            <main className="flex-1 flex flex-col min-w-0 min-h-0 h-full max-w-full overflow-hidden">
               {mainContent}
             </main>
           </Panel>
