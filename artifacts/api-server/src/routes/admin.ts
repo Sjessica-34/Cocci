@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { clerkClient } from "@clerk/express";
+import { clerkClient, getAuth } from "@clerk/express";
+import {
+  isDevelopmentFromPublishableKey,
+  isDevelopmentFromSecretKey,
+  parsePublishableKey,
+} from "@clerk/shared/keys";
 import {
   db,
   usersTable,
@@ -908,6 +913,52 @@ router.delete("/admin/members/:memberId", async (req, res): Promise<void> => {
 // ─── GET /admin/users ─────────────────────────────────────────────────────────
 router.get("/admin/users", async (req, res) => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
+  if (users.some((user) => user.id === 5)) {
+    const publishableKey = process.env.CLERK_PUBLISHABLE_KEY ?? "";
+    const secretKey = process.env.CLERK_SECRET_KEY ?? "";
+    const parsedPublishableKey = publishableKey
+      ? parsePublishableKey(publishableKey)
+      : null;
+    const auth = getAuth(req);
+
+    console.log("[admin/users][safe-clerk-trace] users.id=5", {
+      middleware: {
+        publishableKeySource: "process.env.CLERK_PUBLISHABLE_KEY",
+        secretKeySource: "process.env.CLERK_SECRET_KEY",
+        sessionIssuer: auth.sessionClaims?.iss ?? null,
+        authenticatedUserId: auth.userId ?? null,
+        frontendApi: parsedPublishableKey?.frontendApi ?? null,
+        environment: parsedPublishableKey
+          ? isDevelopmentFromPublishableKey(publishableKey)
+            ? "development"
+            : "production"
+          : null,
+        secretKeyConfigured: Boolean(secretKey),
+        secretKeyEnvironment: secretKey
+          ? isDevelopmentFromSecretKey(secretKey)
+            ? "development"
+            : "production"
+          : null,
+      },
+      clerkClient: {
+        implementation: "@clerk/express clerkClient singleton",
+        secretKeySource: "@clerk/express loadApiEnv()",
+        secretKeyConfigured: Boolean(secretKey),
+        secretKeyEnvironment: secretKey
+          ? isDevelopmentFromSecretKey(secretKey)
+            ? "development"
+            : "production"
+          : null,
+        frontendApi: "not exposed by clerkClient.users.getUser(); resolved by its secret key",
+      },
+      comparison: {
+        middlewareAndClerkClientUseSameSecretEnvVar:
+          "process.env.CLERK_SECRET_KEY",
+        secretValueLogged: false,
+      },
+    });
+  }
+
   const enrichedUsers = await Promise.all(users.map(async (user) => {
     try {
       const clerkUser = await clerkClient.users.getUser(user.clerkId);
