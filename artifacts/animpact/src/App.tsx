@@ -325,6 +325,36 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
+type OnboardingStepPath =
+  | "/onboarding"
+  | "/onboarding/filiales"
+  | "/onboarding/effectif"
+  | "/onboarding/abonnement"
+  | "/dashboard";
+
+function resolveOnboardingStepPath(
+  status: string,
+  organizations: readonly { parentId?: number | null; type?: string | null }[],
+): OnboardingStepPath {
+  if (status === "completed") return "/dashboard";
+
+  const rootOrganization = organizations.find((organization) => !organization.parentId);
+  if (status === "organization_created" && rootOrganization?.type === "groupe") {
+    return "/onboarding/filiales";
+  }
+  if (status === "organization_created" || status === "subsidiaries_configured") {
+    return "/onboarding/effectif";
+  }
+  if (
+    status === "workforce_completed"
+    || status === "subscription_selected"
+    || status === "payment_pending"
+  ) {
+    return "/onboarding/abonnement";
+  }
+  return "/onboarding";
+}
+
 /**
  * Protects the secondary onboarding URLs from reopening setup for an existing
  * account. The continuation marker is set immediately after the first
@@ -334,9 +364,11 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function OnboardingStepGuard({
   component: Component,
   requiresAuth = false,
+  stepPath,
 }: {
   component: React.ComponentType;
   requiresAuth?: boolean;
+  stepPath: Exclude<OnboardingStepPath, "/onboarding" | "/dashboard">;
 }) {
   const [, setLocation] = useLocation();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
@@ -364,6 +396,10 @@ function OnboardingStepGuard({
     },
   });
 
+  const targetPath = onboarding && orgs
+    ? resolveOnboardingStepPath(onboarding.status, orgs)
+    : null;
+
   useEffect(() => {
     if (
       !isAuthLoaded
@@ -374,12 +410,16 @@ function OnboardingStepGuard({
       || onboardingFetching
       || !orgs
       || !onboarding
-      || onboarding.status !== "completed"
     ) return;
 
-    sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
-    sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
-    setLocation("/dashboard", { replace: true });
+    const nextPath = resolveOnboardingStepPath(onboarding.status, orgs);
+    if (nextPath === stepPath) return;
+
+    if (nextPath === "/dashboard") {
+      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
+    }
+    setLocation(nextPath, { replace: true });
   }, [
     isAuthLoaded,
     isFetching,
@@ -390,6 +430,7 @@ function OnboardingStepGuard({
     onboardingLoading,
     orgs,
     setLocation,
+    stepPath,
   ]);
 
   if (!isAuthLoaded) return null;
@@ -397,7 +438,7 @@ function OnboardingStepGuard({
     return requiresAuth ? <Redirect to="/sign-in" /> : <Component />;
   }
   if (isLoading || isFetching || onboardingLoading || onboardingFetching || !orgs || !onboarding) return null;
-  if (onboarding.status === "completed") return null;
+  if (targetPath !== stepPath) return null;
   return <Component />;
 }
 
@@ -518,13 +559,23 @@ function ClerkProviderWithRoutes() {
               <ProtectedRoute component={Onboarding} />
             </Route>
             <Route path="/onboarding/filiales">
-              <OnboardingStepGuard component={OnboardingFiliales} requiresAuth />
+              <OnboardingStepGuard
+                component={OnboardingFiliales}
+                requiresAuth
+                stepPath="/onboarding/filiales"
+              />
             </Route>
             <Route path="/onboarding/effectif">
-              <OnboardingStepGuard component={OnboardingEffectif} />
+              <OnboardingStepGuard
+                component={OnboardingEffectif}
+                stepPath="/onboarding/effectif"
+              />
             </Route>
             <Route path="/onboarding/abonnement">
-              <OnboardingStepGuard component={OnboardingAbonnement} />
+              <OnboardingStepGuard
+                component={OnboardingAbonnement}
+                stepPath="/onboarding/abonnement"
+              />
             </Route>
 
             {/* Workspace module pages — redirect to onboarding if no org */}

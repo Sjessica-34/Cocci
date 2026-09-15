@@ -5,7 +5,9 @@ import { useAuth } from "@clerk/react";
 import {
   useGetOnboardingProgress,
   useUpdateOnboardingProgress,
+  getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
@@ -17,6 +19,7 @@ export function OnboardingEffectif() {
   const [selected, setSelected] = useState<EffectifKey | null>(null);
   const { data: onboarding } = useGetOnboardingProgress();
   const updateProgress = useUpdateOnboardingProgress();
+  const qc = useQueryClient();
 
   useEffect(() => {
     const key = onboarding?.effectifKey as EffectifKey | null | undefined;
@@ -27,11 +30,37 @@ export function OnboardingEffectif() {
 
   async function handleContinue() {
     if (!selected) return;
+
+    if (isAuthLoaded && isSignedIn) {
+      if (onboarding?.status === "completed") {
+        setLocation("/dashboard", { replace: true });
+        return;
+      }
+      if (
+        onboarding?.status === "subscription_selected"
+        || onboarding?.status === "payment_pending"
+      ) {
+        setLocation("/onboarding/abonnement", { replace: true });
+        return;
+      }
+    }
+
     sessionStorage.setItem(EFFECTIF_SESSION_KEY, selected);
     if (isAuthLoaded && isSignedIn) {
-      await updateProgress.mutateAsync({
-        data: { status: "workforce_completed", effectifKey: selected },
-      });
+      try {
+        await updateProgress.mutateAsync({
+          data: { status: "workforce_completed", effectifKey: selected },
+        });
+      } catch (error: any) {
+        if (error?.status === 409 || error?.message?.includes("409")) {
+          await qc.invalidateQueries({
+            queryKey: getGetOnboardingProgressQueryKey(),
+          });
+          setLocation("/onboarding", { replace: true });
+          return;
+        }
+        return;
+      }
     }
     setLocation("/onboarding/abonnement");
   }
