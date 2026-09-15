@@ -182,7 +182,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     sidebarScrollTimeoutRef.current = window.setTimeout(() => {
       setIsSidebarScrolling(false);
       sidebarScrollTimeoutRef.current = null;
-    }, 700);
+    }, 250);
   }
 
   const sidebarContent = (
