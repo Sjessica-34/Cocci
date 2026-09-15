@@ -326,7 +326,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </aside>
           </Panel>
           <PanelResizeHandle
-            className="relative w-2 shrink-0 bg-transparent cursor-col-resize outline-none after:pointer-events-none after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-border after:transition-colors hover:bg-transparent hover:after:bg-sidebar-border/70 data-[resize-handle-state=hover]:after:bg-sidebar-border/70 data-[resize-handle-state=drag]:after:bg-sidebar-border/70"
+            className="relative w-2 shrink-0 bg-transparent cursor-col-resize outline-none after:pointer-events-none after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-transparent after:transition-[width,background-color] hover:bg-transparent hover:after:bg-border data-[resize-handle-state=hover]:after:bg-border data-[resize-handle-state=drag]:after:w-0.5 data-[resize-handle-state=drag]:after:bg-border"
             aria-label="Redimensionner la sidebar"
           />
           <Panel minSize={68} className="min-w-0">
