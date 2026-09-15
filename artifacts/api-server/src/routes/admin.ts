@@ -907,8 +907,15 @@ router.delete("/admin/members/:memberId", async (req, res): Promise<void> => {
 
 // ─── GET /admin/users ─────────────────────────────────────────────────────────
 router.get("/admin/users", async (req, res) => {
-  const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
-  const enrichedUsers = await Promise.all(users.map(async (user) => {
+  const users = await db
+    .select({
+      user: usersTable,
+      organizationName: organizationsTable.name,
+    })
+    .from(usersTable)
+    .leftJoin(organizationsTable, eq(usersTable.primaryOrganizationId, organizationsTable.id))
+    .orderBy(desc(usersTable.createdAt));
+  const enrichedUsers = await Promise.all(users.map(async ({ user, organizationName }) => {
     try {
       const clerkUser = await clerkClient.users.getUser(user.clerkId);
       const email = clerkUser.primaryEmailAddress?.emailAddress ?? user.email;
@@ -922,11 +929,15 @@ router.get("/admin/users", async (req, res) => {
         firstName,
         lastName,
         avatarUrl,
+        organizationName: organizationName ?? null,
       };
     } catch {
       // Un compte Clerk supprimé ou temporairement indisponible ne doit pas
       // empêcher l'affichage des autres utilisateurs locaux.
-      return user;
+      return {
+        ...user,
+        organizationName: organizationName ?? null,
+      };
     }
   }));
   res.json(enrichedUsers);
@@ -1065,7 +1076,17 @@ router.patch("/admin/users/:id/superadmin", async (req, res): Promise<void> => {
     .returning();
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(updated);
+  const [organization] = updated.primaryOrganizationId
+    ? await db
+        .select({ name: organizationsTable.name })
+        .from(organizationsTable)
+        .where(eq(organizationsTable.id, updated.primaryOrganizationId))
+        .limit(1)
+    : [];
+  res.json({
+    ...updated,
+    organizationName: organization?.name ?? null,
+  });
 });
 
 // ─── GET /admin/echanges/feedback ────────────────────────────────────────────

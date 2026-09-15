@@ -465,6 +465,8 @@ export interface AdminUser {
   /** @nullable */
   avatarUrl?: string | null;
   isSuperAdmin: boolean;
+  /** @nullable */
+  organizationName: string | null;
   createdAt: string;
 }
 

@@ -626,6 +626,7 @@ export const ListAdminUsersResponseItem = zod.object({
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isSuperAdmin": zod.boolean(),
+  "organizationName": zod.string().nullable(),
   "createdAt": zod.coerce.date()
 })
 export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
@@ -650,6 +651,7 @@ export const UpdateUserSuperAdminResponse = zod.object({
   "lastName": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isSuperAdmin": zod.boolean(),
+  "organizationName": zod.string().nullable(),
   "createdAt": zod.coerce.date()
 })
 

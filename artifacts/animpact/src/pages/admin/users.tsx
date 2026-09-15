@@ -25,7 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Search, Shield, ShieldOff, Clock } from "lucide-react";
+import { Users, Search, Shield, ShieldOff, Clock, Building2 } from "lucide-react";
 import { useUser } from "@clerk/react";
 
 function formatRelative(dateStr: string): string {
@@ -52,7 +52,9 @@ export function AdminUsers() {
   const updateSuperAdmin = useUpdateUserSuperAdmin();
 
   const filtered = users?.filter((u) =>
-    [u.email, u.firstName, u.lastName].some((v) => v?.toLowerCase().includes(search.toLowerCase()))
+    [u.email, u.firstName, u.lastName, u.organizationName].some((v) =>
+      v?.toLowerCase().includes(search.toLowerCase())
+    )
   );
 
   function handleToggleSuperAdmin(userId: number, currentValue: boolean, email: string) {
@@ -137,6 +139,16 @@ export function AdminUsers() {
                     </div>
                     
                     <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-1/2 shrink-0">
+                      <div className="flex min-w-0 flex-col items-start">
+                        <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
+                          Organisation
+                        </span>
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground max-w-40">
+                          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{user.organizationName || "—"}</span>
+                        </div>
+                      </div>
+
                       <div className="flex flex-col items-start sm:items-end">
                         <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Dernière connexion</span>
                         {user.lastLoginAt ? (

@@ -7,4 +7,4 @@ Lorsqu’un fichier contient des blocs répétés, conserver le premier bloc et 
 
 **Why:** L’outil de patch peut conserver l’existence logique du fichier après une suppression et refuser sa recréation dans l’opération suivante, alors qu’une mise à jour ciblée s’applique correctement.
 
-**How to apply:** Comparer les blocs, cibler leur séquence exacte avec `apply_patch`, puis vérifier le nombre de déclarations et relancer le typecheck complet.
+**How to apply:** Comparer les blocs, cibler leur séquence exacte avec `apply_patch` — notamment le nom complet de la route avant un `res.json(updated)` — puis vérifier le nombre de déclarations et relancer le typecheck complet.
