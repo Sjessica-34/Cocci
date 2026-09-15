@@ -225,11 +225,11 @@
   }
 
   .cocci-sidebar-scrollbar:hover {
-    scrollbar-color: hsl(var(--sidebar-foreground) / 0.5) transparent;
+    scrollbar-color: #959595 transparent;
   }
 
   .cocci-sidebar-scrollbar:hover::-webkit-scrollbar-thumb {
-    background: hsl(var(--sidebar-foreground) / 0.5);
+    background: #959595;
   }
 
   .cocci-sidebar-scrollbar.is-scrolling {
