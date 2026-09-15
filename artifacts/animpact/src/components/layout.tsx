@@ -168,7 +168,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <img src={`${import.meta.env.BASE_URL}logo-white.png`} alt="Cocci" className="h-7 w-auto" />
       </div>
 
-      <div className="flex-1 py-3 px-3 flex flex-col overflow-y-auto">
+      <div className="cocci-sidebar-scrollbar flex-1 py-3 px-3 flex flex-col overflow-y-auto">
         {/* Entreprise / Groupe + sélecteur de filiale */}
         {!isAdminRoute && (
           <div className="mb-1">

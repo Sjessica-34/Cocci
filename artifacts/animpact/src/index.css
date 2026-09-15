@@ -195,3 +195,30 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer components {
+  .cocci-sidebar-scrollbar {
+    scrollbar-color: #959595 transparent;
+    scrollbar-width: thin;
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar {
+    width: 2px;
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-track,
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: #959595;
+    border-radius: 9999px;
+  }
+
+  .cocci-sidebar-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+}
