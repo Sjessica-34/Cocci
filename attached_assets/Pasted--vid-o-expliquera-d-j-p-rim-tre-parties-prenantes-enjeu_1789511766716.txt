@@ -1,0 +1,192 @@
+ vidéo expliquera déjà :
+périmètre → parties prenantes → enjeux → collecte des données → évaluation → plan d'action → mesure → communication.
+
+NE PAS détailler ces étapes avant la vidéo pour éviter les répétitions.
+
+
+SECTION 1 — QU'EST-CE QUE LA RSE ?
+
+Titre :
+« Mais avant d'aller plus loin, qu'est-ce que la RSE ? »
+
+Afficher une définition courte :
+
+« La Responsabilité Sociétale des Entreprises consiste à intégrer les enjeux environnementaux, sociaux et économiques dans les activités et les décisions de l'entreprise. »
+
+Ne pas afficher cette définition comme un gros paragraphe.
+
+Créer plutôt un visuel dynamique avec l'entreprise au centre et 3 dimensions autour :
+
+🌍 ENVIRONNEMENT
+Climat
+Énergie
+Ressources
+Biodiversité
+
+👥 SOCIAL
+Conditions de travail
+Égalité
+Inclusion
+Compétences
+
+⚖️ ÉCONOMIE & GOUVERNANCE
+Éthique
+Achats responsables
+Relations partenaires
+Pérennité
+
+Les trois dimensions peuvent être reliées visuellement à une entreprise placée au centre.
+
+Sous le schéma, afficher très brièvement :
+
+« Comprendre ses impacts »
+↓
+« Réduire les impacts négatifs »
++
+« Renforcer les contributions positives »
+
+Créer quelque chose de visuel, pas une liste textuelle classique.
+
+
+SECTION 2 — LA RSE, UNE CONTRAINTE ? PAS SEULEMENT.
+
+Créer une transition visuelle avec le titre :
+
+« La RSE, une contrainte ? Pas seulement. »
+
+Puis :
+
+« Bien construite, elle peut devenir un véritable atout pour l'entreprise. »
+
+Afficher ensuite 5 bénéfices sous forme de petites cartes visuelles.
+
+Les cartes doivent être courtes, avec une icône, un titre et maximum une ligne d'explication.
+
+💰 MAÎTRISER SES COÛTS
+Énergie, ressources, déchets, achats...
+
+👥 MOBILISER SES ÉQUIPES
+Conditions de travail, engagement, recrutement et fidélisation.
+
+🤝 RÉPONDRE AUX ATTENTES
+Clients, partenaires, financeurs et donneurs d'ordre.
+
+🏆 SE DIFFÉRENCIER
+Valoriser ses engagements, notamment dans les appels d'offres.
+
+📋 ANTICIPER
+Se préparer aux évolutions réglementaires.
+
+Présenter ces bénéfices de manière vivante.
+Par exemple : grille asymétrique, cartes avec légère animation au hover, apparition progressive au scroll ou autre interaction discrète.
+
+Éviter une simple grille de cartes génériques si un rendu plus graphique est possible.
+
+
+SECTION 3 — CRÉER DE LA VALEUR
+
+Créer un petit schéma plutôt qu'un paragraphe.
+
+Au centre :
+« Une démarche RSE structurée »
+
+Autour :
+🏢 Entreprise
+👥 Collaborateurs
+🤝 Clients & partenaires
+📍 Territoire
+🌍 Environnement
+
+Phrase courte :
+
+« Une démarche RSE peut créer de la valeur pour l'entreprise et son écosystème. »
+
+Cette section doit être très légère visuellement.
+
+
+SECTION 4 — TRANSITION VERS LA VIDÉO
+
+Créer une vraie rupture visuelle.
+
+Grand titre :
+
+« Alors, par où commencer ? »
+
+Faire apparaître autour ou en arrière-plan plusieurs sujets :
+
+Carbone
+Biodiversité
+Social
+Achats
+Numérique responsable
+Parties prenantes
+Indicateurs
+Labels
+Réglementation
+
+L'idée visuelle est de montrer qu'il existe beaucoup de sujets et qu'il peut être difficile de savoir par où commencer.
+
+Puis afficher progressivement une phrase centrale :
+
+« Face à tous ces sujets, comment savoir quoi faire, dans quel ordre et pourquoi ? »
+
+Puis :
+
+« C'est précisément pour cela que Cocci a été conçu. »
+
+Mettre en évidence :
+
+« Cocci vous guide pour construire votre propre démarche RSE, étape par étape. »
+
+
+SECTION 5 — VIDÉO
+
+Créer ensuite un espace vidéo bien intégré dans la page.
+
+Titre :
+« Construisez votre démarche RSE avec Cocci »
+
+Sous-titre très court :
+« Découvrez la méthode en quelques minutes. »
+
+Prévoir un grand conteneur vidéo 16:9 avec coins arrondis, cohérent avec le design Cocci.
+
+Pour l'instant, si aucune vidéo n'est encore configurée, utiliser un placeholder propre avec bouton lecture.
+
+La vidéo sera ajoutée ensuite.
+
+
+EXPÉRIENCE UTILISATEUR
+
+Je veux que l'ensemble raconte visuellement une petite histoire :
+
+Qu'est-ce que la RSE ?
+↓
+Elle concerne plusieurs dimensions de l'entreprise.
+↓
+Elle peut aussi créer de la valeur.
+↓
+Mais les sujets sont nombreux.
+↓
+Alors comment construire une démarche cohérente ?
+↓
+Cocci vous montre comment faire.
+↓
+VIDÉO
+
+Utiliser des transitions et micro-animations discrètes pour donner du rythme au scroll.
+
+La page doit donner envie de continuer sans devenir une landing page marketing agressive.
+
+IMPORTANT :
+Le contenu doit rester pédagogique.
+Cocci doit apparaître naturellement comme l'outil qui aide à passer de la compréhension à la construction de la démarche.
+
+Ne pas ajouter de longs textes explicatifs.
+Privilégier systématiquement :
+schéma > texte
+icône + phrase > paragraphe
+animation légère > bloc statique
+mots-clés > liste longue
+
+Le rendu final doit être professionnel, accessible, chaleureux et cohérent avec une plateforme SaaS RSE destinée aux TPE/PME.
