@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { clerkClient } from "@clerk/express";
 import {
   db,
   usersTable,
@@ -907,7 +908,28 @@ router.delete("/admin/members/:memberId", async (req, res): Promise<void> => {
 // ─── GET /admin/users ─────────────────────────────────────────────────────────
 router.get("/admin/users", async (req, res) => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
-  res.json(users);
+  const enrichedUsers = await Promise.all(users.map(async (user) => {
+    try {
+      const clerkUser = await clerkClient.users.getUser(user.clerkId);
+      const email = clerkUser.primaryEmailAddress?.emailAddress ?? user.email;
+      const firstName = clerkUser.firstName ?? user.firstName;
+      const lastName = clerkUser.lastName ?? user.lastName;
+      const avatarUrl = clerkUser.imageUrl ?? user.avatarUrl;
+
+      return {
+        ...user,
+        email,
+        firstName,
+        lastName,
+        avatarUrl,
+      };
+    } catch {
+      // Un compte Clerk supprimé ou temporairement indisponible ne doit pas
+      // empêcher l'affichage des autres utilisateurs locaux.
+      return user;
+    }
+  }));
+  res.json(enrichedUsers);
 });
 
 // ─── GET /admin/organizations/:orgId/resources ────────────────────────────────
