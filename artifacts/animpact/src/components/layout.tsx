@@ -58,10 +58,7 @@ type NavItem = {
 type MenuSection = {
   title: string;
   groups: NavItem[][];
-  placeholder?: {
-    href: string;
-    label: string;
-  };
+  placeholder?: NavItem;
 };
 
 const menuSections: MenuSection[] = [
@@ -75,6 +72,7 @@ const menuSections: MenuSection[] = [
     placeholder: {
       href: "/construire-demarche",
       label: "Construire ma démarche RSE",
+      icon: BookOpen,
     },
   },
   {
@@ -156,7 +154,10 @@ const menuSections: MenuSection[] = [
   },
 ];
 
-const allNavItems = menuSections.flatMap((section) => section.groups.flat());
+const allNavItems = menuSections.flatMap((section) => [
+  ...section.groups.flat(),
+  ...(section.placeholder ? [section.placeholder] : []),
+]);
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -281,7 +282,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     variant="ghost"
                     className={cn(
                       "w-full justify-start h-9 px-3 mb-0.5 text-[13px]",
-                      isActive({ ...section.placeholder, icon: BookOpen })
+                      isActive(section.placeholder)
                         ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                     )}
