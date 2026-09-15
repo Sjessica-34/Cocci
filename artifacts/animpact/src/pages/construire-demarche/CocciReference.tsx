@@ -88,22 +88,6 @@ function LeafHero() {
   );
 }
 
-function PlantPersonIllustration() {
-  return (
-    <div className="relative hidden h-32 w-36 shrink-0 overflow-hidden md:block" aria-hidden="true">
-      <div className="absolute bottom-[-28px] left-2 h-24 w-24 rounded-[55%_45%_0_0] bg-[#287964]" />
-      <div className="absolute bottom-12 left-12 h-14 w-14 rounded-full bg-[#f1b08c]" />
-      <div className="absolute bottom-[92px] left-10 h-7 w-20 -rotate-[9deg] rounded-full bg-[#173e3d]" />
-      <div className="absolute bottom-[80px] left-5 h-9 w-14 rotate-[24deg] rounded-full bg-[#173e3d]" />
-      <div className="absolute bottom-16 left-[76px] h-1 w-2 rounded-full bg-[#173e3d]" />
-      <div className="absolute bottom-[65px] left-[99px] h-1 w-2 rounded-full bg-[#173e3d]" />
-      <div className="absolute bottom-3 left-[108px] h-24 w-px rotate-[16deg] bg-[#39845f]" />
-      <div className="absolute bottom-12 left-[99px] h-8 w-16 -rotate-[28deg] rounded-[100%_0] bg-[#8dc58e]" />
-      <div className="absolute left-1 top-1 text-3xl font-serif text-[#287964]">?</div>
-    </div>
-  );
-}
-
 function VideoThumbnail({ videoOpen, onOpen }: { videoOpen: boolean; onOpen: () => void }) {
   return (
     <div className="relative aspect-[1.75] overflow-hidden rounded-[5px] border border-[#bfd8c9] bg-[#b7d7bc] shadow-[0_5px_12px_rgba(35,80,58,.12)]">
@@ -129,9 +113,8 @@ export function ConstruireDemarche() {
     <AppLayout>
       <main className="min-h-screen bg-[#fffefa] font-['DM_Sans'] text-[#173e3d]">
         <div className="mx-auto max-w-[940px] px-4 pb-12 pt-6 sm:px-7 md:px-10">
-          <header className="mb-7 flex items-center justify-between gap-4">
-            <h1 className="font-['Fraunces'] text-[26px] font-semibold tracking-[-0.045em] text-[#166039] sm:text-[31px]">Passer l'introduction</h1>
-            <a href="#methode" className="hidden items-center gap-2 rounded-full bg-[#176052] px-4 py-2.5 text-[11px] font-bold text-white shadow-sm transition-transform hover:-translate-y-0.5 sm:inline-flex">
+          <header className="mb-7 flex justify-end">
+            <a href="#methode" className="inline-flex items-center gap-2 rounded-full bg-[#176052] px-4 py-2.5 text-[11px] font-bold text-white shadow-sm transition-transform hover:-translate-y-0.5">
               Passer l'introduction <ArrowDown className="h-3.5 w-3.5" />
             </a>
           </header>
@@ -215,12 +198,9 @@ export function ConstruireDemarche() {
           </section>
 
           <section className="mt-7 grid items-end gap-4 md:grid-cols-[1fr_1.15fr]">
-            <div className="flex items-center gap-3">
-              <PlantPersonIllustration />
-              <div>
-                <h2 className="font-['Fraunces'] text-[22px] font-semibold leading-[1.02] tracking-[-0.03em]">Vous ne savez pas par où commencer ?</h2>
-                <p className="mt-2 max-w-[300px] text-[10px] leading-4 text-[#5c716b]">Carbone, biodiversité, social, achats, labels... Les sujets sont nombreux, et il peut être difficile de savoir quoi faire, dans quel ordre et pourquoi.</p>
-              </div>
+            <div>
+              <h2 className="font-['Fraunces'] text-[22px] font-semibold leading-[1.02] tracking-[-0.03em]">Vous ne savez pas par où commencer ?</h2>
+              <p className="mt-2 max-w-[360px] text-[10px] leading-4 text-[#5c716b]">Carbone, biodiversité, social, achats, labels... Les sujets sont nombreux, et il peut être difficile de savoir quoi faire, dans quel ordre et pourquoi.</p>
             </div>
             <div className="flex flex-wrap justify-start gap-2 md:justify-end">
               {topics.map((topic) => <span key={topic} className="rounded-full bg-[#f0f6f0] px-3 py-1.5 text-[9px] font-semibold text-[#4d6e61]">{topic}</span>)}
