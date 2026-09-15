@@ -198,12 +198,20 @@
 
 @layer components {
   .cocci-sidebar-scrollbar {
-    scrollbar-color: hsl(var(--sidebar-foreground) / 0.5) transparent;
+    scrollbar-color: transparent transparent;
     scrollbar-width: thin;
   }
 
   .cocci-sidebar-scrollbar::-webkit-scrollbar {
-    width: 6px;
+    width: 2px;
+  }
+
+  .cocci-sidebar-scrollbar:hover::-webkit-scrollbar {
+    width: 2px;
+  }
+
+  .cocci-sidebar-scrollbar.is-scrolling::-webkit-scrollbar {
+    width: 8px;
   }
 
   .cocci-sidebar-scrollbar::-webkit-scrollbar-track,
@@ -212,12 +220,28 @@
   }
 
   .cocci-sidebar-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--sidebar-foreground) / 0.5);
+    background: transparent;
     border-radius: 9999px;
   }
 
-  .cocci-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  .cocci-sidebar-scrollbar:hover {
+    scrollbar-color: hsl(var(--sidebar-foreground) / 0.5) transparent;
+  }
+
+  .cocci-sidebar-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-foreground) / 0.5);
+  }
+
+  .cocci-sidebar-scrollbar.is-scrolling {
+    scrollbar-color: hsl(var(--sidebar-foreground) / 0.7) transparent;
+  }
+
+  .cocci-sidebar-scrollbar.is-scrolling::-webkit-scrollbar-thumb {
     background: hsl(var(--sidebar-foreground) / 0.7);
+  }
+
+  .cocci-sidebar-scrollbar.is-scrolling::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-foreground) / 0.8);
   }
 
   .cocci-sidebar-scrollbar::-webkit-scrollbar-button {
