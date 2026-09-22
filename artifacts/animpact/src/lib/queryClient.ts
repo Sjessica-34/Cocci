@@ -43,7 +43,10 @@ export const queryClient = new QueryClient({
   },
 });
 
-if (import.meta.env.DEV) {
+const queryTraceEnabled =
+  import.meta.env.DEV || import.meta.env.VITE_ANIMPACT_QUERY_TRACE === "1";
+
+if (queryTraceEnabled) {
   const observerAddedAt = new Map<string, number>();
   const invalidatedAt = new Map<string, number>();
   let externalCause: { value: "focus" | "reconnect"; until: number } | null = null;
