@@ -1,7 +1,13 @@
 import { ReactNode, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { useListExercises, useListOrganizations, useGetMe } from "@workspace/api-client-react";
+import {
+  useListExercises,
+  useListOrganizations,
+  useGetMe,
+  getListOrganizationsQueryKey,
+  getGetMeQueryKey,
+} from "@workspace/api-client-react";
 import {
   LayoutDashboard,
   Settings,
@@ -41,6 +47,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useCurrentExercise } from "@/hooks/useCurrentExercise";
+import { useDebugMount } from "@/lib/requestDebug";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useAdminViewOrg, setAdminViewOrg } from "@/hooks/useAdminView";
 import { ExerciseSelector } from "@/components/ExerciseSelector";
@@ -160,6 +167,7 @@ const allNavItems = menuSections.flatMap((section) => [
 ]);
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  useDebugMount("AppLayout");
   const [location] = useLocation();
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -168,6 +176,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const adminViewOrgId = useAdminViewOrg();
   const { data: allOrgs = [] } = useListOrganizations(
     adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
+    {
+      query: {
+        queryKey: getListOrganizationsQueryKey(
+          adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
+        ),
+        meta: { debugLabel: "AppLayout:listOrganizations" },
+      },
+    },
   );
   const rootOrg = allOrgs.find((o) => !o.parentId) ?? null;
   const exerciseOrgId = currentOrgId;
@@ -183,7 +199,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
     && !isBillingRoute
     && exerciseOrgId != null;
 
-  const { data: dbUser } = useGetMe();
+  const { data: dbUser } = useGetMe({
+    query: {
+      queryKey: getGetMeQueryKey(),
+      meta: { debugLabel: "AppLayout:getMe" },
+    },
+  });
   const displayName =
     [dbUser?.firstName, dbUser?.lastName].filter(Boolean).join(" ") ||
     user?.fullName ||

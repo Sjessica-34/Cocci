@@ -6,6 +6,7 @@ import {
   getListOrganizationsQueryKey,
   useListOrganizations,
   useGetOnboardingProgress,
+  getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
 import type { Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,16 +22,28 @@ import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
   SUBSCRIPTION_INTENT_SESSION_KEY,
 } from "./plans";
+import { useDebugMount } from "@/lib/requestDebug";
 
 // Version des documents légaux en vigueur
 const LEGAL_VERSION = "2025-01";
 
 export function Onboarding() {
+  useDebugMount("Onboarding");
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
-  const { data: organizations, isLoading: organizationsLoading } = useListOrganizations();
-  const { data: onboarding, isLoading: onboardingLoading } = useGetOnboardingProgress();
+  const { data: organizations, isLoading: organizationsLoading } = useListOrganizations(undefined, {
+    query: {
+      queryKey: getListOrganizationsQueryKey(),
+      meta: { debugLabel: "Onboarding:listOrganizations" },
+    },
+  });
+  const { data: onboarding, isLoading: onboardingLoading } = useGetOnboardingProgress({
+    query: {
+      queryKey: getGetOnboardingProgressQueryKey(),
+      meta: { debugLabel: "Onboarding:onboarding" },
+    },
+  });
   const hasSubmittedRef = useRef(false);
 
   const [name, setName] = useState("");

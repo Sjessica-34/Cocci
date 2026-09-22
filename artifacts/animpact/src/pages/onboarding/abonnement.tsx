@@ -25,8 +25,10 @@ import {
   type EffectifKey,
   type Plan,
 } from "./plans";
+import { useDebugMount } from "@/lib/requestDebug";
 
 export function OnboardingAbonnement() {
+  useDebugMount("OnboardingAbonnement");
   const [, setLocation] = useLocation();
   const { isLoaded: isAuthLoaded, isSignedIn, getToken } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
@@ -34,6 +36,7 @@ export function OnboardingAbonnement() {
     query: {
       enabled: isAuthLoaded && isSignedIn,
       queryKey: getGetOnboardingProgressQueryKey(),
+      meta: { debugLabel: "OnboardingAbonnement:onboarding" },
     },
   });
   const updateProgress = useUpdateOnboardingProgress();

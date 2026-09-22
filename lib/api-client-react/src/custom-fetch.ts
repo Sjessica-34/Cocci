@@ -8,6 +8,16 @@ export type BodyType<T> = T;
 
 export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
+type RequestDebugBridge = {
+  recordRequest?: (record: {
+    method: string;
+    url: string;
+    status: number | null;
+    durationMs: number;
+    error?: string;
+  }) => void;
+};
+
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
@@ -384,7 +394,37 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+  let response: Response;
+  try {
+    response = await fetch(input, { ...init, method, headers });
+  } catch (error) {
+    const debug = (globalThis as typeof globalThis & {
+      __ANIMPACT_REQUEST_DEBUG__?: RequestDebugBridge;
+    }).__ANIMPACT_REQUEST_DEBUG__;
+    debug?.recordRequest?.({
+      method,
+      url: requestInfo.url,
+      status: null,
+      durationMs: Math.round(
+        (typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt,
+      ),
+      error: error instanceof Error ? error.name : String(error),
+    });
+    throw error;
+  }
+
+  const debug = (globalThis as typeof globalThis & {
+    __ANIMPACT_REQUEST_DEBUG__?: RequestDebugBridge;
+  }).__ANIMPACT_REQUEST_DEBUG__;
+  debug?.recordRequest?.({
+    method,
+    url: requestInfo.url,
+    status: response.status,
+    durationMs: Math.round(
+      (typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt,
+    ),
+  });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

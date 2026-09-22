@@ -7,6 +7,7 @@ import {
   useUpdateOnboardingProgress,
   getListOrganizationsQueryKey,
 } from "@workspace/api-client-react";
+import { useDebugMount } from "@/lib/requestDebug";
 import type { Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -130,9 +131,15 @@ function GroupModeDialog({
 // ── Wizard ─────────────────────────────────────────────────────────────────
 
 export function OnboardingFiliales() {
+  useDebugMount("OnboardingFiliales");
   const [, setLocation] = useLocation();
   const { currentOrgId } = useCurrentOrganization();
-  const { data: orgs = [], isLoading } = useListOrganizations();
+  const { data: orgs = [], isLoading } = useListOrganizations(undefined, {
+    query: {
+      queryKey: getListOrganizationsQueryKey(),
+      meta: { debugLabel: "OnboardingFiliales:listOrganizations" },
+    },
+  });
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
   const updateProgress = useUpdateOnboardingProgress();

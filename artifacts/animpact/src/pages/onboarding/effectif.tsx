@@ -12,12 +12,19 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
 import { EFFECTIF_OPTIONS, EFFECTIF_SESSION_KEY, type EffectifKey } from "./plans";
+import { useDebugMount } from "@/lib/requestDebug";
 
 export function OnboardingEffectif() {
+  useDebugMount("OnboardingEffectif");
   const [, setLocation] = useLocation();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [selected, setSelected] = useState<EffectifKey | null>(null);
-  const { data: onboarding } = useGetOnboardingProgress();
+  const { data: onboarding } = useGetOnboardingProgress({
+    query: {
+      queryKey: getGetOnboardingProgressQueryKey(),
+      meta: { debugLabel: "OnboardingEffectif:onboarding" },
+    },
+  });
   const updateProgress = useUpdateOnboardingProgress();
   const qc = useQueryClient();
 

@@ -77,6 +77,7 @@ import {
 import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import { runPostAuthRedirect } from "@/lib/authRedirect";
+import { useDebugMount } from "@/lib/requestDebug";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -202,6 +203,7 @@ function AuthBrand() {
 }
 
 function usePostAuthRedirect() {
+  useDebugMount("usePostAuthRedirect");
   const [, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
   const {
@@ -214,6 +216,7 @@ function usePostAuthRedirect() {
       query: {
         enabled: isLoaded && isSignedIn,
         queryKey: getListOrganizationsQueryKey(),
+        meta: { debugLabel: "usePostAuthRedirect:listOrganizations" },
       },
     },
   );
@@ -225,6 +228,7 @@ function usePostAuthRedirect() {
     query: {
       enabled: isLoaded && isSignedIn,
       queryKey: getGetOnboardingProgressQueryKey(),
+      meta: { debugLabel: "usePostAuthRedirect:onboarding" },
     },
   });
 
@@ -371,6 +375,7 @@ function OnboardingStepGuard({
   requiresAuth?: boolean;
   stepPath: Exclude<OnboardingStepPath, "/onboarding" | "/dashboard">;
 }) {
+  useDebugMount("OnboardingStepGuard");
   const [, setLocation] = useLocation();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const {
@@ -383,6 +388,7 @@ function OnboardingStepGuard({
       query: {
         enabled: isAuthLoaded && isSignedIn,
         queryKey: getListOrganizationsQueryKey(),
+        meta: { debugLabel: "OnboardingStepGuard:listOrganizations" },
       },
     },
   );
@@ -394,6 +400,7 @@ function OnboardingStepGuard({
     query: {
       enabled: isAuthLoaded && isSignedIn,
       queryKey: getGetOnboardingProgressQueryKey(),
+      meta: { debugLabel: "OnboardingStepGuard:onboarding" },
     },
   });
 
@@ -448,13 +455,20 @@ function OnboardingStepGuard({
  * Uses React Query cache (already loaded by AppLayout) so no extra fetch.
  */
 function WorkspaceGuard({ component: Component }: { component: React.ComponentType }) {
+  useDebugMount("WorkspaceGuard");
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
-  const { data: orgs, isLoading, isFetching } = useListOrganizations();
+  const { data: orgs, isLoading, isFetching } = useListOrganizations(undefined, {
+    query: {
+      queryKey: getListOrganizationsQueryKey(),
+      meta: { debugLabel: "WorkspaceGuard:listOrganizations" },
+    },
+  });
   const { currentOrgId } = useCurrentOrganization();
   const { data: onboarding, isLoading: onboardingLoading } = useGetOnboardingProgress({
     query: {
       enabled: isAuthLoaded && isSignedIn,
       queryKey: getGetOnboardingProgressQueryKey(),
+      meta: { debugLabel: "WorkspaceGuard:onboarding" },
     },
   });
   const { isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin();

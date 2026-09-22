@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@clerk/react";
 import { ApiError, customFetch } from "@workspace/api-client-react";
+import { useDebugMount } from "@/lib/requestDebug";
 
 export type OrganizationSubscription = {
   mode: string;
@@ -128,6 +129,7 @@ function isRetryableStatusError(error: unknown) {
 }
 
 export function useOrganizationSubscription(orgId: number | null | undefined) {
+  useDebugMount("useOrganizationSubscription");
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [subscription, setSubscription] = useState<OrganizationSubscription | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(Boolean(orgId));

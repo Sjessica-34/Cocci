@@ -1,5 +1,12 @@
 import { QueryClient, QueryCache, MutationCache } from "@tanstack/react-query";
 import { ApiError } from "@workspace/api-client-react";
+import {
+  installRequestDebug,
+  recordQueryFetch,
+  recordQueryObserver,
+} from "./requestDebug";
+
+installRequestDebug();
 
 function handle402(error: unknown): void {
   if (error instanceof ApiError && error.status === 402) {
@@ -29,3 +36,23 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+if (import.meta.env.DEV) {
+  queryClient.getQueryCache().subscribe((event) => {
+    const query = event.query;
+    if (event.type === "observerAdded" || event.type === "observerRemoved") {
+      const observer = event.observer as {
+        options?: { meta?: { debugLabel?: string } };
+      };
+      recordQueryObserver(
+        event.type === "observerAdded" ? "added" : "removed",
+        query.queryKey,
+        observer.options?.meta?.debugLabel,
+      );
+    }
+    if (event.type === "updated") {
+      const action = (event as { action?: { type?: string } }).action?.type;
+      if (action === "fetch") recordQueryFetch(query.queryKey, action);
+    }
+  });
+}
