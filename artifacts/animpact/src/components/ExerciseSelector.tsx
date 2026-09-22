@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useListExercises,
   useAdvanceExercise,
@@ -47,7 +47,6 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
   const { currentExerciseId, setCurrentExercise } = useCurrentExercise();
   const [allOpen, setAllOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const autoSelectEffectRunsRef = useRef(0);
 
   const advanceMutation = useAdvanceExercise();
 
@@ -62,36 +61,14 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
   // Also invalidates all queries so data is refetched with the corrected
   // exercise ID (avoids "Exercise not found" 400s from stale localStorage).
   useEffect(() => {
-    const effectRun = autoSelectEffectRunsRef.current + 1;
-    autoSelectEffectRunsRef.current = effectRun;
     const activeExercise =
       exercises?.find((exercise) => exercise.status === "active")
       ?? exercises?.[0]
       ?? null;
-    console.info("[429-debug] ExerciseSelector:auto-select-effect", JSON.stringify({
-      effectRun,
-      orgId,
-      currentExerciseId,
-      exerciseIds: exercises?.map((exercise) => exercise.id) ?? null,
-      activeExerciseId: activeExercise?.id ?? null,
-      hasExercises: Boolean(exercises && exercises.length > 0),
-    }));
 
     if (!exercises || exercises.length === 0 || !activeExercise) return;
     if (!exercises.some((e) => e.id === currentExerciseId)) {
-      console.info("[429-debug] ExerciseSelector:setCurrentExercise", JSON.stringify({
-        effectRun,
-        orgId,
-        currentExerciseId,
-        activeExerciseId: activeExercise.id,
-      }));
       setCurrentExercise(activeExercise.id);
-      console.info("[429-debug] ExerciseSelector:invalidateQueries", JSON.stringify({
-        effectRun,
-        orgId,
-        currentExerciseId,
-        activeExerciseId: activeExercise.id,
-      }));
       qc.invalidateQueries();
     }
   }, [exercises, currentExerciseId, setCurrentExercise, qc]);
