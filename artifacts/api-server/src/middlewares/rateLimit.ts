@@ -97,7 +97,7 @@ function logGeneralLimitDebug(
 
   logger.warn(
     {
-      ip: req.ip,
+      ip,
       originalUrl: req.originalUrl,
       currentCount,
       maxAllowed,
@@ -109,7 +109,7 @@ function logGeneralLimitDebug(
   );
   logger.warn(
     {
-      ip: req.ip,
+      ip,
       summary,
     },
     "[generalLimiter-debug] 429 summary",
@@ -130,7 +130,7 @@ const generalRateLimit = rateLimit({
     if (debugGeneralLimiter) {
       logGeneralLimitDebug(
         req as RateLimitRequest,
-        debugWindowsByIp.get(req.ip),
+        debugWindowsByIp.get(req.ip ?? req.socket.remoteAddress ?? "unknown"),
         options,
       );
     }
