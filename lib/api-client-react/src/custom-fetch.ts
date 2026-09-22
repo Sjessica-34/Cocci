@@ -8,15 +8,7 @@ export type BodyType<T> = T;
 
 export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
-type RequestDebugBridge = {
-  recordRequest?: (record: {
-    method: string;
-    url: string;
-    status: number | null;
-    durationMs: number;
-    error?: string;
-  }) => void;
-};
+let debugAfterFirst429 = false;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
@@ -349,6 +341,9 @@ export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
 ): Promise<T> {
+  const debugTrace = debugAfterFirst429
+    ? new Error("customFetch caller stack").stack
+    : null;
   input = applyBaseUrl(input);
   const {
     responseType = "auto",
@@ -393,38 +388,19 @@ export async function customFetch<T = unknown>(
   }
 
   const requestInfo = { method, url: resolveUrl(input) };
-
-  const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
-  let response: Response;
-  try {
-    response = await fetch(input, { ...init, method, headers });
-  } catch (error) {
-    const debug = (globalThis as typeof globalThis & {
-      __ANIMPACT_REQUEST_DEBUG__?: RequestDebugBridge;
-    }).__ANIMPACT_REQUEST_DEBUG__;
-    debug?.recordRequest?.({
-      method,
-      url: requestInfo.url,
-      status: null,
-      durationMs: Math.round(
-        (typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt,
-      ),
-      error: error instanceof Error ? error.name : String(error),
-    });
-    throw error;
+  if (debugAfterFirst429 && typeof console !== "undefined") {
+    console.group("[429-debug]");
+    console.log(requestInfo.url);
+    console.trace();
+    if (debugTrace) console.log(debugTrace);
+    console.groupEnd();
   }
 
-  const debug = (globalThis as typeof globalThis & {
-    __ANIMPACT_REQUEST_DEBUG__?: RequestDebugBridge;
-  }).__ANIMPACT_REQUEST_DEBUG__;
-  debug?.recordRequest?.({
-    method,
-    url: requestInfo.url,
-    status: response.status,
-    durationMs: Math.round(
-      (typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt,
-    ),
-  });
+  const response = await fetch(input, { ...init, method, headers });
+
+  if (response.status === 429) {
+    debugAfterFirst429 = true;
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
