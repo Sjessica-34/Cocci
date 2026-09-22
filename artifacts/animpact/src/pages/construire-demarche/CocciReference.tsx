@@ -1,11 +1,9 @@
 import { AppLayout } from "@/components/layout";
-import { useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
   BarChart3,
   Building2,
-  Check,
   CircleHelp,
   FileText,
   Handshake,
@@ -88,27 +86,22 @@ function LeafHero() {
   );
 }
 
-function VideoThumbnail({ videoOpen, onOpen }: { videoOpen: boolean; onOpen: () => void }) {
+function VideoThumbnail() {
   return (
-    <div className="relative aspect-[1.75] overflow-hidden rounded-[5px] border border-[#bfd8c9] bg-[#b7d7bc] shadow-[0_5px_12px_rgba(35,80,58,.12)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(251,255,240,.9),transparent_27%),linear-gradient(180deg,#cce6c9 0%,#a7cfaa 47%,#6f9f73 48%,#396f55 100%)]" />
-      <div className="absolute bottom-0 left-[-4%] h-[55%] w-[110%] bg-[#5d956b] [clip-path:polygon(0_55%,12%_22%,24%_48%,36%_5%,50%_45%,66%_10%,79%_50%,91%_18%,100%_43%,100%_100%,0_100%)]" />
-      <div className="absolute bottom-0 left-0 h-[45%] w-[115%] bg-[#3e765a] [clip-path:polygon(0_46%,18%_15%,34%_50%,49%_25%,67%_57%,84%_17%,100%_45%,100%_100%,0_100%)]" />
-      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-        <button type="button" onClick={onOpen} aria-label={videoOpen ? "Fermer le message vidéo" : "Regarder la vidéo"} className="flex h-14 w-14 items-center justify-center rounded-full bg-[#104e47] text-white shadow-lg transition-transform hover:scale-105">
-          {videoOpen ? <Check className="h-6 w-6" /> : <Play className="ml-1 h-6 w-6 fill-current" />}
-        </button>
-        <span className="mt-2 text-[10px] font-semibold text-[#104e47]">{videoOpen ? "À très vite !" : "Cocci"}</span>
-      </div>
-      <span className="absolute bottom-2 left-3 text-[9px] font-semibold text-white/90">▶ 0:00 / 2:30</span>
-      <span className="absolute bottom-2 right-3 text-[9px] text-white/90">◧ ⛶</span>
+    <div id="video-player" className="relative aspect-[1.75] overflow-hidden rounded-[5px] border border-[#bfd8c9] bg-[#b7d7bc] shadow-[0_5px_12px_rgba(35,80,58,.12)]">
+      <iframe
+        className="absolute inset-0 h-full w-full"
+        src="https://www.youtube-nocookie.com/embed/Nr1Vn7CBa90?rel=0&modestbranding=1"
+        title="Découvrez comment construire votre démarche RSE avec Cocci"
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
     </div>
   );
 }
 
 export function ConstruireDemarche() {
-  const [videoOpen, setVideoOpen] = useState(false);
-
   return (
     <AppLayout>
       <main className="min-h-screen bg-[#fffefa] font-['DM_Sans'] text-[#173e3d]">
@@ -213,12 +206,12 @@ export function ConstruireDemarche() {
               <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#28735d]">Place à la pratique</p>
               <h2 className="mt-2 max-w-[350px] font-['Fraunces'] text-[23px] font-semibold leading-[1.02] tracking-[-0.035em]">Découvrez comment construire votre démarche RSE avec Cocci</h2>
               <p className="mt-3 max-w-[350px] text-[10px] leading-4 text-[#5c716b]">Cocci vous guide étape par étape pour passer de l’envie d’agir à une démarche structurée, cohérente et mesurable.</p>
-              <button type="button" onClick={() => setVideoOpen((open) => !open)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#176052] px-4 py-2.5 text-[10px] font-bold text-white transition-transform hover:-translate-y-0.5">
+              <button type="button" onClick={() => document.getElementById("video-player")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#176052] px-4 py-2.5 text-[10px] font-bold text-white transition-transform hover:-translate-y-0.5">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20"><Play className="ml-0.5 h-3 w-3 fill-current" /></span>
-                {videoOpen ? "Fermer la vidéo" : "Regarder la vidéo"}
+                Regarder la vidéo
               </button>
             </div>
-            <VideoThumbnail videoOpen={videoOpen} onOpen={() => setVideoOpen((open) => !open)} />
+            <VideoThumbnail />
           </section>
 
           <footer className="flex items-center justify-between gap-3 pt-5 text-[9px] text-[#6e8079]">
