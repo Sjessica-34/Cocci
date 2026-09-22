@@ -17,6 +17,7 @@ import {
   useGetDiagnosticScores,
   useGetDashboardSummary,
   useGetImpactScoreResult,
+  ApiError,
   type DiagnosticSubcategoryScore,
   type DashboardSummary,
   type DashboardIndicator,
@@ -294,7 +295,15 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   const { data: impactData, isLoading: impactLoading } = useGetImpactScoreResult(orgId);
 
   // ── Ligne 3 ────────────────────────────────────────────────────────────────
-  const { data: carbon,       isLoading: carbonLoading } = useGetCarbonBilan(orgId);
+  const { data: carbon,       isLoading: carbonLoading } = useGetCarbonBilan(orgId, {
+    query: {
+      queryKey: [`/api/organizations/${orgId}/carbon`],
+      retry: (failureCount, error) => {
+        if (error instanceof ApiError && error.status === 404) return false;
+        return failureCount < 1;
+      },
+    },
+  });
   const { data: bioDeps,      isLoading: bioLoading    } = useListBioDependencies(orgId);
   const { data: stakeholders, isLoading: stakeLoading  } = useListStakeholders(orgId);
   const { data: suppliers,    isLoading: suppLoading   } = useListSuppliers(orgId);
