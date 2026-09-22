@@ -343,7 +343,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               className="w-full justify-start px-2 h-auto py-2 hover:bg-sidebar-accent/50"
             >
               <Avatar className="h-8 w-8 mr-3 border border-sidebar-border shrink-0">
-                <AvatarImage src={user?.imageUrl} />
+                <AvatarImage src={user?.imageUrl} alt="" />
                 <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
                   {displayInitial}
                 </AvatarFallback>

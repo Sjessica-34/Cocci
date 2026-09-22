@@ -108,7 +108,7 @@ export function ChapterTempsForts({ data, chapterNum }: { data: ReportData; chap
                           <AuthenticatedReportImage
                             key={pi}
                             source={url}
-                            alt={`Photo ${pi + 1}`}
+                            alt={`${String(h.title ?? "Moment fort")} — photo ${pi + 1}`}
                             style={{
                               height: 140, width: "auto", maxWidth: "48%",
                               borderRadius: 8, objectFit: "cover",

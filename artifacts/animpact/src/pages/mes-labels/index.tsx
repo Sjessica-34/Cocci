@@ -62,7 +62,7 @@ function LogoDisplay({ logoUrl, name, index, size = "md" }: { logoUrl: string | 
     return (
       <img
         src={logoUrl}
-        alt={name ?? "Logo"}
+        alt={name ? `Logo du label ${name}` : ""}
         className={cn("rounded-lg object-contain border bg-white p-1", sizeClass)}
         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
       />
@@ -327,7 +327,7 @@ export function MesLabels() {
               <div className="flex items-center gap-3">
                 <div className="shrink-0">
                   {logoPreview
-                    ? <img src={logoPreview} alt="Logo" className="h-12 w-12 rounded-lg object-contain border bg-white p-1" onError={() => setLogoPreview("")} />
+                    ? <img src={logoPreview} alt={form.name ? `Logo du label ${form.name}` : ""} className="h-12 w-12 rounded-lg object-contain border bg-white p-1" onError={() => setLogoPreview("")} />
                     : <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center"><Award className="h-6 w-6 text-slate-400" /></div>}
                 </div>
                 <Input

@@ -293,7 +293,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                 className="w-full justify-start px-2 h-auto py-2 hover:bg-sidebar-accent/50 gap-2.5"
               >
                 <Avatar className="h-8 w-8 shrink-0 border border-sidebar-border">
-                  <AvatarImage src={user?.imageUrl} />
+                  <AvatarImage src={user?.imageUrl} alt="" />
                   <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
                     {initial}
                   </AvatarFallback>
@@ -358,7 +358,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2.5 h-9 px-2">
                 <Avatar className="h-7 w-7 border border-border">
-                  <AvatarImage src={user?.imageUrl} />
+                  <AvatarImage src={user?.imageUrl} alt="" />
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                     {initial}
                   </AvatarFallback>

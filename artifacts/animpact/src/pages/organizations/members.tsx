@@ -329,7 +329,7 @@ export function OrganizationMembers() {
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <Avatar className="h-9 w-9 border border-border shrink-0">
-                          <AvatarImage src={member.user?.avatarUrl || ""} />
+                          <AvatarImage src={member.user?.avatarUrl || ""} alt="" />
                           <AvatarFallback className="bg-primary/10 text-primary text-sm">
                             {displayName.charAt(0).toUpperCase()}
                           </AvatarFallback>

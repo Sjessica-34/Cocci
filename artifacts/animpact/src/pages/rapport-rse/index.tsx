@@ -241,7 +241,7 @@ function HighlightEditor({ items, onChange, orgId }: {
               <div className="flex items-center gap-2">
                 <img
                   src={hl.photos[0]}
-                  alt="aperçu"
+                  alt={`Aperçu de la photo${hl.title ? ` : ${hl.title}` : ""}`}
                   className="h-10 w-14 object-cover rounded border"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />

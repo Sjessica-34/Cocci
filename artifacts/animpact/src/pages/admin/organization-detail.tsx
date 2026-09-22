@@ -557,7 +557,7 @@ function MembersTab({ orgId }: { orgId: number }) {
             <div key={m.id} className={cn("flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-4 transition-colors", isSuspended ? "bg-rose-50/30" : "hover:bg-muted/30")}>
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <Avatar className={cn("h-10 w-10 shrink-0 border", isSuspended ? "opacity-50 grayscale" : "border-border")}>
-                  <AvatarImage src={m.user.avatarUrl || ""} />
+                  <AvatarImage src={m.user.avatarUrl || ""} alt="" />
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
                     {displayName.charAt(0).toUpperCase()}
                   </AvatarFallback>

@@ -91,7 +91,7 @@ function LabelsEncart({ labels, orgId }: { labels: Label[]; orgId: number }) {
                   className="flex items-center gap-2 bg-white border border-amber-200 rounded-lg px-3 py-2 shadow-sm"
                 >
                   {label.logoUrl ? (
-                    <img src={label.logoUrl} alt={label.name ?? "Logo"} className="h-7 w-7 rounded object-contain border bg-white p-0.5" />
+                    <img src={label.logoUrl} alt={label.name ? `Logo du label ${label.name}` : ""} className="h-7 w-7 rounded object-contain border bg-white p-0.5" />
                   ) : (
                     <div className="h-7 w-7 rounded bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0">
                       {label.name ? label.name.charAt(0) : <Award className="h-4 w-4" />}

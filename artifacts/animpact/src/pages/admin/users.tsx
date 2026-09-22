@@ -119,7 +119,7 @@ export function AdminUsers() {
                   <div key={user.id} className="flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                       <Avatar className="h-10 w-10 shrink-0 border border-border">
-                        <AvatarImage src={user.avatarUrl || ""} />
+                        <AvatarImage src={user.avatarUrl || ""} alt="" />
                         <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
                           {displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>

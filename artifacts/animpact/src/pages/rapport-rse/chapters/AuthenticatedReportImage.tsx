@@ -85,6 +85,7 @@ export function AuthenticatedReportImage({
     <img
       {...props}
       src={imageSource}
+      alt={props.alt ?? ""}
       onError={(event) => {
         setHasError(true);
         onError?.(event);
