@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
+import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { frFR } from "@clerk/localizations";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
@@ -79,7 +80,11 @@ import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import { runPostAuthRedirect } from "@/lib/authRedirect";
 import { useDebugMount } from "@/lib/requestDebug";
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function stripBase(path: string): string {
@@ -554,6 +559,7 @@ function ClerkProviderWithRoutes() {
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       localization={clerkLocalization}
       signInUrl={`${basePath}/sign-in`}
