@@ -1,3 +1,4 @@
+import { useAuth } from "@clerk/react";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useDebugMount } from "@/lib/requestDebug";
 
@@ -7,8 +8,10 @@ import { useDebugMount } from "@/lib/requestDebug";
  */
 export function useIsSuperAdmin(): { isSuperAdmin: boolean; isLoading: boolean } {
   useDebugMount("useIsSuperAdmin");
+  const { isLoaded, isSignedIn } = useAuth();
   const { data: user, isLoading } = useGetMe({
     query: {
+      enabled: isLoaded && isSignedIn,
       queryKey: getGetMeQueryKey(),
       staleTime: 0,
       refetchOnMount: true,
@@ -19,6 +22,6 @@ export function useIsSuperAdmin(): { isSuperAdmin: boolean; isLoading: boolean }
 
   return {
     isSuperAdmin: user?.isSuperAdmin === true,
-    isLoading,
+    isLoading: !isLoaded || (isSignedIn === true && isLoading),
   };
 }

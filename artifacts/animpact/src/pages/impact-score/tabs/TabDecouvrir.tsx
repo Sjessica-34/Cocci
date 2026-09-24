@@ -127,7 +127,7 @@ function InfoCard({
       <div className={`inline-flex items-center justify-center w-9 h-9 rounded-lg ${iconBg} mb-3`}>
         {icon}
       </div>
-      <h4 className="text-sm font-semibold text-foreground mb-1.5">{title}</h4>
+      <h3 className="text-sm font-semibold text-foreground mb-1.5">{title}</h3>
       <p className="text-xs text-muted-foreground leading-relaxed">{text}</p>
     </div>
   );

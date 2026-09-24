@@ -244,7 +244,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <>
       {/* Brand */}
       <div className="h-16 flex items-center px-5 border-b border-sidebar-border bg-sidebar shrink-0">
-        <img src={`${import.meta.env.BASE_URL}logo-white.png`} alt="Cocci" className="h-7 w-auto" />
+        <img
+          src={`${import.meta.env.BASE_URL}logo-white.png`}
+          alt="Cocci"
+          width="1442"
+          height="488"
+          className="h-7 w-auto"
+        />
       </div>
 
       <div className="cocci-sidebar-scrollbar flex-1 py-3 px-3 flex flex-col overflow-y-auto">
@@ -272,46 +278,55 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 si > 0 && "mt-2.5 border-t border-sidebar-border/35 pt-2",
               )}
             >
-              <div className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-sidebar-foreground/50">
+              <div className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-sidebar-foreground/70">
                 {section.title}
               </div>
               <div className={cn("flex flex-col", section.groups.length > 1 && "gap-3")}>
                 {section.groups.map((group, gi) => (
                   <div key={`${section.title}-${gi}`} className="flex flex-col">
                     {group.map((item) => (
-                      <Link key={item.href} href={item.href}>
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            "w-full justify-start h-9 px-3 mb-0.5",
-                            isActive(item)
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                          )}
+                      <Button
+                        key={item.href}
+                        asChild
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start h-9 px-3 mb-0.5",
+                          isActive(item)
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                        )}
+                      >
+                        <Link
+                          href={item.href}
+                          aria-current={isActive(item) ? "page" : undefined}
                         >
                           <item.icon className="h-4 w-4 mr-3 shrink-0" />
                           <span className="truncate text-[13px]">{item.label}</span>
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
                     ))}
                   </div>
                 ))}
               </div>
               {section.placeholder && (
-                <Link href={section.placeholder.href}>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start h-9 px-3 mb-0.5 text-[13px]",
-                      isActive(section.placeholder)
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                    )}
+                <Button
+                  asChild
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start h-9 px-3 mb-0.5 text-[13px]",
+                    isActive(section.placeholder)
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                  )}
+                >
+                  <Link
+                    href={section.placeholder.href}
+                    aria-current={isActive(section.placeholder) ? "page" : undefined}
                   >
                     <span className="mr-3 h-4 w-4 shrink-0" aria-hidden="true" />
                     <span className="truncate">{section.placeholder.label}</span>
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               )}
             </div>
           ))}
@@ -322,15 +337,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {isSuperAdmin && (
         <div className="px-3 pb-2">
           <div className="h-px bg-sidebar-border/35 mx-1 mb-2" />
-          <Link href="/admin">
-            <Button
-              variant="ghost"
-              className="w-full justify-start h-9 text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+          <Button
+            asChild
+            variant="ghost"
+            className={cn(
+              "w-full justify-start h-9",
+              location.startsWith("/admin")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+            )}
+          >
+            <Link
+              href="/admin"
+              aria-current={location.startsWith("/admin") ? "page" : undefined}
             >
               <Wrench className="h-4 w-4 mr-3" />
               Administration
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -352,11 +376,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <span className="text-sm font-medium text-sidebar-foreground truncate w-full text-left">
                   {displayName}
                 </span>
-                <span className="text-xs text-sidebar-foreground/50 truncate w-full text-left">
+                <span className="text-xs text-sidebar-foreground/70 truncate w-full text-left">
                   {user?.emailAddresses[0]?.emailAddress}
                 </span>
               </div>
-              <ChevronDown className="h-4 w-4 text-sidebar-foreground/50 shrink-0 ml-1" />
+              <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 shrink-0 ml-1" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -448,7 +472,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Mobile header */}
       <header className="md:hidden h-14 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-50 shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <img src={`${import.meta.env.BASE_URL}logo-dark.png`} alt="Cocci" className="h-6 w-auto" />
+          <img
+            src={`${import.meta.env.BASE_URL}logo-dark.png`}
+            alt="Cocci"
+            width="1442"
+            height="488"
+            className="h-6 w-auto"
+          />
           {!isAdminRoute && !isOnboardingRoute && (
             <div className="min-w-0 flex-1">
               <GroupSwitcher mobile />

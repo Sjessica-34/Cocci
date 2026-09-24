@@ -459,6 +459,7 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const { data: orgs, isLoading, isFetching } = useListOrganizations(undefined, {
     query: {
+      enabled: isAuthLoaded && isSignedIn,
       queryKey: getListOrganizationsQueryKey(),
       meta: { debugLabel: "WorkspaceGuard:listOrganizations" },
     },
@@ -487,7 +488,9 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
       setCurrentOrg(rootOrg.id);
     }
   }, [currentOrgId, orgs, rootOrg]);
-  const subscriptionOrgId = rootOrg?.id ?? currentOrgId ?? orgs?.[0]?.id ?? null;
+  const subscriptionOrgId = isAuthLoaded && isSignedIn
+    ? rootOrg?.id ?? currentOrgId ?? orgs?.[0]?.id ?? null
+    : null;
   const {
     subscription,
     isLoading: subscriptionLoading,

@@ -30,11 +30,11 @@ export function ImpactScore() {
         {/* Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
           <TabsList className="h-9">
-            <TabsTrigger value="decouvrir" className="gap-1.5 text-xs">
+            <TabsTrigger value="decouvrir" className="gap-1.5 text-xs text-slate-700 dark:text-slate-300">
               <Sparkles className="h-3.5 w-3.5" />
               Découvrir
             </TabsTrigger>
-            <TabsTrigger value="resultat" className="gap-1.5 text-xs">
+            <TabsTrigger value="resultat" className="gap-1.5 text-xs text-slate-700 dark:text-slate-300">
               <Trophy className="h-3.5 w-3.5" />
               Mon résultat
             </TabsTrigger>
