@@ -399,7 +399,7 @@ export function Home() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { icon: FolderOpen, label: "Upload\nde documents" },
+                { icon: FolderOpen, label: "Dépôt\nde documents" },
                 { icon: CheckCircle2, label: "Preuves &\njustificatifs" },
                 { icon: FileText, label: "Guides &\nmodèles" },
                 { icon: Star, label: "Ressources\npratiques" },
