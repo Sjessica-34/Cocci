@@ -69,6 +69,10 @@ import {
 } from "@/pages/onboarding/plans";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  RouteLoadingFallback,
+  WorkspaceRouteLoadingFallback,
+} from "@/components/route-loading";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { setCurrentOrg, setCurrentOrgUser, useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import {
@@ -310,29 +314,16 @@ function SignUpPage() {
 }
 
 function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/dashboard" />
-      </Show>
-      <Show when="signed-out">
-        <Home />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <RouteLoadingFallback message="Préparation de votre espace…" />;
+  return isSignedIn ? <Redirect to="/dashboard" /> : <Home />;
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  return (
-    <>
-      <Show when="signed-in">
-        <Component />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <RouteLoadingFallback />;
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
+  return <Component />;
 }
 
 type OnboardingStepPath =
@@ -446,12 +437,16 @@ function OnboardingStepGuard({
     stepPath,
   ]);
 
-  if (!isAuthLoaded) return null;
+  if (!isAuthLoaded) return <RouteLoadingFallback />;
   if (!isSignedIn) {
     return requiresAuth ? <Redirect to="/sign-in" /> : <Component />;
   }
-  if (isLoading || isFetching || onboardingLoading || onboardingFetching || !orgs || !onboarding) return null;
-  if (targetPath !== stepPath) return null;
+  if (isLoading || isFetching || onboardingLoading || onboardingFetching || !orgs || !onboarding) {
+    return <RouteLoadingFallback message="Chargement de votre parcours…" />;
+  }
+  if (targetPath !== stepPath) {
+    return <RouteLoadingFallback message="Mise à jour de votre parcours…" />;
+  }
   return <Component />;
 }
 
@@ -510,11 +505,19 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
       && hasWorkspaceSubscription
     );
 
-  if (!isAuthLoaded) return null;
+  if (!isAuthLoaded) return <RouteLoadingFallback />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
-  if (isLoading || isFetching || onboardingLoading || subscriptionLoading || !onboarding) return null;
+  if (
+    isLoading
+    || isFetching
+    || onboardingLoading
+    || subscriptionLoading
+    || isSuperAdminLoading
+    || !onboarding
+  ) {
+    return <WorkspaceRouteLoadingFallback />;
+  }
   if (orgs && orgs.length === 0) return <Redirect to="/onboarding" />;
-  if (isSuperAdminLoading || subscriptionLoading) return null;
   if (
     !isSuperAdmin
     && (
@@ -540,17 +543,12 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
 }
 
 function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoaded, isSignedIn } = useAuth();
   const { isSuperAdmin, isLoading } = useIsSuperAdmin();
-  return (
-    <>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-      <Show when="signed-in">
-        {isLoading ? null : isSuperAdmin ? <Component /> : <Redirect to="/dashboard" />}
-      </Show>
-    </>
-  );
+  if (!isLoaded) return <RouteLoadingFallback />;
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
+  if (isLoading) return <RouteLoadingFallback message="Vérification de vos droits…" />;
+  return isSuperAdmin ? <Component /> : <Redirect to="/dashboard" />;
 }
 
 function ClerkProviderWithRoutes() {

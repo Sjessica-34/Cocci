@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { RouteLoadingFallback } from "@/components/route-loading";
 import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
   SUBSCRIPTION_INTENT_SESSION_KEY,
@@ -139,7 +140,7 @@ export function Onboarding() {
   }
 
   if (organizationsLoading || onboardingLoading || (organizations?.length ?? 0) > 0) {
-    return null;
+    return <RouteLoadingFallback message="Préparation de votre parcours…" />;
   }
 
   return (

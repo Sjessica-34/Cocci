@@ -10,6 +10,7 @@ import {
 import { useDebugMount } from "@/lib/requestDebug";
 import type { Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { RouteLoadingFallback } from "@/components/route-loading";
 import {
   Building,
   Plus,
@@ -217,7 +218,7 @@ export function OnboardingFiliales() {
   }
 
   if (!rootOrg) {
-    return null;
+    return <RouteLoadingFallback message="Redirection vers votre organisation…" />;
   }
 
   return (
