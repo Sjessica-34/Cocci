@@ -4,7 +4,9 @@ import { useDebugMount } from "@/lib/requestDebug";
 
 /**
  * Retourne true si l'utilisateur connecté est superadmin.
- * staleTime: 0 garantit un refetch à chaque montage (pas de cache stale).
+ * Réutilise le cache partagé pour éviter un appel /api/users/me à chaque
+ * remontage du layout. Le cache React Query est purgé lors d'un changement
+ * d'utilisateur Clerk.
  */
 export function useIsSuperAdmin(): { isSuperAdmin: boolean; isLoading: boolean } {
   useDebugMount("useIsSuperAdmin");
@@ -13,9 +15,6 @@ export function useIsSuperAdmin(): { isSuperAdmin: boolean; isLoading: boolean }
     query: {
       enabled: isLoaded && isSignedIn,
       queryKey: getGetMeQueryKey(),
-      staleTime: 0,
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
       meta: { debugLabel: "useIsSuperAdmin:getMe" },
     },
   });

@@ -160,7 +160,6 @@ function AddSubsidiaryDialog({
         onSuccess: (newSub) => {
           qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
           setCurrentOrg(newSub.id);
-          qc.invalidateQueries();
           setName("");
           onClose();
         },
@@ -221,7 +220,6 @@ export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
   const { data: orgs = [], isLoading } = useListOrganizations(
     adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
   );
-  const qc = useQueryClient();
   const [, setLocation] = useLocation();
   const [addSubOpen, setAddSubOpen] = useState(false);
   const [groupModeOpen, setGroupModeOpen] = useState(false);
@@ -285,7 +283,6 @@ export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
 
   function switchTo(id: number) {
     setCurrentOrg(id);
-    qc.invalidateQueries();
   }
 
   return (

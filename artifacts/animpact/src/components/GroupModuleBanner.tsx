@@ -2,7 +2,6 @@ import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useListOrganizations } from "@workspace/api-client-react";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
-import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * Bandeau affiché lorsqu'un utilisateur positionné sur une filiale
@@ -12,13 +11,11 @@ import { useQueryClient } from "@tanstack/react-query";
  */
 export function GroupModuleBanner() {
   const { data: orgs = [] } = useListOrganizations();
-  const qc = useQueryClient();
   const rootOrg = orgs.find((o) => !o.parentId);
 
   function switchToGroup() {
     if (rootOrg) {
       setCurrentOrg(rootOrg.id);
-      qc.invalidateQueries();
     }
   }
 

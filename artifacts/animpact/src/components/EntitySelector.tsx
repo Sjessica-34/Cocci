@@ -154,7 +154,6 @@ function OrgItem({
 export function EntitySelector() {
   const { currentOrgId } = useCurrentOrganization();
   const { data: orgs = [] } = useListOrganizations();
-  const qc = useQueryClient();
   const [groupModeOrg, setGroupModeOrg] = useState<Organization | null>(null);
 
   const currentOrg = orgs.find((o) => o.id === currentOrgId) ?? null;
@@ -167,7 +166,6 @@ export function EntitySelector() {
   function switchEntity(org: Organization) {
     if (org.id === currentOrgId) return;
     setCurrentOrg(org.id);
-    qc.invalidateQueries();
 
     // If switching to a group that has subsidiaries but no groupMode set, prompt
     if (org.type === "groupe" && !org.groupMode) {

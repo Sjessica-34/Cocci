@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useAuth } from "@clerk/react";
 import { ApiError, customFetch } from "@workspace/api-client-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebugMount } from "@/lib/requestDebug";
 
 export type OrganizationSubscription = {
@@ -128,129 +129,140 @@ function isRetryableStatusError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
-export function useOrganizationSubscription(orgId: number | null | undefined) {
-  useDebugMount("useOrganizationSubscription");
-  const { isLoaded, isSignedIn, getToken } = useAuth();
-  const [subscription, setSubscription] = useState<OrganizationSubscription | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(Boolean(orgId));
-  const [error, setError] = useState<Error | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+async function loadOrganizationSubscription(
+  orgId: number,
+  getToken: ClerkTokenGetter,
+): Promise<OrganizationSubscription> {
+  const loadController = new AbortController();
+  let loadTimedOut = false;
+  const loadTimeoutId = window.setTimeout(() => {
+    loadTimedOut = true;
+    loadController.abort();
+  }, LOAD_TIMEOUT_MS);
 
-  const refresh = useCallback(() => {
-    setRefreshKey((value) => value + 1);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadTimeoutId = window.setTimeout(() => {
-      cancelled = true;
-      setSubscription(undefined);
-      setError(new SubscriptionStatusTimeoutError(
-        "La vérification de votre abonnement a pris trop de temps.",
-      ));
-      setIsLoading(false);
-    }, LOAD_TIMEOUT_MS);
-
-    if (!orgId) {
-      window.clearTimeout(loadTimeoutId);
-      setSubscription(undefined);
-      setIsLoading(false);
-      setError(null);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    if (!isLoaded || !isSignedIn) {
-      setSubscription(undefined);
-      setIsLoading(true);
-      setError(null);
-      return () => {
-        cancelled = true;
-        window.clearTimeout(loadTimeoutId);
-      };
-    }
-
-    async function loadSubscription() {
-      setIsLoading(true);
-      setError(null);
-      setSubscription(undefined);
-
-      let lastError: Error | null = null;
-      for (let requestAttempt = 0; requestAttempt < MAX_REQUEST_ATTEMPTS; requestAttempt += 1) {
-        let token: string;
-        try {
-          token = await waitForClerkToken(
-            getToken,
-            () => cancelled,
-            requestAttempt > 0,
+  try {
+    let lastError: Error | null = null;
+    for (let requestAttempt = 0; requestAttempt < MAX_REQUEST_ATTEMPTS; requestAttempt += 1) {
+      let token: string;
+      try {
+        token = await waitForClerkToken(
+          getToken,
+          () => loadController.signal.aborted,
+          requestAttempt > 0,
+        );
+      } catch (err) {
+        if (loadTimedOut) {
+          throw new SubscriptionStatusTimeoutError(
+            "La vérification de votre abonnement a pris trop de temps.",
           );
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error("Subscription status unavailable");
+        }
+        lastError = err instanceof Error ? err : new Error("Subscription status unavailable");
+        break;
+      }
+
+      if (loadController.signal.aborted) {
+        if (loadTimedOut) {
+          throw new SubscriptionStatusTimeoutError(
+            "La vérification de votre abonnement a pris trop de temps.",
+          );
+        }
+        throw new DOMException("Subscription check cancelled.", "AbortError");
+      }
+
+      try {
+        const requestController = new AbortController();
+        const abortRequest = () => requestController.abort();
+        loadController.signal.addEventListener("abort", abortRequest, { once: true });
+        const requestTimeoutId = window.setTimeout(
+          () => requestController.abort(),
+          REQUEST_TIMEOUT_MS,
+        );
+        let data: { subscription: OrganizationSubscription };
+        try {
+          data = await customFetch<{ subscription: OrganizationSubscription }>(
+            `/api/organizations/${orgId}/subscription`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+              signal: requestController.signal,
+            },
+          );
+        } finally {
+          window.clearTimeout(requestTimeoutId);
+          loadController.signal.removeEventListener("abort", abortRequest);
+        }
+        return data.subscription ?? null;
+      } catch (err) {
+        if (loadTimedOut) {
+          throw new SubscriptionStatusTimeoutError(
+            "La vérification de votre abonnement a pris trop de temps.",
+          );
+        }
+        lastError = err instanceof Error ? err : new Error("Subscription status unavailable");
+        // Les refus d'accès restent visibles. Une erreur 401/5xx ou un
+        // timeout réseau peut en revanche être retenté avec un token frais.
+        if (
+          !isRetryableStatusError(err)
+          || requestAttempt >= MAX_REQUEST_ATTEMPTS - 1
+        ) {
           break;
         }
-
-        if (cancelled) return;
-
-        try {
-          const controller = new AbortController();
-          const requestTimeoutId = window.setTimeout(
-            () => controller.abort(),
-            REQUEST_TIMEOUT_MS,
-          );
-          let data: { subscription: OrganizationSubscription };
-          try {
-            data = await customFetch<{ subscription: OrganizationSubscription }>(
-              `/api/organizations/${orgId}/subscription`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-                signal: controller.signal,
-              },
-            );
-          } finally {
-            window.clearTimeout(requestTimeoutId);
-          }
-          if (!cancelled) {
-            setSubscription(data.subscription ?? null);
-            setError(null);
-          }
-          return;
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error("Subscription status unavailable");
-          // Les refus d'accès restent visibles. Une erreur 401/5xx ou un
-          // timeout réseau peut en revanche être retenté avec un token frais.
-          if (
-            !isRetryableStatusError(err)
-            || requestAttempt >= MAX_REQUEST_ATTEMPTS - 1
-            || cancelled
-          ) {
-            break;
-          }
-          await wait(AUTH_RETRY_DELAY_MS);
-        }
-      }
-
-      if (!cancelled) {
-        setSubscription(undefined);
-        setError(lastError ?? new Error("Subscription status unavailable"));
+        await wait(AUTH_RETRY_DELAY_MS);
       }
     }
 
-    void loadSubscription().finally(() => {
-      window.clearTimeout(loadTimeoutId);
-      if (!cancelled) setIsLoading(false);
-    });
+    throw lastError ?? new Error("Subscription status unavailable");
+  } finally {
+    window.clearTimeout(loadTimeoutId);
+  }
+}
 
-    return () => {
-      cancelled = true;
-      window.clearTimeout(loadTimeoutId);
-    };
-  }, [getToken, isLoaded, isSignedIn, orgId, refreshKey]);
+function getOrganizationSubscriptionQueryKey(
+  userId: string | null | undefined,
+  orgId: number | null | undefined,
+) {
+  return ["organization-subscription", userId ?? null, orgId ?? null] as const;
+}
+
+export function useOrganizationSubscription(orgId: number | null | undefined) {
+  useDebugMount("useOrganizationSubscription");
+  const { isLoaded, isSignedIn, userId, getToken } = useAuth();
+  const queryClient = useQueryClient();
+  const queryKey = getOrganizationSubscriptionQueryKey(userId, orgId);
+  const hasAuthenticatedOrganization = Boolean(
+    orgId && userId && isLoaded && isSignedIn,
+  );
+  const subscriptionQuery = useQuery<OrganizationSubscription, Error>({
+    queryKey,
+    queryFn: () => loadOrganizationSubscription(orgId!, getToken),
+    enabled: hasAuthenticatedOrganization,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+    meta: { debugLabel: "useOrganizationSubscription" },
+  });
+
+  const refresh = useCallback(() => {
+    if (!hasAuthenticatedOrganization) return;
+    void queryClient.invalidateQueries({
+      queryKey: getOrganizationSubscriptionQueryKey(userId, orgId),
+      exact: true,
+    });
+  }, [hasAuthenticatedOrganization, orgId, queryClient, userId]);
+
+  const isLoading = Boolean(orgId) && (
+    !isLoaded
+    || !isSignedIn
+    || subscriptionQuery.isPending
+    || (subscriptionQuery.isStale && subscriptionQuery.isFetching)
+  );
+  const subscription = subscriptionQuery.error
+    ? undefined
+    : subscriptionQuery.data;
 
   return {
     subscription,
     isLoading,
-    error,
+    error: subscriptionQuery.error ?? null,
     isActive: isActiveStripeSubscription(subscription),
     refresh,
   };

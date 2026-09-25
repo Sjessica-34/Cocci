@@ -4,6 +4,7 @@ import {
   useAdvanceExercise,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { invalidateExerciseScopedQueries } from "@/lib/queryClient";
 import { CalendarRange, ChevronsUpDown, Sparkles, ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,8 +59,8 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
 
   // Default to the most recent exercise when none is selected yet (or the
   // stored one no longer belongs to this organization).
-  // Also invalidates all queries so data is refetched with the corrected
-  // exercise ID (avoids "Exercise not found" 400s from stale localStorage).
+  // Refresh exercise-dependent data with the corrected ID, without refetching
+  // identity, organization-list, onboarding, or billing checks.
   useEffect(() => {
     const activeExercise =
       exercises?.find((exercise) => exercise.status === "active")
@@ -69,16 +70,16 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
     if (!exercises || exercises.length === 0 || !activeExercise) return;
     if (!exercises.some((e) => e.id === currentExerciseId)) {
       setCurrentExercise(activeExercise.id);
-      qc.invalidateQueries();
+      void invalidateExerciseScopedQueries(qc);
     }
   }, [exercises, currentExerciseId, setCurrentExercise, qc]);
 
   function switchExercise(id: number) {
     if (id === currentExerciseId) return;
     setCurrentExercise(id);
-    // Exercise id isn't part of any generated query key, so we invalidate
-    // everything to force every module to refetch under the new scope.
-    qc.invalidateQueries();
+    // Exercise id isn't part of every generated query key, so refresh module
+    // data under the new scope while preserving unrelated guard caches.
+    void invalidateExerciseScopedQueries(qc);
   }
 
   function handleAdvance() {
@@ -87,7 +88,7 @@ export function ExerciseSelector({ orgId }: { orgId: number }) {
       {
         onSuccess: (created) => {
           qc.invalidateQueries({ queryKey: ["/api/organizations", orgId, "exercises"] });
-          qc.invalidateQueries();
+          void invalidateExerciseScopedQueries(qc);
           setCurrentExercise(created.id);
           setConfirmOpen(false);
           toast({ title: `Exercice ${created.year} créé et activé` });

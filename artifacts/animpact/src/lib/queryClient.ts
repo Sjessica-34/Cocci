@@ -29,3 +29,33 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+/**
+ * Exercise IDs are sent in request headers rather than included in every
+ * module query key. Refresh exercise-dependent queries on an exercise switch,
+ * but keep organization, identity, onboarding, and billing checks cached.
+ */
+export function invalidateExerciseScopedQueries(client: QueryClient) {
+  return client.invalidateQueries({
+    predicate: ({ queryKey }) => {
+      const resource = queryKey[0];
+      if (typeof resource !== "string") return true;
+      if (
+        resource.startsWith("/api/users/")
+        || resource === "organization-subscription"
+      ) {
+        return false;
+      }
+      if (resource === "/api/organizations") {
+        return queryKey.length > 2 && queryKey[2] !== "exercises";
+      }
+      if (
+        resource.startsWith("/api/organizations/")
+        && /\/(exercises|subscription)$/.test(resource)
+      ) {
+        return false;
+      }
+      return true;
+    },
+  });
+}
