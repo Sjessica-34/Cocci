@@ -316,16 +316,25 @@ function imageParagraph(image: ReportImage, altText: string): Paragraph {
 // ─── AI helper ────────────────────────────────────────────────────────────────
 
 async function callAI(systemPrompt: string, userPrompt: string, maxTokens = 350): Promise<string | null> {
-  const baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-  const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  if (!baseUrl || !apiKey) return null;
+  const apiKey =
+    process.env.OPENAI_API_KEY ??
+    process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  if (!apiKey) return null;
+  const baseUrl = (
+    process.env.OPENAI_BASE_URL ??
+    process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ??
+    "https://api.openai.com/v1"
+  ).replace(/\/+$/, "");
+  const model =
+    process.env.OPENAI_REPORT_MODEL ??
+    (process.env.OPENAI_API_KEY ? "gpt-4o-mini" : "gpt-5.6-luna");
 
   try {
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "gpt-5.6-luna",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user",   content: userPrompt },

@@ -122,8 +122,6 @@ const generalRateLimit = rateLimit({
   max: 300,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  // En production derrière un proxy/load-balancer, utiliser l'IP réelle
-  ...(isProd ? { trustProxy: 1 } : {}),
   message: { error: "Trop de requêtes. Réessayez dans quelques minutes." },
   skip: (req) => req.path === "/health",
   handler: (req, res, _next, options) => {
@@ -158,7 +156,6 @@ export const sensitiveLimiter = rateLimit({
   max: 10,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  ...(isProd ? { trustProxy: 1 } : {}),
   message: { error: "Trop de requêtes sur cette opération. Réessayez dans quelques minutes." },
 });
 
@@ -168,7 +165,6 @@ export const barometreLimiter = rateLimit({
   max: 60,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  ...(isProd ? { trustProxy: 1 } : {}),
   message: { error: "Trop de réponses envoyées. Réessayez dans quelques minutes." },
 });
 
@@ -178,6 +174,5 @@ export const uploadLimiter = rateLimit({
   max: 20,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  ...(isProd ? { trustProxy: 1 } : {}),
   message: { error: "Trop d'uploads. Réessayez dans quelques minutes." },
 });
