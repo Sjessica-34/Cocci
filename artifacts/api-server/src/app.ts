@@ -1,4 +1,6 @@
 import express, { type Express } from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import Stripe from "stripe";
 import cors from "cors";
 import helmet from "helmet";
@@ -43,7 +45,13 @@ function buildCorsOrigin(): cors.CorsOptions["origin"] {
   };
 }
 
+const isProduction = process.env.NODE_ENV === "production";
 const app: Express = express();
+if (isProduction) {
+  // Infomaniak exposes the visitor IP through one reverse-proxy hop.
+  // express-rate-limit reads this Express setting; it is not a limiter option.
+  app.set("trust proxy", 1);
+}
 
 // ─── Logging HTTP ─────────────────────────────────────────────────────────────
 app.use(
@@ -68,8 +76,8 @@ app.use(
 // ─── Sécurité HTTP ────────────────────────────────────────────────────────────
 app.use(
   helmet({
-    // CSP désactivé ici car le frontend est une SPA sur un autre domaine ;
-    // le configurer à ce niveau bloquerait les réponses API JSON.
+    // Keep CSP disabled until a policy covering the SPA and Clerk assets is
+    // defined; Helmet's other security headers remain enabled.
     contentSecurityPolicy: false,
     // Headers activés par Helmet par défaut :
     // X-Content-Type-Options: nosniff
@@ -120,9 +128,11 @@ app.post(
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
-// ─── Clerk ───────────────────────────────────────────────────────────────────
+// Clerk protects API requests. Static assets and SPA deep links do not need
+// server-side authentication middleware.
 app.use(
-  clerkMiddleware((req) => ({
+  "/api",
+  clerkMiddleware(() => ({
     publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
     secretKey: process.env.CLERK_SECRET_KEY,
   })),
@@ -133,5 +143,39 @@ app.use("/api", generalLimiter);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api", router);
+
+// Infomaniak runs one Node.js process per site. Serve the built SPA from the
+// same origin as the API so browser requests, Clerk redirects, and deep links
+// do not depend on Replit's artifact proxy.
+const frontendDistDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../animpact/dist/public",
+);
+app.use(
+  express.static(frontendDistDir, {
+    index: false,
+    maxAge: isProduction ? "1h" : 0,
+    setHeaders(res, filePath) {
+      if (path.basename(filePath) === "index.html") {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  }),
+);
+app.use((req, res, next) => {
+  if (
+    (req.method !== "GET" && req.method !== "HEAD")
+    || req.path === "/api"
+    || req.path.startsWith("/api/")
+    || !req.accepts("html")
+  ) {
+    next();
+    return;
+  }
+
+  res.sendFile(path.join(frontendDistDir, "index.html"), (error) => {
+    if (error) next(error);
+  });
+});
 
 export default app;
