@@ -337,6 +337,14 @@ export const InviteMemberResponse = zod.object({
 
 
 /**
+ * @summary Find a pending organization invitation for the authenticated account
+ */
+export const GetMyPendingInvitationResponse = zod.object({
+  "organizationId": zod.number().nullable()
+})
+
+
+/**
  * @summary Accept a pending organization invitation for the authenticated account
  */
 export const AcceptOrganizationInvitationParams = zod.object({

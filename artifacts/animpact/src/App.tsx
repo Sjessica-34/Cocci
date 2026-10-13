@@ -205,7 +205,7 @@ function AuthBrand() {
 
 function usePostAuthRedirect(skip = false) {
   useDebugMount("usePostAuthRedirect");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
   const {
     data: organizations,
@@ -251,7 +251,9 @@ function usePostAuthRedirect(skip = false) {
         onboardingFetching,
       },
       {
-        navigate: setLocation,
+        navigate: (path, options) => {
+          if (location !== path) setLocation(path, options);
+        },
         clearOnboardingSession: () => {
           sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
           sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
@@ -267,6 +269,7 @@ function usePostAuthRedirect(skip = false) {
     onboarding,
     onboardingFetching,
     onboardingLoading,
+    location,
     setLocation,
     skip,
   ]);
@@ -324,6 +327,7 @@ function AcceptInvitationPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const [, setLocation] = useLocation();
   const [message, setMessage] = useState("Confirmation de l’invitation…");
+  const acceptRequestStartedRef = useRef(false);
   const organizationId = Number(new URLSearchParams(window.location.search).get("organizationId"));
   const returnPath = `${basePath}/accept-invitation?organizationId=${organizationId}`;
 
@@ -337,6 +341,8 @@ function AcceptInvitationPage() {
       setLocation(`/sign-in?redirect_url=${encodeURIComponent(returnPath)}`);
       return;
     }
+    if (acceptRequestStartedRef.current) return;
+    acceptRequestStartedRef.current = true;
     customFetch<{ organizationId: number; role: string }>(
       `/organizations/${organizationId}/members/accept-invitation`,
       { method: "POST" },
@@ -344,6 +350,7 @@ function AcceptInvitationPage() {
       setCurrentOrg(accepted.organizationId);
       setLocation("/dashboard");
     }).catch(() => {
+      acceptRequestStartedRef.current = false;
       setMessage("Impossible de rattacher ce compte à l’organisation. Connectez-vous avec l’adresse e-mail invitée.");
     });
   }, [isLoaded, isSignedIn, organizationId, returnPath, setLocation]);
@@ -368,17 +375,22 @@ function HomeRedirect() {
   );
 }
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function RouteStatus({ message, error = false }: { message: string; error?: boolean }) {
   return (
-    <>
-      <Show when="signed-in">
-        <Component />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
+    <main className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-center">
+      <p role={error ? "alert" : "status"} className={error ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
+        {message}
+      </p>
+      {error && <button className="text-sm underline" onClick={() => window.location.reload()}>Réessayer</button>}
+    </main>
   );
+}
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <RouteStatus message="Vérification de votre session…" />;
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
+  return <Component />;
 }
 
 type OnboardingStepPath =
@@ -408,7 +420,7 @@ function resolveOnboardingStepPath(
   ) {
     return "/onboarding/abonnement";
   }
-  return "/onboarding";
+  return organizations.length > 0 ? "/dashboard" : "/onboarding";
 }
 
 /**
@@ -492,12 +504,17 @@ function OnboardingStepGuard({
     stepPath,
   ]);
 
-  if (!isAuthLoaded) return null;
+  if (!isAuthLoaded) return <RouteStatus message="Vérification de votre session…" />;
   if (!isSignedIn) {
     return requiresAuth ? <Redirect to="/sign-in" /> : <Component />;
   }
-  if (isLoading || isFetching || onboardingLoading || onboardingFetching || !orgs || !onboarding) return null;
-  if (targetPath !== stepPath) return null;
+  if (isLoading || isFetching || onboardingLoading || onboardingFetching) {
+    return <RouteStatus message="Chargement de votre organisation et de votre parcours…" />;
+  }
+  if (!orgs || !onboarding) {
+    return <RouteStatus message="Le parcours d’organisation n’a pas pu être chargé." error />;
+  }
+  if (targetPath !== stepPath) return <RouteStatus message="Redirection vers la prochaine étape…" />;
   return <Component />;
 }
 
@@ -548,14 +565,24 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
   const onboardingAllowsWorkspace =
     onboarding?.status === "completed"
     || (
+      onboarding?.status === "not_started"
+      && onboarding?.primaryOrganizationId != null
+      && (orgs?.length ?? 0) > 0
+    )
+    || (
       onboarding?.status === "payment_pending"
       && subscription?.status === "trial"
       && hasWorkspaceSubscription
     );
 
-  if (!isAuthLoaded) return null;
+  if (!isAuthLoaded) return <RouteStatus message="Vérification de votre session…" />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
-  if (isLoading || isFetching || onboardingLoading || subscriptionLoading || !onboarding) return null;
+  if (isLoading || isFetching || onboardingLoading || subscriptionLoading) {
+    return <RouteStatus message="Chargement de votre organisation et de votre espace…" />;
+  }
+  if (!orgs || !onboarding) {
+    return <RouteStatus message="Votre organisation n’a pas pu être résolue." error />;
+  }
   if (orgs && orgs.length === 0) return <Redirect to="/onboarding" />;
   if (isSuperAdminLoading || subscriptionLoading) return null;
   if (
@@ -564,7 +591,11 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
       subscriptionError
       || !hasWorkspaceSubscription
     )
-    && (onboarding.status === "completed" || onboarding.status === "payment_pending")
+    && (
+      onboarding.status === "completed"
+      || onboarding.status === "payment_pending"
+      || onboarding.status === "not_started"
+    )
   ) {
     return <Redirect to="/abonnement?reason=subscription_required" />;
   }

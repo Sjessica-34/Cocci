@@ -10,6 +10,8 @@ import {
 } from "@workspace/api-client-react";
 import type { Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@clerk/react";
 import { Building, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +46,15 @@ export function Onboarding() {
       meta: { debugLabel: "Onboarding:onboarding" },
     },
   });
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const pendingInvitationQuery = useQuery({
+    queryKey: ["/api/users/me/pending-invitation"],
+    queryFn: () => customFetch<{ organizationId: number | null }>("/users/me/pending-invitation"),
+    enabled: authLoaded && isSignedIn === true,
+    retry: false,
+  });
   const hasSubmittedRef = useRef(false);
+  const invitationRedirectStartedRef = useRef(false);
 
   const [name, setName] = useState("");
   const [type, setType] = useState<"entreprise" | "groupe">("entreprise");
@@ -52,7 +62,22 @@ export function Onboarding() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (organizationsLoading || onboardingLoading || !onboarding || hasSubmittedRef.current) return;
+    if (
+      organizationsLoading
+      || onboardingLoading
+      || pendingInvitationQuery.isLoading
+      || pendingInvitationQuery.isFetching
+      || pendingInvitationQuery.isError
+      || !onboarding
+      || hasSubmittedRef.current
+    ) return;
+
+    const invitedOrganizationId = pendingInvitationQuery.data?.organizationId;
+    if (invitedOrganizationId && !invitationRedirectStartedRef.current) {
+      invitationRedirectStartedRef.current = true;
+      setLocation(`/accept-invitation?organizationId=${invitedOrganizationId}`, { replace: true });
+      return;
+    }
 
     if (onboarding.status === "completed") {
       sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
@@ -62,6 +87,16 @@ export function Onboarding() {
     }
 
     if (organizations && organizations.length > 0) {
+      if (
+        onboarding.status !== "organization_created"
+        && onboarding.status !== "subsidiaries_configured"
+        && onboarding.status !== "workforce_completed"
+        && onboarding.status !== "subscription_selected"
+        && onboarding.status !== "payment_pending"
+      ) {
+        setLocation("/dashboard", { replace: true });
+        return;
+      }
       const root = organizations.find((organization) => !organization.parentId);
       const nextPath =
         onboarding.status === "organization_created" && root?.type === "groupe"
@@ -71,7 +106,17 @@ export function Onboarding() {
             : "/onboarding/abonnement";
       setLocation(nextPath, { replace: true });
     }
-  }, [onboarding, onboardingLoading, organizations, organizationsLoading, setLocation]);
+  }, [
+    onboarding,
+    onboardingLoading,
+    organizations,
+    organizationsLoading,
+    pendingInvitationQuery.data,
+    pendingInvitationQuery.isError,
+    pendingInvitationQuery.isFetching,
+    pendingInvitationQuery.isLoading,
+    setLocation,
+  ]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -138,8 +183,29 @@ export function Onboarding() {
     }
   }
 
-  if (organizationsLoading || onboardingLoading || (organizations?.length ?? 0) > 0) {
-    return null;
+  if (pendingInvitationQuery.isError) {
+    return (
+      <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 p-6 text-center">
+        <p role="alert" className="max-w-lg text-sm text-destructive">
+          Impossible de vérifier vos invitations. L’onboarding est suspendu pour éviter de créer une seconde organisation.
+        </p>
+        <Button variant="outline" onClick={() => window.location.reload()}>Réessayer</Button>
+      </main>
+    );
+  }
+
+  if (
+    organizationsLoading
+    || onboardingLoading
+    || pendingInvitationQuery.isLoading
+    || pendingInvitationQuery.isFetching
+    || (organizations?.length ?? 0) > 0
+  ) {
+    return (
+      <main className="flex min-h-[100dvh] items-center justify-center p-6 text-sm text-muted-foreground" role="status">
+        Vérification de votre invitation et de votre organisation…
+      </main>
+    );
   }
 
   return (

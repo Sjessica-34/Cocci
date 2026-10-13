@@ -124,6 +124,7 @@ export * from './employmentWorkforceInput';
 export * from './employmentWorkforceResponse';
 export * from './exercise';
 export * from './exerciseStatus';
+export * from './getMyPendingInvitation200';
 export * from './healthStatus';
 export * from './impactScoreResult';
 export * from './impactScoreResultInput';

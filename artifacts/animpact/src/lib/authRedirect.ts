@@ -40,9 +40,12 @@ export function resolvePostAuthRedirect({
 }: PostAuthRedirectInput): PostAuthRedirect {
   if (onboardingStatus !== undefined || hasPrimaryOrganization !== undefined) {
     const isComplete = onboardingStatus === "completed" && hasPrimaryOrganization === true;
+    const isExistingMember = onboardingStatus === "not_started"
+      && hasPrimaryOrganization === true
+      && (organizationCount ?? 0) > 0;
     return {
-      path: isComplete ? "/dashboard" : "/onboarding",
-      clearSubscriptionIntent: isComplete,
+      path: isComplete || isExistingMember ? "/dashboard" : "/onboarding",
+      clearSubscriptionIntent: isComplete || isExistingMember,
     };
   }
 

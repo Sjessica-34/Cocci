@@ -93,6 +93,21 @@ test("un compte existant reprend toujours le dashboard après authentification",
   );
 });
 
+test("un invité lié à une organisation ne repart pas vers la création d'entreprise", () => {
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 1,
+      hasSubscriptionIntent: false,
+      onboardingStatus: "not_started",
+      hasPrimaryOrganization: true,
+    }),
+    {
+      path: "/dashboard",
+      clearSubscriptionIntent: true,
+    },
+  );
+});
+
 test("un nouvel utilisateur avec une intention d'abonnement commence l'onboarding", () => {
   assert.deepEqual(
     resolvePostAuthRedirect({

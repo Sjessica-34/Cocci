@@ -91,10 +91,14 @@ export async function getOrCreateUser(
         .update(membersTable)
         .set({ status: "active" })
         .where(eq(membersTable.id, pendingInvite.member.id));
+      const completedAt = new Date();
       await tx
         .insert(onboardingProgressTable)
-        .values({ userId: accepted.id })
-        .onConflictDoNothing({ target: onboardingProgressTable.userId });
+        .values({ userId: accepted.id, status: "completed", completedAt })
+        .onConflictDoUpdate({
+          target: onboardingProgressTable.userId,
+          set: { status: "completed", completedAt, updatedAt: completedAt },
+        });
       return accepted;
     }
 

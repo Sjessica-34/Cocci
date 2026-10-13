@@ -19,6 +19,12 @@ Une organisation peut envoyer plusieurs invitations tant qu’elle a des sièges
 
 **How to apply:** faire revenir les liens Clerk vers Cocci pour finaliser l’adhésion locale dans la même organisation; autoriser renvoi et annulation depuis la liste des membres et ne jamais ajouter un article Stripe au seul motif d’un renvoi.
 
+Après acceptation d’une invitation Clerk, rattacher l’utilisateur à l’adhésion de l’organisation invitante et marquer son onboarding comme terminé. Une invitation en attente doit être résolue avant les redirections d’onboarding; `not_started` avec une organisation principale n’est pas une demande de création d’entreprise.
+
+**Why:** les comptes invités peuvent commencer avec un état d’onboarding vierge; les traiter comme de nouveaux clients provoque des boucles entre les étapes et peut proposer une organisation en double.
+
+**How to apply:** finaliser l’adhésion et l’état d’onboarding côté serveur, attendre la résolution des données dans les guards et afficher un état de chargement ou d’erreur explicite plutôt qu’une page blanche.
+
 **How to apply:** conserver la validation serveur du prix inclusif de 3 € et synchroniser le quota de membres avec la quantité d’articles sur l’abonnement existant. Une facture `subscription_update` refusée ne doit pas suspendre l’abonnement payé de base : `error_if_incomplete` laisse l’ajustement non appliqué.
 
 Une demande d’ajout doit enregistrer les paramètres exacts de mise à jour avant l’appel Stripe, puis reprendre une tentative en attente avec ces mêmes paramètres et la même clé Stripe. Une autre clé ne doit pas démarrer tant que cette tentative est en attente.

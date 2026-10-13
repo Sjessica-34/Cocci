@@ -9,6 +9,7 @@ import {
   organizationsTable,
   userConsentsTable,
   onboardingProgressTable,
+  organizationInvitationsTable,
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sensitiveLimiter } from "../middlewares/rateLimit";
@@ -87,6 +88,39 @@ router.get("/users/me", requireAuth, async (req, res): Promise<void> => {
   });
 
   res.json(GetMeResponse.parse(user));
+});
+
+router.get("/users/me/pending-invitation", requireAuth, async (req, res): Promise<void> => {
+  const user = await getOrCreateUser(req.clerkUserId!);
+  const [invitation] = await db.select()
+    .from(organizationInvitationsTable)
+    .where(and(
+      eq(organizationInvitationsTable.email, user.email.trim().toLowerCase()),
+      eq(organizationInvitationsTable.status, "pending"),
+    ))
+    .orderBy(desc(organizationInvitationsTable.createdAt))
+    .limit(1);
+
+  if (!invitation || !invitation.memberId) {
+    res.json({ organizationId: null });
+    return;
+  }
+  if (invitation.expiresAt && invitation.expiresAt.getTime() <= Date.now()) {
+    await db.transaction(async (tx) => {
+      await tx.update(organizationInvitationsTable)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(eq(organizationInvitationsTable.id, invitation.id));
+      await tx.update(membersTable)
+        .set({ status: "suspended" })
+        .where(and(
+          eq(membersTable.id, invitation.memberId!),
+          eq(membersTable.status, "invited"),
+        ));
+    });
+    res.json({ organizationId: null });
+    return;
+  }
+  res.json({ organizationId: invitation.organizationId });
 });
 
 router.patch("/users/me", requireAuth, async (req, res): Promise<void> => {

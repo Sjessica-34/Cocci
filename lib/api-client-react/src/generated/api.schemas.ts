@@ -2674,6 +2674,10 @@ export type ListOrganizationsParams = {
 viewAs?: number;
 };
 
+export type GetMyPendingInvitation200 = {
+  organizationId: number | null;
+};
+
 export type AcceptOrganizationInvitation200 = {
   organizationId: number;
   role: string;

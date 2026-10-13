@@ -448,9 +448,11 @@ test("un siège payé est invité puis rattaché à la même organisation après
     emailAddress: "new.person@example.com",
     notify: true,
     ignoreExisting: true,
+    expiresInDays: 30,
     publicMetadata: { cocciOrganizationId: 42, cocciRole: "admin" },
   });
 
+  let onboardingMarkedComplete = false;
   const transaction = {
     execute: async () => undefined,
     select: () => {
@@ -499,9 +501,14 @@ test("un siège payé est invité puis rattaché à la même organisation après
       }),
     }),
     insert: (table: unknown) => ({
-      values: () => ({
+      values: (values: Record<string, unknown>) => ({
         onConflictDoNothing: async () => {
           assert.equal(table, onboardingProgressTable);
+        },
+        onConflictDoUpdate: async ({ set }: { set: Record<string, unknown> }) => {
+          assert.equal(table, onboardingProgressTable);
+          assert.equal(values.status, "completed");
+          onboardingMarkedComplete = set.status === "completed";
         },
       }),
     }),
@@ -528,6 +535,7 @@ test("un siège payé est invité puis rattaché à la même organisation après
   assert.equal(invitationState.members[0]?.organizationId, 42);
   assert.equal(invitationState.members[0]?.role, "admin");
   assert.equal(invitationState.members[0]?.status, "active");
+  assert.equal(onboardingMarkedComplete, true);
   assert.equal(billing.stripeUpdates, 1);
   assert.equal(billing.quantity, 2);
 });

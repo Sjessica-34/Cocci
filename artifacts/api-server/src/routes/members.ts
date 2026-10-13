@@ -1,7 +1,14 @@
 import { Router, type IRouter, type RequestHandler } from "express";
 import { eq, and, count, ne, sql, isNull, lte } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
-import { db, membersTable, usersTable, pool, organizationInvitationsTable } from "@workspace/db";
+import {
+  db,
+  membersTable,
+  usersTable,
+  pool,
+  organizationInvitationsTable,
+  onboardingProgressTable,
+} from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
 import { getPublicAppUrl } from "../appUrl";
@@ -380,6 +387,13 @@ router.post(
       await tx.update(usersTable)
         .set({ primaryOrganizationId: organizationId, updatedAt: new Date() })
         .where(eq(usersTable.id, user.id));
+      const completedAt = new Date();
+      await tx.insert(onboardingProgressTable)
+        .values({ userId: user.id, status: "completed", completedAt })
+        .onConflictDoUpdate({
+          target: onboardingProgressTable.userId,
+          set: { status: "completed", completedAt, updatedAt: completedAt },
+        });
     });
     res.json({ organizationId, role: invitation.role });
   },

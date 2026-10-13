@@ -87,6 +87,7 @@ import type {
   EmploymentWorkforceInput,
   EmploymentWorkforceResponse,
   Exercise,
+  GetMyPendingInvitation200,
   HealthStatus,
   ImpactScoreResult,
   ImpactScoreResultInput,
@@ -1067,6 +1068,83 @@ export const useInviteMember = <TError = ErrorType<void>,
       > => {
       return useMutation(getInviteMemberMutationOptions(options));
     }
+
+export const getGetMyPendingInvitationUrl = () => {
+
+
+
+
+  return `/api/users/me/pending-invitation`
+}
+
+/**
+ * @summary Find a pending organization invitation for the authenticated account
+ */
+export const getMyPendingInvitation = async ( options?: RequestInit): Promise<GetMyPendingInvitation200> => {
+
+  return customFetch<GetMyPendingInvitation200>(getGetMyPendingInvitationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyPendingInvitationQueryKey = () => {
+    return [
+    `/api/users/me/pending-invitation`
+    ] as const;
+    }
+
+
+export const getGetMyPendingInvitationQueryOptions = <TData = Awaited<ReturnType<typeof getMyPendingInvitation>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyPendingInvitation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyPendingInvitationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPendingInvitation>>> = ({ signal }) => getMyPendingInvitation({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyPendingInvitation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyPendingInvitationQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPendingInvitation>>>
+export type GetMyPendingInvitationQueryError = ErrorType<void>
+
+
+/**
+ * @summary Find a pending organization invitation for the authenticated account
+ */
+
+export function useGetMyPendingInvitation<TData = Awaited<ReturnType<typeof getMyPendingInvitation>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyPendingInvitation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyPendingInvitationQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getAcceptOrganizationInvitationUrl = (id: number,) => {
 

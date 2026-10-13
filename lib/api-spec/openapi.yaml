@@ -307,6 +307,26 @@ paths:
         "403":
           description: Forbidden
 
+  /users/me/pending-invitation:
+    get:
+      operationId: getMyPendingInvitation
+      tags: [users]
+      summary: Find a pending organization invitation for the authenticated account
+      responses:
+        "200":
+          description: Pending invitation organization, if one exists
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organizationId]
+                properties:
+                  organizationId:
+                    type: integer
+                    nullable: true
+        "401":
+          description: Unauthorized
+
   /organizations/{id}/members/accept-invitation:
     post:
       operationId: acceptOrganizationInvitation
