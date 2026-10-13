@@ -17,6 +17,9 @@ export function Dashboard() {
   const greeting = user?.firstName ? `Bonjour, ${user.firstName} 👋` : "Bienvenue 👋";
   const rootOrg  = orgs?.find(o => !o.parentId) ?? null;
   const activeOrg = orgs?.find(o => o.id === currentOrgId) ?? rootOrg;
+  // Le dernier espace utilisé est déjà disponible localement : lancer son
+  // dashboard pendant que la liste des organisations se charge.
+  const dashboardOrgId = activeOrg?.id ?? (isLoading ? currentOrgId : null);
 
   return (
     <AppLayout>
@@ -32,7 +35,7 @@ export function Dashboard() {
           )}
         </div>
 
-        {isLoading || !activeOrg ? (
+        {!dashboardOrgId ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
@@ -42,7 +45,7 @@ export function Dashboard() {
             </div>
           </div>
         ) : (
-          <DashboardBody key={activeOrg.id} orgId={activeOrg.id} />
+          <DashboardBody key={dashboardOrgId} orgId={dashboardOrgId} />
         )}
       </div>
     </AppLayout>

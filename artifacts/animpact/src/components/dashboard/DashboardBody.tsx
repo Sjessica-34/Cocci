@@ -311,7 +311,24 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   const { data: employment,   isLoading: empLoading    } = useGetEmploymentResults(orgId);
 
   // ── Ligne 4 : N/N-1 ────────────────────────────────────────────────────────
-  const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary(orgId);
+  // L'agrégat N/N-1 exécute de nombreuses requêtes SQL. Le lancer après les KPI
+  // visibles évite qu'il ne ralentisse les premières cartes du tableau de bord.
+  const coreDashboardReady = ![
+    labelsLoading,
+    actionsLoading,
+    slotsLoading,
+    diagLoading,
+    impactLoading,
+    carbonLoading,
+    bioLoading,
+    stakeLoading,
+    suppLoading,
+    nrLoading,
+    empLoading,
+  ].some(Boolean);
+  const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary(orgId, {
+    query: { enabled: coreDashboardReady },
+  });
   const hasPreviousYear = summary != null && summary.previousYear != null;
   const mods = summary?.modules ?? [];
 
