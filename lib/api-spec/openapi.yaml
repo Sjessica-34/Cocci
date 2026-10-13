@@ -307,6 +307,37 @@ paths:
         "403":
           description: Forbidden
 
+  /organizations/{id}/members/accept-invitation:
+    post:
+      operationId: acceptOrganizationInvitation
+      tags: [members]
+      summary: Accept a pending organization invitation for the authenticated account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invitation accepted and membership activated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organizationId, role]
+                properties:
+                  organizationId:
+                    type: integer
+                  role:
+                    type: string
+        "401":
+          description: Unauthorized
+        "404":
+          description: No matching pending invitation
+        "409":
+          description: Invitation is no longer pending
+
   /organizations/{id}/members/{memberId}:
     patch:
       operationId: updateMember

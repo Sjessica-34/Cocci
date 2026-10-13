@@ -1,0 +1,80 @@
+Le comportement actuel de l’invitation utilisateur n’est pas correct.
+
+Problèmes constatés :
+1. Je ne peux faire qu’une seule invitation.
+2. Je veux pouvoir inviter autant de collaborateurs que possible, dans la limite des sièges disponibles / payés.
+3. L’invitation Clerk renvoie vers une page Clerk, puis l’utilisateur n’est pas correctement ramené dans Cocci.
+4. Le collaborateur invité ne rejoint pas clairement l’organisation Cocci existante.
+5. L’objectif n’est pas seulement d’envoyer une invitation Clerk, mais de rattacher le collaborateur à la même entreprise dans Cocci.
+
+Comportement attendu :
+
+A. Gestion des sièges
+- L’abonnement de base inclut 1 utilisateur.
+- Chaque utilisateur supplémentaire payé dans Stripe ajoute 1 siège disponible.
+- Si maxUsers = 3, alors l’organisation peut avoir jusqu’à 3 utilisateurs au total.
+- Les invitations en attente doivent compter comme des sièges réservés.
+- Tant que le nombre d’utilisateurs actifs + invitations en attente est inférieur à maxUsers, l’administrateur peut inviter un nouveau collaborateur.
+- Si la limite est atteinte, afficher un message :
+  “Vous avez atteint la limite d’utilisateurs de votre abonnement. Ajoutez un siège supplémentaire pour inviter une nouvelle personne.”
+
+B. Flux d’invitation attendu
+Quand l’administrateur clique sur “Inviter un utilisateur” :
+- afficher une modal avec :
+  - adresse e-mail ;
+  - rôle : Administrateur, Membre ou Lecteur ;
+  - bouton “Envoyer l’invitation”.
+- vérifier que l’organisation a assez de sièges disponibles ;
+- créer une invitation liée à l’organisation Cocci actuelle ;
+- envoyer l’invitation à l’adresse e-mail saisie ;
+- stocker l’invitation en base avec :
+  - organizationId ;
+  - email ;
+  - role ;
+  - status : pending / accepted / expired / revoked ;
+  - createdAt ;
+  - invitedByUserId.
+
+C. Acceptation de l’invitation
+Quand le collaborateur clique sur le lien reçu :
+- il doit créer son compte ou se connecter ;
+- puis être redirigé vers Cocci, pas rester bloqué sur une page Clerk générique ;
+- après authentification, il doit être automatiquement rattaché à l’organisation Cocci qui l’a invité ;
+- il doit accéder au même espace entreprise que l’administrateur ;
+- il doit avoir le rôle choisi lors de l’invitation.
+
+D. Redirection après acceptation
+Configurer l’URL de redirection Clerk pour revenir vers Cocci, par exemple :
+- en préprod : https://cocci-1.onrender.com/accept-invitation ou l’URL correcte de l’application frontend ;
+- en prod : https://app.cocci-rse.fr/accept-invitation ou l’URL finale prévue.
+
+Il ne faut pas que l’utilisateur reste sur une page Clerk sans retour clair vers Cocci.
+
+E. Gestion côté Cocci
+Dans la page utilisateurs, afficher :
+- utilisateurs actifs ;
+- invitations en attente ;
+- rôle ;
+- statut ;
+- possibilité de renvoyer une invitation ;
+- possibilité d’annuler une invitation ;
+- nombre de sièges utilisés / sièges disponibles.
+
+Exemple :
+Abonnement : 1 utilisateur inclus
+Utilisateur supplémentaire Stripe x2
+Donc maxUsers = 3
+
+Utilisateurs :
+- dirigeant@entreprise.fr : Propriétaire actif
+- collaborateur1@entreprise.fr : Invitation en attente
+- collaborateur2@entreprise.fr : Actif
+
+Total utilisé : 3 / 3
+
+F. Important
+Ne pas créer une nouvelle entreprise pour l’utilisateur invité.
+Ne pas créer un nouvel abonnement Stripe.
+Ne pas limiter à une seule invitation.
+Ne pas laisser l’utilisateur sur une page Clerk générique.
+Le collaborateur invité doit rejoindre la même organisation Cocci.

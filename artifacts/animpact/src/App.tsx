@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
 import { shadcn } from "@clerk/themes";
 import { frFR } from "@clerk/localizations";
@@ -78,6 +78,7 @@ import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import { runPostAuthRedirect } from "@/lib/authRedirect";
 import { useDebugMount } from "@/lib/requestDebug";
+import { customFetch } from "@workspace/api-client-react";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -202,7 +203,7 @@ function AuthBrand() {
   );
 }
 
-function usePostAuthRedirect() {
+function usePostAuthRedirect(skip = false) {
   useDebugMount("usePostAuthRedirect");
   const [, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
@@ -233,6 +234,7 @@ function usePostAuthRedirect() {
   });
 
   useEffect(() => {
+    if (skip) return;
     runPostAuthRedirect(
       {
         isLoaded,
@@ -266,11 +268,14 @@ function usePostAuthRedirect() {
     onboardingFetching,
     onboardingLoading,
     setLocation,
+    skip,
   ]);
 }
 
 function SignInPage() {
-  usePostAuthRedirect();
+  const redirect = new URLSearchParams(window.location.search).get("redirect_url");
+  const invitationRedirect = redirect?.startsWith(`${basePath}/accept-invitation`) ? redirect : null;
+  usePostAuthRedirect(Boolean(invitationRedirect));
 
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4 py-12">
@@ -279,9 +284,11 @@ function SignInPage() {
         <SignIn
           routing="path"
           path={`${basePath}/sign-in`}
-          signUpUrl={`${basePath}/sign-up`}
-          forceRedirectUrl={`${basePath}/dashboard`}
-          fallbackRedirectUrl={`${basePath}/dashboard`}
+          signUpUrl={invitationRedirect
+            ? `${basePath}/sign-up?redirect_url=${encodeURIComponent(invitationRedirect)}`
+            : `${basePath}/sign-up`}
+          forceRedirectUrl={invitationRedirect ?? `${basePath}/dashboard`}
+          fallbackRedirectUrl={invitationRedirect ?? `${basePath}/dashboard`}
         />
       </div>
     </div>
@@ -292,15 +299,59 @@ function SignUpPage() {
   // A visitor may arrive here from the pricing flow. Once Clerk has finished
   // signing them in, resume organization setup instead of sending them to the
   // dashboard where they would have to find onboarding manually.
-  usePostAuthRedirect();
+  const redirect = new URLSearchParams(window.location.search).get("redirect_url");
+  const invitationRedirect = redirect?.startsWith(`${basePath}/accept-invitation`) ? redirect : null;
+  usePostAuthRedirect(Boolean(invitationRedirect));
 
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-[440px]">
         <AuthBrand />
-        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+        <SignUp
+          routing="path"
+          path={`${basePath}/sign-up`}
+          signInUrl={invitationRedirect
+            ? `${basePath}/sign-in?redirect_url=${encodeURIComponent(invitationRedirect)}`
+            : `${basePath}/sign-in`}
+          forceRedirectUrl={invitationRedirect ?? `${basePath}/dashboard`}
+        />
       </div>
     </div>
+  );
+}
+
+function AcceptInvitationPage() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const [, setLocation] = useLocation();
+  const [message, setMessage] = useState("Confirmation de l’invitation…");
+  const organizationId = Number(new URLSearchParams(window.location.search).get("organizationId"));
+  const returnPath = `${basePath}/accept-invitation?organizationId=${organizationId}`;
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!Number.isInteger(organizationId) || organizationId <= 0) {
+      setMessage("Ce lien d’invitation est invalide.");
+      return;
+    }
+    if (!isSignedIn) {
+      setLocation(`/sign-in?redirect_url=${encodeURIComponent(returnPath)}`);
+      return;
+    }
+    customFetch<{ organizationId: number; role: string }>(
+      `/organizations/${organizationId}/members/accept-invitation`,
+      { method: "POST" },
+    ).then((accepted) => {
+      setCurrentOrg(accepted.organizationId);
+      setLocation("/dashboard");
+    }).catch(() => {
+      setMessage("Impossible de rattacher ce compte à l’organisation. Connectez-vous avec l’adresse e-mail invitée.");
+    });
+  }, [isLoaded, isSignedIn, organizationId, returnPath, setLocation]);
+
+  return (
+    <main className="flex min-h-screen items-center justify-center p-6 text-center">
+      <p className="max-w-lg text-sm text-muted-foreground" role="status">{message}</p>
+    </main>
   );
 }
 
@@ -568,6 +619,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/demo"><Demo /></Route>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/accept-invitation" component={AcceptInvitationPage} />
 
             {/* Onboarding — first-time setup (no AppLayout) */}
             <Route path="/onboarding">

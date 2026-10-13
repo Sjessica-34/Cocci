@@ -1,9 +1,11 @@
 import { Router, type IRouter, type RequestHandler } from "express";
 import { eq, and, count, ne, sql, isNull } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
-import { db, membersTable, usersTable, pool } from "@workspace/db";
+import { db, membersTable, usersTable, pool, organizationInvitationsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
+import { getPublicAppUrl } from "../appUrl";
+import { getOrCreateUser } from "../lib/auth";
 import {
   ListMembersParams,
   ListMembersResponse,
@@ -36,7 +38,17 @@ type InviteMemberDependencies = {
     notify: boolean;
     ignoreExisting: boolean;
     publicMetadata: { cocciOrganizationId: number; cocciRole: string };
+    redirectUrl?: string;
   }): Promise<unknown>;
+  recordInvitation?: (input: {
+    organizationId: number;
+    memberId: number;
+    email: string;
+    role: string;
+    clerkInvitationId: string | null;
+    invitedByUserId: number | null;
+  }) => Promise<void>;
+  getRedirectUrl?: (organizationId: number) => string;
   deleteMembership(memberId: number): Promise<void>;
   deleteUser(userId: number): Promise<void>;
 };
@@ -103,6 +115,19 @@ const inviteMemberDependencies: InviteMemberDependencies = {
   },
   sendInvitation(input) {
     return clerkClient.invitations.createInvitation(input);
+  },
+  getRedirectUrl(organizationId: number) {
+    return `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`;
+  },
+  async recordInvitation(input) {
+    await db.insert(organizationInvitationsTable).values({
+      organizationId: input.organizationId,
+      memberId: input.memberId,
+      email: input.email,
+      role: input.role,
+      clerkInvitationId: input.clerkInvitationId,
+      invitedByUserId: input.invitedByUserId,
+    });
   },
   async deleteMembership(memberId) {
     await db.delete(membersTable).where(eq(membersTable.id, memberId));
@@ -181,7 +206,8 @@ export function createInviteMemberHandler(
     }
 
     try {
-      await dependencies.sendInvitation({
+      const redirectUrl = dependencies.getRedirectUrl?.(organizationId);
+      const clerkInvitation = await dependencies.sendInvitation({
         emailAddress: inviteEmail,
         notify: true,
         ignoreExisting: true,
@@ -189,6 +215,19 @@ export function createInviteMemberHandler(
           cocciOrganizationId: organizationId,
           cocciRole: parsed.data.role,
         },
+        ...(redirectUrl ? { redirectUrl } : {}),
+      });
+      const clerkInvitationId =
+        clerkInvitation && typeof clerkInvitation === "object" && "id" in clerkInvitation
+          ? String(clerkInvitation.id)
+          : null;
+      await dependencies.recordInvitation?.({
+        organizationId,
+        memberId: member.id,
+        email: inviteEmail,
+        role: parsed.data.role,
+        clerkInvitationId,
+        invitedByUserId: req.currentUser?.id ?? null,
       });
     } catch (error) {
       await dependencies.deleteMembership(member.id);
@@ -239,6 +278,47 @@ router.post(
   requireAuth,
   requireMembership(["owner", "admin"]),
   createInviteMemberHandler(),
+);
+
+router.post(
+  "/organizations/:id/members/accept-invitation",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const organizationId = Number(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
+    if (!Number.isInteger(organizationId) || organizationId <= 0) {
+      res.status(400).json({ error: "Invalid organization id" });
+      return;
+    }
+    const user = await getOrCreateUser(req.clerkUserId!);
+    const [invitation] = await db
+      .select()
+      .from(organizationInvitationsTable)
+      .where(and(
+        eq(organizationInvitationsTable.organizationId, organizationId),
+        eq(organizationInvitationsTable.email, user.email.toLowerCase()),
+        eq(organizationInvitationsTable.status, "pending"),
+      ))
+      .limit(1);
+    if (!invitation?.memberId) {
+      res.status(404).json({ error: "Aucune invitation en attente pour ce compte." });
+      return;
+    }
+    await db.transaction(async (tx) => {
+      await tx.update(membersTable)
+        .set({ status: "active" })
+        .where(and(
+          eq(membersTable.id, invitation.memberId!),
+          eq(membersTable.organizationId, organizationId),
+        ));
+      await tx.update(organizationInvitationsTable)
+        .set({ status: "accepted", updatedAt: new Date() })
+        .where(eq(organizationInvitationsTable.id, invitation.id));
+      await tx.update(usersTable)
+        .set({ primaryOrganizationId: organizationId, updatedAt: new Date() })
+        .where(eq(usersTable.id, user.id));
+    });
+    res.json({ organizationId, role: invitation.role });
+  },
 );
 
 router.patch(
