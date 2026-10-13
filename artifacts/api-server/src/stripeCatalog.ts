@@ -126,6 +126,16 @@ export function resolveCheckoutOffer(input: {
   return resolveEffectifOffer(input.effectifKey);
 }
 
+/** Une formule payante est une hausse uniquement si sa capacité augmente. */
+export function isEffectifUpgrade(
+  currentMaxEmployees: number | null | undefined,
+  targetOffer: CatalogOffer | null | undefined,
+): boolean {
+  return currentMaxEmployees != null
+    && targetOffer?.maxEmployees != null
+    && targetOffer.maxEmployees > currentMaxEmployees;
+}
+
 /** Liste des formules configurées, pour les réponses publiques sans IDs Stripe. */
 export function configuredEffectifOffers(): CatalogOffer[] {
   return (Object.keys(EFFECTIF_CATALOG) as EffectifKey[])

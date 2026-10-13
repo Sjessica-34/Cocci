@@ -9,6 +9,7 @@
  */
 import {
   configuredEffectifOffers,
+  isEffectifUpgrade,
   resolveCheckoutOffer,
 } from "../stripeCatalog";
 
@@ -33,6 +34,18 @@ function main(): void {
 
   const firstOffer = resolveCheckoutOffer({ effectifKey: "1-5" });
   assert(firstOffer?.effectifKey === "1-5", "une tranche valide résout une formule");
+  const sixToTenOffer = resolveCheckoutOffer({ effectifKey: "6-10" });
+  const elevenToTwentyFiveOffer = resolveCheckoutOffer({ effectifKey: "11-25" });
+  assert(
+    isEffectifUpgrade(firstOffer?.maxEmployees, sixToTenOffer) &&
+      isEffectifUpgrade(firstOffer?.maxEmployees, elevenToTwentyFiveOffer),
+    "toutes les formules supérieures sont des hausses valides",
+  );
+  assert(
+    !isEffectifUpgrade(sixToTenOffer?.maxEmployees, firstOffer) &&
+      !isEffectifUpgrade(firstOffer?.maxEmployees, firstOffer),
+    "les baisses et le renouvellement de la même formule ne sont pas des hausses",
+  );
 
   assert(
     resolveCheckoutOffer({ effectifKey: "250+" }) === null,

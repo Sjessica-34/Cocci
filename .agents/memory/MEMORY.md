@@ -23,3 +23,4 @@
 - [Tests isolés des routes API](api-route-tests.md) — pour un test bundlé qui importe le logger, utiliser CJS et `NODE_ENV=production` pour éviter les erreurs de worker Pino.
 - [Vérification des références GitHub](github-preprod-ref-verification.md) — après un échec de push, vérifier les hashes distants; ne pas déduire l’état de la branche depuis le HEAD local.
 - [Invitations Clerk préconstruites](clerk-invitation-prebuilt-flow.md) — définir le retour Cocci et y monter `<SignUp />` avec le ticket; préserver l’invitation Clerk puis rattacher l’organisation avant le dashboard.
+- [Hausses de formule Cocci](stripe-plan-upgrades.md) — autoriser toute formule supérieure sur l’abonnement Stripe existant, avec prorata immédiat; interdire les baisses.

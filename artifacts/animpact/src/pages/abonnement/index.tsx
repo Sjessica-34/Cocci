@@ -52,6 +52,7 @@ type Plan = {
 type CheckoutError = {
   code?: string;
   employeeCount?: number;
+  error?: string;
 };
 
 type SeatRemovalError = {
@@ -170,6 +171,15 @@ export function Abonnement() {
   const [removeAdditionalUserLoading, setRemoveAdditionalUserLoading] = useState(false);
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
   const inviteMember = useInviteMember();
+  const activeStripeSubscription =
+    subscription?.mode === "stripe" && subscription.status === "active";
+  const activePlan = plans.find(
+    (plan) => plan.name.trim() === subscription?.offer_name?.trim(),
+  );
+  const activePlanMaxEmployees =
+    (activePlan ? getPlanMaxEmployees(activePlan.key) : null) ??
+    subscription?.max_employees ??
+    null;
 
   useEffect(() => {
     if (currentOrgId) {
@@ -199,9 +209,47 @@ export function Abonnement() {
       organizationError ||
       planTooSmall ||
       subscriptionLoading ||
-      isActive
+      (isActive && !activeStripeSubscription) ||
+      (activeStripeSubscription &&
+        (selectedMaxEmployees === null ||
+          activePlanMaxEmployees === null ||
+          selectedMaxEmployees <= activePlanMaxEmployees))
     ) return;
     setLoadingPlanKey(effectifKey);
+
+    if (activeStripeSubscription) {
+      try {
+        const token = await getToken({ skipCache: true });
+        if (!token) throw new Error("Authentication token unavailable");
+        await customFetch(
+          `/api/organizations/${currentOrgId}/stripe/change-plan`,
+          {
+            method: "POST",
+            body: JSON.stringify({ effectifKey }),
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        await refreshSubscription();
+        alert("Votre formule a été augmentée. Le prorata Stripe sera appliqué immédiatement.");
+      } catch (error) {
+        const changeError = error instanceof ApiError
+          ? (error.data as CheckoutError | null)
+          : null;
+        if (changeError?.code === "PLAN_TOO_SMALL") {
+          alert(`Cette formule ne couvre pas votre effectif de ${changeError.employeeCount ?? "votre organisation"} salarié(s).`);
+        } else if (changeError?.code === "PLAN_NOT_UPGRADE") {
+          alert("Vous pouvez uniquement choisir une formule supérieure à votre formule actuelle.");
+        } else if (changeError?.code === "PLAN_CHANGE_PAYMENT_FAILED") {
+          alert("La hausse n’a pas été appliquée : le paiement du prorata a échoué. Vérifiez votre moyen de paiement Stripe.");
+        } else {
+          alert(changeError?.error ?? "Impossible de modifier votre formule. Réessayez.");
+        }
+      } finally {
+        setLoadingPlanKey(null);
+      }
+      return;
+    }
+
     // Ouvrir l'onglet pendant le clic utilisateur : après l'appel réseau,
     // les navigateurs peuvent bloquer une nouvelle fenêtre depuis l'iframe.
     const checkoutWindow = window.open("about:blank", "cocci-stripe-checkout");
@@ -637,6 +685,11 @@ export function Abonnement() {
             </p>
           </div>
         )}
+        {activeStripeSubscription && (
+          <p className="mb-6 text-sm text-muted-foreground">
+            Les formules supérieures peuvent être appliquées immédiatement. Stripe facture le prorata de la période en cours.
+          </p>
+        )}
         {employeeCountCheckFailed && (
           <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             Impossible de vérifier l&apos;effectif de votre organisation. Les actions de souscription restent
@@ -662,6 +715,16 @@ export function Abonnement() {
                const isCurrentPlan =
                  isActive && subscription?.offer_name?.trim() === plan.name.trim();
               const maxEmployees = getPlanMaxEmployees(plan.key);
+              const isUpgrade =
+                activeStripeSubscription &&
+                activePlanMaxEmployees !== null &&
+                maxEmployees !== null &&
+                maxEmployees > activePlanMaxEmployees;
+              const isLowerPlan =
+                activeStripeSubscription &&
+                activePlanMaxEmployees !== null &&
+                maxEmployees !== null &&
+                maxEmployees < activePlanMaxEmployees;
               const planTooSmall =
                 employeeCount !== null &&
                 maxEmployees !== null &&
@@ -713,13 +776,21 @@ export function Abonnement() {
 
                   <Button
                     onClick={() => price && !unavailable && handleCheckout(plan.key)}
-                    disabled={!price || isLoading || unavailable || isActive}
+                    disabled={
+                      !price ||
+                      isLoading ||
+                      unavailable ||
+                      (isActive && !isUpgrade) ||
+                      (subscription !== undefined &&
+                        subscription !== null &&
+                        !activeStripeSubscription)
+                    }
                     className={`w-full ${isFeatured ? "bg-[#163028] hover:bg-[#1e4438] text-white" : "variant-outline"}`}
                     variant={isFeatured ? "default" : "outline"}
                   >
                     {isLoading ? (
                       <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Redirection…</>
-                     ) : isCurrentPlan ? "Offre en cours" : planTooSmall ? "Effectif trop élevé" : "Choisir cette offre"}
+                     ) : isCurrentPlan ? "Offre en cours" : isLowerPlan ? "Formule inférieure indisponible" : planTooSmall ? "Effectif trop élevé" : isUpgrade ? "Passer à cette offre" : "Choisir cette offre"}
                   </Button>
                 </div>
               );

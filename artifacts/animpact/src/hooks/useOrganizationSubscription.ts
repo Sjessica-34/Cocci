@@ -7,6 +7,7 @@ export type OrganizationSubscription = {
   mode: string;
   status: string;
   offer_name: string | null;
+  max_employees: number | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   end_at: string | null;

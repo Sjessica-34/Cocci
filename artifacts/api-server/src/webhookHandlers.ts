@@ -5,6 +5,7 @@ import { logger } from "./lib/logger";
 import { sendSubscriptionConfirmation } from "./lib/email";
 import { getPublicAppUrl } from "./appUrl";
 import { getStripeObjectId } from "./stripeCheckoutAttempts";
+import { configuredEffectifOffers } from "./stripeCatalog";
 
 type InvoiceSubscriptionReference = {
   subscription?: string | { id: string } | null;
@@ -30,6 +31,8 @@ async function syncCurrentSubscriptionFromStripe(opts: {
   stripeSubscriptionId: string;
   status: string;
   maxUsers: number | null;
+  offerName?: string | null;
+  maxEmployees?: number | null;
 }): Promise<void> {
   const terminalStripeStatuses = new Set([
     "canceled",
@@ -52,11 +55,21 @@ async function syncCurrentSubscriptionFromStripe(opts: {
            WHEN subscriptions.override_max_users IS NULL AND $5::integer IS NOT NULL THEN $5
            ELSE subscriptions.max_users
          END,
+          offer_name = COALESCE($6, subscriptions.offer_name),
+          max_employees = COALESCE($7, subscriptions.max_employees),
          updated_at = NOW()
      WHERE organization_id = $1
        AND stripe_subscription_id = $3
      RETURNING status`,
-    [opts.orgId, opts.stripeCustomerId, opts.stripeSubscriptionId, shouldSuspend, opts.maxUsers],
+    [
+      opts.orgId,
+      opts.stripeCustomerId,
+      opts.stripeSubscriptionId,
+      shouldSuspend,
+      opts.maxUsers,
+      opts.offerName ?? null,
+      opts.maxEmployees ?? null,
+    ],
   );
 
   if (shouldSuspend && result.rowCount) {
@@ -441,6 +454,9 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = getStripeObjectId(sub.customer);
         if (!customerId) break;
+        const currentPlan = configuredEffectifOffers().find((offer) =>
+          (sub.items?.data ?? []).some((item) => item.price.id === offer.priceId),
+        );
         const row = await pool.query<{ organization_id: number }>(
           "SELECT organization_id FROM subscriptions WHERE stripe_subscription_id = $1 LIMIT 1",
           [sub.id],
@@ -452,6 +468,8 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           stripeCustomerId: customerId,
           stripeSubscriptionId: sub.id,
           status: sub.status,
+          offerName: currentPlan?.offerName ?? null,
+          maxEmployees: currentPlan?.maxEmployees ?? null,
           maxUsers: (() => {
             const baseMaxUsers = Number(sub.metadata?.cocciBaseMaxUsers);
             const additionalUserPriceId = process.env.STRIPE_ADDITIONAL_USER_PRICE_ID?.trim();

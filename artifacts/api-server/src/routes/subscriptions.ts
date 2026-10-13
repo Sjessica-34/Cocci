@@ -4,7 +4,11 @@ import { db, onboardingProgressTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
 import { getUncachableStripeClient } from "../stripeClient";
-import { configuredEffectifOffers, resolveCheckoutOffer } from "../stripeCatalog";
+import {
+  configuredEffectifOffers,
+  isEffectifUpgrade,
+  resolveCheckoutOffer,
+} from "../stripeCatalog";
 import type { CatalogOffer } from "../stripeCatalog";
 import { logger } from "../lib/logger";
 import { getPublicAppUrl } from "../appUrl";
@@ -82,6 +86,185 @@ router.get(
     } catch (err) {
       logger.error({ err }, "subscription status error");
       res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ── POST /api/organizations/:orgId/stripe/change-plan ─────────────────────────
+router.post(
+  "/organizations/:orgId/stripe/change-plan",
+  requireAuth,
+  requireOrgRole(["owner", "admin"]),
+  async (req, res): Promise<void> => {
+    const orgId = req.orgId!;
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    if ("priceId" in body || "productId" in body) {
+      res.status(400).json({ error: "Stripe identifiers must not be supplied by the client" });
+      return;
+    }
+
+    const targetOffer = resolveCheckoutOffer({ effectifKey: body.effectifKey });
+    if (!targetOffer?.effectifKey || targetOffer.maxEmployees === null) {
+      res.status(400).json({ code: "INVALID_PLAN", error: "Unsupported plan selection" });
+      return;
+    }
+
+    const client = await pool.connect();
+    let transactionOpen = false;
+    try {
+      const billingOrgId = await getBillingOrganizationId(orgId);
+      await client.query("BEGIN");
+      transactionOpen = true;
+      const currentResult = await client.query<{
+        mode: string;
+        status: string;
+        stripe_subscription_id: string | null;
+        stripe_customer_id: string | null;
+        max_employees: number | null;
+      }>(
+        `SELECT mode, status, stripe_subscription_id, stripe_customer_id, max_employees
+         FROM subscriptions
+         WHERE organization_id = $1
+         FOR UPDATE`,
+        [billingOrgId],
+      );
+      const current = currentResult.rows[0];
+      if (
+        !current ||
+        current.mode !== "stripe" ||
+        current.status !== "active" ||
+        !current.stripe_subscription_id ||
+        !current.stripe_customer_id
+      ) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        res.status(409).json({
+          code: "ACTIVE_STRIPE_SUBSCRIPTION_REQUIRED",
+          error: "An active Stripe subscription is required",
+        });
+        return;
+      }
+
+      const employeeResult = await client.query<{ employee_count: number | null }>(
+        `SELECT COALESCE(
+           o.employee_count,
+           (
+             SELECT ew.total_headcount
+             FROM employment_workforce ew
+             WHERE ew.organization_id = o.id
+             ORDER BY ew.updated_at DESC NULLS LAST, ew.id DESC
+             LIMIT 1
+           )
+         ) AS employee_count
+         FROM organizations o
+         WHERE o.id = $1
+         LIMIT 1`,
+        [billingOrgId],
+      );
+      const employeeCount = employeeResult.rows[0]?.employee_count ?? null;
+      if (employeeCount !== null && employeeCount > targetOffer.maxEmployees) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        res.status(409).json({
+          code: "PLAN_TOO_SMALL",
+          error: "Cette formule ne couvre pas l'effectif déclaré de l'organisation",
+          employeeCount,
+          maxEmployees: targetOffer.maxEmployees,
+        });
+        return;
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const price = await stripe.prices.retrieve(targetOffer.priceId);
+      const targetProductId = typeof price.product === "string" ? price.product : price.product.id;
+      if (
+        !price.active ||
+        targetProductId !== targetOffer.productId ||
+        !price.recurring ||
+        price.recurring.interval !== "month"
+      ) {
+        throw new Error("Configured Stripe price is unavailable");
+      }
+
+      const stripeSubscription = await stripe.subscriptions.retrieve(current.stripe_subscription_id);
+      if (
+        getStripeObjectId(stripeSubscription.customer) !== current.stripe_customer_id ||
+        stripeSubscription.status !== "active"
+      ) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        res.status(409).json({
+          code: "STRIPE_SUBSCRIPTION_NOT_ACTIVE",
+          error: "The Stripe subscription is not active",
+        });
+        return;
+      }
+
+      const configuredOffers = configuredEffectifOffers();
+      const additionalUserPriceId = process.env.STRIPE_ADDITIONAL_USER_PRICE_ID?.trim();
+      const baseItems = stripeSubscription.items.data.filter((item) =>
+        (typeof item.price.product === "string" ? item.price.product : item.price.product.id)
+          === targetProductId &&
+        item.price.id !== additionalUserPriceId,
+      );
+      if (baseItems.length !== 1) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        res.status(409).json({
+          code: "CURRENT_PLAN_UNRESOLVED",
+          error: "The current Cocci plan could not be identified",
+        });
+        return;
+      }
+      const baseItem = baseItems[0];
+      const currentOffer = configuredOffers.find((offer) => offer.priceId === baseItem.price.id);
+      const currentMaxEmployees = currentOffer?.maxEmployees ?? current.max_employees;
+      if (
+        !isEffectifUpgrade(currentMaxEmployees, targetOffer)
+      ) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        res.status(409).json({
+          code: "PLAN_NOT_UPGRADE",
+          error: "Only a higher Cocci plan can be selected",
+        });
+        return;
+      }
+
+      await stripe.subscriptions.update(
+        stripeSubscription.id,
+        {
+          items: [{
+            id: baseItem.id,
+            price: targetOffer.priceId,
+            quantity: baseItem.quantity ?? 1,
+          }],
+          proration_behavior: "always_invoice",
+          payment_behavior: "error_if_incomplete",
+        },
+      );
+
+      await client.query("COMMIT");
+      transactionOpen = false;
+      res.json({
+        success: true,
+        offerName: targetOffer.offerName,
+        maxEmployees: targetOffer.maxEmployees,
+      });
+    } catch (err) {
+      if (transactionOpen) await client.query("ROLLBACK");
+      const statusCode = (err as { statusCode?: unknown }).statusCode;
+      logger.error({ err, orgId, stage: "stripe_plan_change" }, "Stripe plan change failed");
+      if (statusCode === 402) {
+        res.status(402).json({
+          code: "PLAN_CHANGE_PAYMENT_FAILED",
+          error: "Le paiement de la hausse de formule a échoué.",
+        });
+        return;
+      }
+      res.status(500).json({ code: "PLAN_CHANGE_FAILED", error: "Impossible de modifier la formule." });
+    } finally {
+      client.release();
     }
   },
 );
