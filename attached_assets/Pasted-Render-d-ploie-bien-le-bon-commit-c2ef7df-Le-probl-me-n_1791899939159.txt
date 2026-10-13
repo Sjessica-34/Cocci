@@ -1,0 +1,51 @@
+Render déploie bien le bon commit c2ef7df.
+
+Le problème n’est donc pas un mauvais déploiement.
+
+Depuis tes dernières modifications sur les invitations / rôles / gestion des sièges, le flux qui fonctionnait avant est cassé :
+
+POST /api/organizations/1/stripe/additional-user
+→ 403 Forbidden
+→ Response : { "error": "forbidden" }
+
+Avant tes modifications, l’ajout du siège Stripe fonctionnait.
+
+Je veux que tu répares ce que tu as cassé dans le contrôle d’accès, sans toucher à Stripe ni à la logique de facturation.
+
+Objectif attendu :
+- le propriétaire de l’organisation peut ajouter un siège ;
+- un administrateur autorisé peut ajouter un siège ;
+- un membre simple ne peut pas ajouter un siège ;
+- l’ajout du siège Stripe fonctionne comme avant ;
+- l’invitation vient ensuite se greffer proprement au flux ;
+- le backend ne doit pas bloquer un propriétaire/admin avec un 403 générique.
+
+À faire :
+1. Identifier exactement quel middleware renvoie encore :
+   { "error": "forbidden" }
+2. Corriger ce middleware pour qu’un propriétaire/admin de l’organisation puisse accéder à la route.
+3. Vérifier que l’utilisateur connecté est bien reconnu comme propriétaire/admin de l’organisation 1.
+4. Vérifier que l’organizationId envoyé correspond bien à l’organisation active.
+5. Ne pas casser le cas groupe / filiale.
+6. Ne pas modifier la configuration Stripe.
+7. Ne pas modifier les prix Stripe.
+8. Ne pas modifier main ni infomaniak.
+9. Corriger uniquement sur preprod.
+
+Route concernée :
+POST /api/organizations/:orgId/stripe/additional-user
+
+Le handler Stripe ne semble même pas être atteint, donc le problème est avant le traitement Stripe.
+
+Merci de corriger le contrôle d’accès pour rétablir le comportement attendu :
+propriétaire/admin → autorisé
+membre/lecteur → refusé clairement
+
+Et merci de remplacer la réponse générique :
+{ "error": "forbidden" }
+
+par une réponse explicite si le refus est légitime :
+- ORGANIZATION_MEMBERSHIP_REQUIRED
+- ORGANIZATION_ROLE_REQUIRED
+- SUBSCRIPTION_REQUIRED
+- ORGANIZATION_NOT_FOUND

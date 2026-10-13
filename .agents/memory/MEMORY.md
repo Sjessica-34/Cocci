@@ -21,3 +21,4 @@
 - [Frontière numeric Drizzle](drizzle-numeric-boundary.md) — convertir les numeric en chaînes à l’insertion et en nombres avant les calculs métier.
 - [Hébergement Infomaniak de Cocci](infomaniak-deployment.md) — garder PostgreSQL externe et utiliser les APIs OpenAI/Anthropic directement hors Replit.
 - [Tests isolés des routes API](api-route-tests.md) — pour un test bundlé qui importe le logger, utiliser CJS et `NODE_ENV=production` pour éviter les erreurs de worker Pino.
+- [Vérification des références GitHub](github-preprod-ref-verification.md) — après un échec de push, vérifier les hashes distants; ne pas déduire l’état de la branche depuis le HEAD local.
