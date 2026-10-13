@@ -550,11 +550,18 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
   // L'abonnement d'un groupe est porté par son organisation racine. La vue
   // peut toutefois être positionnée sur une filiale.
   const rootOrg = orgs?.find((org) => !org.parentId) ?? null;
+  const preferredOrg = orgs?.find(
+    (org) => org.id === onboarding?.primaryOrganizationId,
+  ) ?? rootOrg ?? orgs?.[0] ?? null;
   useEffect(() => {
-    if (rootOrg && (!currentOrgId || !orgs?.some((org) => org.id === currentOrgId))) {
-      setCurrentOrg(rootOrg.id);
+    if (
+      !onboardingLoading
+      && preferredOrg
+      && (!currentOrgId || !orgs?.some((org) => org.id === currentOrgId))
+    ) {
+      setCurrentOrg(preferredOrg.id);
     }
-  }, [currentOrgId, orgs, rootOrg]);
+  }, [currentOrgId, onboardingLoading, orgs, preferredOrg]);
   const subscriptionOrgId = rootOrg?.id ?? currentOrgId ?? orgs?.[0]?.id ?? null;
   const {
     subscription,

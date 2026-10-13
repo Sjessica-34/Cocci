@@ -11,7 +11,6 @@ import {
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
-import { getPublicAppUrl } from "../appUrl";
 import { getOrCreateUser } from "../lib/auth";
 import {
   ListMembersParams,
@@ -46,7 +45,6 @@ type InviteMemberDependencies = {
     ignoreExisting: boolean;
     expiresInDays?: number;
     publicMetadata: { cocciOrganizationId: number; cocciRole: string };
-    redirectUrl?: string;
   }): Promise<unknown>;
   recordInvitation?: (input: {
     organizationId: number;
@@ -58,7 +56,6 @@ type InviteMemberDependencies = {
     expiresAt: Date;
   }) => Promise<void>;
   revokeInvitation?: (clerkInvitationId: string) => Promise<unknown>;
-  getRedirectUrl?: (organizationId: number) => string;
   deleteMembership(memberId: number): Promise<void>;
   deleteUser(userId: number): Promise<void>;
 };
@@ -128,9 +125,6 @@ const inviteMemberDependencies: InviteMemberDependencies = {
   },
   revokeInvitation(clerkInvitationId: string) {
     return clerkClient.invitations.revokeInvitation(clerkInvitationId);
-  },
-  getRedirectUrl(organizationId: number) {
-    return `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`;
   },
   async recordInvitation(input) {
     await db.insert(organizationInvitationsTable).values({
@@ -242,7 +236,6 @@ export function createInviteMemberHandler(
 
     let invitationStage: "clerk" | "database_record" = "clerk";
     try {
-      const redirectUrl = dependencies.getRedirectUrl?.(organizationId);
       const clerkInvitation = await dependencies.sendInvitation({
         emailAddress: inviteEmail,
         notify: true,
@@ -252,7 +245,6 @@ export function createInviteMemberHandler(
           cocciOrganizationId: organizationId,
           cocciRole: parsed.data.role,
         },
-        ...(redirectUrl ? { redirectUrl } : {}),
       });
       const clerkInvitationId =
         clerkInvitation && typeof clerkInvitation === "object" && "id" in clerkInvitation
@@ -472,7 +464,6 @@ router.post(
         notify: true,
         ignoreExisting: true,
         expiresInDays: 30,
-        redirectUrl: `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`,
         publicMetadata: { cocciOrganizationId: organizationId, cocciRole: invitation.role },
       });
       await db.update(organizationInvitationsTable).set({

@@ -1,0 +1,51 @@
+Attention : je veux corriger la régression du lien d’invitation Clerk, mais sans casser les corrections qui viennent d’être faites.
+
+Ce qui fonctionne maintenant et ne doit pas être modifié :
+- l’ajout de sièges Stripe ;
+- la facturation des utilisateurs supplémentaires ;
+- le fait qu’un admin/propriétaire puisse ajouter un utilisateur ;
+- le contrôle des rôles : propriétaire/admin autorisé, membre/lecteur refusé ;
+- la possibilité d’ajouter plusieurs utilisateurs ;
+- le fait qu’un siège disponible puisse être utilisé sans refacturer ;
+- la gestion des sièges déjà payés ;
+- la distinction entre siège Stripe et invitation.
+
+Le problème à corriger est uniquement la régression sur le parcours d’invitation Clerk.
+
+Avant les dernières modifications :
+- le lien Clerk permettait bien à l’invité de créer son compte / mot de passe ;
+- le problème était seulement la redirection après création du compte.
+
+Maintenant :
+- le lien renvoie vers une mauvaise page / une page de connexion ;
+- le parcours qui fonctionnait avant est cassé.
+
+Objectif :
+Restaurer le comportement Clerk qui permet à un invité sans compte de créer son mot de passe, puis corriger uniquement la redirection vers Cocci.
+
+Comportement attendu :
+1. L’admin invite une adresse e-mail.
+2. Si un siège est disponible, il est utilisé.
+3. Si aucun siège n’est disponible, Cocci ajoute +1 siège Stripe.
+4. L’invitation est envoyée.
+5. L’invité clique sur le lien.
+6. Il crée son compte / mot de passe via Clerk.
+7. Après création du compte, il est redirigé vers Cocci.
+8. Cocci le rattache à l’organisation qui l’a invité.
+9. Il arrive directement sur le tableau de bord de cette organisation.
+10. Il ne passe pas par l’onboarding.
+11. Il ne crée pas une nouvelle organisation.
+
+Merci de faire une correction ciblée :
+- ne pas modifier Stripe ;
+- ne pas modifier la facturation ;
+- ne pas modifier la logique d’ajout de sièges ;
+- ne pas modifier les contrôles de rôles qui viennent d’être corrigés ;
+- ne pas refaire toute l’architecture d’invitation ;
+- corriger uniquement le lien / redirectUrl / afterSignUpUrl / afterSignInUrl / route de retour Cocci.
+
+Merci aussi de me dire précisément :
+- quel fichier a cassé le flux Clerk ;
+- quels fichiers tu modifies ;
+- pourquoi l’invité était envoyé au mauvais endroit ;
+- comment tu garantis que l’invité arrive bien sur le bon tableau de bord sans casser l’ajout de sièges.
