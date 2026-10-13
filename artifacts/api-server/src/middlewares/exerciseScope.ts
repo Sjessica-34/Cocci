@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql, or, exists } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db, membersTable } from "@workspace/db";
 import { organizationsTable } from "@workspace/db";
 import { getOrCreateUser } from "../lib/auth";
@@ -11,6 +12,25 @@ function parseId(raw: string | string[] | undefined): number | null {
   if (raw == null) return null;
   const value = Number(Array.isArray(raw) ? raw[0] : raw);
   return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function membershipScope(orgId: number, primaryOrganizationId: number | null) {
+  const requestedOrganization = alias(organizationsTable, "requested_organization");
+  return or(
+    eq(membersTable.organizationId, orgId),
+    exists(
+      db
+        .select({ id: requestedOrganization.id })
+        .from(requestedOrganization)
+        .where(and(
+          eq(requestedOrganization.id, orgId),
+          eq(requestedOrganization.parentId, membersTable.organizationId),
+          primaryOrganizationId === null
+            ? sql`false`
+            : eq(membersTable.organizationId, primaryOrganizationId),
+        )),
+    ),
+  );
 }
 
 /**
@@ -34,16 +54,15 @@ export async function requireOrgMembership(req: Request, res: Response, next: Ne
     const [membership] = await db
       .select({ id: membersTable.id })
       .from(membersTable)
-      .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
       .where(and(
         eq(membersTable.userId, user.id),
         eq(membersTable.status, "active"),
         isNull(membersTable.archivedAt),
-        sql`(${membersTable.organizationId} = ${orgId} OR (${organizationsTable.id} = ${orgId} AND ${organizationsTable.parentId} = ${user.primaryOrganizationId}))`,
+          membershipScope(orgId, user.primaryOrganizationId),
       ))
       .limit(1);
     if (!membership) {
-      res.status(403).json({ error: "Forbidden" });
+      res.status(403).json({ code: "ORGANIZATION_MEMBERSHIP_REQUIRED", error: "Forbidden" });
       return;
     }
   }
@@ -70,17 +89,24 @@ async function requireActiveOrganizationAccess(
     const [membership] = await db
       .select({ role: membersTable.role })
       .from(membersTable)
-      .innerJoin(organizationsTable, eq(membersTable.organizationId, organizationsTable.id))
       .where(and(
         eq(membersTable.userId, user.id),
         eq(membersTable.status, "active"),
         isNull(membersTable.archivedAt),
-        sql`(${membersTable.organizationId} = ${orgId} OR (${organizationsTable.id} = ${orgId} AND ${organizationsTable.parentId} = ${user.primaryOrganizationId}))`,
+          membershipScope(orgId, user.primaryOrganizationId),
       ))
       .limit(1);
 
-    if (!membership || (allowedRoles && !allowedRoles.includes(membership.role as MemberRole))) {
-      res.status(403).json({ error: "Forbidden" });
+    if (!membership) {
+      res.status(403).json({ code: "ORGANIZATION_MEMBERSHIP_REQUIRED", error: "Forbidden" });
+      return;
+    }
+    if (allowedRoles && !allowedRoles.includes(membership.role as MemberRole)) {
+      res.status(403).json({
+        code: "ORGANIZATION_ROLE_REQUIRED",
+        error: "Forbidden",
+        requiredRoles: allowedRoles,
+      });
       return;
     }
   }

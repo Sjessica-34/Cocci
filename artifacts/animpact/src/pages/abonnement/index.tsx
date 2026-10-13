@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@clerk/react";
+import { useAuth, useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
 import { purchaseSeatAndInviteAdditionalUser } from "@/lib/additionalUserInviteFlow";
@@ -8,6 +8,7 @@ import {
   addAdditionalUser,
   removeAdditionalUser,
   useInviteMember,
+  useListMembers,
   getListMembersQueryKey,
   customFetch,
   getGetEmploymentWorkforceQueryKey,
@@ -16,6 +17,7 @@ import {
   useGetOrganization,
 } from "@workspace/api-client-react";
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useOrganizationSubscription } from "@/hooks/useOrganizationSubscription";
 import { PLANS, type EffectifKey } from "@/pages/onboarding/plans";
 import { CheckCircle2, Loader2, Zap, Building2, Building, ExternalLink, Star } from "lucide-react";
@@ -109,9 +111,27 @@ const TIER_FEATURES: Record<string, string[]> = {
 
 export function Abonnement() {
   const { getToken } = useAuth();
+  const { user: clerkUser, isLoaded: clerkUserLoaded } = useUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { currentOrgId } = useCurrentOrganization();
+  const { isSuperAdmin, isLoading: superAdminLoading } = useIsSuperAdmin();
+  const {
+    data: organizationMembers,
+    isLoading: membersLoading,
+    error: membersError,
+  } = useListMembers(currentOrgId ?? 0, {
+    query: {
+      enabled: Boolean(currentOrgId),
+      queryKey: getListMembersQueryKey(currentOrgId ?? 0),
+    },
+  });
+  const currentMembership = organizationMembers?.find(
+    (member) => member.user?.clerkId === clerkUser?.id,
+  );
+  const canManageAdditionalUsers =
+    isSuperAdmin || currentMembership?.role === "owner" || currentMembership?.role === "admin";
+  const billingPermissionLoading = !clerkUserLoaded || superAdminLoading || membersLoading;
   const {
     subscription,
     isLoading: subscriptionLoading,
@@ -261,6 +281,8 @@ export function Abonnement() {
       !currentOrgId ||
       subscription?.mode !== "stripe" ||
       subscription.status !== "active" ||
+      billingPermissionLoading ||
+      !canManageAdditionalUsers ||
       additionalUserLoading
     ) return;
     setAdditionalUserEmail(seatReadyEmail ?? "");
@@ -376,6 +398,9 @@ export function Abonnement() {
       } else if (code.includes("DATABASE")) {
         title = "Erreur de base de données";
         description = apiMessage ?? "Cocci n’a pas pu préparer le siège. Aucun succès Stripe n’a été confirmé.";
+      } else if (code === "ORGANIZATION_ROLE_REQUIRED") {
+        title = "Droits insuffisants";
+        description = "Seuls le propriétaire ou un administrateur de l’organisation peuvent ajouter un utilisateur payant.";
       } else if (code.includes("ORGANIZATION")) {
         title = "Erreur d’organisation";
         description = apiMessage ?? "Cocci n’a pas pu résoudre l’organisation concernée.";
@@ -502,7 +527,9 @@ export function Abonnement() {
             </div>
             {isActive && (
               <div className="flex flex-col sm:flex-row gap-2">
-                {subscription?.mode === "stripe" && subscription.status === "active" && (
+                {subscription?.mode === "stripe" &&
+                  subscription.status === "active" &&
+                  canManageAdditionalUsers && (
                   <Button
                     variant="default"
                     size="sm"
@@ -538,6 +565,13 @@ export function Abonnement() {
               </div>
             )}
           </div>
+        )}
+        {!billingPermissionLoading && currentOrgId && !canManageAdditionalUsers && (
+          <p className="mb-6 text-sm text-muted-foreground">
+            {membersError
+              ? "Impossible de vérifier vos droits. Seuls les propriétaires et administrateurs peuvent gérer les sièges payants."
+              : "Seuls les propriétaires et administrateurs peuvent ajouter un utilisateur payant."}
+          </p>
         )}
 
         <Dialog open={showInviteAdditionalUser} onOpenChange={setShowInviteAdditionalUser}>
