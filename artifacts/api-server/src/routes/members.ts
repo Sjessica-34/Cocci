@@ -87,7 +87,7 @@ type InviteMemberDependencies = {
     expiresAt: Date;
   }) => Promise<void>;
   revokeInvitation?: (clerkInvitationId: string) => Promise<unknown>;
-  getRedirectUrl(organizationId: number): string;
+  getRedirectUrl(organizationId: number, email: string): string;
   deleteMembership(memberId: number): Promise<void>;
   deleteUser(userId: number): Promise<void>;
 };
@@ -158,8 +158,8 @@ const inviteMemberDependencies: InviteMemberDependencies = {
   revokeInvitation(clerkInvitationId: string) {
     return clerkClient.invitations.revokeInvitation(clerkInvitationId);
   },
-  getRedirectUrl(organizationId: number) {
-    return `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`;
+  getRedirectUrl(organizationId: number, email: string) {
+    return `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}&email=${encodeURIComponent(email)}`;
   },
   async recordInvitation(input) {
     await db.insert(organizationInvitationsTable).values({
@@ -280,7 +280,7 @@ export function createInviteMemberHandler(
           cocciOrganizationId: organizationId,
           cocciRole: parsed.data.role,
         },
-        redirectUrl: dependencies.getRedirectUrl(organizationId),
+        redirectUrl: dependencies.getRedirectUrl(organizationId, inviteEmail),
       });
       const clerkInvitationId =
         clerkInvitation && typeof clerkInvitation === "object" && "id" in clerkInvitation
@@ -517,7 +517,7 @@ router.post(
         notify: true,
         ignoreExisting: true,
         expiresInDays: 30,
-        redirectUrl: `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`,
+        redirectUrl: `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}&email=${encodeURIComponent(invitation.email)}`,
         publicMetadata: { cocciOrganizationId: organizationId, cocciRole: invitation.role },
       });
       await db.update(organizationInvitationsTable).set({

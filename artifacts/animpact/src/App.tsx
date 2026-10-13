@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth, useUser } from "@clerk/react";
 import { shadcn } from "@clerk/themes";
 import { frFR } from "@clerk/localizations";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
@@ -325,11 +325,16 @@ function SignUpPage() {
 
 function AcceptInvitationPage() {
   const { isLoaded, isSignedIn } = useAuth();
+  const { user, isLoaded: userLoaded } = useUser();
+  const { signOut } = useClerk();
   const [, setLocation] = useLocation();
   const [message, setMessage] = useState("Confirmation de l’invitation…");
   const acceptRequestStartedRef = useRef(false);
+  const signOutForInviteStartedRef = useRef(false);
   const searchParams = new URLSearchParams(window.location.search);
   const organizationId = Number(searchParams.get("organizationId"));
+  const invitedEmail = searchParams.get("email")?.trim().toLowerCase() ?? "";
+  const signedInEmail = user?.primaryEmailAddress?.emailAddress.trim().toLowerCase() ?? "";
   const clerkTicket = searchParams.get("__clerk_ticket");
   const returnPath = `${basePath}/accept-invitation?organizationId=${organizationId}`;
 
@@ -337,6 +342,20 @@ function AcceptInvitationPage() {
     if (!isLoaded) return;
     if (!Number.isInteger(organizationId) || organizationId <= 0) {
       setMessage("Ce lien d’invitation est invalide.");
+      return;
+    }
+    if (isSignedIn && !userLoaded) return;
+    if (isSignedIn && invitedEmail && signedInEmail !== invitedEmail) {
+      if (clerkTicket && !signOutForInviteStartedRef.current) {
+        signOutForInviteStartedRef.current = true;
+        setMessage("Cette invitation est destinée à une autre adresse. Ouverture de l’inscription avec l’adresse invitée…");
+        void signOut({ redirectUrl: window.location.href }).catch(() => {
+          signOutForInviteStartedRef.current = false;
+          setMessage("Déconnectez-vous puis rouvrez le lien reçu à l’adresse invitée.");
+        });
+      } else if (!clerkTicket) {
+        setMessage("Connectez-vous avec l’adresse e-mail invitée pour accepter cette invitation.");
+      }
       return;
     }
     if (!isSignedIn) {
@@ -354,9 +373,20 @@ function AcceptInvitationPage() {
       setLocation("/dashboard");
     }).catch(() => {
       acceptRequestStartedRef.current = false;
-      setMessage("Impossible de rattacher ce compte à l’organisation. Connectez-vous avec l’adresse e-mail invitée.");
+      setMessage("Cette invitation n’est plus active ou ne correspond pas à ce compte. Demandez à l’administrateur d’envoyer une nouvelle invitation.");
     });
-  }, [clerkTicket, isLoaded, isSignedIn, organizationId, returnPath, setLocation]);
+  }, [
+    clerkTicket,
+    invitedEmail,
+    isLoaded,
+    isSignedIn,
+    organizationId,
+    returnPath,
+    setLocation,
+    signOut,
+    signedInEmail,
+    userLoaded,
+  ]);
 
   if (isLoaded && !isSignedIn && clerkTicket) {
     return (
