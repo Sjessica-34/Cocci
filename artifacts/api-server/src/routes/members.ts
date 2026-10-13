@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, count, ne, sql, isNull } from "drizzle-orm";
+import { clerkClient } from "@clerk/express";
 import { db, membersTable, usersTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
@@ -65,6 +66,7 @@ router.post(
       res.status(400).json({ error: parsed.error.message });
       return;
     }
+    const inviteEmail = parsed.data.email.trim().toLowerCase();
 
     // ── Vérification de la limite d'utilisateurs ──────────────────────────────
     // Lit COALESCE(override_max_users, max_users) depuis la table subscriptions.
@@ -96,13 +98,17 @@ router.post(
     let [targetUser] = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.email, parsed.data.email))
+      .where(eq(usersTable.email, inviteEmail))
       .limit(1);
 
     if (!targetUser) {
       [targetUser] = await db
         .insert(usersTable)
-        .values({ clerkId: `invited_${Date.now()}`, email: parsed.data.email })
+        .values({
+          clerkId: `invited_${Date.now()}`,
+          email: inviteEmail,
+          primaryOrganizationId: params.data.id,
+        })
         .returning();
     }
 
@@ -129,6 +135,7 @@ router.post(
       return;
     }
 
+    const isPendingClerkAccount = targetUser.clerkId.startsWith("invited_");
     let member;
     try {
       [member] = await db
@@ -137,7 +144,7 @@ router.post(
           userId: targetUser.id,
           organizationId: params.data.id,
           role: parsed.data.role,
-          status: "invited",
+          status: isPendingClerkAccount ? "invited" : "active",
         })
         .returning();
     } catch (error: any) {
@@ -146,6 +153,34 @@ router.post(
         return;
       }
       throw error;
+    }
+
+    if (!isPendingClerkAccount && !targetUser.primaryOrganizationId) {
+      [targetUser] = await db
+        .update(usersTable)
+        .set({ primaryOrganizationId: params.data.id, updatedAt: new Date() })
+        .where(eq(usersTable.id, targetUser.id))
+        .returning();
+    }
+
+    try {
+      await clerkClient.invitations.createInvitation({
+        emailAddress: inviteEmail,
+        notify: true,
+        ignoreExisting: true,
+        publicMetadata: {
+          cocciOrganizationId: params.data.id,
+          cocciRole: parsed.data.role,
+        },
+      });
+    } catch (error) {
+      await db.delete(membersTable).where(eq(membersTable.id, member.id));
+      if (targetUser.clerkId.startsWith("invited_")) {
+        await db.delete(usersTable).where(eq(usersTable.id, targetUser.id));
+      }
+      req.log.error({ err: error, orgId: params.data.id }, "Clerk member invitation failed");
+      res.status(502).json({ error: "L'invitation e-mail n'a pas pu être envoyée. Réessayez." });
+      return;
     }
 
     res.status(201).json(InviteMemberResponse.parse({ ...member, user: targetUser }));

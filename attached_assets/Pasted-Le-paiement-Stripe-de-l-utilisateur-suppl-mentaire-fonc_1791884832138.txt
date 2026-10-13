@@ -1,0 +1,49 @@
+Le paiement Stripe de l’utilisateur supplémentaire fonctionne : Stripe ajoute bien la ligne utilisateur supplémentaire à l’abonnement.
+
+Mais le flux fonctionnel n’est pas complet côté Cocci.
+
+Comportement attendu :
+
+Quand l’administrateur clique sur “Ajouter un utilisateur”, il ne faut pas seulement ajouter un siège Stripe.
+
+Il faut afficher un formulaire demandant :
+- adresse e-mail du collaborateur à inviter ;
+- rôle à attribuer : Administrateur, Membre ou Lecteur.
+
+Flux attendu :
+1. L’administrateur saisit l’adresse e-mail du collaborateur.
+2. Cocci vérifie que l’organisation a bien un abonnement Stripe actif.
+3. Cocci vérifie ou ajoute le siège utilisateur supplémentaire via Stripe.
+4. Une fois Stripe confirmé, Cocci envoie une invitation au collaborateur via Clerk.
+5. Le collaborateur invité doit être rattaché à la même organisation Cocci que l’administrateur.
+6. Les deux comptes doivent accéder au même espace entreprise.
+7. La limite utilisateurs doit être mise à jour côté Cocci.
+8. Si l’invitation n’est pas encore acceptée, elle doit compter comme un siège utilisé ou réservé.
+9. Il ne faut pas créer une nouvelle entreprise pour le collaborateur invité.
+10. Il ne faut pas créer un abonnement séparé.
+11. Il faut garder un seul abonnement Stripe principal avec une ligne “Utilisateur supplémentaire”.
+
+Exemple :
+- Organisation : Entreprise ABC
+- Propriétaire : dirigeant@abc.fr
+- Collaborateur invité : collaborateur@abc.fr
+- Abonnement : Cocci 1 à 5 salariés à 19,99 € TTC/mois
+- Utilisateur supplémentaire x1 : 3 € TTC/mois
+- Les deux comptes accèdent à l’organisation Entreprise ABC.
+
+Interface attendue :
+Bouton “Ajouter un utilisateur”
+→ modal :
+   - Email du collaborateur
+   - Rôle
+   - Montant : +3 € TTC/mois
+   - bouton “Confirmer et inviter”
+
+Après succès :
+“Invitation envoyée à collaborateur@abc.fr. Un utilisateur supplémentaire a été ajouté à votre abonnement.”
+
+Merci de corriger le flux pour que l’ajout utilisateur soit à la fois :
+- facturé dans Stripe ;
+- créé/invité dans Clerk ;
+- rattaché à la bonne organisation Cocci ;
+- visible dans la gestion des utilisateurs.

@@ -6,6 +6,8 @@ import {
   ApiError,
   addAdditionalUser,
   removeAdditionalUser,
+  useInviteMember,
+  getListMembersQueryKey,
   customFetch,
   getGetEmploymentWorkforceQueryKey,
   getGetOrganizationQueryKey,
@@ -19,6 +21,14 @@ import { CheckCircle2, Loader2, Zap, Building2, Building, ExternalLink, Star } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -132,8 +142,19 @@ export function Abonnement() {
   const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [additionalUserLoading, setAdditionalUserLoading] = useState(false);
+  const [showInviteAdditionalUser, setShowInviteAdditionalUser] = useState(false);
+  const [additionalUserEmail, setAdditionalUserEmail] = useState("");
+  const [additionalUserRole, setAdditionalUserRole] = useState<"admin" | "member" | "viewer">("member");
+  const [seatReadyEmail, setSeatReadyEmail] = useState<string | null>(null);
   const [removeAdditionalUserLoading, setRemoveAdditionalUserLoading] = useState(false);
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+  const inviteMember = useInviteMember();
+
+  useEffect(() => {
+    if (currentOrgId) {
+      setSeatReadyEmail(sessionStorage.getItem(`cocci:additional-user:ready:${currentOrgId}`));
+    }
+  }, [currentOrgId]);
 
   // Charger plans + statut en parallèle
   useEffect(() => {
@@ -234,51 +255,78 @@ export function Abonnement() {
     }
   };
 
-  const handleAdditionalUser = async () => {
+  const handleAdditionalUser = () => {
     if (
       !currentOrgId ||
       subscription?.mode !== "stripe" ||
       subscription.status !== "active" ||
       additionalUserLoading
     ) return;
+    setAdditionalUserEmail(seatReadyEmail ?? "");
+    setShowInviteAdditionalUser(true);
+  };
 
+  const submitAdditionalUserInvite = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!currentOrgId || !additionalUserEmail.trim() || additionalUserLoading) return;
     setAdditionalUserLoading(true);
-    const idempotencyStorageKey = `cocci:additional-user:${currentOrgId}`;
+    const normalizedEmail = additionalUserEmail.trim().toLowerCase();
+    const idempotencyStorageKey = `cocci:additional-user:${currentOrgId}:${normalizedEmail}`;
+    const readyStorageKey = `cocci:additional-user:ready:${currentOrgId}`;
     const idempotencyKey =
       sessionStorage.getItem(idempotencyStorageKey) ?? crypto.randomUUID();
     sessionStorage.setItem(idempotencyStorageKey, idempotencyKey);
+    let seatWasReady = seatReadyEmail === normalizedEmail;
     try {
-      const token = await getToken({ skipCache: true });
-      if (!token) throw new Error("Authentication token unavailable");
-      const result = await addAdditionalUser(currentOrgId, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Idempotency-Key": idempotencyKey,
-        },
-      });
-      if (sessionStorage.getItem(idempotencyStorageKey) === idempotencyKey) {
-        sessionStorage.removeItem(idempotencyStorageKey);
+      if (!seatWasReady) {
+        const token = await getToken({ skipCache: true });
+        if (!token) throw new Error("Authentication token unavailable");
+        await addAdditionalUser(currentOrgId, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Idempotency-Key": idempotencyKey,
+          },
+        });
+        sessionStorage.setItem(readyStorageKey, normalizedEmail);
+        seatWasReady = true;
+        setSeatReadyEmail(normalizedEmail);
       }
+      await inviteMember.mutateAsync({
+        id: currentOrgId,
+        data: { email: normalizedEmail, role: additionalUserRole },
+      });
+      sessionStorage.removeItem(readyStorageKey);
+      sessionStorage.removeItem(idempotencyStorageKey);
+      setSeatReadyEmail(null);
       await queryClient.invalidateQueries({
         queryKey: ["/api/organizations", currentOrgId, "subscription"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: getListMembersQueryKey(currentOrgId),
+      });
       refreshSubscription();
       toast({
-        title: "Utilisateur supplémentaire ajouté",
-        description: `3 € TTC/mois seront ajoutés à votre abonnement. Votre limite est maintenant de ${result.maxUsers} utilisateurs.`,
+        title: "Utilisateur invité",
+        description: `${normalizedEmail} recevra une invitation pour rejoindre l’organisation. Le siège supplémentaire est facturé 3 € TTC/mois.`,
       });
+      setShowInviteAdditionalUser(false);
+      setAdditionalUserEmail("");
+      setAdditionalUserRole("member");
     } catch (error) {
       if (
         error instanceof ApiError &&
         [400, 402, 409].includes(error.status) &&
-        sessionStorage.getItem(idempotencyStorageKey) === idempotencyKey
+        sessionStorage.getItem(idempotencyStorageKey) === idempotencyKey &&
+        !seatWasReady
       ) {
         sessionStorage.removeItem(idempotencyStorageKey);
       }
       toast({
         variant: "destructive",
-        title: "Ajout impossible",
-        description: "Vérifiez votre moyen de paiement et la configuration du prix Stripe à 3 € TTC/mois, puis réessayez.",
+        title: seatWasReady ? "Invitation non envoyée" : "Ajout impossible",
+        description: seatWasReady
+          ? "Le siège a été ajouté et facturé 3 € TTC/mois, mais l’e-mail d’invitation n’est pas parti. Réessayez : aucun nouveau prélèvement ne sera effectué."
+          : "Vérifiez votre moyen de paiement et la configuration du prix Stripe à 3 € TTC/mois, puis réessayez.",
       });
     } finally {
       setAdditionalUserLoading(false);
@@ -428,6 +476,59 @@ export function Abonnement() {
             )}
           </div>
         )}
+
+        <Dialog open={showInviteAdditionalUser} onOpenChange={setShowInviteAdditionalUser}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ajouter un utilisateur</DialogTitle>
+              <DialogDescription>
+                Un siège supplémentaire coûte 3 € TTC/mois et sera ajouté à l’abonnement Stripe actif.
+                La personne recevra une invitation pour rejoindre cette organisation.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={submitAdditionalUserInvite} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="additional-user-email" className="text-sm font-medium">Adresse e-mail</label>
+                <input
+                  id="additional-user-email"
+                  type="email"
+                  required
+                  value={additionalUserEmail}
+                  onChange={(event) => setAdditionalUserEmail(event.target.value)}
+                  placeholder="collaborateur@entreprise.fr"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="additional-user-role" className="text-sm font-medium">Rôle</label>
+                <select
+                  id="additional-user-role"
+                  value={additionalUserRole}
+                  onChange={(event) => setAdditionalUserRole(event.target.value as typeof additionalUserRole)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="admin">Administrateur</option>
+                  <option value="member">Membre</option>
+                  <option value="viewer">Lecteur</option>
+                </select>
+              </div>
+              {seatReadyEmail === additionalUserEmail.trim().toLowerCase() && (
+                <p className="text-sm text-amber-700">
+                  Le siège est déjà facturé. Confirmer à nouveau renverra uniquement l’invitation.
+                </p>
+              )}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowInviteAdditionalUser(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={additionalUserLoading || inviteMember.isPending}>
+                  {(additionalUserLoading || inviteMember.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Confirmer et inviter — 3 € TTC/mois
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {employeeCount !== null && (
           <div className="mb-8 rounded-xl border border-[#d8e7df] bg-[#f3f8f5] p-4 text-sm text-[#163028]">
