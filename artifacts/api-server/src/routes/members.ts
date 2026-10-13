@@ -12,6 +12,7 @@ import {
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
 import { getPublicAppUrl } from "../appUrl";
+import { logger } from "../lib/logger";
 import { getOrCreateUser } from "../lib/auth";
 import {
   ListMembersParams,
@@ -26,6 +27,11 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+function redactInvitationRedirectUrl(organizationId: number, redirectUrl: string): string {
+  const parsedUrl = new URL(redirectUrl);
+  return `${parsedUrl.origin}${parsedUrl.pathname}?organizationId=${organizationId}&email=[redacted]`;
+}
 
 function getDatabaseFailureDetails(error: unknown): {
   databaseCode?: string;
@@ -271,6 +277,11 @@ export function createInviteMemberHandler(
 
     let invitationStage: "clerk" | "database_record" = "clerk";
     try {
+      const redirectUrl = dependencies.getRedirectUrl(organizationId, inviteEmail);
+      logger.info(
+        { organizationId, redirectUrl: redactInvitationRedirectUrl(organizationId, redirectUrl) },
+        "Creating Clerk invitation with Cocci return URL",
+      );
       const clerkInvitation = await dependencies.sendInvitation({
         emailAddress: inviteEmail,
         notify: true,
@@ -280,7 +291,7 @@ export function createInviteMemberHandler(
           cocciOrganizationId: organizationId,
           cocciRole: parsed.data.role,
         },
-        redirectUrl: dependencies.getRedirectUrl(organizationId, inviteEmail),
+        redirectUrl,
       });
       const clerkInvitationId =
         clerkInvitation && typeof clerkInvitation === "object" && "id" in clerkInvitation
@@ -512,12 +523,17 @@ router.post(
       if (invitation.clerkInvitationId) {
         await clerkClient.invitations.revokeInvitation(invitation.clerkInvitationId);
       }
+      const redirectUrl = `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}&email=${encodeURIComponent(invitation.email)}`;
+      logger.info(
+        { organizationId, redirectUrl: redactInvitationRedirectUrl(organizationId, redirectUrl) },
+        "Resending Clerk invitation with Cocci return URL",
+      );
       const clerkInvite = await clerkClient.invitations.createInvitation({
         emailAddress: invitation.email,
         notify: true,
         ignoreExisting: true,
         expiresInDays: 30,
-        redirectUrl: `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}&email=${encodeURIComponent(invitation.email)}`,
+        redirectUrl,
         publicMetadata: { cocciOrganizationId: organizationId, cocciRole: invitation.role },
       });
       await db.update(organizationInvitationsTable).set({

@@ -336,7 +336,9 @@ function AcceptInvitationPage() {
   const invitedEmail = searchParams.get("email")?.trim().toLowerCase() ?? "";
   const signedInEmail = user?.primaryEmailAddress?.emailAddress.trim().toLowerCase() ?? "";
   const clerkTicket = searchParams.get("__clerk_ticket");
-  const returnPath = `${basePath}/accept-invitation?organizationId=${organizationId}`;
+  const returnPath = `${basePath}/accept-invitation?organizationId=${organizationId}${
+    invitedEmail ? `&email=${encodeURIComponent(invitedEmail)}` : ""
+  }`;
 
   useEffect(() => {
     if (!isLoaded) return;
