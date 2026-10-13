@@ -327,7 +327,10 @@ export function DashboardBody({ orgId }: { orgId: number }) {
     empLoading,
   ].some(Boolean);
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary(orgId, {
-    query: { enabled: coreDashboardReady },
+    query: {
+      queryKey: [`/api/organizations/${orgId}/dashboard/summary`],
+      enabled: coreDashboardReady,
+    },
   });
   const hasPreviousYear = summary != null && summary.previousYear != null;
   const mods = summary?.modules ?? [];
