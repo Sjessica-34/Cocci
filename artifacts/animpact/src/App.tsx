@@ -331,19 +331,67 @@ function AcceptInvitationPage() {
   const [message, setMessage] = useState("Confirmation de l’invitation…");
   const acceptRequestStartedRef = useRef(false);
   const signOutForInviteStartedRef = useRef(false);
+  const resolvePendingInvitationStartedRef = useRef(false);
   const searchParams = new URLSearchParams(window.location.search);
   const organizationId = Number(searchParams.get("organizationId"));
   const invitedEmail = searchParams.get("email")?.trim().toLowerCase() ?? "";
   const signedInEmail = user?.primaryEmailAddress?.emailAddress.trim().toLowerCase() ?? "";
   const clerkTicket = searchParams.get("__clerk_ticket");
-  const returnPath = `${basePath}/accept-invitation?organizationId=${organizationId}${
-    invitedEmail ? `&email=${encodeURIComponent(invitedEmail)}` : ""
-  }`;
+  const returnParams = new URLSearchParams();
+  if (Number.isInteger(organizationId) && organizationId > 0) {
+    returnParams.set("organizationId", String(organizationId));
+  }
+  if (invitedEmail) returnParams.set("email", invitedEmail);
+  const returnQuery = returnParams.toString();
+  const returnPath = `${basePath}/accept-invitation${returnQuery ? `?${returnQuery}` : ""}`;
 
   useEffect(() => {
     if (!isLoaded) return;
     if (!Number.isInteger(organizationId) || organizationId <= 0) {
-      setMessage("Ce lien d’invitation est invalide.");
+      if (!isSignedIn) {
+        if (clerkTicket) {
+          setMessage("Ouverture de l’invitation…");
+          return;
+        }
+        setLocation(`/sign-in?redirect_url=${encodeURIComponent(returnPath)}`);
+        return;
+      }
+      if (!userLoaded) return;
+      if (invitedEmail && signedInEmail !== invitedEmail) {
+        if (clerkTicket && !signOutForInviteStartedRef.current) {
+          signOutForInviteStartedRef.current = true;
+          setMessage("Cette invitation est destinée à une autre adresse. Ouverture de l’inscription avec l’adresse invitée…");
+          void signOut({ redirectUrl: window.location.href }).catch(() => {
+            signOutForInviteStartedRef.current = false;
+            setMessage("Déconnectez-vous puis rouvrez le lien reçu à l’adresse invitée.");
+          });
+        } else if (!clerkTicket) {
+          setMessage("Connectez-vous avec l’adresse e-mail invitée pour accepter cette invitation.");
+        }
+        return;
+      }
+      if (resolvePendingInvitationStartedRef.current) return;
+      resolvePendingInvitationStartedRef.current = true;
+      setMessage("Recherche de l’invitation associée à ce compte…");
+      customFetch<{ organizationId: number | null }>("/users/me/pending-invitation")
+        .then((pendingInvitation) => {
+          if (
+            Number.isInteger(pendingInvitation.organizationId) &&
+            pendingInvitation.organizationId !== null &&
+            pendingInvitation.organizationId > 0
+          ) {
+            setLocation(
+              `/accept-invitation?organizationId=${pendingInvitation.organizationId}`,
+              { replace: true },
+            );
+            return;
+          }
+          setMessage("Aucune invitation en attente n’a été trouvée pour ce compte. Demandez un nouvel e-mail d’invitation.");
+        })
+        .catch(() => {
+          resolvePendingInvitationStartedRef.current = false;
+          setMessage("Impossible de vérifier l’invitation. Actualisez la page ou demandez un nouvel e-mail.");
+        });
       return;
     }
     if (isSignedIn && !userLoaded) return;
