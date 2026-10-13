@@ -413,7 +413,15 @@ export function Abonnement() {
       }
       let title = "Ajout impossible";
       let description = "Le serveur n’a pas confirmé le résultat. Réessayez avec le même formulaire; ne créez pas une seconde demande.";
-      if (seatWasReady) {
+      if (error instanceof ApiError && error.status === 409) {
+        title = seatWasReady
+          ? "Siège conservé — conflit d’invitation"
+          : "Conflit d’invitation";
+        description = [
+          apiMessage ?? "Cette adresse est déjà rattachée ou invitée dans une organisation.",
+          seatWasReady ? "Le siège déjà ajouté reste dans l’abonnement; ne le rachetez pas." : "",
+        ].filter(Boolean).join(" ");
+      } else if (seatWasReady) {
         if (code === "CLERK_INVITATION_FAILED") {
           title = "Paiement effectué — échec d’envoi Clerk";
           description = "Le siège est bien ajouté et facturé 3 € TTC/mois, mais Clerk n’a pas envoyé l’invitation. Contactez le support si le problème persiste.";
