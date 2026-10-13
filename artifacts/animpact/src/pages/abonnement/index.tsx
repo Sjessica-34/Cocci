@@ -321,20 +321,75 @@ export function Abonnement() {
       setAdditionalUserEmail("");
       setAdditionalUserRole("member");
     } catch (error) {
+      const payload = error instanceof ApiError
+        && error.data !== null
+        && typeof error.data === "object"
+        ? error.data as Record<string, unknown>
+        : {};
+      const code = typeof payload.code === "string" ? payload.code : "";
+      const apiMessage = typeof payload.error === "string" ? payload.error : null;
+      const stripeMessage = typeof payload.stripeMessage === "string" ? payload.stripeMessage : null;
       if (
         error instanceof ApiError &&
-        [400, 402, 409].includes(error.status) &&
+        (
+          error.status === 400
+          || code === "STRIPE_UPDATE_FAILED"
+          || code === "SEAT_ATTEMPT_FAILED"
+        ) &&
         sessionStorage.getItem(idempotencyStorageKey) === idempotencyKey &&
         !seatWasReady
       ) {
         sessionStorage.removeItem(idempotencyStorageKey);
       }
+      let title = "Ajout impossible";
+      let description = "Le serveur n’a pas confirmé le résultat. Réessayez avec le même formulaire; ne créez pas une seconde demande.";
+      if (seatWasReady) {
+        if (code === "CLERK_INVITATION_FAILED") {
+          title = "Paiement effectué — échec d’envoi Clerk";
+          description = "Le siège est bien ajouté et facturé 3 € TTC/mois, mais Clerk n’a pas envoyé l’invitation. Contactez le support si le problème persiste.";
+        } else if (code.includes("DATABASE")) {
+          title = "Paiement effectué — erreur de base de données";
+          description = "Le siège est facturé 3 € TTC/mois, mais l’enregistrement de l’invitation a échoué. Contactez le support; ne rachetez pas de siège.";
+        } else if (code.includes("ORGANIZATION")) {
+          title = "Paiement effectué — erreur d’organisation";
+          description = "Le siège est facturé 3 € TTC/mois, mais l’organisation n’a pas pu finaliser l’invitation. Contactez le support; ne rachetez pas de siège.";
+        } else {
+          title = "Paiement effectué mais invitation non envoyée";
+          description = "Le siège est bien ajouté et facturé 3 € TTC/mois, mais l’invitation n’a pas été finalisée. Contactez le support.";
+        }
+      } else if (code === "STRIPE_UPDATE_FAILED") {
+        title = "Paiement Stripe refusé";
+        description = stripeMessage
+          ? `Stripe a refusé l’ajout du siège : ${stripeMessage}`
+          : "Stripe a refusé l’ajout du siège. Vérifiez votre moyen de paiement.";
+      } else if (code === "STRIPE_SUCCEEDED_LOCAL_SYNC_FAILED") {
+        title = "Paiement effectué, synchronisation en attente";
+        description = "Stripe a confirmé le siège, mais Cocci n’a pas terminé sa synchronisation. Réessayez cette même demande : elle reprendra sans refacturer.";
+      } else if (code === "STRIPE_OUTCOME_UNKNOWN" || code === "STRIPE_REQUEST_FAILED") {
+        title = "Résultat Stripe à confirmer";
+        description = stripeMessage
+          ? `La demande Stripe n’a pas pu être confirmée (${stripeMessage}). Réessayez avec cette même demande; la clé idempotente évite un doublon.`
+          : "La demande Stripe n’a pas pu être confirmée. Réessayez avec cette même demande; la clé idempotente évite un doublon.";
+      } else if (code.startsWith("STRIPE_") || code.startsWith("ADDITIONAL_USER_PRICE_")) {
+        title = "Configuration ou accès Stripe";
+        description = apiMessage ?? "Stripe ou la configuration du prix n’a pas permis d’ajouter le siège.";
+      } else if (code.includes("DATABASE")) {
+        title = "Erreur de base de données";
+        description = apiMessage ?? "Cocci n’a pas pu préparer le siège. Aucun succès Stripe n’a été confirmé.";
+      } else if (code.includes("ORGANIZATION")) {
+        title = "Erreur d’organisation";
+        description = apiMessage ?? "Cocci n’a pas pu résoudre l’organisation concernée.";
+      } else if (code === "SEAT_ATTEMPT_PENDING") {
+        title = "Synchronisation Stripe en attente";
+        description = "Une tentative précédente doit être reprise. Réessayez avec cette même demande.";
+      } else if (apiMessage) {
+        title = "Ajout non effectué";
+        description = apiMessage;
+      }
       toast({
         variant: "destructive",
-        title: seatWasReady ? "Invitation non envoyée" : "Ajout impossible",
-        description: seatWasReady
-          ? "Le siège a été ajouté et facturé 3 € TTC/mois, mais l’e-mail d’invitation n’est pas parti. Réessayez : aucun nouveau prélèvement ne sera effectué."
-          : "Vérifiez votre moyen de paiement et la configuration du prix Stripe à 3 € TTC/mois, puis réessayez.",
+        title,
+        description,
       });
     } finally {
       setAdditionalUserLoading(false);

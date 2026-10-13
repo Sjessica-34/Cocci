@@ -292,10 +292,32 @@ export function createAdditionalUserHandler(
       res.status(400).json({ error: "A valid Idempotency-Key UUID is required" });
       return;
     }
+    logger.info({ orgId }, "additional-user seat request received");
 
-    const billingOrgId = await dependencies.getBillingOrganizationId(orgId);
-    const client = await dependencies.connect();
+    let setupStage = "organization";
+    const setup = await (async () => {
+      try {
+        const billingOrgId = await dependencies.getBillingOrganizationId(orgId);
+        setupStage = "database";
+        const client = await dependencies.connect();
+        return { ok: true as const, billingOrgId, client };
+      } catch (error) {
+        return { ok: false as const, error, stage: setupStage };
+      }
+    })();
+    if (!setup.ok) {
+      logger.error({ err: setup.error, orgId, stage: setup.stage }, "Unable to prepare additional-user seat request");
+      res.status(500).json({
+        code: setup.stage === "organization" ? "ORGANIZATION_RESOLUTION_FAILED" : "DATABASE_CONNECTION_FAILED",
+        stage: setup.stage,
+        error: "The organization or database could not be resolved.",
+      });
+      return;
+    }
+    const { billingOrgId, client } = setup;
     let transactionOpen = false;
+    let failureStage = "database";
+    let stripeUpdateSucceeded = false;
 
     try {
       await client.query("BEGIN");
@@ -338,7 +360,10 @@ export function createAdditionalUserHandler(
       if (previousRequest?.status === "failed") {
         await client.query("ROLLBACK");
         transactionOpen = false;
-        res.status(409).json({ error: "This add-seat attempt failed; start a new attempt" });
+        res.status(409).json({
+          code: "SEAT_ATTEMPT_FAILED",
+          error: "This add-seat attempt failed; start a new attempt",
+        });
         return;
       }
 
@@ -359,13 +384,13 @@ export function createAdditionalUserHandler(
         ) {
           await client.query("ROLLBACK");
           transactionOpen = false;
-          res.status(409).json({ error: "An active Stripe subscription is required" });
+          res.status(409).json({ code: "ACTIVE_STRIPE_SUBSCRIPTION_REQUIRED", error: "An active Stripe subscription is required" });
           return;
         }
         if (row.override_max_users !== null) {
           await client.query("ROLLBACK");
           transactionOpen = false;
-          res.status(409).json({ error: "The user limit is managed by an administrator" });
+          res.status(409).json({ code: "USER_LIMIT_MANAGED", error: "The user limit is managed by an administrator" });
           return;
         }
 
@@ -379,7 +404,7 @@ export function createAdditionalUserHandler(
         if (inProgress.rows.length > 0) {
           await client.query("ROLLBACK");
           transactionOpen = false;
-          res.status(409).json({ error: "Retry the pending add-seat attempt before starting another" });
+          res.status(409).json({ code: "SEAT_ATTEMPT_PENDING", error: "Retry the pending add-seat attempt before starting another" });
           return;
         }
 
@@ -387,10 +412,11 @@ export function createAdditionalUserHandler(
         if (!offer) {
           await client.query("ROLLBACK");
           transactionOpen = false;
-          res.status(503).json({ error: "Additional-user pricing is not configured" });
+          res.status(503).json({ code: "ADDITIONAL_USER_PRICE_NOT_CONFIGURED", error: "Additional-user pricing is not configured" });
           return;
         }
 
+        failureStage = "stripe_price_lookup";
         const stripe = await dependencies.getStripe();
         const price = await stripe.prices.retrieve(offer.priceId);
         const productId = typeof price.product === "string" ? price.product : price.product.id;
@@ -403,13 +429,17 @@ export function createAdditionalUserHandler(
           price.currency !== "eur" ||
           price.unit_amount !== 300
         ) {
-          logger.error({ offerName: offer.offerName }, "Invalid additional-user Stripe price");
+          logger.error({ offerName: offer.offerName, priceId: offer.priceId }, "Invalid additional-user Stripe price");
           await client.query("ROLLBACK");
           transactionOpen = false;
-          res.status(500).json({ error: "Additional-user price must be €3 TTC per month" });
+          res.status(500).json({
+            code: "ADDITIONAL_USER_PRICE_CONFIG_INVALID",
+            error: "Additional-user price must be €3 TTC per month",
+          });
           return;
         }
 
+        failureStage = "stripe_subscription_lookup";
         const subscription = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
         if (
           subscription.customer !== row.stripe_customer_id ||
@@ -417,7 +447,7 @@ export function createAdditionalUserHandler(
         ) {
           await client.query("ROLLBACK");
           transactionOpen = false;
-          res.status(409).json({ error: "The Stripe subscription is not active" });
+          res.status(409).json({ code: "STRIPE_SUBSCRIPTION_NOT_ACTIVE", error: "The Stripe subscription is not active" });
           return;
         }
 
@@ -450,17 +480,29 @@ export function createAdditionalUserHandler(
             maxUsers,
           ],
         );
+        failureStage = "stripe_update";
       }
 
       await client.query("COMMIT");
       transactionOpen = false;
       const stripe = await dependencies.getStripe();
+      failureStage = "stripe_update";
       try {
         await stripe.subscriptions.update(stripeSubscriptionId, stripeUpdateParams, {
           idempotencyKey: `additional-user-${billingOrgId}-${idempotencyKey}`,
         });
       } catch (stripeError) {
         const statusCode = (stripeError as { statusCode?: unknown }).statusCode;
+        const stripeMessage = stripeError instanceof Error ? stripeError.message : String(stripeError);
+        const stripeCode = (stripeError as { code?: unknown }).code;
+        logger.error({
+          err: stripeError,
+          orgId,
+          billingOrgId,
+          stage: "stripe_update",
+          stripeCode: typeof stripeCode === "string" ? stripeCode : null,
+          stripeStatusCode: statusCode ?? null,
+        }, "Stripe rejected additional-user subscription update");
         if (statusCode === 400 || statusCode === 402) {
           await client.query("BEGIN");
           transactionOpen = true;
@@ -472,12 +514,21 @@ export function createAdditionalUserHandler(
           );
           await client.query("COMMIT");
           transactionOpen = false;
-          res.status(statusCode).json({ error: "Stripe could not complete the seat purchase" });
+          res.status(statusCode).json({
+            code: "STRIPE_UPDATE_FAILED",
+            stage: "stripe_update",
+            paymentSucceeded: false,
+            stripeCode: typeof stripeCode === "string" ? stripeCode : null,
+            stripeMessage,
+            error: "Stripe could not complete the seat purchase",
+          });
           return;
         }
         throw stripeError;
       }
 
+      stripeUpdateSucceeded = true;
+      failureStage = "database_sync";
       await client.query("BEGIN");
       transactionOpen = true;
       await client.query(
@@ -499,8 +550,39 @@ export function createAdditionalUserHandler(
       if (transactionOpen) {
         await client.query("ROLLBACK").catch(() => undefined);
       }
-      logger.error({ err, billingOrgId }, "additional-user subscription update failed");
-      res.status(500).json({ error: "Unable to add the additional user" });
+      const error = err instanceof Error ? err.message : String(err);
+      const stripeCode = (err as { code?: unknown })?.code;
+      logger.error({
+        err,
+        orgId,
+        billingOrgId,
+        stage: failureStage,
+        stripeUpdateSucceeded,
+        stripeCode: typeof stripeCode === "string" ? stripeCode : null,
+      }, "additional-user subscription update failed");
+      if (stripeUpdateSucceeded) {
+        res.status(503).json({
+          code: "STRIPE_SUCCEEDED_LOCAL_SYNC_FAILED",
+          stage: failureStage,
+          paymentSucceeded: true,
+          error: "Stripe accepted the seat; local synchronization failed. Retry the same request.",
+        });
+      } else if (failureStage.startsWith("stripe_")) {
+        res.status(502).json({
+          code: failureStage === "stripe_update" ? "STRIPE_OUTCOME_UNKNOWN" : "STRIPE_REQUEST_FAILED",
+          stage: failureStage,
+          paymentSucceeded: null,
+          stripeCode: typeof stripeCode === "string" ? stripeCode : null,
+          stripeMessage: error,
+          error: "The Stripe request could not be confirmed.",
+        });
+      } else {
+        res.status(500).json({
+          code: "ADDITIONAL_USER_DATABASE_FAILED",
+          stage: failureStage,
+          error: "The seat could not be synchronized locally.",
+        });
+      }
     } finally {
       client.release();
     }

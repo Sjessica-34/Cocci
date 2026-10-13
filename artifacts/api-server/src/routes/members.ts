@@ -171,16 +171,31 @@ export function createInviteMemberHandler(
     const inviteEmail = parsed.data.email.trim().toLowerCase();
     const organizationId = params.data.id;
 
-    const effectiveMax = await dependencies.getEffectiveMaxUsers(organizationId);
-    const memberCount = await dependencies.countMembers(organizationId);
+    let effectiveMax: number;
+    let memberCount: number;
+    let targetUser: Awaited<ReturnType<InviteMemberDependencies["findUserByEmail"]>>;
+    try {
+      effectiveMax = await dependencies.getEffectiveMaxUsers(organizationId);
+      memberCount = await dependencies.countMembers(organizationId);
+      targetUser = await dependencies.findUserByEmail(inviteEmail);
+    } catch (error) {
+      req.log.error({ err: error, orgId: organizationId, stage: "organization_or_database" }, "Unable to prepare member invitation");
+      res.status(500).json({ code: "INVITATION_DATABASE_FAILED", error: "The organization or member records could not be loaded." });
+      return;
+    }
     if (memberCount >= effectiveMax) {
-      res.status(402).json({ error: "USER_LIMIT_REACHED", maxUsers: effectiveMax });
+      res.status(402).json({ code: "USER_LIMIT_REACHED", error: "USER_LIMIT_REACHED", maxUsers: effectiveMax });
       return;
     }
 
-    let targetUser = await dependencies.findUserByEmail(inviteEmail);
     if (!targetUser) {
-      targetUser = await dependencies.createPlaceholderUser(inviteEmail, organizationId);
+      try {
+        targetUser = await dependencies.createPlaceholderUser(inviteEmail, organizationId);
+      } catch (error) {
+        req.log.error({ err: error, orgId: organizationId, stage: "database_create_user" }, "Unable to create invitation user");
+        res.status(500).json({ code: "INVITATION_DATABASE_FAILED", error: "The invited user could not be created." });
+        return;
+      }
     }
 
     if (targetUser.primaryOrganizationId && targetUser.primaryOrganizationId !== organizationId) {
@@ -188,7 +203,14 @@ export function createInviteMemberHandler(
       return;
     }
 
-    const currentRelation = await dependencies.findCurrentMembership(targetUser.id);
+    let currentRelation: { organizationId: number } | undefined;
+    try {
+      currentRelation = await dependencies.findCurrentMembership(targetUser.id);
+    } catch (error) {
+      req.log.error({ err: error, orgId: organizationId, stage: "database_membership_lookup" }, "Unable to check existing organization membership");
+      res.status(500).json({ code: "INVITATION_DATABASE_FAILED", error: "Existing organization membership could not be checked." });
+      return;
+    }
     if (currentRelation) {
       res.status(409).json({
         error: currentRelation.organizationId === organizationId
@@ -213,9 +235,12 @@ export function createInviteMemberHandler(
         res.status(409).json({ error: "Cet utilisateur appartient déjà à une organisation principale." });
         return;
       }
-      throw error;
+      req.log.error({ err: error, orgId: organizationId, stage: "database_create_membership" }, "Unable to create invitation membership");
+      res.status(500).json({ code: "INVITATION_DATABASE_FAILED", error: "The organization membership could not be created." });
+      return;
     }
 
+    let invitationStage: "clerk" | "database_record" = "clerk";
     try {
       const redirectUrl = dependencies.getRedirectUrl?.(organizationId);
       const clerkInvitation = await dependencies.sendInvitation({
@@ -234,6 +259,7 @@ export function createInviteMemberHandler(
           ? String(clerkInvitation.id)
           : null;
       createdClerkInvitationId = clerkInvitationId;
+      invitationStage = "database_record";
       await dependencies.recordInvitation?.({
         organizationId,
         memberId: member.id,
@@ -255,8 +281,14 @@ export function createInviteMemberHandler(
       if (isPendingClerkAccount) {
         await dependencies.deleteUser(targetUser.id);
       }
-      req.log.error({ err: error, orgId: organizationId }, "Clerk member invitation failed");
-      res.status(502).json({ error: "L'invitation e-mail n'a pas pu être envoyée. Réessayez." });
+      req.log.error({ err: error, orgId: organizationId, stage: invitationStage }, "Member invitation failed");
+      res.status(invitationStage === "clerk" ? 502 : 500).json({
+        code: invitationStage === "clerk" ? "CLERK_INVITATION_FAILED" : "INVITATION_DATABASE_FAILED",
+        stage: invitationStage,
+        error: invitationStage === "clerk"
+          ? "Clerk could not send the invitation email."
+          : "The invitation could not be recorded; the Clerk invitation was rolled back.",
+      });
       return;
     }
 

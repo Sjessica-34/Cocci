@@ -234,7 +234,7 @@ test("un replay reprend une mise à jour Stripe acceptée avant une panne locale
   const { handler, request, response, state } = makeHarness({ failLocalUpdateOnce: true });
 
   await handler(request, response);
-  assert.equal(state.statusCode, 500);
+  assert.equal(state.statusCode, 503);
   assert.equal(state.quantity, 2);
   assert.equal(state.maxUsers, 11);
   assert.equal(state.requests.get(state.idempotencyKey)?.status, "pending");
@@ -276,7 +276,14 @@ test("un paiement refusé ne valide ni la quantité ni la limite locale", async 
   await handler(request, response);
 
   assert.equal(state.statusCode, 402);
-  assert.deepEqual(state.body, { error: "Stripe could not complete the seat purchase" });
+  assert.deepEqual(state.body, {
+    code: "STRIPE_UPDATE_FAILED",
+    stage: "stripe_update",
+    paymentSucceeded: false,
+    stripeCode: null,
+    stripeMessage: "The invoice payment was declined",
+    error: "Stripe could not complete the seat purchase",
+  });
   assert.equal(state.maxUsers, 11);
   assert.equal(state.quantity, 1);
   assert.equal(state.commits, 2);
