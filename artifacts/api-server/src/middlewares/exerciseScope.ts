@@ -5,8 +5,13 @@ import { db, membersTable } from "@workspace/db";
 import { organizationsTable } from "@workspace/db";
 import { getOrCreateUser } from "../lib/auth";
 import { requireExercise, requireWritableExercise } from "../lib/exercise";
+import { logger } from "../lib/logger";
+import {
+  getOrganizationRoleDenial,
+  type OrganizationMemberRole,
+} from "../lib/organizationRolePolicy";
 
-type MemberRole = "owner" | "admin" | "member" | "viewer";
+type MemberRole = OrganizationMemberRole;
 
 function parseId(raw: string | string[] | undefined): number | null {
   if (raw == null) return null;
@@ -79,35 +84,102 @@ async function requireActiveOrganizationAccess(
 ): Promise<void> {
   const orgId = parseId(req.params.orgId);
   if (!orgId) {
-    res.status(400).json({ error: "Invalid organization id" });
+    res.status(400).json({ code: "INVALID_ORGANIZATION_ID", error: "Invalid organization id" });
+    return;
+  }
+
+  const [organization] = await db
+    .select({ id: organizationsTable.id, parentId: organizationsTable.parentId })
+    .from(organizationsTable)
+    .where(eq(organizationsTable.id, orgId))
+    .limit(1);
+  if (!organization) {
+    res.status(404).json({
+      code: "ORGANIZATION_NOT_FOUND",
+      error: "Organization not found",
+      organizationId: orgId,
+    });
     return;
   }
 
   const user = await getOrCreateUser(req.clerkUserId!);
   // Superadmins retain their cross-organization access for support operations.
   if (!user.isSuperAdmin) {
-    const [membership] = await db
+    const activeMembershipFilters = [
+      eq(membersTable.userId, user.id),
+      eq(membersTable.status, "active"),
+      isNull(membersTable.archivedAt),
+    ];
+    const [directMembership] = await db
       .select({ role: membersTable.role })
       .from(membersTable)
       .where(and(
-        eq(membersTable.userId, user.id),
-        eq(membersTable.status, "active"),
-        isNull(membersTable.archivedAt),
-          membershipScope(orgId, user.primaryOrganizationId),
+        ...activeMembershipFilters,
+        eq(membersTable.organizationId, orgId),
       ))
       .limit(1);
 
-    if (!membership) {
-      res.status(403).json({ code: "ORGANIZATION_MEMBERSHIP_REQUIRED", error: "Forbidden" });
-      return;
+    // Group administrators may manage a subsidiary only through their active
+    // membership in its parent organization. Keep this lookup separate from
+    // the direct membership lookup so either authorization path is observable.
+    let membership = directMembership;
+    if (
+      !membership &&
+      organization.parentId !== null &&
+      organization.parentId === user.primaryOrganizationId
+    ) {
+      const [parentMembership] = await db
+        .select({ role: membersTable.role })
+        .from(membersTable)
+        .where(and(
+          ...activeMembershipFilters,
+          eq(membersTable.organizationId, organization.parentId),
+        ))
+        .limit(1);
+      membership = parentMembership;
     }
-    if (allowedRoles && !allowedRoles.includes(membership.role as MemberRole)) {
+
+    const denial = getOrganizationRoleDenial(membership?.role ?? null, allowedRoles);
+    if (denial === "ORGANIZATION_MEMBERSHIP_REQUIRED") {
+      logger.warn({
+        orgId,
+        userId: user.id,
+        primaryOrganizationId: user.primaryOrganizationId,
+        parentOrganizationId: organization.parentId,
+        requiredRoles: allowedRoles ?? null,
+      }, "Organization access denied: active membership not found");
       res.status(403).json({
-        code: "ORGANIZATION_ROLE_REQUIRED",
-        error: "Forbidden",
-        requiredRoles: allowedRoles,
+        code: denial,
+        error: "An active membership in this organization is required.",
+        organizationId: orgId,
       });
       return;
+    }
+    if (denial === "ORGANIZATION_ROLE_REQUIRED") {
+      logger.warn({
+        orgId,
+        userId: user.id,
+        primaryOrganizationId: user.primaryOrganizationId,
+        role: membership?.role ?? null,
+        requiredRoles: allowedRoles,
+      }, "Organization access denied: member role is insufficient");
+      res.status(403).json({
+        code: denial,
+        error: "Owner or administrator role is required.",
+        requiredRoles: allowedRoles,
+        organizationId: orgId,
+      });
+      return;
+    }
+    if (allowedRoles) {
+      logger.info({
+        orgId,
+        userId: user.id,
+        primaryOrganizationId: user.primaryOrganizationId,
+        role: membership?.role ?? null,
+        membershipScope: directMembership ? "direct" : "parent_organization",
+        requiredRoles: allowedRoles,
+      }, "Organization role access granted");
     }
   }
 
