@@ -627,8 +627,9 @@ export function Abonnement() {
             <DialogHeader>
               <DialogTitle>Ajouter un utilisateur</DialogTitle>
               <DialogDescription>
-                Un siège supplémentaire coûte 3 € TTC/mois et sera ajouté à l’abonnement Stripe actif.
-                La personne recevra une invitation pour rejoindre cette organisation.
+                {seatReadyEmail === additionalUserEmail.trim().toLowerCase()
+                  ? "La personne recevra une invitation pour rejoindre cette organisation."
+                  : "Un siège supplémentaire coûte 3 € TTC/mois et sera ajouté à l’abonnement Stripe actif. La personne recevra une invitation pour rejoindre cette organisation."}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={submitAdditionalUserInvite} className="space-y-4">
@@ -657,18 +658,15 @@ export function Abonnement() {
                   <option value="viewer">Lecteur</option>
                 </select>
               </div>
-              {seatReadyEmail === additionalUserEmail.trim().toLowerCase() && (
-                <p className="text-sm text-amber-700">
-                  Le siège est déjà facturé. Confirmer à nouveau renverra uniquement l’invitation.
-                </p>
-              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowInviteAdditionalUser(false)}>
                   Annuler
                 </Button>
                 <Button type="submit" disabled={additionalUserLoading || inviteMember.isPending}>
                   {(additionalUserLoading || inviteMember.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Confirmer et inviter — 3 € TTC/mois
+                  {seatReadyEmail === additionalUserEmail.trim().toLowerCase()
+                    ? "Renvoyer l’invitation"
+                    : "Confirmer et inviter — 3 € TTC/mois"}
                 </Button>
               </DialogFooter>
             </form>
