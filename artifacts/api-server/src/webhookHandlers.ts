@@ -8,6 +8,7 @@ import { getStripeObjectId } from "./stripeCheckoutAttempts";
 
 type InvoiceSubscriptionReference = {
   subscription?: string | { id: string } | null;
+  billing_reason?: string | null;
   parent?: {
     subscription_details?: {
       subscription?: string | { id: string } | null;
@@ -376,6 +377,13 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
         const invoice = event.data.object as unknown as InvoiceSubscriptionReference;
         const failedSubId = getInvoiceSubscriptionId(invoice);
         if (!failedSubId) break;
+        if (invoice.billing_reason === "subscription_update") {
+          logger.info(
+            { sub: failedSubId },
+            "Ignoring failed subscription update invoice; existing subscription entitlements remain unchanged",
+          );
+          break;
+        }
         await suspendSubscriptionByStripeSubId(failedSubId);
         logger.info({ sub: failedSubId }, "Subscription suspended after payment_failed");
         break;
@@ -445,12 +453,12 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           stripeSubscriptionId: sub.id,
           status: sub.status,
           maxUsers: (() => {
-            const baseMaxUsers = Number(sub.metadata.cocciBaseMaxUsers);
+            const baseMaxUsers = Number(sub.metadata?.cocciBaseMaxUsers);
             const additionalUserPriceId = process.env.STRIPE_ADDITIONAL_USER_PRICE_ID?.trim();
             if (!Number.isInteger(baseMaxUsers) || baseMaxUsers < 1 || !additionalUserPriceId) {
               return null;
             }
-            const quantity = sub.items.data
+            const quantity = (sub.items?.data ?? [])
               .filter((item) => item.price.id === additionalUserPriceId)
               .reduce((total, item) => total + (item.quantity ?? 0), 0);
             return baseMaxUsers + quantity;

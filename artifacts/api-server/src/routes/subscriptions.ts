@@ -1,9 +1,10 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db, onboardingProgressTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
 import { getUncachableStripeClient } from "../stripeClient";
 import { configuredEffectifOffers, resolveCheckoutOffer } from "../stripeCatalog";
+import type { CatalogOffer } from "../stripeCatalog";
 import { logger } from "../lib/logger";
 import { getPublicAppUrl } from "../appUrl";
 import { getBillingOrganizationId } from "../lib/billingOrganization";
@@ -263,15 +264,25 @@ router.post(
   },
 );
 
-// ── POST /api/organizations/:orgId/stripe/portal ──────────────────────────────
-router.post(
-  "/organizations/:orgId/stripe/additional-user",
-  requireAuth,
-  requireOrgRole(["owner", "admin"]),
-  async (req, res): Promise<void> => {
+type AdditionalUserHandlerDependencies = {
+  connect: typeof pool.connect;
+  getBillingOrganizationId: typeof getBillingOrganizationId;
+  getStripe: typeof getUncachableStripeClient;
+  resolveOffer: () => CatalogOffer | null;
+};
+
+export function createAdditionalUserHandler(
+  dependencies: AdditionalUserHandlerDependencies = {
+    connect: () => pool.connect(),
+    getBillingOrganizationId,
+    getStripe: getUncachableStripeClient,
+    resolveOffer: () => resolveCheckoutOffer({ action: "additional_user" }),
+  },
+) {
+  return async (req: Request, res: Response): Promise<void> => {
     const orgId = req.orgId!;
-    const billingOrgId = await getBillingOrganizationId(orgId);
-    const client = await pool.connect();
+    const billingOrgId = await dependencies.getBillingOrganizationId(orgId);
+    const client = await dependencies.connect();
 
     try {
       await client.query("BEGIN");
@@ -308,14 +319,14 @@ router.post(
         return;
       }
 
-      const offer = resolveCheckoutOffer({ action: "additional_user" });
+      const offer = dependencies.resolveOffer();
       if (!offer) {
         await client.query("ROLLBACK");
         res.status(503).json({ error: "Additional-user pricing is not configured" });
         return;
       }
 
-      const stripe = await getUncachableStripeClient();
+      const stripe = await dependencies.getStripe();
       const price = await stripe.prices.retrieve(offer.priceId);
       const productId = typeof price.product === "string" ? price.product : price.product.id;
       if (
@@ -374,7 +385,15 @@ router.post(
     } finally {
       client.release();
     }
-  },
+  };
+}
+
+// ── POST /api/organizations/:orgId/stripe/additional-user ─────────────────────
+router.post(
+  "/organizations/:orgId/stripe/additional-user",
+  requireAuth,
+  requireOrgRole(["owner", "admin"]),
+  createAdditionalUserHandler(),
 );
 
 router.post(

@@ -108,6 +108,7 @@ async function main() {
   const customerId = "cus_test_attempts";
   const initialSubscriptionId = "sub_test_attempt_initial";
   const initialPaymentIntentId = "pi_test_attempt_initial";
+  const previousAdditionalUserPriceId = process.env.STRIPE_ADDITIONAL_USER_PRICE_ID;
 
   try {
     // 1. Première tentative SEPA : Checkout unpaid → trial.
@@ -322,7 +323,71 @@ async function main() {
     }));
     sub = await getSub(orgId);
     assert(sub?.status === "active", "nouvelle tentative réussie → active");
+
+    // La quantité réellement présente sur l'abonnement Stripe est la source de
+    // vérité de la limite locale, et rejouer un webhook ne double pas le quota.
+    process.env.STRIPE_ADDITIONAL_USER_PRICE_ID = "price_test_additional_user";
+    const subscriptionUpdated = (quantity: number) => makeEvent("customer.subscription.updated", {
+      id: successfulSubscriptionId,
+      customer: customerId,
+      status: "active",
+      metadata: { cocciBaseMaxUsers: "8" },
+      items: {
+        data: quantity === 0
+          ? []
+          : [{
+              id: "si_test_additional_user",
+              price: { id: "price_test_additional_user" },
+              quantity,
+            }],
+      },
+    });
+
+    await handleStripeEvent(subscriptionUpdated(2));
+    let seatLimit = await pool.query<{ max_users: number }>(
+      "SELECT max_users FROM subscriptions WHERE organization_id = $1",
+      [orgId],
+    );
+    assert(Number(seatLimit.rows[0]?.max_users) === 10, "quantité Stripe 2 → limite de 10 utilisateurs");
+
+    await handleStripeEvent(subscriptionUpdated(2));
+    seatLimit = await pool.query<{ max_users: number }>(
+      "SELECT max_users FROM subscriptions WHERE organization_id = $1",
+      [orgId],
+    );
+    assert(Number(seatLimit.rows[0]?.max_users) === 10, "webhook rejoué → aucun siège en doublon");
+
+    await handleStripeEvent(subscriptionUpdated(4));
+    seatLimit = await pool.query<{ max_users: number }>(
+      "SELECT max_users FROM subscriptions WHERE organization_id = $1",
+      [orgId],
+    );
+    assert(Number(seatLimit.rows[0]?.max_users) === 12, "changement Stripe de quantité 2 → 4 synchronisé");
+
+    await handleStripeEvent(subscriptionUpdated(0));
+    seatLimit = await pool.query<{ max_users: number }>(
+      "SELECT max_users FROM subscriptions WHERE organization_id = $1",
+      [orgId],
+    );
+    assert(Number(seatLimit.rows[0]?.max_users) === 8, "suppression du complément Stripe → limite de base");
+
+    await handleStripeEvent(makeEvent("invoice.payment_failed", {
+      subscription: successfulSubscriptionId,
+      billing_reason: "subscription_update",
+    }));
+    sub = await getSub(orgId);
+    seatLimit = await pool.query<{ max_users: number }>(
+      "SELECT max_users FROM subscriptions WHERE organization_id = $1",
+      [orgId],
+    );
+    assert(sub?.status === "active", "facture d'ajustement refusée → abonnement de base conservé");
+    assert(Number(seatLimit.rows[0]?.max_users) === 8, "facture d'ajustement refusée → siège non accordé");
   } finally {
+    if (previousAdditionalUserPriceId === undefined) {
+      delete process.env.STRIPE_ADDITIONAL_USER_PRICE_ID;
+    } else {
+      process.env.STRIPE_ADDITIONAL_USER_PRICE_ID = previousAdditionalUserPriceId;
+    }
     await pool.query("DELETE FROM stripe_checkout_attempts WHERE organization_id = $1", [orgId]);
     await pool.query("DELETE FROM subscriptions WHERE organization_id = $1", [orgId]);
     await pool.query("DELETE FROM users WHERE id = $1", [userId]);
