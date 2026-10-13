@@ -20,6 +20,7 @@ const offer: CatalogOffer = {
 
 function makeHarness(opts: {
   paymentFails?: boolean;
+  failLocalUpdateOnce?: boolean;
   memberCount?: number;
   quantity?: number;
 } = {}) {
@@ -30,6 +31,17 @@ function makeHarness(opts: {
     commits: 0,
     rollbacks: 0,
     stripeUpdate: null as Stripe.SubscriptionUpdateParams | null,
+    stripeUpdates: 0,
+    stripeIdempotencyKeys: [] as string[],
+    appliedStripeIdempotencyKeys: new Set<string>(),
+    failLocalUpdateOnce: Boolean(opts.failLocalUpdateOnce),
+    idempotencyKey: "00000000-0000-4000-8000-000000000001",
+    requests: new Map<string, {
+      status: string;
+      stripe_subscription_id: string;
+      stripe_update_params: Stripe.SubscriptionUpdateParams;
+      max_users: number;
+    }>(),
     statusCode: 200,
     body: undefined as unknown,
   };
@@ -54,6 +66,28 @@ function makeHarness(opts: {
           rowCount: 1,
         };
       }
+      if (query.includes("FROM additional_user_seat_requests")) {
+        if (query.includes("idempotency_key = $2")) {
+          const saved = state.requests.get(String(values?.[1]));
+          return { rows: saved ? [saved] : [], rowCount: saved ? 1 : 0 };
+        }
+        const pending = [...state.requests.values()].filter((entry) => entry.status === "pending");
+        return { rows: pending.map(() => ({ idempotency_key: "pending" })), rowCount: pending.length };
+      }
+      if (query.includes("INSERT INTO additional_user_seat_requests")) {
+        state.requests.set(String(values?.[1]), {
+          status: "pending",
+          stripe_subscription_id: String(values?.[2]),
+          stripe_update_params: JSON.parse(String(values?.[3])) as Stripe.SubscriptionUpdateParams,
+          max_users: Number(values?.[4]),
+        });
+        return { rows: [], rowCount: 1 };
+      }
+      if (query.includes("UPDATE additional_user_seat_requests")) {
+        const saved = state.requests.get(String(values?.[1]));
+        if (saved) saved.status = query.includes("status = 'completed'") ? "completed" : "failed";
+        return { rows: [], rowCount: saved ? 1 : 0 };
+      }
       if (query.includes("FROM members")) {
         return {
           rows: [{ member_count: state.memberCount }],
@@ -61,6 +95,10 @@ function makeHarness(opts: {
         };
       }
       if (query.includes("UPDATE subscriptions")) {
+        if (state.failLocalUpdateOnce) {
+          state.failLocalUpdateOnce = false;
+          throw new Error("Simulated local database failure");
+        }
         state.maxUsers = Number(values?.[1]);
         return { rows: [], rowCount: 1 };
       }
@@ -94,16 +132,26 @@ function makeHarness(opts: {
           }],
         },
       }),
-      update: async (_id: string, params: Stripe.SubscriptionUpdateParams) => {
+      update: async (
+        _id: string,
+        params: Stripe.SubscriptionUpdateParams,
+        options?: Stripe.RequestOptions,
+      ) => {
+        state.stripeUpdates++;
+        state.stripeIdempotencyKeys.push(options?.idempotencyKey ?? "");
         state.stripeUpdate = params;
         if (opts.paymentFails) {
-          throw new Error("The invoice payment was declined");
+          throw Object.assign(new Error("The invoice payment was declined"), { statusCode: 402 });
         }
-        const item = params.items?.[0];
-        if (item && "quantity" in item && item.quantity !== undefined) {
-          state.quantity = item.quantity;
-        } else if (item && "deleted" in item && item.deleted) {
-          state.quantity = 0;
+        const idempotencyKey = options?.idempotencyKey ?? "";
+        if (!state.appliedStripeIdempotencyKeys.has(idempotencyKey)) {
+          state.appliedStripeIdempotencyKeys.add(idempotencyKey);
+          const item = params.items?.[0];
+          if (item && "quantity" in item && item.quantity !== undefined) {
+            state.quantity = item.quantity;
+          } else if (item && "deleted" in item && item.deleted) {
+            state.quantity = 0;
+          }
         }
         return {} as Stripe.Subscription;
       },
@@ -132,7 +180,12 @@ function makeHarness(opts: {
       return this;
     },
   } as unknown as Response;
-  const request = { orgId: 42 } as Request;
+  const request = {
+    orgId: 42,
+    get(name: string) {
+      return name.toLowerCase() === "idempotency-key" ? state.idempotencyKey : undefined;
+    },
+  } as unknown as Request;
 
   return { handler, removeHandler, request, response, state };
 }
@@ -146,10 +199,67 @@ test("ajoute un siège après acceptation du paiement et applique la limite une 
   assert.deepEqual(state.body, { maxUsers: 12 });
   assert.equal(state.maxUsers, 12);
   assert.equal(state.quantity, 2);
-  assert.equal(state.commits, 1);
+  assert.equal(state.commits, 2);
   assert.equal(state.rollbacks, 0);
+  assert.equal(state.stripeUpdates, 1);
+  assert.equal(state.requests.get(state.idempotencyKey)?.status, "completed");
   assert.equal(state.stripeUpdate?.proration_behavior, "always_invoice");
   assert.equal(state.stripeUpdate?.payment_behavior, "error_if_incomplete");
+});
+
+test("une réponse perdue puis rejouée renvoie le résultat initial sans rappeler Stripe", async () => {
+  const { handler, request, response, state } = makeHarness();
+
+  await handler(request, response);
+  const originalResult = state.body;
+  state.body = undefined;
+  await handler(request, response);
+
+  assert.equal(state.statusCode, 200);
+  assert.deepEqual(state.body, originalResult);
+  assert.equal(state.stripeUpdates, 1);
+  assert.equal(state.quantity, 2);
+  assert.equal(state.maxUsers, 12);
+});
+
+test("un replay reprend une mise à jour Stripe acceptée avant une panne locale", async () => {
+  const { handler, request, response, state } = makeHarness({ failLocalUpdateOnce: true });
+
+  await handler(request, response);
+  assert.equal(state.statusCode, 500);
+  assert.equal(state.quantity, 2);
+  assert.equal(state.maxUsers, 11);
+  assert.equal(state.requests.get(state.idempotencyKey)?.status, "pending");
+
+  state.statusCode = 200;
+  state.body = undefined;
+  await handler(request, response);
+
+  assert.equal(state.statusCode, 200);
+  assert.deepEqual(state.body, { maxUsers: 12 });
+  assert.equal(state.quantity, 2);
+  assert.equal(state.maxUsers, 12);
+  assert.equal(state.stripeUpdates, 2);
+  assert.equal(state.stripeIdempotencyKeys[0], state.stripeIdempotencyKeys[1]);
+  assert.equal(state.requests.get(state.idempotencyKey)?.status, "completed");
+});
+
+test("un achat ultérieur avec une nouvelle clé ajoute un siège supplémentaire", async () => {
+  const { handler, request, response, state } = makeHarness();
+
+  await handler(request, response);
+  const firstKey = state.idempotencyKey;
+  state.idempotencyKey = "00000000-0000-4000-8000-000000000002";
+  await handler(request, response);
+
+  assert.equal(state.statusCode, 200);
+  assert.deepEqual(state.body, { maxUsers: 13 });
+  assert.equal(state.quantity, 3);
+  assert.equal(state.maxUsers, 13);
+  assert.equal(state.stripeUpdates, 2);
+  assert.notEqual(state.stripeIdempotencyKeys[0], state.stripeIdempotencyKeys[1]);
+  assert.equal(state.requests.get(firstKey)?.status, "completed");
+  assert.equal(state.requests.get(state.idempotencyKey)?.status, "completed");
 });
 
 test("un paiement refusé ne valide ni la quantité ni la limite locale", async () => {
@@ -157,12 +267,13 @@ test("un paiement refusé ne valide ni la quantité ni la limite locale", async 
 
   await handler(request, response);
 
-  assert.equal(state.statusCode, 500);
-  assert.deepEqual(state.body, { error: "Unable to add the additional user" });
+  assert.equal(state.statusCode, 402);
+  assert.deepEqual(state.body, { error: "Stripe could not complete the seat purchase" });
   assert.equal(state.maxUsers, 11);
   assert.equal(state.quantity, 1);
-  assert.equal(state.commits, 0);
-  assert.equal(state.rollbacks, 1);
+  assert.equal(state.commits, 2);
+  assert.equal(state.rollbacks, 0);
+  assert.equal(state.requests.get(state.idempotencyKey)?.status, "failed");
 });
 
 test("retire un siège et synchronise la limite après acceptation de Stripe", async () => {

@@ -3367,6 +3367,13 @@ paths:
           required: true
           schema:
             type: integer
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Unique UUID generated once for this add-seat action and reused for retries.
+          schema:
+            type: string
+            format: uuid
       responses:
         "200":
           description: Seat added to the active Stripe subscription
@@ -3378,8 +3385,12 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "400":
+          description: Missing or invalid idempotency key
         "409":
-          description: No active Stripe subscription or administrator-managed seat limit
+          description: No active Stripe subscription, administrator-managed seat limit, or another pending attempt
+        "402":
+          description: Stripe declined the seat purchase
         "500":
           description: Stripe configuration or payment error
 

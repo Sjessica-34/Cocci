@@ -8,3 +8,9 @@ Chaque utilisateur supplémentaire est ajouté comme article récurrent de 3 €
 **Why:** l’application suit un abonnement par organisation; un abonnement distinct risquerait de remplacer l’abonnement principal et ses droits.
 
 **How to apply:** conserver la validation serveur du prix inclusif de 3 € et synchroniser le quota de membres avec la quantité d’articles sur l’abonnement existant. Une facture `subscription_update` refusée ne doit pas suspendre l’abonnement payé de base : `error_if_incomplete` laisse l’ajustement non appliqué.
+
+Une demande d’ajout doit enregistrer les paramètres exacts de mise à jour avant l’appel Stripe, puis reprendre une tentative en attente avec ces mêmes paramètres et la même clé Stripe. Une autre clé ne doit pas démarrer tant que cette tentative est en attente.
+
+**Why:** Stripe peut accepter la mise à jour avant qu’un serveur ne perde sa réponse ou ne réussisse à enregistrer le résultat local; recalculer la quantité au nouvel essai pourrait facturer un deuxième siège.
+
+**How to apply:** persister une tentative par organisation avec son résultat attendu, utiliser une clé Stripe dérivée de la clé de requête du client et compléter le quota local et le résultat idempotent dans une transaction après l’acceptation Stripe.

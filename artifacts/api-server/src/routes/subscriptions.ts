@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import type Stripe from "stripe";
 import { db, onboardingProgressTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
@@ -281,11 +282,24 @@ export function createAdditionalUserHandler(
 ) {
   return async (req: Request, res: Response): Promise<void> => {
     const orgId = req.orgId!;
+    const idempotencyKey = req.get("Idempotency-Key");
+    if (
+      !idempotencyKey ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        idempotencyKey,
+      )
+    ) {
+      res.status(400).json({ error: "A valid Idempotency-Key UUID is required" });
+      return;
+    }
+
     const billingOrgId = await dependencies.getBillingOrganizationId(orgId);
     const client = await dependencies.connect();
+    let transactionOpen = false;
 
     try {
       await client.query("BEGIN");
+      transactionOpen = true;
       const current = await client.query<{
         mode: string;
         status: string;
@@ -302,84 +316,189 @@ export function createAdditionalUserHandler(
         [billingOrgId],
       );
       const row = current.rows[0];
-      if (
-        !row ||
-        row.mode !== "stripe" ||
-        row.status !== "active" ||
-        !row.stripe_subscription_id ||
-        !row.stripe_customer_id
-      ) {
-        await client.query("ROLLBACK");
-        res.status(409).json({ error: "An active Stripe subscription is required" });
+      const savedRequest = await client.query<{
+        status: string;
+        stripe_subscription_id: string;
+        stripe_update_params: Stripe.SubscriptionUpdateParams;
+        max_users: number;
+      }>(
+        `SELECT status, stripe_subscription_id, stripe_update_params, max_users
+         FROM additional_user_seat_requests
+         WHERE organization_id = $1 AND idempotency_key = $2
+         FOR UPDATE`,
+        [billingOrgId, idempotencyKey],
+      );
+      const previousRequest = savedRequest.rows[0];
+      if (previousRequest?.status === "completed") {
+        await client.query("COMMIT");
+        transactionOpen = false;
+        res.json({ maxUsers: previousRequest.max_users });
         return;
       }
-      if (row.override_max_users !== null) {
+      if (previousRequest?.status === "failed") {
         await client.query("ROLLBACK");
-        res.status(409).json({ error: "The user limit is managed by an administrator" });
+        transactionOpen = false;
+        res.status(409).json({ error: "This add-seat attempt failed; start a new attempt" });
         return;
       }
 
-      const offer = dependencies.resolveOffer();
-      if (!offer) {
-        await client.query("ROLLBACK");
-        res.status(503).json({ error: "Additional-user pricing is not configured" });
-        return;
+      let stripeSubscriptionId: string;
+      let stripeUpdateParams: Stripe.SubscriptionUpdateParams;
+      let maxUsers: number;
+      if (previousRequest) {
+        stripeSubscriptionId = previousRequest.stripe_subscription_id;
+        stripeUpdateParams = previousRequest.stripe_update_params;
+        maxUsers = previousRequest.max_users;
+      } else {
+        if (
+          !row ||
+          row.mode !== "stripe" ||
+          row.status !== "active" ||
+          !row.stripe_subscription_id ||
+          !row.stripe_customer_id
+        ) {
+          await client.query("ROLLBACK");
+          transactionOpen = false;
+          res.status(409).json({ error: "An active Stripe subscription is required" });
+          return;
+        }
+        if (row.override_max_users !== null) {
+          await client.query("ROLLBACK");
+          transactionOpen = false;
+          res.status(409).json({ error: "The user limit is managed by an administrator" });
+          return;
+        }
+
+        const inProgress = await client.query(
+          `SELECT idempotency_key
+           FROM additional_user_seat_requests
+           WHERE organization_id = $1 AND status = 'pending'
+           LIMIT 1`,
+          [billingOrgId],
+        );
+        if (inProgress.rows.length > 0) {
+          await client.query("ROLLBACK");
+          transactionOpen = false;
+          res.status(409).json({ error: "Retry the pending add-seat attempt before starting another" });
+          return;
+        }
+
+        const offer = dependencies.resolveOffer();
+        if (!offer) {
+          await client.query("ROLLBACK");
+          transactionOpen = false;
+          res.status(503).json({ error: "Additional-user pricing is not configured" });
+          return;
+        }
+
+        const stripe = await dependencies.getStripe();
+        const price = await stripe.prices.retrieve(offer.priceId);
+        const productId = typeof price.product === "string" ? price.product : price.product.id;
+        if (
+          !price.active ||
+          productId !== offer.productId ||
+          !price.recurring ||
+          price.recurring.interval !== "month" ||
+          price.tax_behavior !== "inclusive" ||
+          price.currency !== "eur" ||
+          price.unit_amount !== 300
+        ) {
+          logger.error({ offerName: offer.offerName }, "Invalid additional-user Stripe price");
+          await client.query("ROLLBACK");
+          transactionOpen = false;
+          res.status(500).json({ error: "Additional-user price must be €3 TTC per month" });
+          return;
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
+        if (
+          subscription.customer !== row.stripe_customer_id ||
+          !["active", "trialing"].includes(subscription.status)
+        ) {
+          await client.query("ROLLBACK");
+          transactionOpen = false;
+          res.status(409).json({ error: "The Stripe subscription is not active" });
+          return;
+        }
+
+        const item = subscription.items.data.find((entry) => entry.price.id === offer.priceId);
+        const existingQuantity = item?.quantity ?? 0;
+        const metadataBase = Number(subscription.metadata.cocciBaseMaxUsers);
+        const baseMaxUsers =
+          Number.isInteger(metadataBase) && metadataBase >= 1
+            ? metadataBase
+            : Math.max((row.max_users ?? 1) - existingQuantity, 1);
+        const quantity = existingQuantity + 1;
+        stripeSubscriptionId = subscription.id;
+        stripeUpdateParams = {
+          items: [item ? { id: item.id, quantity } : { price: offer.priceId, quantity }],
+          proration_behavior: "always_invoice",
+          payment_behavior: "error_if_incomplete",
+          metadata: { cocciBaseMaxUsers: String(baseMaxUsers) },
+        };
+        maxUsers = baseMaxUsers + quantity;
+        await client.query(
+          `INSERT INTO additional_user_seat_requests
+             (organization_id, idempotency_key, status, stripe_subscription_id,
+              stripe_update_params, max_users)
+           VALUES ($1, $2, 'pending', $3, $4::jsonb, $5)`,
+          [
+            billingOrgId,
+            idempotencyKey,
+            stripeSubscriptionId,
+            JSON.stringify(stripeUpdateParams),
+            maxUsers,
+          ],
+        );
       }
 
+      await client.query("COMMIT");
+      transactionOpen = false;
       const stripe = await dependencies.getStripe();
-      const price = await stripe.prices.retrieve(offer.priceId);
-      const productId = typeof price.product === "string" ? price.product : price.product.id;
-      if (
-        !price.active ||
-        productId !== offer.productId ||
-        !price.recurring ||
-        price.recurring.interval !== "month" ||
-        price.tax_behavior !== "inclusive" ||
-        price.currency !== "eur" ||
-        price.unit_amount !== 300
-      ) {
-        logger.error({ offerName: offer.offerName }, "Invalid additional-user Stripe price");
-        await client.query("ROLLBACK");
-        res.status(500).json({ error: "Additional-user price must be €3 TTC per month" });
-        return;
+      try {
+        await stripe.subscriptions.update(stripeSubscriptionId, stripeUpdateParams, {
+          idempotencyKey: `additional-user-${billingOrgId}-${idempotencyKey}`,
+        });
+      } catch (stripeError) {
+        const statusCode = (stripeError as { statusCode?: unknown }).statusCode;
+        if (statusCode === 400 || statusCode === 402) {
+          await client.query("BEGIN");
+          transactionOpen = true;
+          await client.query(
+            `UPDATE additional_user_seat_requests
+             SET status = 'failed', updated_at = NOW()
+             WHERE organization_id = $1 AND idempotency_key = $2`,
+            [billingOrgId, idempotencyKey],
+          );
+          await client.query("COMMIT");
+          transactionOpen = false;
+          res.status(statusCode).json({ error: "Stripe could not complete the seat purchase" });
+          return;
+        }
+        throw stripeError;
       }
 
-      const subscription = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
-      if (
-        subscription.customer !== row.stripe_customer_id ||
-        !["active", "trialing"].includes(subscription.status)
-      ) {
-        await client.query("ROLLBACK");
-        res.status(409).json({ error: "The Stripe subscription is not active" });
-        return;
-      }
-
-      const item = subscription.items.data.find((entry) => entry.price.id === offer.priceId);
-      const existingQuantity = item?.quantity ?? 0;
-      const metadataBase = Number(subscription.metadata.cocciBaseMaxUsers);
-      const baseMaxUsers =
-        Number.isInteger(metadataBase) && metadataBase >= 1
-          ? metadataBase
-          : Math.max((row.max_users ?? 1) - existingQuantity, 1);
-      const quantity = existingQuantity + 1;
-      await stripe.subscriptions.update(subscription.id, {
-        items: [item ? { id: item.id, quantity } : { price: offer.priceId, quantity }],
-        proration_behavior: "always_invoice",
-        payment_behavior: "error_if_incomplete",
-        metadata: { cocciBaseMaxUsers: String(baseMaxUsers) },
-      });
-
-      const maxUsers = baseMaxUsers + quantity;
+      await client.query("BEGIN");
+      transactionOpen = true;
       await client.query(
         `UPDATE subscriptions
          SET max_users = $2, updated_at = NOW()
          WHERE organization_id = $1 AND stripe_subscription_id = $3`,
-        [billingOrgId, maxUsers, row.stripe_subscription_id],
+        [billingOrgId, maxUsers, stripeSubscriptionId],
+      );
+      await client.query(
+        `UPDATE additional_user_seat_requests
+         SET status = 'completed', updated_at = NOW()
+         WHERE organization_id = $1 AND idempotency_key = $2`,
+        [billingOrgId, idempotencyKey],
       );
       await client.query("COMMIT");
+      transactionOpen = false;
       res.json({ maxUsers });
     } catch (err) {
-      await client.query("ROLLBACK").catch(() => undefined);
+      if (transactionOpen) {
+        await client.query("ROLLBACK").catch(() => undefined);
+      }
       logger.error({ err, billingOrgId }, "additional-user subscription update failed");
       res.status(500).json({ error: "Unable to add the additional user" });
     } finally {

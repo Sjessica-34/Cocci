@@ -243,12 +243,22 @@ export function Abonnement() {
     ) return;
 
     setAdditionalUserLoading(true);
+    const idempotencyStorageKey = `cocci:additional-user:${currentOrgId}`;
+    const idempotencyKey =
+      sessionStorage.getItem(idempotencyStorageKey) ?? crypto.randomUUID();
+    sessionStorage.setItem(idempotencyStorageKey, idempotencyKey);
     try {
       const token = await getToken({ skipCache: true });
       if (!token) throw new Error("Authentication token unavailable");
       const result = await addAdditionalUser(currentOrgId, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Idempotency-Key": idempotencyKey,
+        },
       });
+      if (sessionStorage.getItem(idempotencyStorageKey) === idempotencyKey) {
+        sessionStorage.removeItem(idempotencyStorageKey);
+      }
       await queryClient.invalidateQueries({
         queryKey: ["/api/organizations", currentOrgId, "subscription"],
       });
@@ -257,7 +267,14 @@ export function Abonnement() {
         title: "Utilisateur supplémentaire ajouté",
         description: `3 € TTC/mois seront ajoutés à votre abonnement. Votre limite est maintenant de ${result.maxUsers} utilisateurs.`,
       });
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof ApiError &&
+        [400, 402, 409].includes(error.status) &&
+        sessionStorage.getItem(idempotencyStorageKey) === idempotencyKey
+      ) {
+        sessionStorage.removeItem(idempotencyStorageKey);
+      }
       toast({
         variant: "destructive",
         title: "Ajout impossible",

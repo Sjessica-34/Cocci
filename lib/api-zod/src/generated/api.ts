@@ -4546,6 +4546,10 @@ export const AddAdditionalUserParams = zod.object({
   "orgId": zod.coerce.number()
 })
 
+export const AddAdditionalUserHeader = zod.object({
+  "Idempotency-Key": zod.string().uuid().describe('Unique UUID generated once for this add-seat action and reused for retries.')
+})
+
 export const AddAdditionalUserResponse = zod.object({
   "maxUsers": zod.number()
 })
