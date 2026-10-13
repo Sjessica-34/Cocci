@@ -328,7 +328,9 @@ function AcceptInvitationPage() {
   const [, setLocation] = useLocation();
   const [message, setMessage] = useState("Confirmation de l’invitation…");
   const acceptRequestStartedRef = useRef(false);
-  const organizationId = Number(new URLSearchParams(window.location.search).get("organizationId"));
+  const searchParams = new URLSearchParams(window.location.search);
+  const organizationId = Number(searchParams.get("organizationId"));
+  const clerkTicket = searchParams.get("__clerk_ticket");
   const returnPath = `${basePath}/accept-invitation?organizationId=${organizationId}`;
 
   useEffect(() => {
@@ -338,6 +340,7 @@ function AcceptInvitationPage() {
       return;
     }
     if (!isSignedIn) {
+      if (clerkTicket) return;
       setLocation(`/sign-in?redirect_url=${encodeURIComponent(returnPath)}`);
       return;
     }
@@ -353,7 +356,24 @@ function AcceptInvitationPage() {
       acceptRequestStartedRef.current = false;
       setMessage("Impossible de rattacher ce compte à l’organisation. Connectez-vous avec l’adresse e-mail invitée.");
     });
-  }, [isLoaded, isSignedIn, organizationId, returnPath, setLocation]);
+  }, [clerkTicket, isLoaded, isSignedIn, organizationId, returnPath, setLocation]);
+
+  if (isLoaded && !isSignedIn && clerkTicket) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4 py-12">
+        <div className="w-full max-w-[440px]">
+          <AuthBrand />
+          <SignUp
+            routing="path"
+            path={`${basePath}/accept-invitation`}
+            signInUrl={`${basePath}/sign-in?redirect_url=${encodeURIComponent(returnPath)}`}
+            forceRedirectUrl={returnPath}
+            fallbackRedirectUrl={returnPath}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6 text-center">
@@ -657,7 +677,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/demo"><Demo /></Route>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
-            <Route path="/accept-invitation" component={AcceptInvitationPage} />
+            <Route path="/accept-invitation/*?" component={AcceptInvitationPage} />
 
             {/* Onboarding — first-time setup (no AppLayout) */}
             <Route path="/onboarding">

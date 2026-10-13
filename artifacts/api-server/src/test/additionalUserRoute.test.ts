@@ -363,6 +363,7 @@ test("un siège payé est invité puis rattaché à la même organisation après
       emailAddress: string;
       notify: boolean;
       ignoreExisting: boolean;
+      redirectUrl: string;
       publicMetadata: { cocciOrganizationId: number; cocciRole: string };
     }>,
   };
@@ -415,6 +416,8 @@ test("un siège payé est invité puis rattaché à la même organisation après
       }
       return {};
     },
+    getRedirectUrl: (organizationId) =>
+      `https://cocci.example.test/accept-invitation?organizationId=${organizationId}`,
     deleteMembership: async (memberId) => {
       invitationState.members = invitationState.members.filter((member) => member.id !== memberId);
     },
@@ -456,6 +459,7 @@ test("un siège payé est invité puis rattaché à la même organisation après
     notify: true,
     ignoreExisting: true,
     expiresInDays: 30,
+    redirectUrl: "https://cocci.example.test/accept-invitation?organizationId=42",
     publicMetadata: { cocciOrganizationId: 42, cocciRole: "admin" },
   });
 

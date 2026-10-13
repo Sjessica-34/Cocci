@@ -11,6 +11,7 @@ import {
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
+import { getPublicAppUrl } from "../appUrl";
 import { getOrCreateUser } from "../lib/auth";
 import {
   ListMembersParams,
@@ -25,6 +26,35 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+function getDatabaseFailureDetails(error: unknown): {
+  databaseCode?: string;
+  databaseConstraint?: string;
+  databaseTable?: string;
+  databaseColumn?: string;
+} {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (!current || typeof current !== "object") return {};
+    const candidate = current as {
+      code?: unknown;
+      constraint?: unknown;
+      table?: unknown;
+      column?: unknown;
+      cause?: unknown;
+    };
+    if (candidate.code || candidate.constraint || candidate.table || candidate.column) {
+      return {
+        databaseCode: typeof candidate.code === "string" ? candidate.code : undefined,
+        databaseConstraint: typeof candidate.constraint === "string" ? candidate.constraint : undefined,
+        databaseTable: typeof candidate.table === "string" ? candidate.table : undefined,
+        databaseColumn: typeof candidate.column === "string" ? candidate.column : undefined,
+      };
+    }
+    current = candidate.cause;
+  }
+  return {};
+}
 
 type InviteMemberDependencies = {
   getEffectiveMaxUsers(organizationId: number): Promise<number>;
@@ -45,6 +75,7 @@ type InviteMemberDependencies = {
     ignoreExisting: boolean;
     expiresInDays?: number;
     publicMetadata: { cocciOrganizationId: number; cocciRole: string };
+    redirectUrl: string;
   }): Promise<unknown>;
   recordInvitation?: (input: {
     organizationId: number;
@@ -56,6 +87,7 @@ type InviteMemberDependencies = {
     expiresAt: Date;
   }) => Promise<void>;
   revokeInvitation?: (clerkInvitationId: string) => Promise<unknown>;
+  getRedirectUrl(organizationId: number): string;
   deleteMembership(memberId: number): Promise<void>;
   deleteUser(userId: number): Promise<void>;
 };
@@ -125,6 +157,9 @@ const inviteMemberDependencies: InviteMemberDependencies = {
   },
   revokeInvitation(clerkInvitationId: string) {
     return clerkClient.invitations.revokeInvitation(clerkInvitationId);
+  },
+  getRedirectUrl(organizationId: number) {
+    return `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`;
   },
   async recordInvitation(input) {
     await db.insert(organizationInvitationsTable).values({
@@ -245,6 +280,7 @@ export function createInviteMemberHandler(
           cocciOrganizationId: organizationId,
           cocciRole: parsed.data.role,
         },
+        redirectUrl: dependencies.getRedirectUrl(organizationId),
       });
       const clerkInvitationId =
         clerkInvitation && typeof clerkInvitation === "object" && "id" in clerkInvitation
@@ -269,11 +305,28 @@ export function createInviteMemberHandler(
           req.log.error({ err: revokeError, clerkInvitationId: createdClerkInvitationId }, "Failed to revoke unrecorded Clerk invitation");
         }
       }
-      await dependencies.deleteMembership(member.id);
-      if (isPendingClerkAccount) {
-        await dependencies.deleteUser(targetUser.id);
+      try {
+        await dependencies.deleteMembership(member.id);
+      } catch (cleanupError) {
+        req.log.error({ err: cleanupError, orgId: organizationId, memberId: member.id }, "Failed to clean up invitation membership");
       }
-      req.log.error({ err: error, orgId: organizationId, stage: invitationStage }, "Member invitation failed");
+      if (isPendingClerkAccount) {
+        try {
+          await dependencies.deleteUser(targetUser.id);
+        } catch (cleanupError) {
+          req.log.error({ err: cleanupError, orgId: organizationId, userId: targetUser.id }, "Failed to clean up placeholder invitation user");
+        }
+      }
+      req.log.error({
+        err: error,
+        orgId: organizationId,
+        stage: invitationStage,
+        memberId: member.id,
+        role: parsed.data.role,
+        clerkInvitationId: createdClerkInvitationId,
+        invitedByUserId: req.currentUser?.id ?? null,
+        ...getDatabaseFailureDetails(error),
+      }, "Member invitation failed");
       res.status(invitationStage === "clerk" ? 502 : 500).json({
         code: invitationStage === "clerk" ? "CLERK_INVITATION_FAILED" : "INVITATION_DATABASE_FAILED",
         stage: invitationStage,
@@ -464,6 +517,7 @@ router.post(
         notify: true,
         ignoreExisting: true,
         expiresInDays: 30,
+        redirectUrl: `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`,
         publicMetadata: { cocciOrganizationId: organizationId, cocciRole: invitation.role },
       });
       await db.update(organizationInvitationsTable).set({
