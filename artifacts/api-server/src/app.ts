@@ -96,7 +96,13 @@ app.use(
     origin: buildCorsOrigin(),
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Exercise-Id"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Exercise-Id",
+      "idempotency-key",
+      "Idempotency-Key",
+    ],
     maxAge: 86400, // 24h preflight cache
   }),
 );
