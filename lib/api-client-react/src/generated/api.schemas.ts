@@ -2652,6 +2652,10 @@ export interface ReportAiSectionResponse {
   content: string;
 }
 
+export interface AdditionalUserResponse {
+  maxUsers: number;
+}
+
 export type ListOrganizationsParams = {
 /**
  * Superadmin only — return this org and its subsidiaries instead of the caller's own orgs.

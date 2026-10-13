@@ -14,6 +14,7 @@ export * from './actionPlanItemInputSource';
 export * from './actionPlanItemRaw';
 export * from './actionPlanItemSource';
 export * from './actionPlanItemUpdate';
+export * from './additionalUserResponse';
 export * from './adminAlert';
 export * from './adminAlertSeverity';
 export * from './adminAlertType';

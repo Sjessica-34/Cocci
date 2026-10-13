@@ -25,6 +25,7 @@ import type {
   ActionPlanItemInput,
   ActionPlanItemRaw,
   ActionPlanItemUpdate,
+  AdditionalUserResponse,
   AdminAlert,
   AdminMember,
   AdminMemberUpdate,
@@ -10159,5 +10160,75 @@ export const useGenerateReportAiSection = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGenerateReportAiSectionMutationOptions(options));
+    }
+
+export const getAddAdditionalUserUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/stripe/additional-user`
+}
+
+/**
+ * @summary Add one €3 inclusive-tax recurring user seat to the active subscription
+ */
+export const addAdditionalUser = async (orgId: number, options?: RequestInit): Promise<AdditionalUserResponse> => {
+
+  return customFetch<AdditionalUserResponse>(getAddAdditionalUserUrl(orgId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAddAdditionalUserMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addAdditionalUser>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addAdditionalUser>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['addAdditionalUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addAdditionalUser>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  addAdditionalUser(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddAdditionalUserMutationResult = NonNullable<Awaited<ReturnType<typeof addAdditionalUser>>>
+
+    export type AddAdditionalUserMutationError = ErrorType<void>
+
+    /**
+ * @summary Add one €3 inclusive-tax recurring user seat to the active subscription
+ */
+export const useAddAdditionalUser = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addAdditionalUser>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addAdditionalUser>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getAddAdditionalUserMutationOptions(options));
     }
 

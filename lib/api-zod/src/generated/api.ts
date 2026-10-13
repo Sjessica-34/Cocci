@@ -4539,3 +4539,15 @@ export const GenerateReportAiSectionResponse = zod.object({
 })
 
 
+/**
+ * @summary Add one €3 inclusive-tax recurring user seat to the active subscription
+ */
+export const AddAdditionalUserParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const AddAdditionalUserResponse = zod.object({
+  "maxUsers": zod.number()
+})
+
+

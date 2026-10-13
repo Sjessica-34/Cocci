@@ -26,6 +26,15 @@ du serveur (`STRIPE_COCCI_PRODUCT_ID`, `STRIPE_COCCI_PRICE_*`,
 `STRIPE_ADDITIONAL_USER_PRICE_ID`). Le navigateur ne peut transmettre qu'une
 clé métier de tranche d'effectif ou l'action autorisée.
 
+L'ajout d'un utilisateur s'applique à l'abonnement Stripe existant comme un
+article récurrent distinct. Le prix doit être de **3,00 EUR, avec
+`tax_behavior=inclusive`**, récurrent mensuellement. Le serveur refuse tout
+prix qui n'est pas exactement configuré ainsi. L'ajout facture le prorata
+immédiatement, puis le montant mensuel complet à chaque renouvellement.
+Configurer le portail client Stripe pour permettre la gestion des articles de
+l'abonnement; les webhooks synchronisent la limite de membres si la quantité
+de cet article est modifiée dans Stripe.
+
 ## Endpoint webhook Stripe
 
 Créer manuellement, dans le Dashboard Stripe de chaque environnement, un

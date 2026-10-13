@@ -1,5 +1,6 @@
 - [inert-boolean-attr](inert-boolean-attr.md) — React exige boolean pour `inert`, jamais string vide ; utiliser `inert={isReadOnly || undefined}`
 - [Catalogue Stripe côté serveur](stripe-catalog-security.md) — jamais d’IDs Stripe dans le frontend : sélectionner les prix via clés métier côté API.
+- [Sièges supplémentaires Stripe](stripe-additional-seats.md) — un siège additionnel est un article récurrent de 3 € TTC sur l’abonnement actif de l’organisation, pas un abonnement séparé.
 - [subsidiary-exercise-isolation](subsidiary-exercise-isolation.md) — chaque org (racine ET filiale) doit avoir son propre exercice ; pas de fallback parent dans resolveExercise.
 - [public-rse-page](public-rse-page.md) — page publique /p/:token : utiliser pool.query() pas db.execute(sql``), barometre sans nb_repondants en DB, normaliser snake_case→camelCase des labels.
 - [Reprise d’intention de souscription](subscription-intent-resume.md) — distinguer la formule consultée de l’intention de payer pour reprendre Checkout après l’onboarding, sans abonnement orphelin.

@@ -14,7 +14,7 @@ import {
 import { useCurrentOrganization } from "@/hooks/useCurrentOrganization";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { useUser } from "@clerk/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -105,6 +105,7 @@ type SubscriptionData = {
 
 export function OrganizationMembers() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const orgId = Number(id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -527,17 +528,17 @@ export function OrganizationMembers() {
             </p>
             <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
-                Tarif : 3 € HT / mois par utilisateur supplémentaire.
+                Tarif : 3 € TTC / mois par utilisateur supplémentaire.
               </p>
             </div>
           </div>
 
           <DialogFooter className="pt-2">
-            {/* Stripe Checkout — à implémenter lors de l'intégration Stripe */}
             <Button
               className="w-full"
               onClick={() => {
-                /* Stripe Checkout — à implémenter */
+                setShowUpgradeModal(false);
+                setLocation("/abonnement");
               }}
             >
               Ajouter un utilisateur

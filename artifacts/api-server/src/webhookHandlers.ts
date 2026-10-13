@@ -28,6 +28,7 @@ async function syncCurrentSubscriptionFromStripe(opts: {
   stripeCustomerId: string;
   stripeSubscriptionId: string;
   status: string;
+  maxUsers: number | null;
 }): Promise<void> {
   const terminalStripeStatuses = new Set([
     "canceled",
@@ -46,11 +47,15 @@ async function syncCurrentSubscriptionFromStripe(opts: {
            WHEN $4::boolean THEN 'suspended'
            ELSE subscriptions.status
          END,
+         max_users = CASE
+           WHEN subscriptions.override_max_users IS NULL AND $5::integer IS NOT NULL THEN $5
+           ELSE subscriptions.max_users
+         END,
          updated_at = NOW()
      WHERE organization_id = $1
        AND stripe_subscription_id = $3
      RETURNING status`,
-    [opts.orgId, opts.stripeCustomerId, opts.stripeSubscriptionId, shouldSuspend],
+    [opts.orgId, opts.stripeCustomerId, opts.stripeSubscriptionId, shouldSuspend, opts.maxUsers],
   );
 
   if (shouldSuspend && result.rowCount) {
@@ -439,6 +444,17 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           stripeCustomerId: customerId,
           stripeSubscriptionId: sub.id,
           status: sub.status,
+          maxUsers: (() => {
+            const baseMaxUsers = Number(sub.metadata.cocciBaseMaxUsers);
+            const additionalUserPriceId = process.env.STRIPE_ADDITIONAL_USER_PRICE_ID?.trim();
+            if (!Number.isInteger(baseMaxUsers) || baseMaxUsers < 1 || !additionalUserPriceId) {
+              return null;
+            }
+            const quantity = sub.items.data
+              .filter((item) => item.price.id === additionalUserPriceId)
+              .reduce((total, item) => total + (item.quantity ?? 0), 0);
+            return baseMaxUsers + quantity;
+          })(),
         });
         break;
       }

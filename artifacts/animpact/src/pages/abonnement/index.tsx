@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
 import {
   ApiError,
+  addAdditionalUser,
   customFetch,
   getGetEmploymentWorkforceQueryKey,
   getGetOrganizationQueryKey,
@@ -15,6 +17,7 @@ import { PLANS, type EffectifKey } from "@/pages/onboarding/plans";
 import { CheckCircle2, Loader2, Zap, Building2, Building, ExternalLink, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -89,11 +92,14 @@ const TIER_FEATURES: Record<string, string[]> = {
 
 export function Abonnement() {
   const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { currentOrgId } = useCurrentOrganization();
   const {
     subscription,
     isLoading: subscriptionLoading,
     isActive,
+    refresh: refreshSubscription,
   } = useOrganizationSubscription(currentOrgId);
   const {
     data: organization,
@@ -119,6 +125,7 @@ export function Abonnement() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [additionalUserLoading, setAdditionalUserLoading] = useState(false);
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
 
   // Charger plans + statut en parallèle
@@ -220,6 +227,40 @@ export function Abonnement() {
     }
   };
 
+  const handleAdditionalUser = async () => {
+    if (
+      !currentOrgId ||
+      subscription?.mode !== "stripe" ||
+      subscription.status !== "active" ||
+      additionalUserLoading
+    ) return;
+
+    setAdditionalUserLoading(true);
+    try {
+      const token = await getToken({ skipCache: true });
+      if (!token) throw new Error("Authentication token unavailable");
+      const result = await addAdditionalUser(currentOrgId, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/organizations", currentOrgId, "subscription"],
+      });
+      refreshSubscription();
+      toast({
+        title: "Utilisateur supplémentaire ajouté",
+        description: `3 € TTC/mois seront ajoutés à votre abonnement. Votre limite est maintenant de ${result.maxUsers} utilisateurs.`,
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Ajout impossible",
+        description: "Vérifiez votre moyen de paiement et la configuration du prix Stripe à 3 € TTC/mois, puis réessayez.",
+      });
+    } finally {
+      setAdditionalUserLoading(false);
+    }
+  };
+
   const hasAnyActive = subscription?.status === "active";
   const cancelled = searchParams.get("cancelled") === "1";
   const employeeCount =
@@ -273,10 +314,25 @@ export function Abonnement() {
               </div>
             </div>
             {isActive && (
-              <Button variant="outline" size="sm" onClick={handlePortal} disabled={portalLoading} className="gap-2">
-                {portalLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                Gérer mon abonnement
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {subscription?.mode === "stripe" && subscription.status === "active" && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleAdditionalUser}
+                    disabled={additionalUserLoading}
+                    data-testid="button-additional-user"
+                  >
+                    {additionalUserLoading ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> Ajout en cours…</>
+                    ) : "Ajouter un utilisateur — 3 € TTC/mois"}
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={handlePortal} disabled={portalLoading} className="gap-2">
+                  {portalLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                  Gérer mon abonnement
+                </Button>
+              </div>
             )}
           </div>
         )}
