@@ -1,0 +1,55 @@
+L’invitation arrive bien par e-mail et le lien Clerk fonctionne, mais après acceptation l’utilisateur arrive sur une page Clerk par défaut :
+
+content-airedale-8053.accounts.dev/default_redirect
+
+Message affiché :
+“You are signed in. Now, it's time to connect Clerk to your application.”
+
+Ce n’est pas le comportement attendu.
+
+Comportement attendu :
+- l’invité clique sur “Accept invitation” ;
+- il crée son compte / mot de passe si nécessaire ;
+- Clerk le redirige vers Cocci ;
+- Cocci finalise le rattachement à l’organisation invitante ;
+- l’utilisateur arrive sur le bon tableau de bord Cocci ;
+- il ne doit pas rester sur une page Clerk générique ;
+- il ne doit pas passer par l’onboarding ;
+- il ne doit pas créer une nouvelle organisation.
+
+À corriger côté Clerk / Cocci :
+1. Corriger la redirectUrl / afterSignUpUrl / afterSignInUrl utilisée pour les invitations.
+2. La redirection doit pointer vers le frontend Cocci préprod, par exemple :
+   https://cocci-1.onrender.com/accept-invitation
+   ou la route réelle prévue pour traiter l’invitation.
+3. La route de retour Cocci doit récupérer le contexte d’invitation.
+4. Après authentification, Cocci doit rattacher l’utilisateur à l’organisation qui l’a invité.
+5. Puis rediriger vers /dashboard.
+
+Deuxième problème :
+Au moment de l’ajout/invitation, le frontend affiche :
+“Paiement effectué — erreur de base de données”
+et dans Network on voit une requête :
+POST /api/organizations/:id/members
+→ 500
+
+Donc Stripe fonctionne, l’invitation Clerk part, mais l’enregistrement côté base / members échoue.
+
+Merci de diagnostiquer précisément la route members :
+- quelle requête SQL échoue ;
+- quelle contrainte DB bloque ;
+- quels champs sont envoyés ;
+- organizationId ;
+- email invité ;
+- role ;
+- clerkInvitationId si utilisé ;
+- invitedByUserId ;
+- statut de l’invitation.
+
+Important :
+Ne touche pas à Stripe, car la facturation fonctionne.
+Ne touche pas à la logique de sièges qui fonctionne.
+Corrige uniquement :
+- la redirection Clerk après acceptation ;
+- l’erreur 500 sur la route members ;
+- le rattachement de l’utilisateur invité à la bonne organisation Cocci.
