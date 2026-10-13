@@ -4551,3 +4551,15 @@ export const AddAdditionalUserResponse = zod.object({
 })
 
 
+/**
+ * @summary Remove one recurring additional user seat from the active subscription
+ */
+export const RemoveAdditionalUserParams = zod.object({
+  "orgId": zod.coerce.number()
+})
+
+export const RemoveAdditionalUserResponse = zod.object({
+  "maxUsers": zod.number()
+})
+
+

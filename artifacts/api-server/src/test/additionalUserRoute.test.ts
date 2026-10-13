@@ -3,7 +3,10 @@ import test from "node:test";
 import type { Request, Response } from "express";
 import type Stripe from "stripe";
 import { pool } from "@workspace/db";
-import { createAdditionalUserHandler } from "../routes/subscriptions";
+import {
+  createAdditionalUserHandler,
+  createRemoveAdditionalUserHandler,
+} from "../routes/subscriptions";
 import type { CatalogOffer } from "../stripeCatalog";
 
 const offer: CatalogOffer = {
@@ -15,10 +18,15 @@ const offer: CatalogOffer = {
   priceId: "price_additional_user",
 };
 
-function makeHarness(opts: { paymentFails?: boolean } = {}) {
+function makeHarness(opts: {
+  paymentFails?: boolean;
+  memberCount?: number;
+  quantity?: number;
+} = {}) {
   const state = {
     maxUsers: 11,
-    quantity: 1,
+    quantity: opts.quantity ?? 1,
+    memberCount: opts.memberCount ?? 10,
     commits: 0,
     rollbacks: 0,
     stripeUpdate: null as Stripe.SubscriptionUpdateParams | null,
@@ -43,6 +51,12 @@ function makeHarness(opts: { paymentFails?: boolean } = {}) {
             max_users: state.maxUsers,
             override_max_users: null,
           }],
+          rowCount: 1,
+        };
+      }
+      if (query.includes("FROM members")) {
+        return {
+          rows: [{ member_count: state.memberCount }],
           rowCount: 1,
         };
       }
@@ -88,6 +102,8 @@ function makeHarness(opts: { paymentFails?: boolean } = {}) {
         const item = params.items?.[0];
         if (item && "quantity" in item && item.quantity !== undefined) {
           state.quantity = item.quantity;
+        } else if (item && "deleted" in item && item.deleted) {
+          state.quantity = 0;
         }
         return {} as Stripe.Subscription;
       },
@@ -95,6 +111,12 @@ function makeHarness(opts: { paymentFails?: boolean } = {}) {
   } as unknown as Stripe;
 
   const handler = createAdditionalUserHandler({
+    connect: (async () => client) as typeof pool.connect,
+    getBillingOrganizationId: async (orgId) => orgId,
+    getStripe: () => stripe,
+    resolveOffer: () => offer,
+  });
+  const removeHandler = createRemoveAdditionalUserHandler({
     connect: (async () => client) as typeof pool.connect,
     getBillingOrganizationId: async (orgId) => orgId,
     getStripe: () => stripe,
@@ -112,7 +134,7 @@ function makeHarness(opts: { paymentFails?: boolean } = {}) {
   } as unknown as Response;
   const request = { orgId: 42 } as Request;
 
-  return { handler, request, response, state };
+  return { handler, removeHandler, request, response, state };
 }
 
 test("ajoute un siège après acceptation du paiement et applique la limite une seule fois", async () => {
@@ -141,4 +163,63 @@ test("un paiement refusé ne valide ni la quantité ni la limite locale", async 
   assert.equal(state.quantity, 1);
   assert.equal(state.commits, 0);
   assert.equal(state.rollbacks, 1);
+});
+
+test("retire un siège et synchronise la limite après acceptation de Stripe", async () => {
+  const { removeHandler, request, response, state } = makeHarness();
+
+  await removeHandler(request, response);
+
+  assert.equal(state.statusCode, 200);
+  assert.deepEqual(state.body, { maxUsers: 10 });
+  assert.equal(state.maxUsers, 10);
+  assert.equal(state.quantity, 0);
+  assert.equal(state.commits, 1);
+  assert.equal(state.rollbacks, 0);
+  assert.equal(state.stripeUpdate?.proration_behavior, "always_invoice");
+  assert.equal(state.stripeUpdate?.payment_behavior, "error_if_incomplete");
+  assert.deepEqual(state.stripeUpdate?.items, [{ id: "si_additional_user", deleted: true }]);
+});
+
+test("refuse le retrait si le quota tomberait sous les membres actifs ou invités", async () => {
+  const { removeHandler, request, response, state } = makeHarness({ memberCount: 11 });
+
+  await removeHandler(request, response);
+
+  assert.equal(state.statusCode, 409);
+  assert.deepEqual(state.body, {
+    error: "USER_LIMIT_BELOW_CURRENT_MEMBERS",
+    memberCount: 11,
+    maxUsers: 10,
+  });
+  assert.equal(state.maxUsers, 11);
+  assert.equal(state.quantity, 1);
+  assert.equal(state.stripeUpdate, null);
+  assert.equal(state.commits, 0);
+  assert.equal(state.rollbacks, 1);
+});
+
+test("un échec Stripe ne diminue ni la quantité ni le quota local", async () => {
+  const { removeHandler, request, response, state } = makeHarness({ paymentFails: true });
+
+  await removeHandler(request, response);
+
+  assert.equal(state.statusCode, 500);
+  assert.deepEqual(state.body, { error: "Unable to remove the additional user" });
+  assert.equal(state.maxUsers, 11);
+  assert.equal(state.quantity, 1);
+  assert.equal(state.commits, 0);
+  assert.equal(state.rollbacks, 1);
+});
+
+test("retire un seul siège quand plusieurs sièges payants sont présents", async () => {
+  const { removeHandler, request, response, state } = makeHarness({ quantity: 3 });
+
+  await removeHandler(request, response);
+
+  assert.equal(state.statusCode, 200);
+  assert.deepEqual(state.body, { maxUsers: 12 });
+  assert.equal(state.maxUsers, 12);
+  assert.equal(state.quantity, 2);
+  assert.deepEqual(state.stripeUpdate?.items, [{ id: "si_additional_user", quantity: 2 }]);
 });

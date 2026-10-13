@@ -3383,6 +3383,33 @@ paths:
         "500":
           description: Stripe configuration or payment error
 
+  /organizations/{orgId}/stripe/remove-additional-user:
+    post:
+      operationId: removeAdditionalUser
+      tags: [subscriptions]
+      summary: Remove one recurring additional user seat from the active subscription
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Seat removed from the active Stripe subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdditionalUserResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "409":
+          description: The removal would exceed the current membership limit or no extra seat is available
+        "500":
+          description: Stripe configuration or subscription update error
+
 components:
   schemas:
     HealthStatus:

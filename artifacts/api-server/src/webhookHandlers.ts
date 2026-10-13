@@ -455,7 +455,12 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           maxUsers: (() => {
             const baseMaxUsers = Number(sub.metadata?.cocciBaseMaxUsers);
             const additionalUserPriceId = process.env.STRIPE_ADDITIONAL_USER_PRICE_ID?.trim();
-            if (!Number.isInteger(baseMaxUsers) || baseMaxUsers < 1 || !additionalUserPriceId) {
+            if (
+              !Number.isInteger(baseMaxUsers) ||
+              baseMaxUsers < 1 ||
+              !additionalUserPriceId ||
+              sub.metadata?.cocciBaseMaxUsers == null
+            ) {
               return null;
             }
             const quantity = (sub.items?.data ?? [])

@@ -10232,3 +10232,73 @@ export const useAddAdditionalUser = <TError = ErrorType<void>,
       return useMutation(getAddAdditionalUserMutationOptions(options));
     }
 
+export const getRemoveAdditionalUserUrl = (orgId: number,) => {
+
+
+
+
+  return `/api/organizations/${orgId}/stripe/remove-additional-user`
+}
+
+/**
+ * @summary Remove one recurring additional user seat from the active subscription
+ */
+export const removeAdditionalUser = async (orgId: number, options?: RequestInit): Promise<AdditionalUserResponse> => {
+
+  return customFetch<AdditionalUserResponse>(getRemoveAdditionalUserUrl(orgId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveAdditionalUserMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAdditionalUser>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeAdditionalUser>>, TError,{orgId: number}, TContext> => {
+
+const mutationKey = ['removeAdditionalUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeAdditionalUser>>, {orgId: number}> = (props) => {
+          const {orgId} = props ?? {};
+
+          return  removeAdditionalUser(orgId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveAdditionalUserMutationResult = NonNullable<Awaited<ReturnType<typeof removeAdditionalUser>>>
+
+    export type RemoveAdditionalUserMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove one recurring additional user seat from the active subscription
+ */
+export const useRemoveAdditionalUser = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAdditionalUser>>, TError,{orgId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeAdditionalUser>>,
+        TError,
+        {orgId: number},
+        TContext
+      > => {
+      return useMutation(getRemoveAdditionalUserMutationOptions(options));
+    }
+

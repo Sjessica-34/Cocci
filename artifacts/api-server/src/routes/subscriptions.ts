@@ -388,12 +388,164 @@ export function createAdditionalUserHandler(
   };
 }
 
+export function createRemoveAdditionalUserHandler(
+  dependencies: AdditionalUserHandlerDependencies = {
+    connect: () => pool.connect(),
+    getBillingOrganizationId,
+    getStripe: getUncachableStripeClient,
+    resolveOffer: () => resolveCheckoutOffer({ action: "additional_user" }),
+  },
+) {
+  return async (req: Request, res: Response): Promise<void> => {
+    const orgId = req.orgId!;
+    const billingOrgId = await dependencies.getBillingOrganizationId(orgId);
+    const client = await dependencies.connect();
+
+    try {
+      await client.query("BEGIN");
+      const current = await client.query<{
+        mode: string;
+        status: string;
+        stripe_subscription_id: string | null;
+        stripe_customer_id: string | null;
+        max_users: number | null;
+        override_max_users: number | null;
+      }>(
+        `SELECT mode, status, stripe_subscription_id, stripe_customer_id,
+                max_users, override_max_users
+         FROM subscriptions
+         WHERE organization_id = $1
+         FOR UPDATE`,
+        [billingOrgId],
+      );
+      const row = current.rows[0];
+      if (
+        !row ||
+        row.mode !== "stripe" ||
+        row.status !== "active" ||
+        !row.stripe_subscription_id ||
+        !row.stripe_customer_id
+      ) {
+        await client.query("ROLLBACK");
+        res.status(409).json({ error: "An active Stripe subscription is required" });
+        return;
+      }
+      if (row.override_max_users !== null) {
+        await client.query("ROLLBACK");
+        res.status(409).json({ error: "The user limit is managed by an administrator" });
+        return;
+      }
+
+      const offer = dependencies.resolveOffer();
+      if (!offer) {
+        await client.query("ROLLBACK");
+        res.status(503).json({ error: "Additional-user pricing is not configured" });
+        return;
+      }
+
+      const stripe = await dependencies.getStripe();
+      const price = await stripe.prices.retrieve(offer.priceId);
+      const productId = typeof price.product === "string" ? price.product : price.product.id;
+      if (
+        !price.active ||
+        productId !== offer.productId ||
+        !price.recurring ||
+        price.recurring.interval !== "month" ||
+        price.tax_behavior !== "inclusive" ||
+        price.currency !== "eur" ||
+        price.unit_amount !== 300
+      ) {
+        logger.error({ offerName: offer.offerName }, "Invalid additional-user Stripe price");
+        await client.query("ROLLBACK");
+        res.status(500).json({ error: "Additional-user price must be €3 TTC per month" });
+        return;
+      }
+
+      const subscription = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
+      if (
+        subscription.customer !== row.stripe_customer_id ||
+        !["active", "trialing"].includes(subscription.status)
+      ) {
+        await client.query("ROLLBACK");
+        res.status(409).json({ error: "The Stripe subscription is not active" });
+        return;
+      }
+
+      const item = subscription.items.data.find((entry) => entry.price.id === offer.priceId);
+      const existingQuantity = item?.quantity ?? 0;
+      if (!item || existingQuantity < 1) {
+        await client.query("ROLLBACK");
+        res.status(409).json({ error: "There is no additional user seat to remove" });
+        return;
+      }
+
+      const metadataBase = Number(subscription.metadata.cocciBaseMaxUsers);
+      const baseMaxUsers =
+        Number.isInteger(metadataBase) && metadataBase >= 1
+          ? metadataBase
+          : Math.max((row.max_users ?? 1) - existingQuantity, 1);
+      const maxUsers = baseMaxUsers + existingQuantity - 1;
+      const members = await client.query<{ member_count: number }>(
+        `SELECT COUNT(*)::integer AS member_count
+         FROM members
+         WHERE organization_id = $1
+           AND archived_at IS NULL
+           AND status IN ('active', 'invited')`,
+        [billingOrgId],
+      );
+      const memberCount = Number(members.rows[0]?.member_count ?? 0);
+      if (maxUsers < memberCount) {
+        await client.query("ROLLBACK");
+        res.status(409).json({
+          error: "USER_LIMIT_BELOW_CURRENT_MEMBERS",
+          memberCount,
+          maxUsers,
+        });
+        return;
+      }
+
+      await stripe.subscriptions.update(subscription.id, {
+        items: [
+          existingQuantity === 1
+            ? { id: item.id, deleted: true }
+            : { id: item.id, quantity: existingQuantity - 1 },
+        ],
+        proration_behavior: "always_invoice",
+        payment_behavior: "error_if_incomplete",
+        metadata: { cocciBaseMaxUsers: String(baseMaxUsers) },
+      });
+
+      await client.query(
+        `UPDATE subscriptions
+         SET max_users = $2, updated_at = NOW()
+         WHERE organization_id = $1 AND stripe_subscription_id = $3`,
+        [billingOrgId, maxUsers, row.stripe_subscription_id],
+      );
+      await client.query("COMMIT");
+      res.json({ maxUsers });
+    } catch (err) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      logger.error({ err, billingOrgId }, "additional-user subscription removal failed");
+      res.status(500).json({ error: "Unable to remove the additional user" });
+    } finally {
+      client.release();
+    }
+  };
+}
+
 // ── POST /api/organizations/:orgId/stripe/additional-user ─────────────────────
 router.post(
   "/organizations/:orgId/stripe/additional-user",
   requireAuth,
   requireOrgRole(["owner", "admin"]),
   createAdditionalUserHandler(),
+);
+
+router.post(
+  "/organizations/:orgId/stripe/remove-additional-user",
+  requireAuth,
+  requireOrgRole(["owner", "admin"]),
+  createRemoveAdditionalUserHandler(),
 );
 
 router.post(

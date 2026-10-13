@@ -10,6 +10,8 @@ export type OrganizationSubscription = {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   end_at: string | null;
+  max_users: number | null;
+  override_max_users: number | null;
 } | null;
 
 export function isActiveStripeSubscription(

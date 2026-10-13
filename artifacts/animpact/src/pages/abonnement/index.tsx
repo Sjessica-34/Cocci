@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout";
 import {
   ApiError,
   addAdditionalUser,
+  removeAdditionalUser,
   customFetch,
   getGetEmploymentWorkforceQueryKey,
   getGetOrganizationQueryKey,
@@ -38,6 +39,11 @@ type Plan = {
 type CheckoutError = {
   code?: string;
   employeeCount?: number;
+};
+
+type SeatRemovalError = {
+  error?: string;
+  memberCount?: number;
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -126,6 +132,7 @@ export function Abonnement() {
   const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [additionalUserLoading, setAdditionalUserLoading] = useState(false);
+  const [removeAdditionalUserLoading, setRemoveAdditionalUserLoading] = useState(false);
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
 
   // Charger plans + statut en parallèle
@@ -261,6 +268,58 @@ export function Abonnement() {
     }
   };
 
+  const handleRemoveAdditionalUser = async () => {
+    if (
+      !currentOrgId ||
+      subscription?.mode !== "stripe" ||
+      subscription.status !== "active" ||
+      subscription.override_max_users !== null ||
+      (subscription.max_users ?? 1) <= 1 ||
+      removeAdditionalUserLoading
+    ) return;
+
+    const confirmed = window.confirm(
+      "Retirer un siège supplémentaire ? La limite sera réduite d’un utilisateur et la facturation sera ajustée au prorata par Stripe.",
+    );
+    if (!confirmed) return;
+
+    setRemoveAdditionalUserLoading(true);
+    try {
+      const token = await getToken({ skipCache: true });
+      if (!token) throw new Error("Authentication token unavailable");
+      const result = await removeAdditionalUser(currentOrgId, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/organizations", currentOrgId, "subscription"],
+      });
+      refreshSubscription();
+      toast({
+        title: "Siège supplémentaire retiré",
+        description: `Votre limite est maintenant de ${result.maxUsers} utilisateur${result.maxUsers === 1 ? "" : "s"}. Le prorata sera ajusté par Stripe.`,
+      });
+    } catch (error) {
+      const removalError =
+        error instanceof ApiError ? (error.data as SeatRemovalError | null) : null;
+      if (removalError?.error === "USER_LIMIT_BELOW_CURRENT_MEMBERS") {
+        const memberCount = removalError.memberCount ?? 0;
+        toast({
+          variant: "destructive",
+          title: "Siège non supprimé",
+          description: `Votre organisation compte ${memberCount} membre${memberCount === 1 ? "" : "s"} actif${memberCount === 1 ? "" : "s"} ou invité${memberCount === 1 ? "" : "s"}. Retirez d’abord des membres ou invitations.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Retrait impossible",
+          description: "Stripe n’a pas pu appliquer la modification. Vérifiez votre abonnement et réessayez.",
+        });
+      }
+    } finally {
+      setRemoveAdditionalUserLoading(false);
+    }
+  };
+
   const hasAnyActive = subscription?.status === "active";
   const cancelled = searchParams.get("cancelled") === "1";
   const employeeCount =
@@ -328,6 +387,22 @@ export function Abonnement() {
                     ) : "Ajouter un utilisateur — 3 € TTC/mois"}
                   </Button>
                 )}
+                {subscription?.mode === "stripe" &&
+                  subscription.status === "active" &&
+                  subscription.override_max_users === null &&
+                  (subscription.max_users ?? 1) > 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRemoveAdditionalUser}
+                      disabled={removeAdditionalUserLoading || additionalUserLoading}
+                      data-testid="button-remove-additional-user"
+                    >
+                      {removeAdditionalUserLoading ? (
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> Retrait en cours…</>
+                      ) : "Retirer un siège supplémentaire"}
+                    </Button>
+                  )}
                 <Button variant="outline" size="sm" onClick={handlePortal} disabled={portalLoading} className="gap-2">
                   {portalLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
                   Gérer mon abonnement
