@@ -5,6 +5,7 @@
  * A-NIM-PACT RSE SaaS Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { MemberInvitationStatus } from './memberInvitationStatus';
 import type { MemberRole } from './memberRole';
 import type { MemberStatus } from './memberStatus';
 import type { User } from './user';
@@ -15,6 +16,7 @@ export interface Member {
   organizationId: number;
   role: MemberRole;
   status?: MemberStatus;
+  invitationStatus?: MemberInvitationStatus;
   user?: User;
   createdAt: Date;
 }

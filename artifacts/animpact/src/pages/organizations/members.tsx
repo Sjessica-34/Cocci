@@ -57,7 +57,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Loader2, Mail, Shield, Trash2, UserPlus, CreditCard } from "lucide-react";
+import { Users, Loader2, Mail, Shield, Trash2, UserPlus, CreditCard, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +93,12 @@ const STATUS_LABELS: Record<string, string> = {
   active: "Actif",
   invited: "En attente",
   suspended: "Suspendu",
+};
+const INVITATION_STATUS_LABELS: Record<string, string> = {
+  pending: "Invitation en attente",
+  accepted: "Acceptée",
+  expired: "Invitation expirée",
+  revoked: "Annulée",
 };
 
 /** Réponse brute de GET /organizations/:orgId/subscription */
@@ -236,6 +242,18 @@ export function OrganizationMembers() {
     );
   }
 
+  async function handleResendInvitation(memberId: number, email: string) {
+    try {
+      await customFetch(`/organizations/${orgId}/members/${memberId}/invitation/resend`, {
+        method: "POST",
+      });
+      toast({ title: "Invitation renvoyée", description: `Un nouvel e-mail a été envoyé à ${email}.` });
+      queryClient.invalidateQueries({ queryKey: getListMembersQueryKey(orgId) });
+    } catch {
+      toast({ variant: "destructive", title: "Impossible de renvoyer l’invitation" });
+    }
+  }
+
   return (
     <AppLayout>
       <div className="space-y-1">
@@ -271,14 +289,16 @@ export function OrganizationMembers() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
-                  Membres ({members?.length ?? 0})
+                  Membres ({billableMembers.length})
                   {effectiveMaxUsers !== null && (
                     <span className="text-sm font-normal text-muted-foreground">
                       / {effectiveMaxUsers} inclus
                     </span>
                   )}
                 </CardTitle>
-                <CardDescription>Accès et rôles au sein de l'organisation.</CardDescription>
+                <CardDescription>
+                  {billableMembers.length} siège(s) utilisé(s) sur {effectiveMaxUsers} disponible(s) — les invitations en attente réservent un siège.
+                </CardDescription>
               </div>
               {/* Status filter */}
               <div className="flex gap-1">
@@ -356,7 +376,9 @@ export function OrganizationMembers() {
                           variant="outline"
                           className={cn("text-xs", STATUS_COLORS[member.status ?? "active"])}
                         >
-                          {STATUS_LABELS[member.status ?? "active"]}
+                          {member.invitationStatus === "expired"
+                            ? INVITATION_STATUS_LABELS.expired
+                            : STATUS_LABELS[member.status ?? "active"]}
                         </Badge>
 
                         {/* Role */}
@@ -393,6 +415,18 @@ export function OrganizationMembers() {
 
                         {/* Remove — owner/admin can remove non-owners who are not themselves */}
                         {canManage && !isOwner && !isMe && (
+                          <>
+                          {(member.status === "invited" || member.invitationStatus === "expired") && realEmail && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-1.5"
+                              onClick={() => void handleResendInvitation(member.id, realEmail)}
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              Renvoyer
+                            </Button>
+                          )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -406,10 +440,13 @@ export function OrganizationMembers() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Retirer ce membre ?</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                {member.status === "invited" ? "Annuler cette invitation ?" : "Retirer ce membre ?"}
+                              </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  <strong>{displayName}</strong> perdra immédiatement l'accès à cette
-                                  organisation. Cette action est irréversible.
+                                  {member.status === "invited"
+                                    ? <>L’invitation envoyée à <strong>{realEmail}</strong> sera annulée et le siège libéré.</>
+                                    : <><strong>{displayName}</strong> perdra immédiatement l'accès à cette organisation. Cette action est irréversible.</>}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -418,11 +455,12 @@ export function OrganizationMembers() {
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   onClick={() => handleRemove(member.id, displayName)}
                                 >
-                                  Retirer
+                                  {member.status === "invited" ? "Annuler l’invitation" : "Retirer"}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          </>
                         )}
                       </div>
                     </div>

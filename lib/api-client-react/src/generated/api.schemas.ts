@@ -254,12 +254,23 @@ export const MemberStatus = {
   suspended: 'suspended',
 } as const;
 
+export type MemberInvitationStatus = typeof MemberInvitationStatus[keyof typeof MemberInvitationStatus] | null;
+
+
+export const MemberInvitationStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  expired: 'expired',
+  revoked: 'revoked',
+} as const;
+
 export interface Member {
   id: number;
   userId: number;
   organizationId: number;
   role: MemberRole;
   status?: MemberStatus;
+  invitationStatus?: MemberInvitationStatus;
   user?: User;
   createdAt: string;
 }
@@ -2661,5 +2672,10 @@ export type ListOrganizationsParams = {
  * Superadmin only — return this org and its subsidiaries instead of the caller's own orgs.
  */
 viewAs?: number;
+};
+
+export type AcceptOrganizationInvitation200 = {
+  organizationId: number;
+  role: string;
 };
 

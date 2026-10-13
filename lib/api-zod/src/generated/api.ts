@@ -283,6 +283,7 @@ export const ListMembersResponseItem = zod.object({
   "organizationId": zod.number(),
   "role": zod.enum(['owner', 'admin', 'member', 'viewer']),
   "status": zod.enum(['active', 'invited', 'suspended']).optional(),
+  "invitationStatus": zod.enum(['pending', 'accepted', 'expired', 'revoked']).nullish(),
   "user": zod.object({
   "id": zod.number(),
   "clerkId": zod.string(),
@@ -318,6 +319,7 @@ export const InviteMemberResponse = zod.object({
   "organizationId": zod.number(),
   "role": zod.enum(['owner', 'admin', 'member', 'viewer']),
   "status": zod.enum(['active', 'invited', 'suspended']).optional(),
+  "invitationStatus": zod.enum(['pending', 'accepted', 'expired', 'revoked']).nullish(),
   "user": zod.object({
   "id": zod.number(),
   "clerkId": zod.string(),
@@ -332,6 +334,30 @@ export const InviteMemberResponse = zod.object({
 }).optional(),
   "createdAt": zod.coerce.date()
 })
+
+
+/**
+ * @summary Accept a pending organization invitation for the authenticated account
+ */
+export const AcceptOrganizationInvitationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AcceptOrganizationInvitationResponse = zod.object({
+  "organizationId": zod.number(),
+  "role": zod.string()
+})
+
+
+/**
+ * @summary Resend a pending organization invitation
+ */
+export const ResendOrganizationInvitationParams = zod.object({
+  "id": zod.coerce.number(),
+  "memberId": zod.coerce.number()
+})
+
+export const ResendOrganizationInvitationResponse = zod.unknown()
 
 
 /**
@@ -353,6 +379,7 @@ export const UpdateMemberResponse = zod.object({
   "organizationId": zod.number(),
   "role": zod.enum(['owner', 'admin', 'member', 'viewer']),
   "status": zod.enum(['active', 'invited', 'suspended']).optional(),
+  "invitationStatus": zod.enum(['pending', 'accepted', 'expired', 'revoked']).nullish(),
   "user": zod.object({
   "id": zod.number(),
   "clerkId": zod.string(),

@@ -13,6 +13,12 @@ Chaque siège supplémentaire correspond à une invitation réelle envoyée à u
 
 **How to apply:** après confirmation Stripe, envoyer l’invitation Clerk avec l’organisation et le rôle visés; ne jamais créer une nouvelle organisation ou un abonnement séparé. Conserver la réservation si l’envoi doit être relancé, sans refacturer le siège.
 
+Une organisation peut envoyer plusieurs invitations tant qu’elle a des sièges disponibles. Chaque invitation conserve son adresse, son rôle, son initiateur et son état (en attente, acceptée, expirée ou révoquée); une expiration libère le siège, et un renvoi réutilise le siège déjà acheté.
+
+**Why:** les sièges couvrent des personnes réelles, et une invitation non acceptée ne doit ni bloquer le quota indéfiniment ni déclencher une seconde facturation lors d’un renvoi.
+
+**How to apply:** faire revenir les liens Clerk vers Cocci pour finaliser l’adhésion locale dans la même organisation; autoriser renvoi et annulation depuis la liste des membres et ne jamais ajouter un article Stripe au seul motif d’un renvoi.
+
 **How to apply:** conserver la validation serveur du prix inclusif de 3 € et synchroniser le quota de membres avec la quantité d’articles sur l’abonnement existant. Une facture `subscription_update` refusée ne doit pas suspendre l’abonnement payé de base : `error_if_incomplete` laisse l’ajustement non appliqué.
 
 Une demande d’ajout doit enregistrer les paramètres exacts de mise à jour avant l’appel Stripe, puis reprendre une tentative en attente avec ces mêmes paramètres et la même clé Stripe. Une autre clé ne doit pas démarrer tant que cette tentative est en attente.

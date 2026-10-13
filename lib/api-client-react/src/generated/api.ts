@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AcceptOrganizationInvitation200,
   ActionLibraryItem,
   ActionPlanItem,
   ActionPlanItemInput,
@@ -1065,6 +1066,148 @@ export const useInviteMember = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getInviteMemberMutationOptions(options));
+    }
+
+export const getAcceptOrganizationInvitationUrl = (id: number,) => {
+
+
+
+
+  return `/api/organizations/${id}/members/accept-invitation`
+}
+
+/**
+ * @summary Accept a pending organization invitation for the authenticated account
+ */
+export const acceptOrganizationInvitation = async (id: number, options?: RequestInit): Promise<AcceptOrganizationInvitation200> => {
+
+  return customFetch<AcceptOrganizationInvitation200>(getAcceptOrganizationInvitationUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAcceptOrganizationInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['acceptOrganizationInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  acceptOrganizationInvitation(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof acceptOrganizationInvitation>>>
+
+    export type AcceptOrganizationInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Accept a pending organization invitation for the authenticated account
+ */
+export const useAcceptOrganizationInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptOrganizationInvitation>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getAcceptOrganizationInvitationMutationOptions(options));
+    }
+
+export const getResendOrganizationInvitationUrl = (id: number,
+    memberId: number,) => {
+
+
+
+
+  return `/api/organizations/${id}/members/${memberId}/invitation/resend`
+}
+
+/**
+ * @summary Resend a pending organization invitation
+ */
+export const resendOrganizationInvitation = async (id: number,
+    memberId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getResendOrganizationInvitationUrl(id,memberId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResendOrganizationInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{id: number;memberId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{id: number;memberId: number}, TContext> => {
+
+const mutationKey = ['resendOrganizationInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendOrganizationInvitation>>, {id: number;memberId: number}> = (props) => {
+          const {id,memberId} = props ?? {};
+
+          return  resendOrganizationInvitation(id,memberId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof resendOrganizationInvitation>>>
+
+    export type ResendOrganizationInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Resend a pending organization invitation
+ */
+export const useResendOrganizationInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{id: number;memberId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendOrganizationInvitation>>,
+        TError,
+        {id: number;memberId: number},
+        TContext
+      > => {
+      return useMutation(getResendOrganizationInvitationMutationOptions(options));
     }
 
 export const getUpdateMemberUrl = (id: number,

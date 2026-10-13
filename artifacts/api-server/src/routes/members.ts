@@ -1,5 +1,5 @@
 import { Router, type IRouter, type RequestHandler } from "express";
-import { eq, and, count, ne, sql, isNull } from "drizzle-orm";
+import { eq, and, count, ne, sql, isNull, lte } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { db, membersTable, usersTable, pool, organizationInvitationsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -37,6 +37,7 @@ type InviteMemberDependencies = {
     emailAddress: string;
     notify: boolean;
     ignoreExisting: boolean;
+    expiresInDays?: number;
     publicMetadata: { cocciOrganizationId: number; cocciRole: string };
     redirectUrl?: string;
   }): Promise<unknown>;
@@ -47,7 +48,9 @@ type InviteMemberDependencies = {
     role: string;
     clerkInvitationId: string | null;
     invitedByUserId: number | null;
+    expiresAt: Date;
   }) => Promise<void>;
+  revokeInvitation?: (clerkInvitationId: string) => Promise<unknown>;
   getRedirectUrl?: (organizationId: number) => string;
   deleteMembership(memberId: number): Promise<void>;
   deleteUser(userId: number): Promise<void>;
@@ -116,6 +119,9 @@ const inviteMemberDependencies: InviteMemberDependencies = {
   sendInvitation(input) {
     return clerkClient.invitations.createInvitation(input);
   },
+  revokeInvitation(clerkInvitationId: string) {
+    return clerkClient.invitations.revokeInvitation(clerkInvitationId);
+  },
   getRedirectUrl(organizationId: number) {
     return `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`;
   },
@@ -127,6 +133,7 @@ const inviteMemberDependencies: InviteMemberDependencies = {
       role: input.role,
       clerkInvitationId: input.clerkInvitationId,
       invitedByUserId: input.invitedByUserId,
+      expiresAt: input.expiresAt,
     });
   },
   async deleteMembership(memberId) {
@@ -186,12 +193,13 @@ export function createInviteMemberHandler(
 
     const isPendingClerkAccount = targetUser.clerkId.startsWith("invited_");
     let member: typeof membersTable.$inferSelect;
+    let createdClerkInvitationId: string | null = null;
     try {
       member = await dependencies.createMembership({
         userId: targetUser.id,
         organizationId,
         role: parsed.data.role,
-        status: isPendingClerkAccount ? "invited" : "active",
+        status: "invited",
       });
     } catch (error: any) {
       if (error?.code === "23505") {
@@ -201,16 +209,13 @@ export function createInviteMemberHandler(
       throw error;
     }
 
-    if (!isPendingClerkAccount && !targetUser.primaryOrganizationId) {
-      targetUser = await dependencies.setPrimaryOrganization(targetUser.id, organizationId);
-    }
-
     try {
       const redirectUrl = dependencies.getRedirectUrl?.(organizationId);
       const clerkInvitation = await dependencies.sendInvitation({
         emailAddress: inviteEmail,
         notify: true,
         ignoreExisting: true,
+        expiresInDays: 30,
         publicMetadata: {
           cocciOrganizationId: organizationId,
           cocciRole: parsed.data.role,
@@ -221,6 +226,7 @@ export function createInviteMemberHandler(
         clerkInvitation && typeof clerkInvitation === "object" && "id" in clerkInvitation
           ? String(clerkInvitation.id)
           : null;
+      createdClerkInvitationId = clerkInvitationId;
       await dependencies.recordInvitation?.({
         organizationId,
         memberId: member.id,
@@ -228,8 +234,16 @@ export function createInviteMemberHandler(
         role: parsed.data.role,
         clerkInvitationId,
         invitedByUserId: req.currentUser?.id ?? null,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       });
     } catch (error) {
+      if (createdClerkInvitationId) {
+        try {
+          await dependencies.revokeInvitation?.(createdClerkInvitationId);
+        } catch (revokeError) {
+          req.log.error({ err: revokeError, clerkInvitationId: createdClerkInvitationId }, "Failed to revoke unrecorded Clerk invitation");
+        }
+      }
       await dependencies.deleteMembership(member.id);
       if (isPendingClerkAccount) {
         await dependencies.deleteUser(targetUser.id);
@@ -244,13 +258,53 @@ export function createInviteMemberHandler(
 }
 
 async function getMembersWithUsers(orgId: number) {
+  const expiredInvitations = await db.select({
+    id: organizationInvitationsTable.id,
+    memberId: organizationInvitationsTable.memberId,
+  }).from(organizationInvitationsTable).where(and(
+    eq(organizationInvitationsTable.organizationId, orgId),
+    eq(organizationInvitationsTable.status, "pending"),
+    lte(organizationInvitationsTable.expiresAt, new Date()),
+  ));
+  for (const invitation of expiredInvitations) {
+    await db.transaction(async (tx) => {
+      await tx.update(organizationInvitationsTable)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(and(
+          eq(organizationInvitationsTable.id, invitation.id),
+          eq(organizationInvitationsTable.status, "pending"),
+        ));
+      if (invitation.memberId !== null) {
+        await tx.update(membersTable)
+          .set({ status: "suspended" })
+          .where(and(
+            eq(membersTable.id, invitation.memberId),
+            eq(membersTable.status, "invited"),
+          ));
+      }
+    });
+  }
   const rows = await db
     .select({ member: membersTable, user: usersTable })
     .from(membersTable)
     .innerJoin(usersTable, eq(membersTable.userId, usersTable.id))
     .where(eq(membersTable.organizationId, orgId));
 
-  return rows.map(({ member, user }) => ({ ...member, user }));
+  const invitations = await db.select({
+    memberId: organizationInvitationsTable.memberId,
+    status: organizationInvitationsTable.status,
+  }).from(organizationInvitationsTable)
+    .where(eq(organizationInvitationsTable.organizationId, orgId));
+  const statusByMemberId = new Map(
+    invitations
+      .filter((invitation) => invitation.memberId !== null)
+      .map((invitation) => [invitation.memberId!, invitation.status]),
+  );
+  return rows.map(({ member, user }) => ({
+    ...member,
+    user,
+    invitationStatus: statusByMemberId.get(member.id) ?? null,
+  }));
 }
 
 class LastOwnerMutationError extends Error {}
@@ -303,6 +357,16 @@ router.post(
       res.status(404).json({ error: "Aucune invitation en attente pour ce compte." });
       return;
     }
+    if (invitation.expiresAt && invitation.expiresAt.getTime() <= Date.now()) {
+      await db.update(organizationInvitationsTable)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(eq(organizationInvitationsTable.id, invitation.id));
+      await db.update(membersTable)
+        .set({ status: "suspended" })
+        .where(eq(membersTable.id, invitation.memberId));
+      res.status(410).json({ error: "Cette invitation a expiré." });
+      return;
+    }
     await db.transaction(async (tx) => {
       await tx.update(membersTable)
         .set({ status: "active" })
@@ -318,6 +382,66 @@ router.post(
         .where(eq(usersTable.id, user.id));
     });
     res.json({ organizationId, role: invitation.role });
+  },
+);
+
+router.post(
+  "/organizations/:id/members/:memberId/invitation/resend",
+  requireAuth,
+  requireMembership(["owner", "admin"]),
+  async (req, res): Promise<void> => {
+    const organizationId = Number(req.params.id);
+    const memberId = Number(req.params.memberId);
+    if (!Number.isInteger(organizationId) || !Number.isInteger(memberId)) {
+      res.status(400).json({ error: "Invalid member invitation" });
+      return;
+    }
+    const [invitation] = await db.select().from(organizationInvitationsTable)
+      .where(and(
+        eq(organizationInvitationsTable.organizationId, organizationId),
+        eq(organizationInvitationsTable.memberId, memberId),
+      ))
+      .limit(1);
+    const [member] = await db.select().from(membersTable)
+      .where(and(eq(membersTable.id, memberId), eq(membersTable.organizationId, organizationId)))
+      .limit(1);
+    if (!invitation || !member || !["invited", "suspended"].includes(member.status) || !["pending", "expired"].includes(invitation.status)) {
+      res.status(404).json({ error: "Invitation introuvable ou déjà acceptée." });
+      return;
+    }
+    if (member.status === "suspended") {
+      const maxUsers = await inviteMemberDependencies.getEffectiveMaxUsers(organizationId);
+      const currentCount = await inviteMemberDependencies.countMembers(organizationId);
+      if (currentCount >= maxUsers) {
+        res.status(402).json({ error: "USER_LIMIT_REACHED", maxUsers });
+        return;
+      }
+    }
+    try {
+      if (invitation.clerkInvitationId) {
+        await clerkClient.invitations.revokeInvitation(invitation.clerkInvitationId);
+      }
+      const clerkInvite = await clerkClient.invitations.createInvitation({
+        emailAddress: invitation.email,
+        notify: true,
+        ignoreExisting: true,
+        expiresInDays: 30,
+        redirectUrl: `${getPublicAppUrl()}/accept-invitation?organizationId=${organizationId}`,
+        publicMetadata: { cocciOrganizationId: organizationId, cocciRole: invitation.role },
+      });
+      await db.update(organizationInvitationsTable).set({
+        status: "pending",
+        clerkInvitationId: clerkInvite.id,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(),
+      }).where(eq(organizationInvitationsTable.id, invitation.id));
+      await db.update(membersTable).set({ status: "invited" })
+        .where(eq(membersTable.id, memberId));
+      res.json({ status: "pending" });
+    } catch (error) {
+      req.log.error({ err: error, organizationId, memberId }, "Clerk invitation resend failed");
+      res.status(502).json({ error: "Impossible de renvoyer l’invitation." });
+    }
   },
 );
 
@@ -421,6 +545,22 @@ router.delete(
       return;
     }
 
+    const [pendingInvitation] = await db.select().from(organizationInvitationsTable)
+      .where(and(
+        eq(organizationInvitationsTable.organizationId, params.data.id),
+        eq(organizationInvitationsTable.memberId, params.data.memberId),
+        eq(organizationInvitationsTable.status, "pending"),
+      ))
+      .limit(1);
+    if (pendingInvitation?.clerkInvitationId) {
+      try {
+        await clerkClient.invitations.revokeInvitation(pendingInvitation.clerkInvitationId);
+      } catch (error) {
+        req.log.error({ err: error, memberId: params.data.memberId }, "Clerk invitation revoke failed");
+        res.status(502).json({ error: "Impossible d’annuler l’invitation Clerk." });
+        return;
+      }
+    }
     let deleted;
     try {
       deleted = await db.transaction(async (tx) => {
@@ -468,6 +608,12 @@ router.delete(
     if (!deleted) {
       res.status(404).json({ error: "Member not found" });
       return;
+    }
+
+    if (pendingInvitation) {
+      await db.update(organizationInvitationsTable)
+        .set({ status: "revoked", updatedAt: new Date() })
+        .where(eq(organizationInvitationsTable.id, pendingInvitation.id));
     }
 
     res.sendStatus(204);

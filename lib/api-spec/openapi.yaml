@@ -337,6 +337,36 @@ paths:
           description: No matching pending invitation
         "409":
           description: Invitation is no longer pending
+        "410":
+          description: Invitation expired
+
+  /organizations/{id}/members/{memberId}/invitation/resend:
+    post:
+      operationId: resendOrganizationInvitation
+      tags: [members]
+      summary: Resend a pending organization invitation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invitation was resent
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Invitation not found
+        "502":
+          description: Invitation provider error
 
   /organizations/{id}/members/{memberId}:
     patch:
@@ -3650,6 +3680,10 @@ components:
         status:
           type: string
           enum: [active, invited, suspended]
+        invitationStatus:
+          type: string
+          nullable: true
+          enum: [pending, accepted, expired, revoked]
         user:
           $ref: "#/components/schemas/User"
         createdAt:
