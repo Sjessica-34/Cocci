@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Request, Response } from "express";
 import type Stripe from "stripe";
-import { pool } from "@workspace/db";
+import {
+  type Member,
+  type User,
+  onboardingProgressTable,
+  pool,
+  usersTable,
+} from "@workspace/db";
+import { getOrCreateUser } from "../lib/auth";
+import { createInviteMemberHandler } from "../routes/members";
 import {
   createAdditionalUserHandler,
   createRemoveAdditionalUserHandler,
@@ -334,3 +342,220 @@ test("retire un seul siège quand plusieurs sièges payants sont présents", asy
   assert.equal(state.quantity, 2);
   assert.deepEqual(state.stripeUpdate?.items, [{ id: "si_additional_user", quantity: 2 }]);
 });
+
+test("un siège payé est invité puis rattaché à la même organisation après acceptation", async () => {
+  const { handler: purchaseSeat, request: purchaseRequest, response: purchaseResponse, state: billing } =
+    makeHarness();
+  const invitationState = {
+    users: [] as User[],
+    members: [] as Member[],
+    nextUserId: 1,
+    nextMemberId: 1,
+    failedInvitationOnce: true,
+    invitationRequests: [] as Array<{
+      emailAddress: string;
+      notify: boolean;
+      ignoreExisting: boolean;
+      publicMetadata: { cocciOrganizationId: number; cocciRole: string };
+    }>,
+  };
+  const invite = createInviteMemberHandler({
+    getEffectiveMaxUsers: async () => billing.maxUsers,
+    countMembers: async () => 10 + invitationState.members.length,
+    findUserByEmail: async (email) =>
+      invitationState.users.find((user) => user.email === email),
+    createPlaceholderUser: async (email, organizationId) => {
+      const user = {
+        id: invitationState.nextUserId++,
+        clerkId: `invited_${invitationState.nextUserId}`,
+        email,
+        firstName: null,
+        lastName: null,
+        avatarUrl: null,
+        isSuperAdmin: false,
+        primaryOrganizationId: organizationId,
+        lastLoginAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      invitationState.users.push(user);
+      return user;
+    },
+    findCurrentMembership: async (userId) => {
+      const membership = invitationState.members.find((member) => member.userId === userId);
+      return membership ? { organizationId: membership.organizationId } : undefined;
+    },
+    createMembership: async (input) => {
+      const member = {
+        ...input,
+        id: invitationState.nextMemberId++,
+        archivedAt: null,
+        createdAt: new Date(),
+      };
+      invitationState.members.push(member);
+      return member;
+    },
+    setPrimaryOrganization: async (userId, organizationId) => {
+      const user = invitationState.users.find((entry) => entry.id === userId)!;
+      user.primaryOrganizationId = organizationId;
+      return user;
+    },
+    sendInvitation: async (input) => {
+      invitationState.invitationRequests.push(input);
+      if (invitationState.failedInvitationOnce) {
+        invitationState.failedInvitationOnce = false;
+        throw new Error("Clerk unavailable");
+      }
+      return {};
+    },
+    deleteMembership: async (memberId) => {
+      invitationState.members = invitationState.members.filter((member) => member.id !== memberId);
+    },
+    deleteUser: async (userId) => {
+      invitationState.users = invitationState.users.filter((user) => user.id !== userId);
+    },
+  });
+  const inviteRequest = {
+    params: { id: "42" },
+    body: { email: "new.person@example.com", role: "admin" },
+    log: { error() {} },
+  } as unknown as Request;
+  const inviteResponse = makeResponse();
+
+  await purchaseSeat(purchaseRequest, purchaseResponse);
+  assert.equal(billing.stripeUpdates, 1);
+  assert.equal(billing.quantity, 2);
+  assert.equal(billing.maxUsers, 12);
+
+  await invite(inviteRequest, inviteResponse.response, () => {});
+  assert.equal(inviteResponse.statusCode, 502);
+  assert.equal(billing.stripeUpdates, 1);
+  assert.equal(billing.quantity, 2);
+  assert.equal(invitationState.users.length, 0);
+  assert.equal(invitationState.members.length, 0);
+
+  inviteResponse.reset();
+  await invite(inviteRequest, inviteResponse.response, () => {});
+  assert.equal(inviteResponse.statusCode, 201);
+  assert.equal(billing.stripeUpdates, 1);
+  assert.equal(billing.quantity, 2);
+  assert.equal(invitationState.users.length, 1);
+  assert.equal(invitationState.members.length, 1);
+  assert.equal(invitationState.members[0]?.organizationId, 42);
+  assert.equal(invitationState.members[0]?.role, "admin");
+  assert.equal(invitationState.members[0]?.status, "invited");
+  assert.deepEqual(invitationState.invitationRequests[1], {
+    emailAddress: "new.person@example.com",
+    notify: true,
+    ignoreExisting: true,
+    publicMetadata: { cocciOrganizationId: 42, cocciRole: "admin" },
+  });
+
+  const transaction = {
+    execute: async () => undefined,
+    select: () => {
+      let joined = false;
+      return {
+        from() {
+          return this;
+        },
+        innerJoin() {
+          joined = true;
+          return this;
+        },
+        where() {
+          return this;
+        },
+        limit: async () => {
+          if (!joined) return [];
+          const user = invitationState.users.find(
+            (candidate) =>
+              candidate.email === "new.person@example.com" &&
+              candidate.clerkId.startsWith("invited_"),
+          );
+          const member = invitationState.members.find(
+            (candidate) => candidate.userId === user?.id && candidate.status === "invited",
+          );
+          return user && member ? [{ user, member }] : [];
+        },
+      };
+    },
+    update: (table: unknown) => ({
+      set: (values: Record<string, unknown>) => ({
+        where: () => {
+          if (table === usersTable) {
+            return {
+              returning: async () => {
+                const user = invitationState.users[0]!;
+                Object.assign(user, values);
+                return [user];
+              },
+            };
+          }
+          const member = invitationState.members[0]!;
+          Object.assign(member, values);
+          return Promise.resolve([]);
+        },
+      }),
+    }),
+    insert: (table: unknown) => ({
+      values: () => ({
+        onConflictDoNothing: async () => {
+          assert.equal(table, onboardingProgressTable);
+        },
+      }),
+    }),
+  };
+  const acceptedUser = await getOrCreateUser(
+    "clerk_accepted_user",
+    undefined,
+    {
+      transaction: async (callback) => callback(transaction),
+      getClerkUser: async () => ({
+        primaryEmailAddress: { emailAddress: "New.Person@Example.com" },
+        emailAddresses: [{ emailAddress: "New.Person@Example.com" }],
+        firstName: "New",
+        lastName: "Person",
+        imageUrl: "https://example.test/avatar.png",
+      }),
+    },
+  );
+
+  assert.equal(acceptedUser.email, "new.person@example.com");
+  assert.equal(acceptedUser.clerkId, "clerk_accepted_user");
+  assert.equal(acceptedUser.primaryOrganizationId, 42);
+  assert.equal(invitationState.members[0]?.userId, acceptedUser.id);
+  assert.equal(invitationState.members[0]?.organizationId, 42);
+  assert.equal(invitationState.members[0]?.role, "admin");
+  assert.equal(invitationState.members[0]?.status, "active");
+  assert.equal(billing.stripeUpdates, 1);
+  assert.equal(billing.quantity, 2);
+});
+
+function makeResponse() {
+  const result: {
+    statusCode: number;
+    body: unknown;
+    response: Response;
+    reset(): void;
+  } = {
+    statusCode: 200,
+    body: undefined,
+    response: undefined as unknown as Response,
+    reset() {
+      result.statusCode = 200;
+      result.body = undefined;
+    },
+  };
+  result.response = {
+    status(code: number) {
+      result.statusCode = code;
+      return this;
+    },
+    json(body: unknown) {
+      result.body = body;
+      return this;
+    },
+  } as unknown as Response;
+  return result;
+}

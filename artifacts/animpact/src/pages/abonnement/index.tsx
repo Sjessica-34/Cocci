@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
+import { purchaseSeatAndInviteAdditionalUser } from "@/lib/additionalUserInviteFlow";
 import {
   ApiError,
   addAdditionalUser,
@@ -278,22 +279,29 @@ export function Abonnement() {
     sessionStorage.setItem(idempotencyStorageKey, idempotencyKey);
     let seatWasReady = seatReadyEmail === normalizedEmail;
     try {
-      if (!seatWasReady) {
-        const token = await getToken({ skipCache: true });
-        if (!token) throw new Error("Authentication token unavailable");
-        await addAdditionalUser(currentOrgId, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Idempotency-Key": idempotencyKey,
-          },
-        });
-        sessionStorage.setItem(readyStorageKey, normalizedEmail);
-        seatWasReady = true;
-        setSeatReadyEmail(normalizedEmail);
-      }
-      await inviteMember.mutateAsync({
-        id: currentOrgId,
-        data: { email: normalizedEmail, role: additionalUserRole },
+      await purchaseSeatAndInviteAdditionalUser({
+        email: normalizedEmail,
+        role: additionalUserRole,
+        seatReadyEmail,
+        purchaseSeat: async () => {
+          const token = await getToken({ skipCache: true });
+          if (!token) throw new Error("Authentication token unavailable");
+          await addAdditionalUser(currentOrgId, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Idempotency-Key": idempotencyKey,
+            },
+          });
+        },
+        markSeatReady: (email) => {
+          sessionStorage.setItem(readyStorageKey, email);
+          seatWasReady = true;
+          setSeatReadyEmail(email);
+        },
+        sendInvitation: (email, role) => inviteMember.mutateAsync({
+          id: currentOrgId,
+          data: { email, role },
+        }),
       });
       sessionStorage.removeItem(readyStorageKey);
       sessionStorage.removeItem(idempotencyStorageKey);

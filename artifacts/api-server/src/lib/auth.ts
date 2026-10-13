@@ -8,6 +8,16 @@ type AuthTraceContext = {
   route: string;
 };
 
+type UserProvisioningDependencies = {
+  transaction<T>(callback: (tx: any) => Promise<T>): Promise<T>;
+  getClerkUser(clerkUserId: string): Promise<any>;
+};
+
+const userProvisioningDependencies: UserProvisioningDependencies = {
+  transaction: (callback) => db.transaction((tx) => callback(tx)),
+  getClerkUser: (clerkUserId) => clerkClient.users.getUser(clerkUserId),
+};
+
 /**
  * JIT-provision a user from Clerk on their first authenticated request.
  * If the user already exists in DB, returns the existing record.
@@ -17,8 +27,9 @@ type AuthTraceContext = {
 export async function getOrCreateUser(
   clerkUserId: string,
   traceContext?: AuthTraceContext,
+  dependencies: UserProvisioningDependencies = userProvisioningDependencies,
 ): Promise<User> {
-  return db.transaction(async (tx) => {
+  return dependencies.transaction(async (tx) => {
     // Serialize first-request provisioning for the same Clerk identity. The
     // unique clerk_id constraint remains the final safety net.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${clerkUserId}))`);
@@ -45,7 +56,7 @@ export async function getOrCreateUser(
       return existing;
     }
 
-    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+    const clerkUser = await dependencies.getClerkUser(clerkUserId);
     const email = (
       clerkUser.primaryEmailAddress?.emailAddress ??
       clerkUser.emailAddresses[0]?.emailAddress ??

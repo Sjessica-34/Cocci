@@ -11,6 +11,7 @@ import {
   runPostAuthRedirect,
   shouldRedirectOnboardingToDashboard,
 } from "@/lib/authRedirect";
+import { purchaseSeatAndInviteAdditionalUser } from "../lib/additionalUserInviteFlow";
 
 test("une réponse subscription: null laisse le bouton Souscrire utilisable", () => {
   const subscriptionReady = isOrganizationSubscriptionReady(42, null, false);
@@ -209,4 +210,40 @@ test("la redirection post-auth attend que Clerk et les organisations soient prê
 test("l'accès direct à l'onboarding redirige un compte déjà configuré", () => {
   assert.equal(shouldRedirectOnboardingToDashboard(1), true);
   assert.equal(shouldRedirectOnboardingToDashboard(0), false);
+});
+
+test("une relance d'invitation réutilise le siège payé sans nouvel achat", async () => {
+  let seatReadyEmail: string | null = null;
+  let purchases = 0;
+  let invitations = 0;
+  const invitationRequests: Array<{ email: string; role: string }> = [];
+
+  const retryableInvite = () =>
+    purchaseSeatAndInviteAdditionalUser({
+      email: " New.Person@Example.com ",
+      role: "admin",
+      seatReadyEmail,
+      purchaseSeat: async () => {
+        purchases++;
+      },
+      markSeatReady: (email) => {
+        seatReadyEmail = email;
+      },
+      sendInvitation: async (email, role) => {
+        invitations++;
+        invitationRequests.push({ email, role });
+        if (invitations === 1) throw new Error("Clerk invitation failed");
+      },
+    });
+
+  await assert.rejects(retryableInvite(), /Clerk invitation failed/);
+  assert.equal(seatReadyEmail, "new.person@example.com");
+  await retryableInvite();
+
+  assert.equal(purchases, 1);
+  assert.equal(invitations, 2);
+  assert.deepEqual(invitationRequests, [
+    { email: "new.person@example.com", role: "admin" },
+    { email: "new.person@example.com", role: "admin" },
+  ]);
 });

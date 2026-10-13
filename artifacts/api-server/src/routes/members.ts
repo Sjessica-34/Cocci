@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type RequestHandler } from "express";
 import { eq, and, count, ne, sql, isNull } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { db, membersTable, usersTable, pool } from "@workspace/db";
@@ -17,6 +17,192 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+type InviteMemberDependencies = {
+  getEffectiveMaxUsers(organizationId: number): Promise<number>;
+  countMembers(organizationId: number): Promise<number>;
+  findUserByEmail(email: string): Promise<typeof usersTable.$inferSelect | undefined>;
+  createPlaceholderUser(email: string, organizationId: number): Promise<typeof usersTable.$inferSelect>;
+  findCurrentMembership(userId: number): Promise<{ organizationId: number } | undefined>;
+  createMembership(input: {
+    userId: number;
+    organizationId: number;
+    role: string;
+    status: string;
+  }): Promise<typeof membersTable.$inferSelect>;
+  setPrimaryOrganization(userId: number, organizationId: number): Promise<typeof usersTable.$inferSelect>;
+  sendInvitation(input: {
+    emailAddress: string;
+    notify: boolean;
+    ignoreExisting: boolean;
+    publicMetadata: { cocciOrganizationId: number; cocciRole: string };
+  }): Promise<unknown>;
+  deleteMembership(memberId: number): Promise<void>;
+  deleteUser(userId: number): Promise<void>;
+};
+
+const inviteMemberDependencies: InviteMemberDependencies = {
+  async getEffectiveMaxUsers(organizationId) {
+    const result = await pool.query<{ effective_max: number | null }>(
+      `SELECT COALESCE(override_max_users, max_users) AS effective_max
+       FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
+      [organizationId],
+    );
+    return result.rows[0]?.effective_max ?? 1;
+  },
+  async countMembers(organizationId) {
+    const [{ value }] = await db
+      .select({ value: count() })
+      .from(membersTable)
+      .where(
+        and(
+          eq(membersTable.organizationId, organizationId),
+          ne(membersTable.status, "suspended"),
+        ),
+      );
+    return Number(value);
+  },
+  async findUserByEmail(email) {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    return user;
+  },
+  async createPlaceholderUser(email, organizationId) {
+    const [user] = await db
+      .insert(usersTable)
+      .values({
+        clerkId: `invited_${Date.now()}`,
+        email,
+        primaryOrganizationId: organizationId,
+      })
+      .returning();
+    return user;
+  },
+  async findCurrentMembership(userId) {
+    const [membership] = await db
+      .select({ organizationId: membersTable.organizationId })
+      .from(membersTable)
+      .where(and(
+        eq(membersTable.userId, userId),
+        isNull(membersTable.archivedAt),
+        ne(membersTable.status, "suspended"),
+      ))
+      .limit(1);
+    return membership;
+  },
+  async createMembership(input) {
+    const [member] = await db.insert(membersTable).values(input).returning();
+    return member;
+  },
+  async setPrimaryOrganization(userId, organizationId) {
+    const [user] = await db
+      .update(usersTable)
+      .set({ primaryOrganizationId: organizationId, updatedAt: new Date() })
+      .where(eq(usersTable.id, userId))
+      .returning();
+    return user;
+  },
+  sendInvitation(input) {
+    return clerkClient.invitations.createInvitation(input);
+  },
+  async deleteMembership(memberId) {
+    await db.delete(membersTable).where(eq(membersTable.id, memberId));
+  },
+  async deleteUser(userId) {
+    await db.delete(usersTable).where(eq(usersTable.id, userId));
+  },
+};
+
+export function createInviteMemberHandler(
+  dependencies: InviteMemberDependencies = inviteMemberDependencies,
+): RequestHandler {
+  return async (req, res): Promise<void> => {
+    const params = InviteMemberParams.safeParse({
+      id: Number(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id),
+    });
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const parsed = InviteMemberBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const inviteEmail = parsed.data.email.trim().toLowerCase();
+    const organizationId = params.data.id;
+
+    const effectiveMax = await dependencies.getEffectiveMaxUsers(organizationId);
+    const memberCount = await dependencies.countMembers(organizationId);
+    if (memberCount >= effectiveMax) {
+      res.status(402).json({ error: "USER_LIMIT_REACHED", maxUsers: effectiveMax });
+      return;
+    }
+
+    let targetUser = await dependencies.findUserByEmail(inviteEmail);
+    if (!targetUser) {
+      targetUser = await dependencies.createPlaceholderUser(inviteEmail, organizationId);
+    }
+
+    if (targetUser.primaryOrganizationId && targetUser.primaryOrganizationId !== organizationId) {
+      res.status(409).json({ error: "Cet utilisateur appartient déjà à une autre organisation principale." });
+      return;
+    }
+
+    const currentRelation = await dependencies.findCurrentMembership(targetUser.id);
+    if (currentRelation) {
+      res.status(409).json({
+        error: currentRelation.organizationId === organizationId
+          ? "Cet utilisateur est déjà invité ou membre de cette organisation."
+          : "Cet utilisateur appartient déjà à une autre organisation principale.",
+      });
+      return;
+    }
+
+    const isPendingClerkAccount = targetUser.clerkId.startsWith("invited_");
+    let member: typeof membersTable.$inferSelect;
+    try {
+      member = await dependencies.createMembership({
+        userId: targetUser.id,
+        organizationId,
+        role: parsed.data.role,
+        status: isPendingClerkAccount ? "invited" : "active",
+      });
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        res.status(409).json({ error: "Cet utilisateur appartient déjà à une organisation principale." });
+        return;
+      }
+      throw error;
+    }
+
+    if (!isPendingClerkAccount && !targetUser.primaryOrganizationId) {
+      targetUser = await dependencies.setPrimaryOrganization(targetUser.id, organizationId);
+    }
+
+    try {
+      await dependencies.sendInvitation({
+        emailAddress: inviteEmail,
+        notify: true,
+        ignoreExisting: true,
+        publicMetadata: {
+          cocciOrganizationId: organizationId,
+          cocciRole: parsed.data.role,
+        },
+      });
+    } catch (error) {
+      await dependencies.deleteMembership(member.id);
+      if (isPendingClerkAccount) {
+        await dependencies.deleteUser(targetUser.id);
+      }
+      req.log.error({ err: error, orgId: organizationId }, "Clerk member invitation failed");
+      res.status(502).json({ error: "L'invitation e-mail n'a pas pu être envoyée. Réessayez." });
+      return;
+    }
+
+    res.status(201).json(InviteMemberResponse.parse({ ...member, user: targetUser }));
+  };
+}
 
 async function getMembersWithUsers(orgId: number) {
   const rows = await db
@@ -52,139 +238,7 @@ router.post(
   "/organizations/:id/members",
   requireAuth,
   requireMembership(["owner", "admin"]),
-  async (req, res): Promise<void> => {
-    const params = InviteMemberParams.safeParse({
-      id: Number(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id),
-    });
-    if (!params.success) {
-      res.status(400).json({ error: params.error.message });
-      return;
-    }
-
-    const parsed = InviteMemberBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
-      return;
-    }
-    const inviteEmail = parsed.data.email.trim().toLowerCase();
-
-    // ── Vérification de la limite d'utilisateurs ──────────────────────────────
-    // Lit COALESCE(override_max_users, max_users) depuis la table subscriptions.
-    // Si la valeur est NULL, aucune limite n'est appliquée.
-    const subRes = await pool.query<{ effective_max: number | null }>(
-      `SELECT COALESCE(override_max_users, max_users) AS effective_max
-       FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
-      [params.data.id],
-    );
-    // Défaut produit : 1 utilisateur inclus si aucune ligne de souscription n'existe encore.
-    const effectiveMax: number = subRes.rows[0]?.effective_max ?? 1;
-
-    if (true) {
-      const [{ value: memberCount }] = await db
-        .select({ value: count() })
-        .from(membersTable)
-        .where(
-          and(
-            eq(membersTable.organizationId, params.data.id),
-            ne(membersTable.status, "suspended"),
-          ),
-        );
-      if (Number(memberCount) >= effectiveMax) {
-        res.status(402).json({ error: "USER_LIMIT_REACHED", maxUsers: effectiveMax });
-        return;
-      }
-    }
-
-    let [targetUser] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, inviteEmail))
-      .limit(1);
-
-    if (!targetUser) {
-      [targetUser] = await db
-        .insert(usersTable)
-        .values({
-          clerkId: `invited_${Date.now()}`,
-          email: inviteEmail,
-          primaryOrganizationId: params.data.id,
-        })
-        .returning();
-    }
-
-    if (targetUser.primaryOrganizationId && targetUser.primaryOrganizationId !== params.data.id) {
-      res.status(409).json({ error: "Cet utilisateur appartient déjà à une autre organisation principale." });
-      return;
-    }
-
-    const [currentRelation] = await db
-      .select({ organizationId: membersTable.organizationId })
-      .from(membersTable)
-      .where(and(
-        eq(membersTable.userId, targetUser.id),
-        isNull(membersTable.archivedAt),
-        ne(membersTable.status, "suspended"),
-      ))
-      .limit(1);
-    if (currentRelation) {
-      res.status(409).json({
-        error: currentRelation.organizationId === params.data.id
-          ? "Cet utilisateur est déjà invité ou membre de cette organisation."
-          : "Cet utilisateur appartient déjà à une autre organisation principale.",
-      });
-      return;
-    }
-
-    const isPendingClerkAccount = targetUser.clerkId.startsWith("invited_");
-    let member;
-    try {
-      [member] = await db
-        .insert(membersTable)
-        .values({
-          userId: targetUser.id,
-          organizationId: params.data.id,
-          role: parsed.data.role,
-          status: isPendingClerkAccount ? "invited" : "active",
-        })
-        .returning();
-    } catch (error: any) {
-      if (error?.code === "23505") {
-        res.status(409).json({ error: "Cet utilisateur appartient déjà à une organisation principale." });
-        return;
-      }
-      throw error;
-    }
-
-    if (!isPendingClerkAccount && !targetUser.primaryOrganizationId) {
-      [targetUser] = await db
-        .update(usersTable)
-        .set({ primaryOrganizationId: params.data.id, updatedAt: new Date() })
-        .where(eq(usersTable.id, targetUser.id))
-        .returning();
-    }
-
-    try {
-      await clerkClient.invitations.createInvitation({
-        emailAddress: inviteEmail,
-        notify: true,
-        ignoreExisting: true,
-        publicMetadata: {
-          cocciOrganizationId: params.data.id,
-          cocciRole: parsed.data.role,
-        },
-      });
-    } catch (error) {
-      await db.delete(membersTable).where(eq(membersTable.id, member.id));
-      if (targetUser.clerkId.startsWith("invited_")) {
-        await db.delete(usersTable).where(eq(usersTable.id, targetUser.id));
-      }
-      req.log.error({ err: error, orgId: params.data.id }, "Clerk member invitation failed");
-      res.status(502).json({ error: "L'invitation e-mail n'a pas pu être envoyée. Réessayez." });
-      return;
-    }
-
-    res.status(201).json(InviteMemberResponse.parse({ ...member, user: targetUser }));
-  },
+  createInviteMemberHandler(),
 );
 
 router.patch(
