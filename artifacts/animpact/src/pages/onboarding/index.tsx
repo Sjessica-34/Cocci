@@ -52,7 +52,7 @@ export function Onboarding() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const pendingInvitationQuery = useQuery({
     queryKey: ["/api/users/me/pending-invitation"],
-    queryFn: () => customFetch<{ organizationId: number | null }>("/users/me/pending-invitation"),
+    queryFn: () => customFetch<{ organizationId: number | null }>("/api/users/me/pending-invitation"),
     enabled: authLoaded && isSignedIn === true,
     retry: false,
   });

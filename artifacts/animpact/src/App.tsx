@@ -395,7 +395,7 @@ function AcceptInvitationPage() {
       if (resolvePendingInvitationStartedRef.current) return;
       resolvePendingInvitationStartedRef.current = true;
       setMessage("Recherche de l’invitation associée à ce compte…");
-      customFetch<{ organizationId: number | null }>("/users/me/pending-invitation")
+      customFetch<{ organizationId: number | null }>("/api/users/me/pending-invitation")
         .then((pendingInvitation) => {
           if (
             Number.isInteger(pendingInvitation.organizationId) &&
