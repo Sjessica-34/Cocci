@@ -203,6 +203,25 @@ function AuthBrand() {
   );
 }
 
+function getInvitationRedirect(redirect: string | null): string | null {
+  if (!redirect) return null;
+
+  try {
+    const target = new URL(redirect, window.location.origin);
+    const invitationPath = `${basePath}/accept-invitation`;
+    if (
+      target.origin !== window.location.origin ||
+      (target.pathname !== invitationPath &&
+        !target.pathname.startsWith(`${invitationPath}/`))
+    ) {
+      return null;
+    }
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 function usePostAuthRedirect(skip = false) {
   useDebugMount("usePostAuthRedirect");
   const [location, setLocation] = useLocation();
@@ -277,7 +296,7 @@ function usePostAuthRedirect(skip = false) {
 
 function SignInPage() {
   const redirect = new URLSearchParams(window.location.search).get("redirect_url");
-  const invitationRedirect = redirect?.startsWith(`${basePath}/accept-invitation`) ? redirect : null;
+  const invitationRedirect = getInvitationRedirect(redirect);
   usePostAuthRedirect(Boolean(invitationRedirect));
 
   return (
@@ -303,7 +322,7 @@ function SignUpPage() {
   // signing them in, resume organization setup instead of sending them to the
   // dashboard where they would have to find onboarding manually.
   const redirect = new URLSearchParams(window.location.search).get("redirect_url");
-  const invitationRedirect = redirect?.startsWith(`${basePath}/accept-invitation`) ? redirect : null;
+  const invitationRedirect = getInvitationRedirect(redirect);
   usePostAuthRedirect(Boolean(invitationRedirect));
 
   return (
