@@ -25,11 +25,6 @@ export function resolveOnboardingStepPath({
 }: OnboardingRouteState): OnboardingStepPath {
   if (status === "completed") return "/dashboard";
 
-  const rootOrganization = organizations.find((organization) => !organization.parentId);
-  if (status === "organization_created" && rootOrganization?.type === "groupe") {
-    return "/onboarding/filiales";
-  }
-
   if (status === "organization_created" || status === "subsidiaries_configured") {
     return hasMatchingSubscriptionIntent && hasEffectifSelection
       ? "/onboarding/abonnement"

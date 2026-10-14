@@ -14,7 +14,9 @@ import { Users } from "lucide-react";
 import {
   EFFECTIF_OPTIONS,
   readEffectifSelection,
+  readSubscriptionIntent,
   saveEffectifSelection,
+  saveSubscriptionIntent,
   type EffectifKey,
 } from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
@@ -48,20 +50,22 @@ export function OnboardingEffectif() {
         setLocation("/dashboard", { replace: true });
         return;
       }
-      if (
-        onboarding?.status === "subscription_selected"
-        || onboarding?.status === "payment_pending"
-      ) {
-        setLocation("/onboarding/abonnement", { replace: true });
-        return;
-      }
     }
 
     saveEffectifSelection(selected);
+    if (readSubscriptionIntent()) {
+      saveSubscriptionIntent(selected);
+    }
     if (isAuthLoaded && isSignedIn) {
       try {
+        const savedStatus = onboarding?.status === "organization_created"
+          || onboarding?.status === "subsidiaries_configured"
+          || onboarding?.status === "subscription_selected"
+          || onboarding?.status === "payment_pending"
+          ? onboarding.status
+          : "workforce_completed";
         const updatedOnboarding = await updateProgress.mutateAsync({
-          data: { status: "workforce_completed", effectifKey: selected },
+          data: { status: savedStatus, effectifKey: selected },
         });
         qc.setQueryData(getGetOnboardingProgressQueryKey(), updatedOnboarding);
       } catch (error: any) {

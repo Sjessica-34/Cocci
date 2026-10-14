@@ -223,7 +223,7 @@ test("une intention de forfait correspondante reprend directement l'abonnement a
   );
 });
 
-test("le parcours groupe conserve l'étape filiales et une étape forfait sans effectif revient à la sélection", () => {
+test("les groupes passent par le récapitulatif avant Checkout et un forfait sans effectif revient à la sélection", () => {
   assert.equal(
     resolveOnboardingStepPath({
       status: "organization_created",
@@ -231,7 +231,7 @@ test("le parcours groupe conserve l'étape filiales et une étape forfait sans e
       hasEffectifSelection: true,
       hasMatchingSubscriptionIntent: true,
     }),
-    "/onboarding/filiales",
+    "/onboarding/abonnement",
   );
   assert.equal(
     resolveOnboardingStepPath({
@@ -265,7 +265,7 @@ test("la reprise d'onboarding suit la dernière étape persistée sans ressaisir
   assert.equal(route("subscription_selected", org, true, false), "/onboarding/abonnement");
   assert.equal(route("payment_pending", org, true, false), "/onboarding/abonnement");
   assert.equal(route("completed", org, true, false), "/dashboard");
-  assert.equal(route("organization_created", group, true, true), "/onboarding/filiales");
+  assert.equal(route("organization_created", group, true, true), "/onboarding/abonnement");
 });
 
 test("les droits superadmin ont une fraîcheur bornée et le changement de son propre rôle est détecté", () => {

@@ -22,7 +22,6 @@ import {
   clearOnboardingChoices,
   effectifToPlan,
   readEffectifSelection,
-  readSubscriptionIntent,
   saveSubscriptionIntent,
   type EffectifKey,
   type Plan,
@@ -156,35 +155,6 @@ export function OnboardingAbonnement() {
     isAuthLoaded,
     isSignedIn,
     updateProgress,
-  ]);
-
-  useEffect(() => {
-    const hasMatchingIntent = effectifKey
-      && readSubscriptionIntent() === effectifKey;
-    const canResumeCheckout = isSignedIn
-      && effectiveOrgId
-      && effectifKey
-      && !isDevis
-      && hasMatchingIntent
-      && subscriptionReady
-      && !isActive;
-
-    if (isActive && hasMatchingIntent) {
-      clearOnboardingChoices();
-      return;
-    }
-
-    if (canResumeCheckout) {
-      void startCheckout();
-    }
-  }, [
-    effectiveOrgId,
-    effectifKey,
-    isActive,
-    isDevis,
-    isSignedIn,
-    startCheckout,
-    subscriptionReady,
   ]);
 
   /** Enregistre l'intention puis ouvre Checkout maintenant ou après l'onboarding. */

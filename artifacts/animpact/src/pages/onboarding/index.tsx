@@ -62,8 +62,19 @@ export function Onboarding() {
   const [name, setName] = useState(readOrganizationNameDraft);
   const [type, setType] = useState<"entreprise" | "groupe">(readOrganizationTypeDraft);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!logoFile) {
+      setLogoPreviewUrl(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(logoFile);
+    setLogoPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [logoFile]);
 
   useEffect(() => {
     if (organizationsLoading || onboardingLoading || !onboarding || hasSubmittedRef.current) return;
@@ -173,11 +184,9 @@ export function Onboarding() {
       // L'enregistrement du consentement ne bloque pas l'onboarding
     }
 
-    if (type === "groupe") {
-      setLocation("/onboarding/filiales");
-    } else if (readSubscriptionIntent()) {
+    if (readSubscriptionIntent()) {
       // L'utilisateur a explicitement demandé Checkout avant de créer son
-      // organisation : la formule est reprise automatiquement à l'étape suivante.
+      // organisation : récapituler la formule avant le Checkout.
       setLocation("/onboarding/abonnement");
     } else {
       setLocation("/onboarding/effectif");
@@ -226,11 +235,20 @@ export function Onboarding() {
             <Input
               id="organization-logo"
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp"
               onChange={(event) => {
                 const file = event.target.files?.[0] ?? null;
-                if (file && file.size > 5 * 1024 * 1024) {
-                  setError("Le logo doit faire 5 Mo maximum.");
+                if (file && file.size > 10 * 1024 * 1024) {
+                  setError("Le logo doit faire 10 Mo maximum.");
+                  event.target.value = "";
+                  setLogoFile(null);
+                  return;
+                }
+                const extension = file?.name.split(".").pop()?.toLowerCase();
+                const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+                const allowedExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
+                if (file && !allowedTypes.includes(file.type) && !allowedExtensions.includes(extension ?? "")) {
+                  setError("Formats acceptés : JPG, PNG, GIF et WEBP.");
                   event.target.value = "";
                   setLogoFile(null);
                   return;
@@ -240,7 +258,12 @@ export function Onboarding() {
               }}
               data-testid="input-organization-logo"
             />
-            {logoFile && <p className="text-xs text-muted-foreground">{logoFile.name}</p>}
+            {logoPreviewUrl && (
+              <div className="flex items-center gap-3 pt-2">
+                <img src={logoPreviewUrl} alt="Aperçu du logo" className="h-14 w-14 rounded border bg-white object-contain p-1" />
+                <p className="text-xs text-muted-foreground">{logoFile?.name}</p>
+              </div>
+            )}
           </div>
 
           {/* Type */}
