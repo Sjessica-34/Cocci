@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
+  ApiError,
   customFetch,
   useCreateOrganization,
   getListOrganizationsQueryKey,
@@ -25,6 +26,8 @@ import {
   SUBSCRIPTION_INTENT_SESSION_KEY,
 } from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
+import { pendingInvitationRedirect } from "@/lib/authRedirect";
+import { invitationFailureMessage } from "@/lib/invitationFlow";
 
 // Version des documents légaux en vigueur
 const LEGAL_VERSION = "2025-01";
@@ -75,7 +78,7 @@ export function Onboarding() {
     const invitedOrganizationId = pendingInvitationQuery.data?.organizationId;
     if (invitedOrganizationId && !invitationRedirectStartedRef.current) {
       invitationRedirectStartedRef.current = true;
-      setLocation(`/accept-invitation?organizationId=${invitedOrganizationId}`, { replace: true });
+      setLocation(pendingInvitationRedirect(invitedOrganizationId), { replace: true });
       return;
     }
 
@@ -184,10 +187,13 @@ export function Onboarding() {
   }
 
   if (pendingInvitationQuery.isError) {
+    const errorStatus = pendingInvitationQuery.error instanceof ApiError
+      ? pendingInvitationQuery.error.status
+      : undefined;
     return (
       <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 p-6 text-center">
         <p role="alert" className="max-w-lg text-sm text-destructive">
-          Impossible de vérifier vos invitations. L’onboarding est suspendu pour éviter de créer une seconde organisation.
+          {invitationFailureMessage(errorStatus, "lookup")}
         </p>
         <Button variant="outline" onClick={() => window.location.reload()}>Réessayer</Button>
       </main>

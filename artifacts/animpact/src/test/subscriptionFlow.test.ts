@@ -7,10 +7,12 @@ import {
   isSubscriptionCheckoutButtonDisabled,
 } from "@/hooks/useOrganizationSubscription";
 import {
+  pendingInvitationRedirect,
   resolvePostAuthRedirect,
   runPostAuthRedirect,
   shouldRedirectOnboardingToDashboard,
 } from "@/lib/authRedirect";
+import { invitationFailureMessage } from "@/lib/invitationFlow";
 import { purchaseSeatAndInviteAdditionalUser } from "../lib/additionalUserInviteFlow";
 
 test("une réponse subscription: null laisse le bouton Souscrire utilisable", () => {
@@ -121,17 +123,30 @@ test("un nouvel utilisateur avec une intention d'abonnement commence l'onboardin
   );
 });
 
-test("un nouvel utilisateur sans intention d'abonnement arrive au dashboard", () => {
+test("un nouvel utilisateur sans invitation ni organisation commence l'onboarding", () => {
   assert.deepEqual(
     resolvePostAuthRedirect({
       organizationCount: 0,
       hasSubscriptionIntent: false,
     }),
     {
-      path: "/dashboard",
+      path: "/onboarding",
       clearSubscriptionIntent: false,
     },
   );
+});
+
+test("une invitation en attente revient sur son acceptation Cocci, sinon l'onboarding prend le relais", () => {
+  assert.equal(pendingInvitationRedirect(42), "/accept-invitation?organizationId=42");
+  assert.equal(pendingInvitationRedirect(null), "/onboarding");
+});
+
+test("les erreurs d'invitation affichent un message adapté", () => {
+  assert.match(invitationFailureMessage(410), /expiré/);
+  assert.match(invitationFailureMessage(409), /autre organisation Cocci/);
+  assert.match(invitationFailureMessage(404), /Aucune invitation/);
+  assert.match(invitationFailureMessage(401, "lookup"), /session n’est plus valide/);
+  assert.match(invitationFailureMessage(undefined, "lookup"), /onboarding est suspendu/);
 });
 
 test("le branchement Clerk/React Query envoie un compte configuré au dashboard", () => {

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, desc, ne, sql } from "drizzle-orm";
+import { and, eq, desc, ne, sql, isNull } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { z } from "zod";
 import {
@@ -92,6 +92,19 @@ router.get("/users/me", requireAuth, async (req, res): Promise<void> => {
 
 router.get("/users/me/pending-invitation", requireAuth, async (req, res): Promise<void> => {
   const user = await getOrCreateUser(req.clerkUserId!);
+  const [activeMembership] = await db.select({ id: membersTable.id })
+    .from(membersTable)
+    .where(and(
+      eq(membersTable.userId, user.id),
+      eq(membersTable.status, "active"),
+      isNull(membersTable.archivedAt),
+    ))
+    .limit(1);
+  if (activeMembership) {
+    res.json({ organizationId: null });
+    return;
+  }
+
   const [invitation] = await db.select()
     .from(organizationInvitationsTable)
     .where(and(
@@ -102,6 +115,21 @@ router.get("/users/me/pending-invitation", requireAuth, async (req, res): Promis
     .limit(1);
 
   if (!invitation || !invitation.memberId) {
+    const [expiredInvitation] = await db.select()
+      .from(organizationInvitationsTable)
+      .where(and(
+        eq(organizationInvitationsTable.email, user.email.trim().toLowerCase()),
+        eq(organizationInvitationsTable.status, "expired"),
+      ))
+      .orderBy(desc(organizationInvitationsTable.createdAt))
+      .limit(1);
+    if (expiredInvitation) {
+      res.status(410).json({
+        code: "INVITATION_EXPIRED",
+        error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
+      });
+      return;
+    }
     res.json({ organizationId: null });
     return;
   }
@@ -117,7 +145,10 @@ router.get("/users/me/pending-invitation", requireAuth, async (req, res): Promis
           eq(membersTable.status, "invited"),
         ));
     });
-    res.json({ organizationId: null });
+    res.status(410).json({
+      code: "INVITATION_EXPIRED",
+      error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
+    });
     return;
   }
   res.json({ organizationId: invitation.organizationId });

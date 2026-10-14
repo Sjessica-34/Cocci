@@ -1,0 +1,52 @@
+J’ai modifié la configuration Clerk :
+
+- Membership optional activé
+- les utilisateurs peuvent maintenant avoir un compte personnel Clerk
+- Clerk ne devrait plus forcer systématiquement choose-organization
+
+Je veux maintenant que Cocci gère correctement les deux parcours, sans casser l’onboarding traditionnel.
+
+Parcours 1 — Utilisateur invité :
+- l’utilisateur reçoit une invitation ;
+- il clique sur le lien ;
+- il crée son compte / mot de passe si besoin ;
+- Cocci détecte qu’il a une invitation en attente ;
+- Cocci accepte/finalise l’invitation ;
+- Cocci rattache l’utilisateur à l’organisation invitante ;
+- Cocci le redirige vers le dashboard de cette organisation ;
+- il ne doit pas passer par l’onboarding ;
+- il ne doit pas créer une nouvelle entreprise.
+
+Parcours 2 — Nouvel utilisateur non invité :
+- l’utilisateur crée un compte normalement ;
+- Cocci ne trouve aucune invitation en attente ;
+- Cocci le redirige vers l’onboarding classique ;
+- il peut créer son entreprise ;
+- le parcours d’abonnement classique reste inchangé.
+
+Merci de vérifier que la logique de redirection distingue bien :
+1. utilisateur avec invitation en attente → acceptation invitation puis dashboard ;
+2. utilisateur sans organisation et sans invitation → onboarding ;
+3. utilisateur déjà membre d’une organisation → dashboard ;
+4. utilisateur non autorisé ou invitation expirée → message clair.
+
+Important :
+- ne pas toucher à Stripe ;
+- ne pas toucher à la facturation ;
+- ne pas modifier la logique des sièges ;
+- ne pas casser l’onboarding traditionnel ;
+- ne pas créer d’organisation Clerk ;
+- Cocci reste responsable des organisations et des rôles en base.
+
+Merci de tester explicitement :
+1. création compte classique sans invitation → onboarding OK ;
+2. invitation d’un nouvel utilisateur → création mot de passe puis dashboard de l’organisation invitante ;
+3. utilisateur déjà connecté avec invitation → rattachement puis dashboard ;
+4. utilisateur déjà membre d’une autre organisation principale → message clair ;
+5. utilisateur admin/propriétaire existant → accès dashboard inchangé.
+
+Je veux un retour indiquant :
+- quels fichiers sont concernés ;
+- quelle route décide entre invitation / onboarding / dashboard ;
+- comment Cocci détecte une invitation en attente ;
+- comment Cocci évite de casser l’inscription normale.

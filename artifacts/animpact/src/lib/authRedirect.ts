@@ -34,7 +34,6 @@ export type PostAuthRedirectEffects = {
  */
 export function resolvePostAuthRedirect({
   organizationCount,
-  hasSubscriptionIntent,
   onboardingStatus,
   hasPrimaryOrganization,
 }: PostAuthRedirectInput): PostAuthRedirect {
@@ -54,9 +53,7 @@ export function resolvePostAuthRedirect({
   return {
     path: hasExistingOrganization
       ? "/dashboard"
-      : hasSubscriptionIntent
-        ? "/onboarding"
-        : "/dashboard",
+      : "/onboarding",
     clearSubscriptionIntent: hasExistingOrganization,
   };
 }
@@ -100,4 +97,10 @@ export function runPostAuthRedirect(
 
 export function shouldRedirectOnboardingToDashboard(organizationCount: number): boolean {
   return organizationCount > 0;
+}
+
+export function pendingInvitationRedirect(organizationId: number | null): string {
+  return Number.isInteger(organizationId) && organizationId !== null && organizationId > 0
+    ? `/accept-invitation?organizationId=${organizationId}`
+    : "/onboarding";
 }

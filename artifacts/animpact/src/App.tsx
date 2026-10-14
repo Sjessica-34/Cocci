@@ -5,6 +5,7 @@ import { frFR } from "@clerk/localizations";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
+import { ApiError } from "@workspace/api-client-react";
 import {
   useListOrganizations,
   getListOrganizationsQueryKey,
@@ -76,7 +77,8 @@ import {
 } from "@/hooks/useOrganizationSubscription";
 import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
-import { runPostAuthRedirect } from "@/lib/authRedirect";
+import { pendingInvitationRedirect, runPostAuthRedirect } from "@/lib/authRedirect";
+import { invitationFailureMessage } from "@/lib/invitationFlow";
 import { useDebugMount } from "@/lib/requestDebug";
 import { customFetch } from "@workspace/api-client-react";
 
@@ -346,6 +348,7 @@ function AcceptInvitationPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
   const { signOut } = useClerk();
+  const client = useQueryClient();
   const [, setLocation] = useLocation();
   const [message, setMessage] = useState("Confirmation de l’invitation…");
   const acceptRequestStartedRef = useRef(false);
@@ -399,17 +402,17 @@ function AcceptInvitationPage() {
             pendingInvitation.organizationId !== null &&
             pendingInvitation.organizationId > 0
           ) {
-            setLocation(
-              `/accept-invitation?organizationId=${pendingInvitation.organizationId}`,
-              { replace: true },
-            );
+            setLocation(pendingInvitationRedirect(pendingInvitation.organizationId), { replace: true });
             return;
           }
-          setMessage("Aucune invitation en attente n’a été trouvée pour ce compte. Demandez un nouvel e-mail d’invitation.");
+          setLocation("/onboarding", { replace: true });
         })
-        .catch(() => {
+        .catch((error: unknown) => {
           resolvePendingInvitationStartedRef.current = false;
-          setMessage("Impossible de vérifier l’invitation. Actualisez la page ou demandez un nouvel e-mail.");
+          setMessage(invitationFailureMessage(
+            error instanceof ApiError ? error.status : undefined,
+            "lookup",
+          ));
         });
       return;
     }
@@ -439,10 +442,16 @@ function AcceptInvitationPage() {
       { method: "POST" },
     ).then((accepted) => {
       setCurrentOrg(accepted.organizationId);
+      void Promise.all([
+        client.invalidateQueries({ queryKey: getListOrganizationsQueryKey() }),
+        client.invalidateQueries({ queryKey: getGetOnboardingProgressQueryKey() }),
+      ]);
       setLocation("/dashboard");
-    }).catch(() => {
+    }).catch((error: unknown) => {
       acceptRequestStartedRef.current = false;
-      setMessage("Cette invitation n’est plus active ou ne correspond pas à ce compte. Demandez à l’administrateur d’envoyer une nouvelle invitation.");
+      setMessage(invitationFailureMessage(
+        error instanceof ApiError ? error.status : undefined,
+      ));
     });
   }, [
     clerkTicket,
@@ -454,6 +463,7 @@ function AcceptInvitationPage() {
     setLocation,
     signOut,
     signedInEmail,
+    client,
     userLoaded,
   ]);
 

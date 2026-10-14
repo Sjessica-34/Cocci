@@ -326,6 +326,8 @@ paths:
                     nullable: true
         "401":
           description: Unauthorized
+        "410":
+          description: The authenticated account has an expired invitation
 
   /organizations/{id}/members/accept-invitation:
     post:

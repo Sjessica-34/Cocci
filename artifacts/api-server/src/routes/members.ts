@@ -1,5 +1,5 @@
 import { Router, type IRouter, type RequestHandler } from "express";
-import { eq, and, count, ne, sql, isNull, lte } from "drizzle-orm";
+import { eq, and, count, ne, sql, isNull, lte, desc } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import {
   db,
@@ -439,6 +439,27 @@ router.post(
       return;
     }
     const user = await getOrCreateUser(req.clerkUserId!);
+    if (user.primaryOrganizationId && user.primaryOrganizationId !== organizationId) {
+      res.status(409).json({
+        code: "INVITATION_OTHER_ORGANIZATION",
+        error: "Ce compte est déjà rattaché à une autre organisation Cocci. Contactez son administrateur.",
+      });
+      return;
+    }
+
+    const [existingMembership] = await db.select({
+      role: membersTable.role,
+    }).from(membersTable).where(and(
+      eq(membersTable.userId, user.id),
+      eq(membersTable.organizationId, organizationId),
+      eq(membersTable.status, "active"),
+      isNull(membersTable.archivedAt),
+    )).limit(1);
+    if (existingMembership) {
+      res.json({ organizationId, role: existingMembership.role });
+      return;
+    }
+
     const [invitation] = await db
       .select()
       .from(organizationInvitationsTable)
@@ -449,17 +470,45 @@ router.post(
       ))
       .limit(1);
     if (!invitation?.memberId) {
-      res.status(404).json({ error: "Aucune invitation en attente pour ce compte." });
+      const [expiredInvitation] = await db
+        .select()
+        .from(organizationInvitationsTable)
+        .where(and(
+          eq(organizationInvitationsTable.organizationId, organizationId),
+          eq(organizationInvitationsTable.email, user.email.toLowerCase()),
+          eq(organizationInvitationsTable.status, "expired"),
+        ))
+        .orderBy(desc(organizationInvitationsTable.createdAt))
+        .limit(1);
+      if (expiredInvitation) {
+        res.status(410).json({
+          code: "INVITATION_EXPIRED",
+          error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
+        });
+        return;
+      }
+      res.status(404).json({
+        code: "INVITATION_NOT_FOUND",
+        error: "Aucune invitation en attente ne correspond à ce compte.",
+      });
       return;
     }
     if (invitation.expiresAt && invitation.expiresAt.getTime() <= Date.now()) {
-      await db.update(organizationInvitationsTable)
-        .set({ status: "expired", updatedAt: new Date() })
-        .where(eq(organizationInvitationsTable.id, invitation.id));
-      await db.update(membersTable)
-        .set({ status: "suspended" })
-        .where(eq(membersTable.id, invitation.memberId));
-      res.status(410).json({ error: "Cette invitation a expiré." });
+      await db.transaction(async (tx) => {
+        await tx.update(organizationInvitationsTable)
+          .set({ status: "expired", updatedAt: new Date() })
+          .where(eq(organizationInvitationsTable.id, invitation.id));
+        await tx.update(membersTable)
+          .set({ status: "suspended" })
+          .where(and(
+            eq(membersTable.id, invitation.memberId!),
+            eq(membersTable.status, "invited"),
+          ));
+      });
+      res.status(410).json({
+        code: "INVITATION_EXPIRED",
+        error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
+      });
       return;
     }
     await db.transaction(async (tx) => {
