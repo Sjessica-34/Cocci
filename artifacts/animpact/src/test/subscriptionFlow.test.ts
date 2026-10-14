@@ -13,6 +13,7 @@ import {
   shouldRedirectOnboardingToDashboard,
 } from "@/lib/authRedirect";
 import { onboardingAfterOrganizationCreated } from "@/lib/onboardingCache";
+import { resolveOnboardingStepPath } from "@/lib/onboardingNavigation";
 import {
   isCurrentClerkUser,
   SUPER_ADMIN_QUERY_STALE_TIME_MS,
@@ -198,6 +199,48 @@ test("la création d'une organisation met à jour le cache onboarding sans perdr
       completedAt: null,
       primaryOrganizationId: 42,
     },
+  );
+});
+
+test("une intention de forfait correspondante reprend directement l'abonnement après la création de l'espace", () => {
+  assert.equal(
+    resolveOnboardingStepPath({
+      status: "organization_created",
+      organizations: [{ id: 42, type: "entreprise", parentId: null }],
+      hasEffectifSelection: true,
+      hasMatchingSubscriptionIntent: true,
+    }),
+    "/onboarding/abonnement",
+  );
+  assert.equal(
+    resolveOnboardingStepPath({
+      status: "organization_created",
+      organizations: [{ id: 42, type: "entreprise", parentId: null }],
+      hasEffectifSelection: false,
+      hasMatchingSubscriptionIntent: false,
+    }),
+    "/onboarding/effectif",
+  );
+});
+
+test("le parcours groupe conserve l'étape filiales et une étape forfait sans effectif revient à la sélection", () => {
+  assert.equal(
+    resolveOnboardingStepPath({
+      status: "organization_created",
+      organizations: [{ id: 42, type: "groupe", parentId: null }],
+      hasEffectifSelection: true,
+      hasMatchingSubscriptionIntent: true,
+    }),
+    "/onboarding/filiales",
+  );
+  assert.equal(
+    resolveOnboardingStepPath({
+      status: "workforce_completed",
+      organizations: [{ id: 42, type: "entreprise", parentId: null }],
+      hasEffectifSelection: false,
+      hasMatchingSubscriptionIntent: false,
+    }),
+    "/onboarding/effectif",
   );
 });
 

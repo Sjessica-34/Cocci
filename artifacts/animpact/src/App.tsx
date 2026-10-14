@@ -65,6 +65,7 @@ import { OnboardingEffectif } from "@/pages/onboarding/effectif";
 import { OnboardingAbonnement } from "@/pages/onboarding/abonnement";
 import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
+  EFFECTIF_SESSION_KEY,
   SUBSCRIPTION_INTENT_SESSION_KEY,
 } from "@/pages/onboarding/plans";
 import { Toaster } from "@/components/ui/toaster";
@@ -82,6 +83,10 @@ import {
 import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import { runPostAuthRedirect } from "@/lib/authRedirect";
+import {
+  resolveOnboardingStepPath,
+  type OnboardingStepPath,
+} from "@/lib/onboardingNavigation";
 import { useDebugMount } from "@/lib/requestDebug";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -343,36 +348,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
-type OnboardingStepPath =
-  | "/onboarding"
-  | "/onboarding/filiales"
-  | "/onboarding/effectif"
-  | "/onboarding/abonnement"
-  | "/dashboard";
-
-function resolveOnboardingStepPath(
-  status: string,
-  organizations: readonly { parentId?: number | null; type?: string | null }[],
-): OnboardingStepPath {
-  if (status === "completed") return "/dashboard";
-
-  const rootOrganization = organizations.find((organization) => !organization.parentId);
-  if (status === "organization_created" && rootOrganization?.type === "groupe") {
-    return "/onboarding/filiales";
-  }
-  if (status === "organization_created" || status === "subsidiaries_configured") {
-    return "/onboarding/effectif";
-  }
-  if (
-    status === "workforce_completed"
-    || status === "subscription_selected"
-    || status === "payment_pending"
-  ) {
-    return "/onboarding/abonnement";
-  }
-  return "/onboarding";
-}
-
 /**
  * Protects the secondary onboarding URLs from reopening setup for an existing
  * account. The continuation marker is set immediately after the first
@@ -417,8 +392,20 @@ function OnboardingStepGuard({
     },
   });
 
+  const sessionEffectifKey = sessionStorage.getItem(EFFECTIF_SESSION_KEY);
+  const subscriptionIntent = sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+  const hasEffectifSelection = Boolean(onboarding?.effectifKey || sessionEffectifKey);
+  const hasMatchingSubscriptionIntent = Boolean(
+    subscriptionIntent
+    && (subscriptionIntent === onboarding?.effectifKey || subscriptionIntent === sessionEffectifKey),
+  );
   const targetPath = onboarding && orgs
-    ? resolveOnboardingStepPath(onboarding.status, orgs)
+    ? resolveOnboardingStepPath({
+        status: onboarding.status,
+        organizations: orgs,
+        hasEffectifSelection,
+        hasMatchingSubscriptionIntent,
+      })
     : null;
 
   useEffect(() => {
@@ -433,7 +420,12 @@ function OnboardingStepGuard({
       || !onboarding
     ) return;
 
-    const nextPath = resolveOnboardingStepPath(onboarding.status, orgs);
+    const nextPath = resolveOnboardingStepPath({
+      status: onboarding.status,
+      organizations: orgs,
+      hasEffectifSelection,
+      hasMatchingSubscriptionIntent,
+    });
     if (nextPath === stepPath) return;
 
     if (nextPath === "/dashboard") {
@@ -450,6 +442,8 @@ function OnboardingStepGuard({
     onboardingFetching,
     onboardingLoading,
     orgs,
+    hasEffectifSelection,
+    hasMatchingSubscriptionIntent,
     setLocation,
     stepPath,
   ]);

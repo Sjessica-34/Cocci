@@ -29,7 +29,7 @@ import { useDebugMount } from "@/lib/requestDebug";
 
 export function OnboardingAbonnement() {
   useDebugMount("OnboardingAbonnement");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { isLoaded: isAuthLoaded, isSignedIn, getToken } = useAuth();
   const { currentOrgId } = useCurrentOrganization();
   const { data: onboarding, isLoading: onboardingLoading } = useGetOnboardingProgress({
@@ -60,12 +60,14 @@ export function OnboardingAbonnement() {
     if (onboardingLoading) return;
     if (!key) {
       // Pas de tranche sélectionnée → retour à l'étape effectif
-      setLocation("/onboarding/effectif");
+      if (location !== "/onboarding/effectif") {
+        setLocation("/onboarding/effectif", { replace: true });
+      }
       return;
     }
     setEffectifKey(key);
     setPlan(effectifToPlan(key));
-  }, [isAuthLoaded, isSignedIn, onboarding?.effectifKey, onboardingLoading, setLocation]);
+  }, [isAuthLoaded, isSignedIn, location, onboarding?.effectifKey, onboardingLoading, setLocation]);
 
   const isActive = isActiveStripeSubscription(subscription);
   const subscriptionReady = isOrganizationSubscriptionReady(

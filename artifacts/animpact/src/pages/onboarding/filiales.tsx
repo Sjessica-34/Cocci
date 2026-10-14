@@ -133,7 +133,7 @@ function GroupModeDialog({
 
 export function OnboardingFiliales() {
   useDebugMount("OnboardingFiliales");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { currentOrgId } = useCurrentOrganization();
   const { data: orgs = [], isLoading } = useListOrganizations(undefined, {
     query: {
@@ -204,10 +204,10 @@ export function OnboardingFiliales() {
 
   // Redirect outside of render
   useEffect(() => {
-    if (!isLoading && !rootOrg) {
-      setLocation("/onboarding");
+    if (!isLoading && !rootOrg && location !== "/onboarding") {
+      setLocation("/onboarding", { replace: true });
     }
-  }, [isLoading, rootOrg, setLocation]);
+  }, [isLoading, location, rootOrg, setLocation]);
 
   if (isLoading) {
     return (
