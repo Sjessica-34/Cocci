@@ -30,7 +30,7 @@ const LEGAL_VERSION = "2025-01";
 
 export function Onboarding() {
   useDebugMount("Onboarding");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
   const { data: organizations, isLoading: organizationsLoading } = useListOrganizations(undefined, {
@@ -58,7 +58,9 @@ export function Onboarding() {
     if (onboarding.status === "completed") {
       sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
       sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
-      setLocation("/dashboard", { replace: true });
+      if (location !== "/dashboard") {
+        setLocation("/dashboard", { replace: true });
+      }
       return;
     }
 
@@ -70,9 +72,11 @@ export function Onboarding() {
           : onboarding.status === "organization_created" || onboarding.status === "subsidiaries_configured"
             ? "/onboarding/effectif"
             : "/onboarding/abonnement";
-      setLocation(nextPath, { replace: true });
+      if (location !== nextPath) {
+        setLocation(nextPath, { replace: true });
+      }
     }
-  }, [onboarding, onboardingLoading, organizations, organizationsLoading, setLocation]);
+  }, [location, onboarding, onboardingLoading, organizations, organizationsLoading, setLocation]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

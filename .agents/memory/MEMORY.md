@@ -19,3 +19,4 @@
 - [Patch de fichiers répétés](patch-repeated-files.md) — pour un fichier dupliqué, préférer une mise à jour ciblée ; une suppression puis recréation peut être refusée par l’outil de patch.
 - [Frontière numeric Drizzle](drizzle-numeric-boundary.md) — convertir les numeric en chaînes à l’insertion et en nombres avant les calculs métier.
 - [Hébergement Infomaniak de Cocci](infomaniak-deployment.md) — garder PostgreSQL externe et utiliser les APIs OpenAI/Anthropic directement hors Replit.
+- [Redirections React avec Wouter](wouter-effect-navigation.md) — les effets d’onboarding doivent comparer la route courante avant chaque setLocation pour éviter les boucles de history.replaceState.
