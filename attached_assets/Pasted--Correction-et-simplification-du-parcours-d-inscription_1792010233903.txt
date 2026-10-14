@@ -1,0 +1,130 @@
+## Correction et simplification du parcours d'inscription Cocci
+
+Nous avons identifié un problème dans le parcours actuel : l'utilisateur doit sélectionner deux fois son effectif et deux fois sa formule d'abonnement.
+
+Je veux supprimer ces doublons et fiabiliser tout le parcours, sans modifier la logique métier des abonnements ni les tarifs.
+
+### 1. Parcours définitif attendu
+
+**Étape 1 : Choix de l'effectif**
+- L'utilisateur sélectionne l'effectif de son entreprise.
+- Cette information est mémorisée pour la suite du parcours.
+- Elle permet de présenter les formules adaptées.
+
+**Étape 2 : Choix de la formule**
+- L'utilisateur sélectionne sa formule d'abonnement.
+- Le choix est mémorisé, même s'il n'a pas encore de compte.
+- Les tarifs et les règles d'éligibilité existants doivent être conservés.
+
+**Étape 3 : Création du compte**
+- Inscription ou connexion via Clerk.
+- Après authentification, récupération des choix précédents.
+- Aucune perte de l'effectif ou de la formule sélectionnée.
+
+**Étape 4 : Création de l'organisation**
+- Informations de l'entreprise.
+- Ajout du logo.
+- Création de l'organisation et rattachement au compte utilisateur.
+- Association de l'effectif précédemment sélectionné.
+
+**Étape 5 : Type d'entreprise**
+- Entreprise seule.
+- Groupe.
+
+Si entreprise seule : passage à l'étape suivante.
+
+Si groupe : affichage de l'étape existante de configuration des filiales, sans perdre les informations déjà renseignées.
+
+**Étape 6 : Validation des informations avant paiement**
+- Réutiliser automatiquement la formule sélectionnée à l'étape 2.
+- Ne pas redemander l'effectif.
+- Ne pas imposer une deuxième sélection de formule.
+- Si le choix « groupe » ou la configuration des filiales modifie réellement l'éligibilité à la formule, afficher une confirmation ou une adaptation justifiée.
+- Sinon, cette étape doit être transparente et l'utilisateur passe directement au Checkout Stripe.
+
+**Étape 7 : Checkout Stripe**
+- Création de la session Stripe correspondant à la formule sélectionnée.
+- Association à la bonne organisation.
+- Conservation des mécanismes existants de gestion des abonnements.
+- Activation de l'abonnement selon les confirmations Stripe déjà prévues.
+
+### 2. Gestion des données entre les étapes
+
+Je veux que les informations soient correctement conservées tout au long du parcours.
+
+Vérifier notamment :
+- La mémorisation de l'effectif et de la formule avant création du compte.
+- Leur récupération après authentification Clerk.
+- Leur association à l'organisation créée.
+- La synchronisation du cache React Query.
+- La cohérence entre l'état frontend et les données enregistrées côté serveur.
+- La reprise du parcours si l'utilisateur actualise la page, ferme son navigateur ou revient plus tard.
+
+Ne pas s'appuyer uniquement sur un état React temporaire qui disparaîtrait lors d'un rechargement.
+
+Pour une organisation déjà créée, reprendre le parcours à l'étape réellement inachevée, sans créer de doublon.
+
+### 3. Navigation et redirections
+
+Je ne veux plus de blocage nécessitant F5.
+
+Vérifier :
+- Les redirections Wouter.
+- Les gardes d'onboarding.
+- Les changements de statut onboarding.
+- Les mises à jour et invalidations React Query.
+- L'état de chargement Clerk.
+- Les éventuelles redirections concurrentes entre les pages.
+
+Toutes les redirections automatiques doivent être idempotentes : ne jamais rediriger vers la route déjà affichée.
+
+Le parcours doit fonctionner normalement sans rechargement manuel.
+
+### 4. Cas particuliers
+
+Tester les scénarios suivants :
+
+1. Nouvelle entreprise seule.
+2. Nouveau groupe avec filiales.
+3. Utilisateur qui sélectionne son effectif et sa formule puis crée son compte.
+4. Utilisateur déjà connecté qui commence une souscription.
+5. Utilisateur qui abandonne le parcours et revient.
+6. Utilisateur qui fait F5 à chaque étape.
+7. Utilisateur qui revient en arrière pour modifier son choix.
+8. Utilisateur dont l'organisation existe déjà.
+9. Utilisateur qui abandonne ou annule le Checkout Stripe.
+10. Utilisateur qui termine correctement son abonnement.
+
+Aucune de ces situations ne doit provoquer une boucle de navigation, une seconde organisation involontaire ou une perte de données.
+
+### 5. Contraintes impératives
+
+- Conserver les fonctionnalités existantes de Cocci.
+- Ne pas modifier les tarifs ni les règles métier des abonnements sans validation.
+- Ne pas supprimer les étapes utiles du parcours groupe.
+- Ne pas modifier la base Neon.
+- Ne pas lancer Drizzle.
+- Ne pas modifier les variables d'environnement.
+- Ne pas changer la configuration Clerk ou Stripe sans nécessité démontrée.
+- Ne pas modifier le rate limiter.
+- Conserver la compatibilité Render préprod et Infomaniak production avec une seule base de code.
+- Ne rien pousser sur GitHub sans mon accord.
+- Ne pas toucher à `main` ou à `prod-infomaniak`.
+
+### 6. Vérifications attendues
+
+Avant toute proposition de push :
+
+1. Vérifier l'ensemble des composants impliqués dans l'inscription et l'onboarding.
+2. Corriger les doublons d'effectif et de formule.
+3. Vérifier que les premiers choix sont réellement conservés.
+4. Vérifier que les redirections correspondent exactement au parcours défini.
+5. Ajouter ou adapter les tests automatisés des différents scénarios.
+6. Exécuter le typecheck et le build.
+7. Me présenter la liste des fichiers modifiés et les résultats des tests.
+
+**Important :** les dernières corrections concernant Clerk, les redirections idempotentes, le cache onboarding et les droits superadmin doivent être conservées.
+
+L'objectif est un parcours d'inscription fluide, cohérent et sans ressaisie inutile, de la sélection de l'effectif jusqu'au Checkout Stripe.
+
+Ne fais aucun commit ni push avant de me présenter les résultats.
