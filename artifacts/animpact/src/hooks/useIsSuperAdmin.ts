@@ -15,6 +15,8 @@ export function useIsSuperAdmin(): { isSuperAdmin: boolean; isLoading: boolean }
     query: {
       enabled: isLoaded && isSignedIn,
       queryKey: getGetMeQueryKey(),
+      staleTime: 0,
+      refetchOnMount: "always",
       meta: { debugLabel: "useIsSuperAdmin:getMe" },
     },
   });

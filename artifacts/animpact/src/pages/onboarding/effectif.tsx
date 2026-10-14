@@ -19,9 +19,11 @@ export function OnboardingEffectif() {
   const [, setLocation] = useLocation();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [selected, setSelected] = useState<EffectifKey | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { data: onboarding } = useGetOnboardingProgress({
     query: {
       queryKey: getGetOnboardingProgressQueryKey(),
+      enabled: isAuthLoaded && isSignedIn,
       meta: { debugLabel: "OnboardingEffectif:onboarding" },
     },
   });
@@ -37,6 +39,7 @@ export function OnboardingEffectif() {
 
   async function handleContinue() {
     if (!selected) return;
+    setError(null);
 
     if (isAuthLoaded && isSignedIn) {
       if (onboarding?.status === "completed") {
@@ -55,9 +58,10 @@ export function OnboardingEffectif() {
     sessionStorage.setItem(EFFECTIF_SESSION_KEY, selected);
     if (isAuthLoaded && isSignedIn) {
       try {
-        await updateProgress.mutateAsync({
+        const updatedOnboarding = await updateProgress.mutateAsync({
           data: { status: "workforce_completed", effectifKey: selected },
         });
+        qc.setQueryData(getGetOnboardingProgressQueryKey(), updatedOnboarding);
       } catch (error: any) {
         if (error?.status === 409 || error?.message?.includes("409")) {
           await qc.invalidateQueries({
@@ -66,6 +70,7 @@ export function OnboardingEffectif() {
           setLocation("/onboarding", { replace: true });
           return;
         }
+        setError("Impossible d’enregistrer cette étape. Vérifiez votre connexion puis réessayez.");
         return;
       }
     }
@@ -121,6 +126,11 @@ export function OnboardingEffectif() {
         >
           Voir ma formule →
         </Button>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );

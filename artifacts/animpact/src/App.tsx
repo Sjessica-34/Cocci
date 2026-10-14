@@ -144,13 +144,13 @@ function ClerkUserScopedState() {
 }
 
 function ClerkAuthTokenSetup({ children }: { children: React.ReactNode }) {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded } = useAuth();
   const [ready, setReady] = useState(false);
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
 
   useEffect(() => {
-    if (!useAuthLoaded()) {
+    if (!isLoaded) {
       setAuthTokenGetter(null);
       setReady(false);
       return;
@@ -159,9 +159,9 @@ function ClerkAuthTokenSetup({ children }: { children: React.ReactNode }) {
     setAuthTokenGetter(() => getTokenRef.current());
     setReady(true);
     return () => setAuthTokenGetter(null);
-  }, [getToken]);
+  }, [isLoaded]);
 
-  if (!ready) {
+  if (!isLoaded || !ready) {
     return <RouteLoadingFallback message="Préparation de votre session…" />;
   }
 
@@ -580,11 +580,11 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
-        <ClerkQueryClientCacheInvalidator />
-        <ClerkUserScopedState />
-        <ClerkAuthTokenSetup />
-        <TooltipProvider>
-          <Switch>
+        <ClerkAuthTokenSetup>
+          <ClerkQueryClientCacheInvalidator />
+          <ClerkUserScopedState />
+          <TooltipProvider>
+            <Switch>
             <Route path="/" component={HomeRedirect} />
             <Route path="/demo"><Demo /></Route>
             <Route path="/sign-in/*?" component={SignInPage} />
@@ -663,9 +663,10 @@ function ClerkProviderWithRoutes() {
             <Route path="/echanges"><WorkspaceGuard component={EchangesCocci} /></Route>
 
             <Route component={NotFound} />
-          </Switch>
-          <Toaster />
-        </TooltipProvider>
+            </Switch>
+            <Toaster />
+          </TooltipProvider>
+        </ClerkAuthTokenSetup>
       </QueryClientProvider>
     </ClerkProvider>
   );
