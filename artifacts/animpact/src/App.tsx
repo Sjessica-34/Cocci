@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -143,13 +143,29 @@ function ClerkUserScopedState() {
   return null;
 }
 
-function ClerkAuthTokenSetup() {
+function ClerkAuthTokenSetup({ children }: { children: React.ReactNode }) {
   const { getToken } = useAuth();
+  const [ready, setReady] = useState(false);
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+
   useEffect(() => {
-    setAuthTokenGetter(() => getToken());
+    if (!useAuthLoaded()) {
+      setAuthTokenGetter(null);
+      setReady(false);
+      return;
+    }
+
+    setAuthTokenGetter(() => getTokenRef.current());
+    setReady(true);
     return () => setAuthTokenGetter(null);
   }, [getToken]);
-  return null;
+
+  if (!ready) {
+    return <RouteLoadingFallback message="Préparation de votre session…" />;
+  }
+
+  return <>{children}</>;
 }
 
 const clerkAppearance = {
