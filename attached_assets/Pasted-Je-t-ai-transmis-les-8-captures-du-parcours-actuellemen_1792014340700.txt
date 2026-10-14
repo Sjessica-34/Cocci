@@ -1,0 +1,74 @@
+Je t'ai transmis les 8 captures du parcours actuellement déployé sur Render (`ed84318`).
+
+Ces captures constituent la référence du parcours actuel que je souhaite simplifier.
+
+## PARCOURS ACTUEL SUR RENDER
+
+1. Choix de l'effectif
+2. Présentation de la formule
+3. Création du compte Clerk
+4. Configuration de l'organisation avec nom et logo (interface Clerk)
+5. Formulaire Cocci demandant à nouveau le nom, puis entreprise/groupe et CGU
+6. Choix de l'effectif une deuxième fois
+7. Présentation de la formule une deuxième fois
+8. Paiement Stripe
+
+## PARCOURS SOUHAITÉ
+
+1. Choix de l'effectif
+2. Présentation de la formule adaptée
+3. Création du compte Clerk
+4. Un seul formulaire regroupant :
+   - Nom de l'entreprise
+   - Logo
+   - Choix entreprise seule ou groupe
+   - Acceptation des CGU
+5. Rappel de la formule sélectionnée, de l'effectif et du tarif, avec possibilité de modifier
+6. Paiement Stripe
+7. Accès à Cocci
+
+Les filiales seront configurées directement dans Cocci après l'inscription, jamais pendant ce parcours.
+
+## POINT IMPORTANT : LOGO ET INTERFACE GRAPHIQUE
+
+Dans ta dernière version locale, qui n'est PAS celle actuellement déployée sur Render, **le téléversement du logo ne fonctionne pas**.
+
+Je préfère également nettement **l'ancienne interface graphique du formulaire de configuration de l'organisation**, celle visible sur mes captures Render.
+
+Je souhaite donc :
+- Retrouver autant que possible l'apparence de l'ancien formulaire.
+- Conserver un champ logo avec aperçu de l'image, et non un simple nom de fichier.
+- Accepter JPG, PNG, GIF et WEBP jusqu'à 10 Mo.
+- Avoir un téléversement réellement fonctionnel.
+- Enregistrer correctement le logo et le rattacher à la bonne organisation.
+- Retrouver le logo enregistré dans Cocci après la création du compte.
+
+Je ne veux pas simplement une imitation graphique ni un nouveau système d'upload non fonctionnel.
+
+Recherche en priorité si le formulaire historique est fourni par Clerk et comment son upload fonctionne.
+
+## POINT IMPORTANT : CLERK ET LES ORGANISATIONS
+
+La quatrième capture montre le formulaire « Configurer votre organisation », avec le pied de page « Secured by Clerk ».
+
+Vérifie précisément pourquoi cet écran apparaît, si Clerk crée sa propre organisation et comment elle est liée aux données de Cocci dans Neon.
+
+L'objectif est de supprimer la double saisie du nom sans casser les droits d'accès, l'authentification ni les mécanismes de synchronisation.
+
+Ne désactive pas aveuglément la gestion des organisations Clerk.
+
+## AUTRES EXIGENCES
+
+- Ne demander l'effectif qu'une seule fois.
+- Ne sélectionner la formule qu'une seule fois, avec un rappel avant Stripe.
+- Ne jamais lancer Stripe automatiquement avant l'écran de récapitulatif.
+- Ne pas demander de configurer les filiales pendant l'inscription.
+- Préserver les tarifs et fonctionnalités existants.
+- Permettre la reprise d'une inscription interrompue.
+- Éviter les créations d'organisations en double.
+- Préserver les autres fonctionnalités existantes.
+- Ne pas introduire de régression graphique ou fonctionnelle.
+
+**Avant toute nouvelle modification**, présente-moi ton diagnostic du formulaire historique Clerk, du dysfonctionnement actuel de l'upload et la solution technique que tu proposes.
+
+Aucun push, reset, commit, migration ou modification des données sans mon accord.
