@@ -8,7 +8,7 @@ import {
   useGetOnboardingProgress,
   getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
-import type { Organization } from "@workspace/api-client-react";
+import type { OnboardingProgress, Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
+import { onboardingAfterOrganizationCreated } from "@/lib/onboardingCache";
 import { RouteLoadingFallback } from "@/components/route-loading";
 import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
@@ -116,6 +117,10 @@ export function Onboarding() {
         ? organizations
         : [...organizations, org];
     });
+    qc.setQueryData<OnboardingProgress>(
+      getGetOnboardingProgressQueryKey(),
+      (current) => onboardingAfterOrganizationCreated(current, org.id),
+    );
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
     setCurrentOrg(org.id);
     // Enregistrement du consentement côté backend

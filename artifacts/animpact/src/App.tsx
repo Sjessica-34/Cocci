@@ -228,7 +228,7 @@ function AuthBrand() {
 
 function usePostAuthRedirect() {
   useDebugMount("usePostAuthRedirect");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
   const {
     data: organizations,
@@ -259,6 +259,7 @@ function usePostAuthRedirect() {
   useEffect(() => {
     runPostAuthRedirect(
       {
+        currentPath: location,
         isLoaded,
         isSignedIn,
         organizations,
@@ -281,6 +282,7 @@ function usePostAuthRedirect() {
       },
     );
   }, [
+    location,
     isLoaded,
     isSignedIn,
     organizations,

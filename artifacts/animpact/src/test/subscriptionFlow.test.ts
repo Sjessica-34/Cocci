@@ -7,10 +7,16 @@ import {
   isSubscriptionCheckoutButtonDisabled,
 } from "@/hooks/useOrganizationSubscription";
 import {
+  isNavigationTargetCurrent,
   resolvePostAuthRedirect,
   runPostAuthRedirect,
   shouldRedirectOnboardingToDashboard,
 } from "@/lib/authRedirect";
+import { onboardingAfterOrganizationCreated } from "@/lib/onboardingCache";
+import {
+  isCurrentClerkUser,
+  SUPER_ADMIN_QUERY_STALE_TIME_MS,
+} from "@/lib/superAdminQueryPolicy";
 
 test("une réponse subscription: null laisse le bouton Souscrire utilisable", () => {
   const subscriptionReady = isOrganizationSubscriptionReady(42, null, false);
@@ -150,6 +156,58 @@ test("le branchement Clerk/React Query envoie un compte configuré au dashboard"
   assert.notEqual(navigationCalls[0]?.path, "/onboarding");
 });
 
+test("la redirection post-auth ne remplace pas la route déjà affichée", () => {
+  const navigationCalls: string[] = [];
+  const redirected = runPostAuthRedirect(
+    {
+      currentPath: "/dashboard/",
+      isLoaded: true,
+      isSignedIn: true,
+      organizations: [{ id: "org_existing" }],
+      organizationsLoading: false,
+      organizationsFetching: false,
+      hasSubscriptionIntent: false,
+      onboardingLoading: false,
+      onboardingFetching: false,
+    },
+    {
+      navigate: (path) => navigationCalls.push(path),
+      clearOnboardingSession: () => {},
+    },
+  );
+
+  assert.equal(redirected, false);
+  assert.deepEqual(navigationCalls, []);
+  assert.equal(isNavigationTargetCurrent("/dashboard?tab=overview", "/dashboard"), true);
+});
+
+test("la création d'une organisation met à jour le cache onboarding sans perdre l'effectif", () => {
+  assert.deepEqual(
+    onboardingAfterOrganizationCreated(
+      {
+        status: "not_started",
+        effectifKey: "11-25",
+        completedAt: null,
+        primaryOrganizationId: null,
+      },
+      42,
+    ),
+    {
+      status: "organization_created",
+      effectifKey: "11-25",
+      completedAt: null,
+      primaryOrganizationId: 42,
+    },
+  );
+});
+
+test("les droits superadmin ont une fraîcheur bornée et le changement de son propre rôle est détecté", () => {
+  assert.equal(SUPER_ADMIN_QUERY_STALE_TIME_MS, 2 * 60 * 1000);
+  assert.equal(isCurrentClerkUser("clerk_user_1", "clerk_user_1"), true);
+  assert.equal(isCurrentClerkUser("clerk_user_2", "clerk_user_1"), false);
+  assert.equal(isCurrentClerkUser(undefined, "clerk_user_1"), false);
+});
+
 test("la redirection post-auth attend que Clerk et les organisations soient prêts", () => {
   const navigatedTo: string[] = [];
   const effects = {
@@ -166,6 +224,22 @@ test("la redirection post-auth attend que Clerk et les organisations soient prê
         organizationsLoading: true,
         organizationsFetching: false,
         hasSubscriptionIntent: true,
+      },
+      effects,
+    ),
+    false,
+  );
+  assert.deepEqual(navigatedTo, []);
+
+  assert.equal(
+    runPostAuthRedirect(
+      {
+        isLoaded: true,
+        isSignedIn: false,
+        organizations: undefined,
+        organizationsLoading: false,
+        organizationsFetching: false,
+        hasSubscriptionIntent: false,
       },
       effects,
     ),

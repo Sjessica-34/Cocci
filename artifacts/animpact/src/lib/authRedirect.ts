@@ -11,6 +11,7 @@ export type PostAuthRedirect = {
 };
 
 export type PostAuthRedirectRuntimeState = {
+  currentPath?: string;
   isLoaded: boolean;
   isSignedIn: boolean | undefined;
   organizations: readonly unknown[] | undefined;
@@ -27,6 +28,15 @@ export type PostAuthRedirectEffects = {
   navigate: (path: PostAuthRedirect["path"], options: { replace: true }) => void;
   clearOnboardingSession: () => void;
 };
+
+function normalizePath(path: string): string {
+  const pathname = path.split("?")[0] ?? "";
+  return pathname.replace(/\/+$/, "") || "/";
+}
+
+export function isNavigationTargetCurrent(currentPath: string, targetPath: string): boolean {
+  return normalizePath(currentPath) === normalizePath(targetPath);
+}
 
 /**
  * An organization is the durable signal that setup has already been completed.
@@ -89,6 +99,10 @@ export function runPostAuthRedirect(
 
   if (redirect.clearSubscriptionIntent) {
     effects.clearOnboardingSession();
+  }
+
+  if (state.currentPath && isNavigationTargetCurrent(state.currentPath, redirect.path)) {
+    return false;
   }
 
   effects.navigate(redirect.path, { replace: true });
