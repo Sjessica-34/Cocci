@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { and, eq, desc, ne, sql, isNull } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { z } from "zod";
@@ -40,6 +40,91 @@ const onboardingStatusOrder = [
   "payment_pending",
   "completed",
 ] as const;
+
+type InvitationUser = Awaited<ReturnType<typeof getOrCreateUser>>;
+type OrganizationInvitation = typeof organizationInvitationsTable.$inferSelect;
+
+interface PendingInvitationDependencies {
+  getUser(clerkUserId: string): Promise<InvitationUser>;
+  hasActiveMembership(userId: number): Promise<boolean>;
+  findInvitation(email: string, status: "pending" | "expired"): Promise<OrganizationInvitation | undefined>;
+  markInvitationExpired(invitation: OrganizationInvitation): Promise<void>;
+}
+
+const pendingInvitationDependencies: PendingInvitationDependencies = {
+  getUser: (clerkUserId) => getOrCreateUser(clerkUserId),
+  async hasActiveMembership(userId) {
+    const [membership] = await db.select({ id: membersTable.id })
+      .from(membersTable)
+      .where(and(
+        eq(membersTable.userId, userId),
+        eq(membersTable.status, "active"),
+        isNull(membersTable.archivedAt),
+      ))
+      .limit(1);
+    return Boolean(membership);
+  },
+  async findInvitation(email, status) {
+    const [invitation] = await db.select()
+      .from(organizationInvitationsTable)
+      .where(and(
+        eq(organizationInvitationsTable.email, email),
+        eq(organizationInvitationsTable.status, status),
+      ))
+      .orderBy(desc(organizationInvitationsTable.createdAt))
+      .limit(1);
+    return invitation;
+  },
+  async markInvitationExpired(invitation) {
+    await db.transaction(async (tx) => {
+      await tx.update(organizationInvitationsTable)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(eq(organizationInvitationsTable.id, invitation.id));
+      await tx.update(membersTable)
+        .set({ status: "suspended" })
+        .where(and(
+          eq(membersTable.id, invitation.memberId!),
+          eq(membersTable.status, "invited"),
+        ));
+    });
+  },
+};
+
+export function createPendingInvitationHandler(
+  dependencies: PendingInvitationDependencies = pendingInvitationDependencies,
+) {
+  return async (req: Request, res: Response): Promise<void> => {
+    const user = await dependencies.getUser(req.clerkUserId!);
+    if (await dependencies.hasActiveMembership(user.id)) {
+      res.json({ organizationId: null });
+      return;
+    }
+
+    const email = user.email.trim().toLowerCase();
+    const invitation = await dependencies.findInvitation(email, "pending");
+    if (!invitation || !invitation.memberId) {
+      const expiredInvitation = await dependencies.findInvitation(email, "expired");
+      if (expiredInvitation) {
+        res.status(410).json({
+          code: "INVITATION_EXPIRED",
+          error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
+        });
+        return;
+      }
+      res.json({ organizationId: null });
+      return;
+    }
+    if (invitation.expiresAt && invitation.expiresAt.getTime() <= Date.now()) {
+      await dependencies.markInvitationExpired(invitation);
+      res.status(410).json({
+        code: "INVITATION_EXPIRED",
+        error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
+      });
+      return;
+    }
+    res.json({ organizationId: invitation.organizationId });
+  };
+}
 
 // ─── Profil ───────────────────────────────────────────────────────────────────
 
@@ -90,69 +175,7 @@ router.get("/users/me", requireAuth, async (req, res): Promise<void> => {
   res.json(GetMeResponse.parse(user));
 });
 
-router.get("/users/me/pending-invitation", requireAuth, async (req, res): Promise<void> => {
-  const user = await getOrCreateUser(req.clerkUserId!);
-  const [activeMembership] = await db.select({ id: membersTable.id })
-    .from(membersTable)
-    .where(and(
-      eq(membersTable.userId, user.id),
-      eq(membersTable.status, "active"),
-      isNull(membersTable.archivedAt),
-    ))
-    .limit(1);
-  if (activeMembership) {
-    res.json({ organizationId: null });
-    return;
-  }
-
-  const [invitation] = await db.select()
-    .from(organizationInvitationsTable)
-    .where(and(
-      eq(organizationInvitationsTable.email, user.email.trim().toLowerCase()),
-      eq(organizationInvitationsTable.status, "pending"),
-    ))
-    .orderBy(desc(organizationInvitationsTable.createdAt))
-    .limit(1);
-
-  if (!invitation || !invitation.memberId) {
-    const [expiredInvitation] = await db.select()
-      .from(organizationInvitationsTable)
-      .where(and(
-        eq(organizationInvitationsTable.email, user.email.trim().toLowerCase()),
-        eq(organizationInvitationsTable.status, "expired"),
-      ))
-      .orderBy(desc(organizationInvitationsTable.createdAt))
-      .limit(1);
-    if (expiredInvitation) {
-      res.status(410).json({
-        code: "INVITATION_EXPIRED",
-        error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
-      });
-      return;
-    }
-    res.json({ organizationId: null });
-    return;
-  }
-  if (invitation.expiresAt && invitation.expiresAt.getTime() <= Date.now()) {
-    await db.transaction(async (tx) => {
-      await tx.update(organizationInvitationsTable)
-        .set({ status: "expired", updatedAt: new Date() })
-        .where(eq(organizationInvitationsTable.id, invitation.id));
-      await tx.update(membersTable)
-        .set({ status: "suspended" })
-        .where(and(
-          eq(membersTable.id, invitation.memberId!),
-          eq(membersTable.status, "invited"),
-        ));
-    });
-    res.status(410).json({
-      code: "INVITATION_EXPIRED",
-      error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
-    });
-    return;
-  }
-  res.json({ organizationId: invitation.organizationId });
-});
+router.get("/users/me/pending-invitation", requireAuth, createPendingInvitationHandler());
 
 router.patch("/users/me", requireAuth, async (req, res): Promise<void> => {
   const parsed = UpdateMeBody.safeParse(req.body);

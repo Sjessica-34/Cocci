@@ -1,4 +1,10 @@
-import { Router, type IRouter, type RequestHandler } from "express";
+import {
+  Router,
+  type IRouter,
+  type Request,
+  type RequestHandler,
+  type Response,
+} from "express";
 import { eq, and, count, ne, sql, isNull, lte, desc } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import {
@@ -404,6 +410,150 @@ async function getMembersWithUsers(orgId: number) {
 
 class LastOwnerMutationError extends Error {}
 
+type InvitationUser = Awaited<ReturnType<typeof getOrCreateUser>>;
+type OrganizationInvitation = typeof organizationInvitationsTable.$inferSelect;
+
+interface AcceptInvitationDependencies {
+  getUser(clerkUserId: string): Promise<InvitationUser>;
+  findActiveMembership(userId: number, organizationId: number): Promise<{ role: string } | undefined>;
+  findInvitation(
+    organizationId: number,
+    email: string,
+    status: "pending" | "expired",
+  ): Promise<OrganizationInvitation | undefined>;
+  markInvitationExpired(invitation: OrganizationInvitation): Promise<void>;
+  acceptInvitation(
+    userId: number,
+    organizationId: number,
+    invitation: OrganizationInvitation,
+  ): Promise<void>;
+}
+
+const acceptInvitationDependencies: AcceptInvitationDependencies = {
+  getUser: (clerkUserId) => getOrCreateUser(clerkUserId),
+  async findActiveMembership(userId, organizationId) {
+    const [membership] = await db.select({
+      role: membersTable.role,
+    }).from(membersTable).where(and(
+      eq(membersTable.userId, userId),
+      eq(membersTable.organizationId, organizationId),
+      eq(membersTable.status, "active"),
+      isNull(membersTable.archivedAt),
+    )).limit(1);
+    return membership;
+  },
+  async findInvitation(organizationId, email, status) {
+    const query = db.select()
+      .from(organizationInvitationsTable)
+      .where(and(
+        eq(organizationInvitationsTable.organizationId, organizationId),
+        eq(organizationInvitationsTable.email, email),
+        eq(organizationInvitationsTable.status, status),
+      ));
+    const [invitation] = status === "expired"
+      ? await query.orderBy(desc(organizationInvitationsTable.createdAt)).limit(1)
+      : await query.limit(1);
+    return invitation;
+  },
+  async markInvitationExpired(invitation) {
+    await db.transaction(async (tx) => {
+      await tx.update(organizationInvitationsTable)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(eq(organizationInvitationsTable.id, invitation.id));
+      await tx.update(membersTable)
+        .set({ status: "suspended" })
+        .where(and(
+          eq(membersTable.id, invitation.memberId!),
+          eq(membersTable.status, "invited"),
+        ));
+    });
+  },
+  async acceptInvitation(userId, organizationId, invitation) {
+    await db.transaction(async (tx) => {
+      await tx.update(membersTable)
+        .set({ status: "active" })
+        .where(and(
+          eq(membersTable.id, invitation.memberId!),
+          eq(membersTable.organizationId, organizationId),
+        ));
+      await tx.update(organizationInvitationsTable)
+        .set({ status: "accepted", updatedAt: new Date() })
+        .where(eq(organizationInvitationsTable.id, invitation.id));
+      await tx.update(usersTable)
+        .set({ primaryOrganizationId: organizationId, updatedAt: new Date() })
+        .where(eq(usersTable.id, userId));
+      const completedAt = new Date();
+      await tx.insert(onboardingProgressTable)
+        .values({ userId, status: "completed", completedAt })
+        .onConflictDoUpdate({
+          target: onboardingProgressTable.userId,
+          set: { status: "completed", completedAt, updatedAt: completedAt },
+        });
+    });
+  },
+};
+
+export function createAcceptInvitationHandler(
+  dependencies: AcceptInvitationDependencies = acceptInvitationDependencies,
+) {
+  return async (req: Request, res: Response): Promise<void> => {
+    const organizationId = Number(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
+    if (!Number.isInteger(organizationId) || organizationId <= 0) {
+      res.status(400).json({ error: "Invalid organization id" });
+      return;
+    }
+    const user = await dependencies.getUser(req.clerkUserId!);
+    if (user.primaryOrganizationId && user.primaryOrganizationId !== organizationId) {
+      res.status(409).json({
+        code: "INVITATION_OTHER_ORGANIZATION",
+        error: "Ce compte est déjà rattaché à une autre organisation Cocci. Contactez son administrateur.",
+      });
+      return;
+    }
+
+    const existingMembership = await dependencies.findActiveMembership(user.id, organizationId);
+    if (existingMembership) {
+      res.json({ organizationId, role: existingMembership.role });
+      return;
+    }
+
+    const invitation = await dependencies.findInvitation(
+      organizationId,
+      user.email.toLowerCase(),
+      "pending",
+    );
+    if (!invitation?.memberId) {
+      const expiredInvitation = await dependencies.findInvitation(
+        organizationId,
+        user.email.toLowerCase(),
+        "expired",
+      );
+      if (expiredInvitation) {
+        res.status(410).json({
+          code: "INVITATION_EXPIRED",
+          error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
+        });
+        return;
+      }
+      res.status(404).json({
+        code: "INVITATION_NOT_FOUND",
+        error: "Aucune invitation en attente ne correspond à ce compte.",
+      });
+      return;
+    }
+    if (invitation.expiresAt && invitation.expiresAt.getTime() <= Date.now()) {
+      await dependencies.markInvitationExpired(invitation);
+      res.status(410).json({
+        code: "INVITATION_EXPIRED",
+        error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
+      });
+      return;
+    }
+    await dependencies.acceptInvitation(user.id, organizationId, invitation);
+    res.json({ organizationId, role: invitation.role });
+  };
+}
+
 router.get(
   "/organizations/:id/members",
   requireAuth,
@@ -432,108 +582,7 @@ router.post(
 router.post(
   "/organizations/:id/members/accept-invitation",
   requireAuth,
-  async (req, res): Promise<void> => {
-    const organizationId = Number(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
-    if (!Number.isInteger(organizationId) || organizationId <= 0) {
-      res.status(400).json({ error: "Invalid organization id" });
-      return;
-    }
-    const user = await getOrCreateUser(req.clerkUserId!);
-    if (user.primaryOrganizationId && user.primaryOrganizationId !== organizationId) {
-      res.status(409).json({
-        code: "INVITATION_OTHER_ORGANIZATION",
-        error: "Ce compte est déjà rattaché à une autre organisation Cocci. Contactez son administrateur.",
-      });
-      return;
-    }
-
-    const [existingMembership] = await db.select({
-      role: membersTable.role,
-    }).from(membersTable).where(and(
-      eq(membersTable.userId, user.id),
-      eq(membersTable.organizationId, organizationId),
-      eq(membersTable.status, "active"),
-      isNull(membersTable.archivedAt),
-    )).limit(1);
-    if (existingMembership) {
-      res.json({ organizationId, role: existingMembership.role });
-      return;
-    }
-
-    const [invitation] = await db
-      .select()
-      .from(organizationInvitationsTable)
-      .where(and(
-        eq(organizationInvitationsTable.organizationId, organizationId),
-        eq(organizationInvitationsTable.email, user.email.toLowerCase()),
-        eq(organizationInvitationsTable.status, "pending"),
-      ))
-      .limit(1);
-    if (!invitation?.memberId) {
-      const [expiredInvitation] = await db
-        .select()
-        .from(organizationInvitationsTable)
-        .where(and(
-          eq(organizationInvitationsTable.organizationId, organizationId),
-          eq(organizationInvitationsTable.email, user.email.toLowerCase()),
-          eq(organizationInvitationsTable.status, "expired"),
-        ))
-        .orderBy(desc(organizationInvitationsTable.createdAt))
-        .limit(1);
-      if (expiredInvitation) {
-        res.status(410).json({
-          code: "INVITATION_EXPIRED",
-          error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
-        });
-        return;
-      }
-      res.status(404).json({
-        code: "INVITATION_NOT_FOUND",
-        error: "Aucune invitation en attente ne correspond à ce compte.",
-      });
-      return;
-    }
-    if (invitation.expiresAt && invitation.expiresAt.getTime() <= Date.now()) {
-      await db.transaction(async (tx) => {
-        await tx.update(organizationInvitationsTable)
-          .set({ status: "expired", updatedAt: new Date() })
-          .where(eq(organizationInvitationsTable.id, invitation.id));
-        await tx.update(membersTable)
-          .set({ status: "suspended" })
-          .where(and(
-            eq(membersTable.id, invitation.memberId!),
-            eq(membersTable.status, "invited"),
-          ));
-      });
-      res.status(410).json({
-        code: "INVITATION_EXPIRED",
-        error: "Cette invitation a expiré. Demandez à l’administrateur d’en envoyer une nouvelle.",
-      });
-      return;
-    }
-    await db.transaction(async (tx) => {
-      await tx.update(membersTable)
-        .set({ status: "active" })
-        .where(and(
-          eq(membersTable.id, invitation.memberId!),
-          eq(membersTable.organizationId, organizationId),
-        ));
-      await tx.update(organizationInvitationsTable)
-        .set({ status: "accepted", updatedAt: new Date() })
-        .where(eq(organizationInvitationsTable.id, invitation.id));
-      await tx.update(usersTable)
-        .set({ primaryOrganizationId: organizationId, updatedAt: new Date() })
-        .where(eq(usersTable.id, user.id));
-      const completedAt = new Date();
-      await tx.insert(onboardingProgressTable)
-        .values({ userId: user.id, status: "completed", completedAt })
-        .onConflictDoUpdate({
-          target: onboardingProgressTable.userId,
-          set: { status: "completed", completedAt, updatedAt: completedAt },
-        });
-    });
-    res.json({ organizationId, role: invitation.role });
-  },
+  createAcceptInvitationHandler(),
 );
 
 router.post(
