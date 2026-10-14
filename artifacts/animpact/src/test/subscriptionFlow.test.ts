@@ -244,6 +244,30 @@ test("le parcours groupe conserve l'étape filiales et une étape forfait sans e
   );
 });
 
+test("la reprise d'onboarding suit la dernière étape persistée sans ressaisir l'effectif", () => {
+  const org = [{ id: 42, type: "entreprise", parentId: null }];
+  const group = [{ id: 43, type: "groupe", parentId: null }];
+  const route = (
+    status: string,
+    organizations: typeof org,
+    hasEffectifSelection: boolean,
+    hasMatchingSubscriptionIntent: boolean,
+  ) => resolveOnboardingStepPath({
+    status,
+    organizations,
+    hasEffectifSelection,
+    hasMatchingSubscriptionIntent,
+  });
+
+  assert.equal(route("subsidiaries_configured", org, true, false), "/onboarding/effectif");
+  assert.equal(route("subsidiaries_configured", org, true, true), "/onboarding/abonnement");
+  assert.equal(route("workforce_completed", org, true, false), "/onboarding/abonnement");
+  assert.equal(route("subscription_selected", org, true, false), "/onboarding/abonnement");
+  assert.equal(route("payment_pending", org, true, false), "/onboarding/abonnement");
+  assert.equal(route("completed", org, true, false), "/dashboard");
+  assert.equal(route("organization_created", group, true, true), "/onboarding/filiales");
+});
+
 test("les droits superadmin ont une fraîcheur bornée et le changement de son propre rôle est détecté", () => {
   assert.equal(SUPER_ADMIN_QUERY_STALE_TIME_MS, 2 * 60 * 1000);
   assert.equal(isCurrentClerkUser("clerk_user_1", "clerk_user_1"), true);

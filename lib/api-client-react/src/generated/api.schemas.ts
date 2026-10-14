@@ -183,6 +183,7 @@ export interface OrganizationInput {
      * @maximum 12
      */
   exerciseOpeningMonth?: number;
+  logoUrl?: string;
 }
 
 export type OrganizationUpdateSize = typeof OrganizationUpdateSize[keyof typeof OrganizationUpdateSize];

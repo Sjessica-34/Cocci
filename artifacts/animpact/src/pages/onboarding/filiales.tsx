@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
-import { SUBSCRIPTION_INTENT_SESSION_KEY } from "./plans";
+import { readSubscriptionIntent } from "./plans";
 
 // ── Group mode dialog ──────────────────────────────────────────────────────
 
@@ -152,9 +152,7 @@ export function OnboardingFiliales() {
 
   async function continueToNextOnboardingStep() {
     await updateProgress.mutateAsync({ data: { status: "subsidiaries_configured" } });
-    const hasSubscriptionIntent = Boolean(
-      sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
-    );
+    const hasSubscriptionIntent = Boolean(readSubscriptionIntent());
     await qc.invalidateQueries({ queryKey: ["/api/users/me/onboarding"] });
     setLocation(hasSubscriptionIntent ? "/onboarding/abonnement" : "/onboarding/effectif");
   }

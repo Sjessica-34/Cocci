@@ -11,7 +11,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
-import { EFFECTIF_OPTIONS, EFFECTIF_SESSION_KEY, type EffectifKey } from "./plans";
+import {
+  EFFECTIF_OPTIONS,
+  readEffectifSelection,
+  saveEffectifSelection,
+  type EffectifKey,
+} from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
 
 export function OnboardingEffectif() {
@@ -31,10 +36,7 @@ export function OnboardingEffectif() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    const key = onboarding?.effectifKey as EffectifKey | null | undefined;
-    if (key && EFFECTIF_OPTIONS.some((option) => option.key === key)) {
-      setSelected(key);
-    }
+    setSelected((onboarding?.effectifKey as EffectifKey | null | undefined) ?? readEffectifSelection());
   }, [onboarding?.effectifKey]);
 
   async function handleContinue() {
@@ -55,7 +57,7 @@ export function OnboardingEffectif() {
       }
     }
 
-    sessionStorage.setItem(EFFECTIF_SESSION_KEY, selected);
+    saveEffectifSelection(selected);
     if (isAuthLoaded && isSignedIn) {
       try {
         const updatedOnboarding = await updateProgress.mutateAsync({
@@ -106,7 +108,11 @@ export function OnboardingEffectif() {
             <button
               key={opt.key}
               type="button"
-              onClick={() => setSelected(opt.key)}
+              onClick={() => {
+                setSelected(opt.key);
+                saveEffectifSelection(opt.key);
+              }}
+              data-testid={`button-effectif-${opt.key}`}
               className={cn(
                 "w-full text-left px-4 py-3 rounded-xl border transition-colors text-sm font-medium",
                 selected === opt.key

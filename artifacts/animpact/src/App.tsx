@@ -65,8 +65,9 @@ import { OnboardingEffectif } from "@/pages/onboarding/effectif";
 import { OnboardingAbonnement } from "@/pages/onboarding/abonnement";
 import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
-  EFFECTIF_SESSION_KEY,
-  SUBSCRIPTION_INTENT_SESSION_KEY,
+  clearOnboardingChoices,
+  readEffectifSelection,
+  readSubscriptionIntent,
 } from "@/pages/onboarding/plans";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -270,9 +271,7 @@ function usePostAuthRedirect() {
         organizations,
         organizationsLoading,
         organizationsFetching,
-        hasSubscriptionIntent: Boolean(
-          sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
-        ),
+        hasSubscriptionIntent: Boolean(readSubscriptionIntent()),
         onboardingStatus: onboarding?.status,
         hasPrimaryOrganization: onboarding?.primaryOrganizationId != null,
         onboardingLoading,
@@ -281,7 +280,7 @@ function usePostAuthRedirect() {
       {
         navigate: setLocation,
         clearOnboardingSession: () => {
-          sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+          clearOnboardingChoices();
           sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
         },
       },
@@ -392,8 +391,8 @@ function OnboardingStepGuard({
     },
   });
 
-  const sessionEffectifKey = sessionStorage.getItem(EFFECTIF_SESSION_KEY);
-  const subscriptionIntent = sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+  const sessionEffectifKey = readEffectifSelection();
+  const subscriptionIntent = readSubscriptionIntent();
   const hasEffectifSelection = Boolean(onboarding?.effectifKey || sessionEffectifKey);
   const hasMatchingSubscriptionIntent = Boolean(
     subscriptionIntent
@@ -429,7 +428,7 @@ function OnboardingStepGuard({
     if (nextPath === stepPath) return;
 
     if (nextPath === "/dashboard") {
-      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      clearOnboardingChoices();
       sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
     }
     setLocation(nextPath, { replace: true });

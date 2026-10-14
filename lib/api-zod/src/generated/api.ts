@@ -137,7 +137,8 @@ export const CreateOrganizationBody = zod.object({
   "type": zod.enum(['entreprise', 'groupe']).optional(),
   "parentId": zod.number().optional().describe('ID of the parent group. Only valid when type=\'entreprise\'.'),
   "groupMode": zod.enum(['manual', 'auto']).optional(),
-  "exerciseOpeningMonth": zod.number().min(1).max(createOrganizationBodyExerciseOpeningMonthMax).optional()
+  "exerciseOpeningMonth": zod.number().min(1).max(createOrganizationBodyExerciseOpeningMonthMax).optional(),
+  "logoUrl": zod.string().optional()
 })
 
 export const createOrganizationResponseTypeDefault = `entreprise`;

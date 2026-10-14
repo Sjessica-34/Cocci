@@ -19,9 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Check, CreditCard, ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
-  EFFECTIF_SESSION_KEY,
-  SUBSCRIPTION_INTENT_SESSION_KEY,
+  clearOnboardingChoices,
   effectifToPlan,
+  readEffectifSelection,
+  readSubscriptionIntent,
+  saveSubscriptionIntent,
   type EffectifKey,
   type Plan,
 } from "./plans";
@@ -56,7 +58,7 @@ export function OnboardingAbonnement() {
 
   useEffect(() => {
     const key = (onboarding?.effectifKey
-      ?? sessionStorage.getItem(EFFECTIF_SESSION_KEY)) as EffectifKey | null | undefined;
+      ?? readEffectifSelection()) as EffectifKey | null | undefined;
     if (onboardingLoading) return;
     if (!key) {
       // Pas de tranche sélectionnée → retour à l'étape effectif
@@ -133,8 +135,7 @@ export function OnboardingAbonnement() {
       if (url) {
         // Checkout est lancé : l'intention est consommée pour ne jamais
         // redéclencher une seconde session après un retour ou un rechargement.
-        sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
-        sessionStorage.removeItem(EFFECTIF_SESSION_KEY);
+        clearOnboardingChoices();
         sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
         // Stripe Checkout ne peut pas être rendu dans l'iframe de prévisualisation.
         const targetWindow = window.top ?? window;
@@ -159,7 +160,7 @@ export function OnboardingAbonnement() {
 
   useEffect(() => {
     const hasMatchingIntent = effectifKey
-      && sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY) === effectifKey;
+      && readSubscriptionIntent() === effectifKey;
     const canResumeCheckout = isSignedIn
       && effectiveOrgId
       && effectifKey
@@ -169,7 +170,7 @@ export function OnboardingAbonnement() {
       && !isActive;
 
     if (isActive && hasMatchingIntent) {
-      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      clearOnboardingChoices();
       return;
     }
 
@@ -196,13 +197,13 @@ export function OnboardingAbonnement() {
     // Un compte déjà configuré ne peut pas créer une intention de paiement
     // depuis une ancienne URL d'onboarding.
     if (isSignedIn && effectiveOrgId && onboarding?.status === "completed") {
-      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      clearOnboardingChoices();
       sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
       setLocation("/dashboard");
       return;
     }
 
-    sessionStorage.setItem(SUBSCRIPTION_INTENT_SESSION_KEY, effectifKey);
+    saveSubscriptionIntent(effectifKey);
 
     // Non connecté → inscription. L'intention est reprise après authentification.
     if (!isSignedIn) {
@@ -218,7 +219,7 @@ export function OnboardingAbonnement() {
       return;
     }
     if (isActive) {
-      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      clearOnboardingChoices();
       return;
     }
 

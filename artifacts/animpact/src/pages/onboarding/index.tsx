@@ -6,6 +6,7 @@ import {
   getListOrganizationsQueryKey,
   useListOrganizations,
   useGetOnboardingProgress,
+  useUpdateOnboardingProgress,
   getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
 import type { OnboardingProgress, Organization } from "@workspace/api-client-react";
@@ -21,10 +22,18 @@ import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
 import { onboardingAfterOrganizationCreated } from "@/lib/onboardingCache";
 import { RouteLoadingFallback } from "@/components/route-loading";
 import {
-  ONBOARDING_CONTINUATION_SESSION_KEY,
-  SUBSCRIPTION_INTENT_SESSION_KEY,
+  clearOnboardingChoices,
+  clearOrganizationNameDraft,
+  readEffectifSelection,
+  readOrganizationNameDraft,
+  readOrganizationTypeDraft,
+  readSubscriptionIntent,
+  saveOrganizationNameDraft,
+  saveOrganizationTypeDraft,
 } from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
+import { useStorageUpload } from "@/hooks/useStorageUpload";
+import { resolveOnboardingStepPath } from "@/lib/onboardingNavigation";
 
 // Version des documents légaux en vigueur
 const LEGAL_VERSION = "2025-01";
@@ -34,6 +43,8 @@ export function Onboarding() {
   const [location, setLocation] = useLocation();
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
+  const updateProgress = useUpdateOnboardingProgress();
+  const { uploadFile, isUploading } = useStorageUpload();
   const { data: organizations, isLoading: organizationsLoading } = useListOrganizations(undefined, {
     query: {
       queryKey: getListOrganizationsQueryKey(),
@@ -48,8 +59,9 @@ export function Onboarding() {
   });
   const hasSubmittedRef = useRef(false);
 
-  const [name, setName] = useState("");
-  const [type, setType] = useState<"entreprise" | "groupe">("entreprise");
+  const [name, setName] = useState(readOrganizationNameDraft);
+  const [type, setType] = useState<"entreprise" | "groupe">(readOrganizationTypeDraft);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
   const [error, setError] = useState("");
 
@@ -57,8 +69,7 @@ export function Onboarding() {
     if (organizationsLoading || onboardingLoading || !onboarding || hasSubmittedRef.current) return;
 
     if (onboarding.status === "completed") {
-      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
-      sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
+      clearOnboardingChoices();
       if (location !== "/dashboard") {
         setLocation("/dashboard", { replace: true });
       }
@@ -66,13 +77,14 @@ export function Onboarding() {
     }
 
     if (organizations && organizations.length > 0) {
-      const root = organizations.find((organization) => !organization.parentId);
-      const nextPath =
-        onboarding.status === "organization_created" && root?.type === "groupe"
-          ? "/onboarding/filiales"
-          : onboarding.status === "organization_created" || onboarding.status === "subsidiaries_configured"
-            ? "/onboarding/effectif"
-            : "/onboarding/abonnement";
+      const effectifKey = onboarding.effectifKey ?? readEffectifSelection();
+      const intent = readSubscriptionIntent();
+      const nextPath = resolveOnboardingStepPath({
+        status: onboarding.status,
+        organizations,
+        hasEffectifSelection: Boolean(effectifKey),
+        hasMatchingSubscriptionIntent: Boolean(intent && intent === effectifKey),
+      });
       if (location !== nextPath) {
         setLocation(nextPath, { replace: true });
       }
@@ -94,10 +106,33 @@ export function Onboarding() {
 
     let org;
     try {
-      org = await createOrg.mutateAsync({ data: { name: name.trim(), type } });
+      const effectifKey = onboarding?.effectifKey ?? readEffectifSelection();
+      if (effectifKey && onboarding?.status !== "completed") {
+        const saved = await updateProgress.mutateAsync({
+          data: {
+            status: onboarding?.status ?? "not_started",
+            effectifKey,
+          },
+        });
+        qc.setQueryData(getGetOnboardingProgressQueryKey(), saved);
+      }
+      let logoUrl: string | undefined;
+      if (logoFile) {
+        const uploaded = await uploadFile(logoFile, null);
+        if (!uploaded) {
+          hasSubmittedRef.current = false;
+          setError("Le logo n’a pas pu être envoyé. Vérifiez le fichier puis réessayez.");
+          return;
+        }
+        logoUrl = uploaded.fileUrl;
+      }
+      org = await createOrg.mutateAsync({
+        data: { name: name.trim(), type, ...(logoUrl ? { logoUrl } : {}) },
+      });
     } catch (err: any) {
       if (err?.status === 409 || err?.message?.includes("409")) {
         // Une autre requête a terminé la création : reprendre l'état serveur.
+        hasSubmittedRef.current = false;
         await Promise.all([
           qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() }),
           qc.invalidateQueries({ queryKey: ["/api/users/me/onboarding"] }),
@@ -122,6 +157,7 @@ export function Onboarding() {
       (current) => onboardingAfterOrganizationCreated(current, org.id),
     );
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
+    clearOrganizationNameDraft();
     setCurrentOrg(org.id);
     // Enregistrement du consentement côté backend
     try {
@@ -139,7 +175,7 @@ export function Onboarding() {
 
     if (type === "groupe") {
       setLocation("/onboarding/filiales");
-    } else if (sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY)) {
+    } else if (readSubscriptionIntent()) {
       // L'utilisateur a explicitement demandé Checkout avant de créer son
       // organisation : la formule est reprise automatiquement à l'étape suivante.
       setLocation("/onboarding/abonnement");
@@ -175,9 +211,36 @@ export function Onboarding() {
               id="name"
               placeholder="Mon Entreprise"
               value={name}
-              onChange={(e) => { setName(e.target.value); setError(""); }}
+              onChange={(e) => {
+                setName(e.target.value);
+                saveOrganizationNameDraft(e.target.value);
+                setError("");
+              }}
               autoFocus
+              data-testid="input-organization-name"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="organization-logo">Logo (facultatif)</Label>
+            <Input
+              id="organization-logo"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                if (file && file.size > 5 * 1024 * 1024) {
+                  setError("Le logo doit faire 5 Mo maximum.");
+                  event.target.value = "";
+                  setLogoFile(null);
+                  return;
+                }
+                setLogoFile(file);
+                setError("");
+              }}
+              data-testid="input-organization-logo"
+            />
+            {logoFile && <p className="text-xs text-muted-foreground">{logoFile.name}</p>}
           </div>
 
           {/* Type */}
@@ -185,7 +248,11 @@ export function Onboarding() {
             <Label>Type</Label>
             <RadioGroup
               value={type}
-              onValueChange={(v) => setType(v as "entreprise" | "groupe")}
+              onValueChange={(v) => {
+                const nextType = v as "entreprise" | "groupe";
+                setType(nextType);
+                saveOrganizationTypeDraft(nextType);
+              }}
               className="grid grid-cols-2 gap-3"
             >
               {(
@@ -212,7 +279,10 @@ export function Onboarding() {
                       ? "border-primary bg-primary/5"
                       : "border-border hover:bg-muted/30",
                   )}
-                  onClick={() => setType(opt.value)}
+                  onClick={() => {
+                    setType(opt.value);
+                    saveOrganizationTypeDraft(opt.value);
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value={opt.value} id={`type-${opt.value}`} />
@@ -259,9 +329,10 @@ export function Onboarding() {
           <Button
             type="submit"
             className="w-full"
-            disabled={createOrg.isPending || !consentChecked}
+            disabled={createOrg.isPending || updateProgress.isPending || isUploading || !consentChecked}
+            data-testid="button-create-organization"
           >
-            {createOrg.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {(createOrg.isPending || updateProgress.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {type === "groupe" ? "Créer le groupe →" : "Commencer →"}
           </Button>
         </form>

@@ -25,7 +25,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
   const [progress, setProgress] = useState(0);
 
   const uploadFile = useCallback(
-    async (file: File): Promise<UploadResult | null> => {
+    async (file: File, organizationId?: number | null): Promise<UploadResult | null> => {
       setIsUploading(true);
       setProgress(10);
       try {
@@ -34,7 +34,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
           name: file.name,
           size: file.size,
           contentType: file.type || "application/octet-stream",
-          organizationId: currentOrgId ?? undefined,
+          organizationId: organizationId === undefined ? currentOrgId ?? undefined : organizationId ?? undefined,
         });
 
         setProgress(40);
