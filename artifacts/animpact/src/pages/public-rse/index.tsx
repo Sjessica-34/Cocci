@@ -830,7 +830,10 @@ export function PublicRsePage() {
             <p style={{ fontSize: 11, color: C.gray400, lineHeight: 1.4, margin: "0 0 8px" }}>
               Cette page est générée automatiquement par Cocci, la plateforme RSE dédiée aux TPE et PME françaises.
             </p>
-            <a href="https://cocci.app" style={{ fontSize: 11, color: C.green, textDecoration: "none", fontWeight: 600 }}>
+            <a
+              href={import.meta.env.VITE_APP_URL || window.location.origin}
+              style={{ fontSize: 11, color: C.green, textDecoration: "none", fontWeight: 600 }}
+            >
               Découvrir Cocci →
             </a>
           </div>

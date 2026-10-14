@@ -1,10 +1,10 @@
 import rateLimit from "express-rate-limit";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { logger } from "../lib/logger";
+import { isProduction } from "../lib/runtimeEnv";
 
-const isProd = process.env.NODE_ENV === "production";
 const generalWindowMs = 15 * 60 * 1000;
-const debugGeneralLimiter = !isProd;
+const debugGeneralLimiter = !isProduction;
 
 type RateLimitRequest = Request & {
   rateLimit?: {
