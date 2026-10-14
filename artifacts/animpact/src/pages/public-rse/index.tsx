@@ -262,7 +262,11 @@ export function PublicRsePage() {
       <div style={{ background: "#fff", borderBottom: `1px solid ${C.gray200}`, padding: "12px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {organization.logoUrl ? (
-            <img src={organization.logoUrl} alt={organization.name} style={{ height: 36, objectFit: "contain" }} />
+            <img
+              src={organization.logoUrl.startsWith("/api/public/rse/") ? apiUrl(organization.logoUrl) : organization.logoUrl}
+              alt={organization.name}
+              style={{ height: 36, objectFit: "contain" }}
+            />
           ) : (
             <div style={{ width: 36, height: 36, borderRadius: 8, background: C.greenLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🌿</div>
           )}

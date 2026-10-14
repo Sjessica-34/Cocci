@@ -107,6 +107,8 @@ import type {
   Organization,
   OrganizationDashboard,
   OrganizationInput,
+  OrganizationLogoInput,
+  OrganizationLogoResult,
   OrganizationUpdate,
   PlanAchievement,
   PlanSlot,
@@ -231,6 +233,83 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicRseLogoUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/rse/${token}/logo`
+}
+
+/**
+ * @summary Serve an organization's private logo through its public RSE link
+ */
+export const getPublicRseLogo = async (token: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetPublicRseLogoUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicRseLogoQueryKey = (token: string,) => {
+    return [
+    `/api/public/rse/${token}/logo`
+    ] as const;
+    }
+
+
+export const getGetPublicRseLogoQueryOptions = <TData = Awaited<ReturnType<typeof getPublicRseLogo>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicRseLogo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicRseLogoQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicRseLogo>>> = ({ signal }) => getPublicRseLogo(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicRseLogo>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicRseLogoQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicRseLogo>>>
+export type GetPublicRseLogoQueryError = ErrorType<void>
+
+
+/**
+ * @summary Serve an organization's private logo through its public RSE link
+ */
+
+export function useGetPublicRseLogo<TData = Awaited<ReturnType<typeof getPublicRseLogo>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicRseLogo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicRseLogoQueryOptions(token,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -839,6 +918,77 @@ export const useUpdateOrganization = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateOrganizationMutationOptions(options));
+    }
+
+export const getAttachOrganizationLogoUrl = (id: number,) => {
+
+
+
+
+  return `/api/organizations/${id}/logo`
+}
+
+/**
+ * @summary Attach a privately uploaded logo to an organization
+ */
+export const attachOrganizationLogo = async (id: number,
+    organizationLogoInput: OrganizationLogoInput, options?: RequestInit): Promise<OrganizationLogoResult> => {
+
+  return customFetch<OrganizationLogoResult>(getAttachOrganizationLogoUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(organizationLogoInput)
+  }
+);}
+
+
+
+
+export const getAttachOrganizationLogoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachOrganizationLogo>>, TError,{id: number;data: BodyType<OrganizationLogoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attachOrganizationLogo>>, TError,{id: number;data: BodyType<OrganizationLogoInput>}, TContext> => {
+
+const mutationKey = ['attachOrganizationLogo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attachOrganizationLogo>>, {id: number;data: BodyType<OrganizationLogoInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  attachOrganizationLogo(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttachOrganizationLogoMutationResult = NonNullable<Awaited<ReturnType<typeof attachOrganizationLogo>>>
+    export type AttachOrganizationLogoMutationBody = BodyType<OrganizationLogoInput>
+    export type AttachOrganizationLogoMutationError = ErrorType<void>
+
+    /**
+ * @summary Attach a privately uploaded logo to an organization
+ */
+export const useAttachOrganizationLogo = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachOrganizationLogo>>, TError,{id: number;data: BodyType<OrganizationLogoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof attachOrganizationLogo>>,
+        TError,
+        {id: number;data: BodyType<OrganizationLogoInput>},
+        TContext
+      > => {
+      return useMutation(getAttachOrganizationLogoMutationOptions(options));
     }
 
 export const getListSubsidiariesUrl = (id: number,) => {

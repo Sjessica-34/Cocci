@@ -48,8 +48,10 @@ function requireActiveSubscriptionExceptOrganizationSetup(
     && req.body
     && Object.keys(req.body).length === 1
     && Object.prototype.hasOwnProperty.call(req.body, "groupMode");
+  const isOrganizationLogoSetup =
+    req.method === "POST" && req.path === "/logo";
 
-  if (isGroupModeSetupUpdate) {
+  if (isGroupModeSetupUpdate || isOrganizationLogoSetup) {
     next();
     return;
   }

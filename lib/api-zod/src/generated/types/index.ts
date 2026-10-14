@@ -159,6 +159,8 @@ export * from './organizationInput';
 export * from './organizationInputGroupMode';
 export * from './organizationInputSize';
 export * from './organizationInputType';
+export * from './organizationLogoInput';
+export * from './organizationLogoResult';
 export * from './organizationType';
 export * from './organizationUpdate';
 export * from './organizationUpdateGroupMode';

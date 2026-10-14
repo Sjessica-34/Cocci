@@ -15,6 +15,19 @@ interface UseStorageUploadOptions {
   onError?: (error: Error) => void;
 }
 
+function getUploadContentType(file: File): string {
+  if (file.type) return file.type;
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  const byExtension: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+  };
+  return byExtension[extension ?? ""] ?? "application/octet-stream";
+}
+
 /**
  * Two-step presigned-URL upload that uses the generated `customFetch`
  * (with the Clerk Bearer token) for step 1, then PUTs directly to GCS.
@@ -29,11 +42,12 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
       setIsUploading(true);
       setProgress(10);
       try {
+        const contentType = getUploadContentType(file);
         // Step 1 – get presigned URL (uses customFetch → Clerk Bearer token)
         const { uploadURL, objectPath } = await requestUploadUrl({
           name: file.name,
           size: file.size,
-          contentType: file.type || "application/octet-stream",
+          contentType,
           organizationId: organizationId === undefined ? currentOrgId ?? undefined : organizationId ?? undefined,
         });
 
@@ -43,7 +57,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
         const putRes = await fetch(uploadURL, {
           method: "PUT",
           body: file,
-          headers: { "Content-Type": file.type || "application/octet-stream" },
+          headers: { "Content-Type": contentType },
         });
 
         if (!putRes.ok) throw new Error("Échec de l'envoi vers le stockage.");

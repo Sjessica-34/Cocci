@@ -18,6 +18,16 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Serve an organization's private logo through its public RSE link
+ */
+export const GetPublicRseLogoParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicRseLogoResponse = zod.unknown()
+
+
+/**
  * Returns the authenticated user's profile (JIT-provisioned from Clerk)
  * @summary Get current user profile
  */
@@ -237,6 +247,26 @@ export const UpdateOrganizationResponse = zod.object({
   "exerciseOpeningMonth": zod.number().min(1).max(updateOrganizationResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Attach a privately uploaded logo to an organization
+ */
+export const AttachOrganizationLogoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const attachOrganizationLogoBodyObjectPathRegExp = new RegExp('^/objects');
+
+
+export const AttachOrganizationLogoBody = zod.object({
+  "objectPath": zod.string().regex(attachOrganizationLogoBodyObjectPathRegExp),
+  "fileUrl": zod.string()
+})
+
+export const AttachOrganizationLogoResponse = zod.object({
+  "success": zod.boolean()
 })
 
 

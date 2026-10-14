@@ -236,6 +236,16 @@ export interface OrganizationUpdate {
   exerciseOpeningMonth?: number;
 }
 
+export interface OrganizationLogoInput {
+  /** @pattern ^/objects/ */
+  objectPath: string;
+  fileUrl: string;
+}
+
+export interface OrganizationLogoResult {
+  success: boolean;
+}
+
 export type MemberRole = typeof MemberRole[keyof typeof MemberRole];
 
 

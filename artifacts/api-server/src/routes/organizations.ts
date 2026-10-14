@@ -7,10 +7,13 @@ import {
   exercisesTable,
   onboardingProgressTable,
   usersTable,
+  pendingObjectUploadsTable,
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireMembership } from "../middlewares/requireMembership";
 import { getOrCreateUser } from "../lib/auth";
+import { ObjectAccessGroupType, ObjectPermission } from "../lib/objectAcl";
+import { ObjectStorageService } from "../lib/objectStorage";
 import {
   ListOrganizationsResponse,
   CreateOrganizationBody,
@@ -20,9 +23,13 @@ import {
   UpdateOrganizationParams,
   UpdateOrganizationBody,
   UpdateOrganizationResponse,
+  AttachOrganizationLogoBody,
+  AttachOrganizationLogoParams,
+  AttachOrganizationLogoResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+const objectStorageService = new ObjectStorageService();
 
 router.get("/organizations", requireAuth, async (req, res): Promise<void> => {
   const user = await getOrCreateUser(req.clerkUserId!);
@@ -241,6 +248,91 @@ router.patch(
     }
 
     res.json(UpdateOrganizationResponse.parse(updated));
+  },
+);
+
+router.post(
+  "/organizations/:id/logo",
+  requireAuth,
+  requireMembership(["owner", "admin"]),
+  async (req, res): Promise<void> => {
+    const params = AttachOrganizationLogoParams.safeParse(req.params);
+    const body = AttachOrganizationLogoBody.safeParse(req.body);
+    if (!params.success || !body.success || !req.clerkUserId) {
+      res.status(400).json({ error: "Invalid organization logo payload" });
+      return;
+    }
+
+    const expectedPath = `/api/storage${body.data.objectPath}`;
+    let actualPath: string;
+    try {
+      actualPath = new URL(body.data.fileUrl, "http://cocci.invalid").pathname;
+    } catch {
+      res.status(400).json({ error: "Invalid logo URL" });
+      return;
+    }
+    if (!actualPath.endsWith(expectedPath)) {
+      res.status(400).json({ error: "Logo URL does not match uploaded object" });
+      return;
+    }
+
+    try {
+      await db.transaction(async (tx) => {
+        const [pending] = await tx
+          .select({
+            organizationId: pendingObjectUploadsTable.organizationId,
+            consumedAt: pendingObjectUploadsTable.consumedAt,
+          })
+          .from(pendingObjectUploadsTable)
+          .where(and(
+            eq(pendingObjectUploadsTable.objectPath, body.data.objectPath),
+            eq(pendingObjectUploadsTable.ownerClerkId, req.clerkUserId!),
+          ))
+          .limit(1)
+          .for("update");
+        if (!pending || !pending.consumedAt) {
+          throw new Error("Uploaded logo is not owned by this user");
+        }
+        if (pending.organizationId && pending.organizationId !== params.data.id) {
+          throw new Error("Uploaded logo is already linked to another organization");
+        }
+
+        const uploadedFile = await objectStorageService.getObjectEntityFile(body.data.objectPath);
+        const [metadata] = await uploadedFile.getMetadata();
+        const allowedLogoTypes = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+        if (
+          !metadata.size
+          || metadata.size > 10 * 1024 * 1024
+          || !allowedLogoTypes.has(metadata.contentType ?? "")
+        ) {
+          throw new Error("Logo must be JPG, PNG, GIF, or WEBP and no larger than 10 MB");
+        }
+
+        await objectStorageService.trySetObjectEntityAclPolicy(body.data.objectPath, {
+          owner: `organization:${params.data.id}`,
+          visibility: "private",
+          aclRules: [{
+            group: {
+              type: ObjectAccessGroupType.ORGANIZATION,
+              id: String(params.data.id),
+            },
+            permission: ObjectPermission.READ,
+          }],
+        });
+        await tx.update(pendingObjectUploadsTable)
+          .set({ organizationId: params.data.id })
+          .where(eq(pendingObjectUploadsTable.objectPath, body.data.objectPath));
+        const [updated] = await tx.update(organizationsTable)
+          .set({ logoUrl: body.data.fileUrl, updatedAt: new Date() })
+          .where(eq(organizationsTable.id, params.data.id))
+          .returning({ id: organizationsTable.id });
+        if (!updated) throw new Error("Organization not found");
+      });
+      res.json(AttachOrganizationLogoResponse.parse({ success: true }));
+    } catch (error) {
+      req.log.error({ err: error }, "Failed to attach organization logo");
+      res.status(400).json({ error: "The uploaded logo could not be attached to this organization" });
+    }
   },
 );
 
