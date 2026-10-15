@@ -270,7 +270,7 @@ export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
         <OrganizationLogo
           src={organizationLogoUrl}
           alt={`Logo de ${activeOrg?.name ?? rootOrg.name}`}
-          className="h-4 w-4 shrink-0 object-contain"
+          className="h-5 w-5 shrink-0 object-contain"
           fallback={<Building className="h-4 w-4 text-primary/70 shrink-0" />}
         />
         <span className={cn("text-sm font-semibold truncate flex-1", mobile ? "text-foreground" : "text-sidebar-foreground")}>
@@ -317,7 +317,7 @@ export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
             <OrganizationLogo
               src={organizationLogoUrl}
               alt={`Logo de ${activeOrg?.name ?? rootOrg.name}`}
-              className="mr-2 h-4 w-4 shrink-0 object-contain"
+              className="mr-2 h-5 w-5 shrink-0 object-contain"
               fallback={activeOrg?.type === "entreprise"
                 ? <Building className="h-4 w-4 mr-2 text-primary/70 shrink-0" />
                 : <Network className="h-4 w-4 mr-2 text-primary/70 shrink-0" />}
