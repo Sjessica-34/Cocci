@@ -420,6 +420,7 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           currentSubscriptionId: currentRow.stripe_subscription_id,
           localStatus: currentRow.status,
           invoicePaid: true,
+          paymentIntentStatus: paymentIntent.status,
           stripeSubscriptionStatus: stripeSubscription.status,
           hasOutstandingInvoice,
           hasUnresolvedSepaDispute: hasDispute,
