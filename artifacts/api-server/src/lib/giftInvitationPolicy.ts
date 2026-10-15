@@ -5,6 +5,11 @@ export type GiftClaimDecision =
   | "email_mismatch"
   | "existing_non_free_subscription";
 
+export function isGiftInvitationEmailVerified(inviteEmail: string, verifiedEmails: string[]): boolean {
+  const normalizedInviteEmail = inviteEmail.trim().toLowerCase();
+  return verifiedEmails.some((email) => email.trim().toLowerCase() === normalizedInviteEmail);
+}
+
 export function decideGiftInvitationClaim(input: {
   invite: {
     email: string;
@@ -21,7 +26,7 @@ export function decideGiftInvitationClaim(input: {
 }): GiftClaimDecision {
   const { invite } = input;
   if (!invite || invite.revokedAt) return "invalid_invitation";
-  if (!input.verifiedEmails.includes(invite.email.trim().toLowerCase())) return "email_mismatch";
+  if (!isGiftInvitationEmailVerified(invite.email, input.verifiedEmails)) return "email_mismatch";
   if (invite.claimedAt) {
     return invite.organizationId === input.organizationId
       && input.existingSubscription?.mode === "free"

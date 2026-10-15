@@ -119,7 +119,48 @@ export function Abonnement() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+  const recoverySessionId = searchParams.get("sepaRecoverySession");
+  const recoveryCancelled = searchParams.get("recoveryCancelled") === "1";
+
+  useEffect(() => {
+    if (!currentOrgId || !recoverySessionId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const token = await getToken({ skipCache: true });
+        if (!token) throw new Error("Authentication token unavailable");
+        const result = await customFetch<{ status: "paid" | "processing" }>(
+          `/api/organizations/${currentOrgId}/stripe/recovery/complete`,
+          {
+            method: "POST",
+            body: JSON.stringify({ sessionId: recoverySessionId }),
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        if (!cancelled) {
+          setRecoveryMessage(
+            result.status === "paid"
+              ? "La facture est réglée. Stripe confirme votre accès automatiquement."
+              : "Le nouveau mandat est enregistré. Le prélèvement est en cours de traitement; votre accès reste suspendu jusqu'à la confirmation de Stripe.",
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setRecoveryMessage(
+            error instanceof ApiError && error.status === 409
+              ? "La facture ou la souscription a changé d'état. Rechargez la page ou contactez le support avant de réessayer."
+              : "La régularisation n'a pas abouti. Votre accès reste suspendu; vous pouvez réessayer.",
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentOrgId, getToken, recoverySessionId]);
 
   // Charger plans + statut en parallèle
   useEffect(() => {
@@ -224,6 +265,43 @@ export function Abonnement() {
     }
   };
 
+  const handleSepaRecovery = async () => {
+    if (!currentOrgId) return;
+    setRecoveryLoading(true);
+    const recoveryWindow = window.open("about:blank", "cocci-sepa-recovery");
+    if (recoveryWindow) {
+      recoveryWindow.document.title = "Régularisation SEPA Cocci";
+      recoveryWindow.document.body.style.cssText =
+        "margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;color:#163028;background:#f8faf9";
+      recoveryWindow.document.body.textContent = "Vérification de la facture et redirection sécurisée…";
+    }
+    try {
+      const token = await getToken({ skipCache: true });
+      if (!token) throw new Error("Authentication token unavailable");
+      const { url } = await customFetch<{ url: string }>(
+        `/api/organizations/${currentOrgId}/stripe/recovery/setup`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!url) throw new Error("URL de régularisation manquante");
+      if (recoveryWindow && !recoveryWindow.closed) {
+        recoveryWindow.location.href = url;
+      } else {
+        (window.top ?? window).location.href = url;
+      }
+    } catch (error) {
+      recoveryWindow?.close();
+      const message = error instanceof ApiError && error.status === 409
+        ? "Stripe ne confirme pas actuellement une souscription en retard avec une facture ouverte. Aucun paiement n'a été lancé."
+        : "Impossible de préparer la régularisation. Aucun nouveau paiement n'a été lancé.";
+      setRecoveryMessage(message);
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
   const hasAnyActive = subscription?.status === "active";
   const isSuspendedStripeSubscription =
     subscription?.mode === "stripe" && subscription.status === "suspended";
@@ -261,6 +339,16 @@ export function Abonnement() {
             <p className="text-sm text-amber-800">Paiement annulé. Votre abonnement n'a pas été modifié.</p>
           </div>
         )}
+        {recoveryCancelled && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Régularisation annulée. Votre abonnement n&apos;a pas été modifié.
+          </div>
+        )}
+        {recoveryMessage && (
+          <div role="status" className="mb-6 rounded-xl border border-[#d8e7df] bg-[#f3f8f5] p-4 text-sm text-[#163028]">
+            {recoveryMessage}
+          </div>
+        )}
 
         {/* ── Statut actuel ── */}
         {subscriptionLoading && currentOrgId && (
@@ -287,8 +375,14 @@ export function Abonnement() {
               </div>
             </div>
             {canOpenSubscriptionPortal && (
-              <Button variant="outline" size="sm" onClick={handlePortal} disabled={portalLoading} className="gap-2">
-                {portalLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={isSuspendedStripeSubscription ? handleSepaRecovery : handlePortal}
+                disabled={portalLoading || recoveryLoading}
+                className="gap-2"
+              >
+                {portalLoading || recoveryLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
                 {isSuspendedStripeSubscription ? "Régulariser mon prélèvement" : "Gérer mon abonnement"}
               </Button>
             )}
@@ -301,7 +395,7 @@ export function Abonnement() {
           >
             <p className="font-semibold">Votre accès est suspendu après un prélèvement rejeté ou retourné.</p>
             <p className="mt-1">
-              Vos données sont conservées. Régularisez l’abonnement existant depuis le portail Stripe pour rétablir votre accès.
+              Vos données sont conservées. Ajoutez un nouvel IBAN et signez son mandat; Cocci vérifiera la facture avant de relancer le prélèvement sur le même abonnement.
             </p>
           </div>
         )}

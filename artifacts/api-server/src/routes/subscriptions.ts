@@ -17,9 +17,33 @@ import {
   shouldBlockNewStripeCheckout,
   STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES,
 } from "../stripeSubscriptionTransitions";
+import {
+  createRecoverySetupCheckout,
+  getRecoverySetupPaymentMethod,
+  getRecoverySetupSessionReferences,
+  payExistingRecoveryInvoice,
+} from "../sepaRecoveryStripe";
 import { eq } from "drizzle-orm";
 
 const router = Router();
+
+function getInvoiceSubscriptionReference(invoice: unknown): string | null {
+  const value = invoice as {
+    subscription?: string | { id: string } | null;
+    parent?: { subscription_details?: { subscription?: string | { id: string } | null } | null } | null;
+  };
+  return getStripeObjectId(value.subscription)
+    ?? getStripeObjectId(value.parent?.subscription_details?.subscription);
+}
+
+function getInvoicePaymentIntentReference(invoice: unknown): string | null {
+  const value = invoice as {
+    payment_intent?: string | { id: string } | null;
+    payments?: { data?: Array<{ payment?: { payment_intent?: string | { id: string } | null } }> };
+  };
+  return getStripeObjectId(value.payment_intent)
+    ?? getStripeObjectId(value.payments?.data?.[0]?.payment?.payment_intent);
+}
 
 // ── GET /api/stripe/plans — offres disponibles (public, sans IDs Stripe) ─────
 router.get("/stripe/plans", async (_req, res): Promise<void> => {
@@ -295,6 +319,194 @@ router.post(
          return;
        }
       res.status(500).json({ error: "Checkout session creation failed" });
+    }
+  },
+);
+
+// ── SEPA recovery: setup-only Checkout, then pay the existing invoice ─────────
+router.post(
+  "/organizations/:orgId/stripe/recovery/setup",
+  requireAuth,
+  requireOrgRole(["owner", "admin"]),
+  async (req, res): Promise<void> => {
+    try {
+      const billingOrgId = await getBillingOrganizationId(req.orgId!);
+      const local = await pool.query<{
+        mode: string;
+        status: string;
+        stripe_customer_id: string | null;
+        stripe_subscription_id: string | null;
+      }>(
+        `SELECT mode, status, stripe_customer_id, stripe_subscription_id
+         FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
+        [billingOrgId],
+      );
+      const current = local.rows[0];
+      if (
+        current?.mode !== "stripe"
+        || current.status !== "suspended"
+        || !current.stripe_customer_id
+        || !current.stripe_subscription_id
+      ) {
+        res.status(409).json({ error: "Aucune souscription Stripe suspendue à régulariser" });
+        return;
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const sub = await stripe.subscriptions.retrieve(current.stripe_subscription_id);
+      if (sub.customer !== current.stripe_customer_id || sub.status !== "past_due") {
+        res.status(409).json({
+          error: "La souscription Stripe n'est pas dans un état récupérable",
+          code: "SUBSCRIPTION_NOT_PAST_DUE",
+        });
+        return;
+      }
+
+      const openInvoices = await stripe.invoices.list({
+        customer: current.stripe_customer_id,
+        status: "open",
+        limit: 100,
+      });
+      const unpaid = openInvoices.data.filter((invoice) => {
+        return getInvoiceSubscriptionReference(invoice) === sub.id && invoice.amount_remaining > 0;
+      });
+      if (unpaid.length !== 1) {
+        res.status(409).json({
+          error: unpaid.length
+            ? "Plusieurs factures impayées doivent être vérifiées avant la régularisation"
+            : "Aucune facture impayée ouverte n'est associée à cette souscription",
+          code: unpaid.length ? "AMBIGUOUS_OPEN_INVOICES" : "NO_OPEN_INVOICE",
+        });
+        return;
+      }
+      const invoice = await stripe.invoices.retrieve(unpaid[0].id);
+      if (
+        invoice.status !== "open"
+        || invoice.amount_remaining <= 0
+        || invoice.customer !== current.stripe_customer_id
+        || getInvoiceSubscriptionReference(invoice) !== sub.id
+      ) {
+        res.status(409).json({ error: "La facture a changé d'état; rechargez la page avant de réessayer" });
+        return;
+      }
+
+      const session = await createRecoverySetupCheckout(stripe, {
+        baseUrl: getPublicAppUrl(),
+        organizationId: billingOrgId,
+        customerId: current.stripe_customer_id,
+        subscriptionId: sub.id,
+        invoiceId: invoice.id,
+      });
+      res.json({ url: session.url });
+    } catch (err) {
+      logger.error({ err }, "stripe SEPA recovery setup error");
+      res.status(500).json({ error: "Impossible de préparer la régularisation SEPA" });
+    }
+  },
+);
+
+router.post(
+  "/organizations/:orgId/stripe/recovery/complete",
+  requireAuth,
+  requireOrgRole(["owner", "admin"]),
+  async (req, res): Promise<void> => {
+    const sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId : "";
+    if (!sessionId.startsWith("cs_")) {
+      res.status(400).json({ error: "Session de régularisation invalide" });
+      return;
+    }
+
+    try {
+      const billingOrgId = await getBillingOrganizationId(req.orgId!);
+      const local = await pool.query<{
+        mode: string;
+        status: string;
+        stripe_customer_id: string | null;
+        stripe_subscription_id: string | null;
+      }>(
+        `SELECT mode, status, stripe_customer_id, stripe_subscription_id
+         FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
+        [billingOrgId],
+      );
+      const current = local.rows[0];
+      if (
+        current?.mode !== "stripe"
+        || !current.stripe_customer_id
+        || !current.stripe_subscription_id
+      ) {
+        res.status(409).json({ error: "Souscription Stripe introuvable" });
+        return;
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const sessionRefs = getRecoverySetupSessionReferences(session, {
+        customerId: current.stripe_customer_id,
+        organizationId: billingOrgId,
+        subscriptionId: current.stripe_subscription_id,
+      });
+      if (!sessionRefs) {
+        res.status(409).json({ error: "Cette session ne correspond pas à la régularisation courante" });
+        return;
+      }
+      const { invoiceId, setupIntentId } = sessionRefs;
+
+      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+      const paymentMethodId = getRecoverySetupPaymentMethod(setupIntent, {
+        customerId: current.stripe_customer_id,
+        organizationId: billingOrgId,
+        subscriptionId: current.stripe_subscription_id,
+        invoiceId,
+      });
+      if (!paymentMethodId) {
+        res.status(409).json({ error: "Le nouveau mandat SEPA n'a pas été confirmé" });
+        return;
+      }
+
+      // Re-read both Stripe resources immediately before changing the payment
+      // method or attempting payment; client-supplied IDs are never trusted.
+      const [sub, invoice, paymentMethod] = await Promise.all([
+        stripe.subscriptions.retrieve(current.stripe_subscription_id),
+        stripe.invoices.retrieve(invoiceId, { expand: ["payment_intent"] }),
+        stripe.paymentMethods.retrieve(paymentMethodId),
+      ]);
+      const invoiceSubId = getInvoiceSubscriptionReference(invoice);
+      if (
+        sub.customer !== current.stripe_customer_id
+        || invoice.customer !== current.stripe_customer_id
+        || invoiceSubId !== sub.id
+        || paymentMethod.customer !== current.stripe_customer_id
+        || paymentMethod.type !== "sepa_debit"
+      ) {
+        res.status(409).json({ error: "Les objets Stripe ne correspondent plus à la souscription courante" });
+        return;
+      }
+      if (invoice.status === "paid" && sub.status === "active") {
+        res.json({ status: "paid" });
+        return;
+      }
+      if (sub.status !== "past_due" || current.status !== "suspended") {
+        res.status(409).json({
+          error: "La souscription n'est plus en retard ou n'est pas suspendue dans Cocci",
+          code: "SUBSCRIPTION_STATE_CHANGED",
+        });
+        return;
+      }
+      if (invoice.status !== "open" || invoice.amount_remaining <= 0) {
+        res.status(409).json({ error: "La facture n'est plus ouverte et impayée", code: "INVOICE_NOT_PAYABLE" });
+        return;
+      }
+
+      const status = await payExistingRecoveryInvoice(stripe, {
+        subscriptionId: sub.id,
+        invoice,
+        paymentMethodId,
+        setupIntentId,
+      });
+      res.json({ status });
+    } catch (err) {
+      logger.error({ err }, "stripe SEPA recovery completion error");
+      res.status(500).json({ error: "Le paiement de la facture n'a pas pu être lancé" });
     }
   },
 );

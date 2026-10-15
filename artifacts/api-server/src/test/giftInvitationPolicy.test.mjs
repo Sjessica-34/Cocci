@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decideGiftInvitationClaim } from "../lib/giftInvitationPolicy.ts";
+import { decideGiftInvitationClaim, isGiftInvitationEmailVerified } from "../lib/giftInvitationPolicy.ts";
 
 const now = new Date("2026-10-15T12:00:00Z");
 const invite = (overrides = {}) => ({
@@ -18,6 +18,11 @@ const input = (overrides = {}) => ({
   organizationId: 41,
   now,
   ...overrides,
+});
+
+test("la création d'une invitation ne dépend pas de l'existence d'un compte Clerk; l'activation compare les adresses normalisées", () => {
+  assert.equal(isGiftInvitationEmailVerified("  Client@Example.com ", ["client@example.com"]), true);
+  assert.equal(isGiftInvitationEmailVerified("new@example.com", []), false);
 });
 
 test("une invitation valide pour une adresse vérifiée peut être activée", () => {

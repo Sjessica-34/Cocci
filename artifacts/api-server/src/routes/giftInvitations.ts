@@ -12,7 +12,7 @@ import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
 import { getOrCreateUser } from "../lib/auth";
 import { sendGiftInvitationEmail } from "../lib/email";
 import { getPublicAppUrl } from "../appUrl";
-import { decideGiftInvitationClaim } from "../lib/giftInvitationPolicy";
+import { decideGiftInvitationClaim, isGiftInvitationEmailVerified } from "../lib/giftInvitationPolicy";
 
 const router = Router();
 const giftKeys = ["1-5", "6-10", "11-25", "26-50", "51-100", "101-250", "250+"] as const;
@@ -120,6 +120,21 @@ router.post("/gift-invitations/claim", requireAuth, async (req, res): Promise<vo
   const verifiedEmails = clerkUser.emailAddresses
     .filter((address) => address.verification?.status === "verified")
     .map((address) => address.emailAddress.trim().toLowerCase());
+  const [inviteIdentity] = await db.select({
+    email: giftInvitationsTable.email,
+    expiresAt: giftInvitationsTable.expiresAt,
+    claimedAt: giftInvitationsTable.claimedAt,
+    revokedAt: giftInvitationsTable.revokedAt,
+  }).from(giftInvitationsTable)
+    .where(eq(giftInvitationsTable.tokenHash, hashToken(parsed.data.token)))
+    .limit(1);
+  if (!inviteIdentity || (!inviteIdentity.claimedAt
+    && (inviteIdentity.revokedAt || inviteIdentity.expiresAt <= new Date()))) {
+    res.status(409).json({ error: "Invitation expirée, révoquée ou déjà utilisée." }); return;
+  }
+  if (!isGiftInvitationEmailVerified(inviteIdentity.email, verifiedEmails)) {
+    res.status(403).json({ error: "L’adresse e-mail invitée doit être vérifiée dans Clerk et correspondre au compte connecté." }); return;
+  }
   const user = await getOrCreateUser(clerkUserId);
   if (!user.primaryOrganizationId) { res.status(409).json({ error: "Créez d'abord votre organisation Cocci." }); return; }
   const today = new Date().toISOString().slice(0, 10);
@@ -183,7 +198,7 @@ router.post("/gift-invitations/claim", requireAuth, async (req, res): Promise<vo
     res.json(result);
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
-    if (code === "INVITATION_EMAIL_MISMATCH") { res.status(403).json({ error: "Cette invitation est liée à une autre adresse e-mail vérifiée." }); return; }
+    if (code === "INVITATION_EMAIL_MISMATCH") { res.status(403).json({ error: "L’adresse e-mail invitée doit être vérifiée dans Clerk et correspondre au compte connecté." }); return; }
     if (code === "INVITATION_INVALID") { res.status(409).json({ error: "Invitation expirée, révoquée ou déjà utilisée." }); return; }
     if (code === "EXISTING_NON_FREE_SUBSCRIPTION") { res.status(409).json({ error: "Une souscription non gratuite existe déjà. Aucun changement n'a été effectué." }); return; }
     throw error;

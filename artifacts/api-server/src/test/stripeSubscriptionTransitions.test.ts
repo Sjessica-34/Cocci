@@ -43,8 +43,47 @@ test("un paiement confirmé réactive l’abonnement suspendu courant", () => {
     currentSubscriptionId: "sub_current",
     localStatus: "suspended",
     invoicePaid: true,
+    paymentIntentStatus: "succeeded",
     stripeSubscriptionStatus: "active",
   }), "activate");
+});
+
+test("un prélèvement SEPA encore en attente ne réactive pas l’accès", () => {
+  assert.equal(decideStripeAccessTransition({
+    type: "invoice.payment_succeeded",
+    subscriptionId: "sub_current",
+    currentSubscriptionId: "sub_current",
+    localStatus: "suspended",
+    invoicePaid: true,
+    paymentIntentStatus: "processing",
+    stripeSubscriptionStatus: "active",
+  }), "ignore");
+});
+
+test("un succès Stripe ne réactive pas s'il reste une facture ouverte", () => {
+  assert.equal(decideStripeAccessTransition({
+    type: "invoice.payment_succeeded",
+    subscriptionId: "sub_current",
+    currentSubscriptionId: "sub_current",
+    localStatus: "suspended",
+    invoicePaid: true,
+    paymentIntentStatus: "succeeded",
+    stripeSubscriptionStatus: "active",
+    hasOutstandingInvoice: true,
+  }), "ignore");
+});
+
+test("un succès Stripe tardif ne réactive pas après un retour SEPA", () => {
+  assert.equal(decideStripeAccessTransition({
+    type: "invoice.payment_succeeded",
+    subscriptionId: "sub_current",
+    currentSubscriptionId: "sub_current",
+    localStatus: "suspended",
+    invoicePaid: true,
+    paymentIntentStatus: "succeeded",
+    stripeSubscriptionStatus: "active",
+    hasUnresolvedSepaDispute: true,
+  }), "ignore");
 });
 
 test("un succès tardif d’une ancienne souscription ne réactive pas la souscription courante", () => {
@@ -54,6 +93,7 @@ test("un succès tardif d’une ancienne souscription ne réactive pas la souscr
     currentSubscriptionId: "sub_current",
     localStatus: "suspended",
     invoicePaid: true,
+    paymentIntentStatus: "succeeded",
     stripeSubscriptionStatus: "active",
   }), "ignore");
 });

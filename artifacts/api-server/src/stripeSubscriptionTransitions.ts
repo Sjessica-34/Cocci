@@ -30,8 +30,11 @@ export type StripeAccessTransitionEvent = {
   currentSubscriptionId: string | null;
   localStatus: string | null;
   invoicePaid?: boolean;
+  paymentIntentStatus?: string | null;
   stripeSubscriptionStatus?: string | null;
   isSepaDebit?: boolean;
+  hasOutstandingInvoice?: boolean;
+  hasUnresolvedSepaDispute?: boolean;
 };
 
 export type StripeAccessTransition = "activate" | "suspend" | "ignore";
@@ -59,6 +62,9 @@ export function decideStripeAccessTransition(
 
   if (
     !event.invoicePaid
+    || event.paymentIntentStatus !== "succeeded"
+    || event.hasOutstandingInvoice
+    || event.hasUnresolvedSepaDispute
     || !["trial", "suspended"].includes(event.localStatus ?? "")
     || !["active", "trialing"].includes(event.stripeSubscriptionStatus ?? "")
   ) {

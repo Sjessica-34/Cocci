@@ -627,7 +627,7 @@ export function AdminAbonnements() {
           <CardHeader><CardTitle className="text-base">Invitation à une offre gratuite</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={createGiftInvite} className="grid gap-3 md:grid-cols-5">
-              <Input type="email" required value={giftEmail} onChange={(e) => setGiftEmail(e.target.value)} placeholder="E-mail vérifié du bénéficiaire" />
+              <Input type="email" required value={giftEmail} onChange={(e) => setGiftEmail(e.target.value)} placeholder="Adresse e-mail du bénéficiaire" />
               <Select value={giftEffectif} onValueChange={setGiftEffectif}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{["1-5","6-10","11-25","26-50","51-100","101-250","250+"].map((v) => <SelectItem key={v} value={v}>{v} salariés</SelectItem>)}</SelectContent>
