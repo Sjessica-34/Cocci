@@ -12,6 +12,7 @@ import {
   useGetOnboardingProgress,
   getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
+import { GIFT_INVITATION_SESSION_KEY } from "@/pages/gift-invitation";
 
 import NotFound from "@/pages/not-found";
 import { Home } from "@/pages/home";
@@ -63,6 +64,7 @@ import { Onboarding } from "@/pages/onboarding/index";
 import { OnboardingFiliales } from "@/pages/onboarding/filiales";
 import { OnboardingEffectif } from "@/pages/onboarding/effectif";
 import { OnboardingAbonnement } from "@/pages/onboarding/abonnement";
+import { GiftInvitationPage } from "@/pages/gift-invitation";
 import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
   clearOnboardingChoices,
@@ -273,6 +275,7 @@ function usePostAuthRedirect() {
         organizationsLoading,
         organizationsFetching,
         hasSubscriptionIntent: Boolean(readSubscriptionIntent()),
+        hasGiftInvitation: Boolean(sessionStorage.getItem(GIFT_INVITATION_SESSION_KEY)),
         onboardingStatus: onboarding?.status,
         hasPrimaryOrganization: onboarding?.primaryOrganizationId != null,
         onboardingLoading,
@@ -585,6 +588,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/demo"><Demo /></Route>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/offre" component={GiftInvitationPage} />
 
             {/* Onboarding — first-time setup (no AppLayout) */}
             <Route path="/onboarding">

@@ -406,6 +406,39 @@ export function Abonnement() {
           </div>
         )}
 
+        {/* Fonctionnalité annoncée pour une version ultérieure : aucun flux d'invitation ni de paiement ici. */}
+        <section
+          aria-labelledby="collaborator-invitation-title"
+          className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 sm:p-6"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 id="collaborator-invitation-title" className="text-base font-semibold text-gray-700">
+                  Invitations de collaborateurs
+                </h2>
+                <Badge className="border-0 bg-amber-100 text-amber-800 hover:bg-amber-100">
+                  Bientôt disponible
+                </Badge>
+              </div>
+              <p className="mt-1 text-sm font-medium text-gray-600">
+                3 € TTC / mois / collaborateur
+              </p>
+            </div>
+            <Button
+              type="button"
+              disabled
+              aria-describedby="collaborator-invitation-price"
+              className="w-full cursor-not-allowed bg-gray-200 text-gray-500 shadow-none hover:bg-gray-200 sm:w-auto"
+            >
+              Inviter un collaborateur
+            </Button>
+          </div>
+          <span id="collaborator-invitation-price" className="sr-only">
+            3 € TTC / mois / collaborateur. Bientôt disponible.
+          </span>
+        </section>
+
         {/* ── Footer ── */}
         <p className="text-center text-xs text-gray-400 mt-10">
           Paiement sécurisé par Stripe. Résiliable à tout moment depuis le portail client.

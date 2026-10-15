@@ -112,3 +112,24 @@ export async function sendSubscriptionConfirmation(opts: {
     logger.info({ emailId: data?.id, to: opts.to }, "Subscription confirmation email sent");
   }
 }
+
+export async function sendGiftInvitationEmail(opts: {
+  to: string;
+  organizationOffer: string;
+  url: string;
+  expiresAt: Date;
+}): Promise<boolean> {
+  const client = getResend();
+  if (!client) return false;
+  const { error } = await client.emails.send({
+    from: FROM_EMAIL,
+    to: opts.to,
+    subject: "Votre invitation à découvrir Cocci",
+    html: `<p>Vous êtes invité à découvrir Cocci avec l’offre ${opts.organizationOffer}.</p><p><a href="${opts.url}">Créer mon espace Cocci</a></p><p>Ce lien expire le ${opts.expiresAt.toLocaleDateString("fr-FR")} et ne peut être utilisé qu’une fois.</p>`,
+  });
+  if (error) {
+    logger.error({ error, to: opts.to }, "Failed to send gift invitation email");
+    return false;
+  }
+  return true;
+}

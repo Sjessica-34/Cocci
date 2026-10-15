@@ -75,7 +75,19 @@ router.get(
          FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
         [billingOrgId],
       );
-      const sub = row.rows[0] ?? null;
+       const sub = row.rows[0] ?? null;
+       if (
+         sub?.mode === "free"
+         && sub.end_at
+         && String(sub.end_at).slice(0, 10) < new Date().toISOString().slice(0, 10)
+         && (sub.status === "active" || sub.status === "trial")
+       ) {
+         await pool.query(
+           "UPDATE subscriptions SET status = 'expired', updated_at = NOW() WHERE organization_id = $1 AND mode = 'free' AND end_at < CURRENT_DATE AND status IN ('active', 'trial')",
+           [billingOrgId],
+         );
+         sub.status = "expired";
+       }
 
       // L'état local, alimenté exclusivement par les webhooks vérifiés, est la
       // source utilisée par l'application. La propriété historique est gardée

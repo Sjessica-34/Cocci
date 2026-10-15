@@ -2663,6 +2663,86 @@ export interface ReportAiSectionResponse {
   content: string;
 }
 
+export interface GiftInvitation {
+  id: number;
+  email: string;
+  offerName: string;
+  effectifKey: string;
+  /** @nullable */
+  durationMonths: number | null;
+  expiresAt: string;
+  /** @nullable */
+  claimedAt?: string | null;
+  /** @nullable */
+  revokedAt?: string | null;
+  /** @nullable */
+  organizationId?: number | null;
+}
+
+export type GiftInvitationInputEffectifKey = typeof GiftInvitationInputEffectifKey[keyof typeof GiftInvitationInputEffectifKey];
+
+
+export const GiftInvitationInputEffectifKey = {
+  '1-5': '1-5',
+  '6-10': '6-10',
+  '11-25': '11-25',
+  '26-50': '26-50',
+  '51-100': '51-100',
+  '101-250': '101-250',
+  '250+': '250+',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GiftInvitationInputDurationMonths = typeof GiftInvitationInputDurationMonths[keyof typeof GiftInvitationInputDurationMonths] | null;
+
+
+export const GiftInvitationInputDurationMonths = {
+  NUMBER_1: 1,
+  NUMBER_3: 3,
+  NUMBER_6: 6,
+  NUMBER_12: 12,
+} as const;
+
+export interface GiftInvitationInput {
+  email: string;
+  effectifKey: GiftInvitationInputEffectifKey;
+  /** @nullable */
+  durationMonths: GiftInvitationInputDurationMonths;
+  sendEmail?: boolean;
+}
+
+export interface GiftInvitationCreated {
+  id: number;
+  url: string;
+  expiresAt: string;
+  emailSent: boolean;
+}
+
+export interface GiftInvitationToken {
+  /**
+     * @minLength 32
+     * @maxLength 128
+     */
+  token: string;
+}
+
+export interface GiftInvitationDetails {
+  email: string;
+  effectifKey: string;
+  offerName: string;
+  /** @nullable */
+  durationMonths?: number | null;
+  expiresAt: string;
+}
+
+export interface GiftInvitationClaim {
+  organizationId: number;
+  /** @nullable */
+  endAt: string | null;
+}
+
 export type ListOrganizationsParams = {
 /**
  * Superadmin only — return this org and its subsidiaries instead of the caller's own orgs.

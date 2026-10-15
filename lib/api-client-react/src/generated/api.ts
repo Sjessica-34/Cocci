@@ -85,6 +85,12 @@ import type {
   EmploymentWorkforceInput,
   EmploymentWorkforceResponse,
   Exercise,
+  GiftInvitation,
+  GiftInvitationClaim,
+  GiftInvitationCreated,
+  GiftInvitationDetails,
+  GiftInvitationInput,
+  GiftInvitationToken,
   HealthStatus,
   ImpactScoreResult,
   ImpactScoreResultInput,
@@ -3132,6 +3138,363 @@ export const useUpsertAdminSubscription = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpsertAdminSubscriptionMutationOptions(options));
+    }
+
+export const getListGiftInvitationsUrl = () => {
+
+
+
+
+  return `/api/admin/gift-invitations`
+}
+
+/**
+ * @summary List gift invitations for superadmins
+ */
+export const listGiftInvitations = async ( options?: RequestInit): Promise<GiftInvitation[]> => {
+
+  return customFetch<GiftInvitation[]>(getListGiftInvitationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListGiftInvitationsQueryKey = () => {
+    return [
+    `/api/admin/gift-invitations`
+    ] as const;
+    }
+
+
+export const getListGiftInvitationsQueryOptions = <TData = Awaited<ReturnType<typeof listGiftInvitations>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGiftInvitations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGiftInvitationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGiftInvitations>>> = ({ signal }) => listGiftInvitations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGiftInvitations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListGiftInvitationsQueryResult = NonNullable<Awaited<ReturnType<typeof listGiftInvitations>>>
+export type ListGiftInvitationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List gift invitations for superadmins
+ */
+
+export function useListGiftInvitations<TData = Awaited<ReturnType<typeof listGiftInvitations>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGiftInvitations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListGiftInvitationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateGiftInvitationUrl = () => {
+
+
+
+
+  return `/api/admin/gift-invitations`
+}
+
+/**
+ * @summary Create a secure complimentary subscription invitation
+ */
+export const createGiftInvitation = async (giftInvitationInput: GiftInvitationInput, options?: RequestInit): Promise<GiftInvitationCreated> => {
+
+  return customFetch<GiftInvitationCreated>(getCreateGiftInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftInvitationInput)
+  }
+);}
+
+
+
+
+export const getCreateGiftInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGiftInvitation>>, TError,{data: BodyType<GiftInvitationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGiftInvitation>>, TError,{data: BodyType<GiftInvitationInput>}, TContext> => {
+
+const mutationKey = ['createGiftInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGiftInvitation>>, {data: BodyType<GiftInvitationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGiftInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGiftInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createGiftInvitation>>>
+    export type CreateGiftInvitationMutationBody = BodyType<GiftInvitationInput>
+    export type CreateGiftInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a secure complimentary subscription invitation
+ */
+export const useCreateGiftInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGiftInvitation>>, TError,{data: BodyType<GiftInvitationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGiftInvitation>>,
+        TError,
+        {data: BodyType<GiftInvitationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGiftInvitationMutationOptions(options));
+    }
+
+export const getRevokeGiftInvitationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/gift-invitations/${id}`
+}
+
+/**
+ * @summary Revoke an unused invitation
+ */
+export const revokeGiftInvitation = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRevokeGiftInvitationUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeGiftInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeGiftInvitation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeGiftInvitation>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['revokeGiftInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeGiftInvitation>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeGiftInvitation(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeGiftInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof revokeGiftInvitation>>>
+
+    export type RevokeGiftInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Revoke an unused invitation
+ */
+export const useRevokeGiftInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeGiftInvitation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeGiftInvitation>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRevokeGiftInvitationMutationOptions(options));
+    }
+
+export const getValidateGiftInvitationUrl = () => {
+
+
+
+
+  return `/api/gift-invitations/validate`
+}
+
+/**
+ * @summary Validate an invitation token before signup
+ */
+export const validateGiftInvitation = async (giftInvitationToken: GiftInvitationToken, options?: RequestInit): Promise<GiftInvitationDetails> => {
+
+  return customFetch<GiftInvitationDetails>(getValidateGiftInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftInvitationToken)
+  }
+);}
+
+
+
+
+export const getValidateGiftInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof validateGiftInvitation>>, TError,{data: BodyType<GiftInvitationToken>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof validateGiftInvitation>>, TError,{data: BodyType<GiftInvitationToken>}, TContext> => {
+
+const mutationKey = ['validateGiftInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof validateGiftInvitation>>, {data: BodyType<GiftInvitationToken>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  validateGiftInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ValidateGiftInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof validateGiftInvitation>>>
+    export type ValidateGiftInvitationMutationBody = BodyType<GiftInvitationToken>
+    export type ValidateGiftInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Validate an invitation token before signup
+ */
+export const useValidateGiftInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof validateGiftInvitation>>, TError,{data: BodyType<GiftInvitationToken>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof validateGiftInvitation>>,
+        TError,
+        {data: BodyType<GiftInvitationToken>},
+        TContext
+      > => {
+      return useMutation(getValidateGiftInvitationMutationOptions(options));
+    }
+
+export const getClaimGiftInvitationUrl = () => {
+
+
+
+
+  return `/api/gift-invitations/claim`
+}
+
+/**
+ * @summary Claim a gift invitation for the authenticated user's organization
+ */
+export const claimGiftInvitation = async (giftInvitationToken: GiftInvitationToken, options?: RequestInit): Promise<GiftInvitationClaim> => {
+
+  return customFetch<GiftInvitationClaim>(getClaimGiftInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftInvitationToken)
+  }
+);}
+
+
+
+
+export const getClaimGiftInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimGiftInvitation>>, TError,{data: BodyType<GiftInvitationToken>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof claimGiftInvitation>>, TError,{data: BodyType<GiftInvitationToken>}, TContext> => {
+
+const mutationKey = ['claimGiftInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimGiftInvitation>>, {data: BodyType<GiftInvitationToken>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  claimGiftInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClaimGiftInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof claimGiftInvitation>>>
+    export type ClaimGiftInvitationMutationBody = BodyType<GiftInvitationToken>
+    export type ClaimGiftInvitationMutationError = ErrorType<void>
+
+    /**
+ * @summary Claim a gift invitation for the authenticated user's organization
+ */
+export const useClaimGiftInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimGiftInvitation>>, TError,{data: BodyType<GiftInvitationToken>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof claimGiftInvitation>>,
+        TError,
+        {data: BodyType<GiftInvitationToken>},
+        TContext
+      > => {
+      return useMutation(getClaimGiftInvitationMutationOptions(options));
     }
 
 export const getGetAdminReportGenerationQuotasUrl = (id: number,) => {

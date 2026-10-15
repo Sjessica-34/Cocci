@@ -1,12 +1,13 @@
 export type PostAuthRedirectInput = {
   organizationCount?: number;
   hasSubscriptionIntent: boolean;
+  hasGiftInvitation?: boolean;
   onboardingStatus?: string | null;
   hasPrimaryOrganization?: boolean;
 };
 
 export type PostAuthRedirect = {
-  path: "/dashboard" | "/onboarding";
+  path: "/dashboard" | "/onboarding" | "/offre";
   clearSubscriptionIntent: boolean;
 };
 
@@ -18,6 +19,7 @@ export type PostAuthRedirectRuntimeState = {
   organizationsLoading: boolean;
   organizationsFetching: boolean;
   hasSubscriptionIntent: boolean;
+  hasGiftInvitation?: boolean;
   onboardingStatus?: string | null;
   hasPrimaryOrganization?: boolean;
   onboardingLoading?: boolean;
@@ -45,9 +47,13 @@ export function isNavigationTargetCurrent(currentPath: string, targetPath: strin
 export function resolvePostAuthRedirect({
   organizationCount,
   hasSubscriptionIntent,
+  hasGiftInvitation,
   onboardingStatus,
   hasPrimaryOrganization,
 }: PostAuthRedirectInput): PostAuthRedirect {
+  if (hasGiftInvitation) {
+    return { path: "/offre", clearSubscriptionIntent: false };
+  }
   if (onboardingStatus !== undefined || hasPrimaryOrganization !== undefined) {
     const isComplete = onboardingStatus === "completed" && hasPrimaryOrganization === true;
     return {
@@ -93,6 +99,7 @@ export function runPostAuthRedirect(
   const redirect = resolvePostAuthRedirect({
     organizationCount: state.organizations.length,
     hasSubscriptionIntent: state.hasSubscriptionIntent,
+    hasGiftInvitation: state.hasGiftInvitation,
     onboardingStatus: state.onboardingStatus,
     hasPrimaryOrganization: state.hasPrimaryOrganization,
   });

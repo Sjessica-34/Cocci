@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "./layout";
 import {
+  customFetch,
   useListAdminOrganizations,
   getListAdminOrganizationsQueryKey,
   useUpsertAdminSubscription,
@@ -538,10 +539,53 @@ export function AdminAbonnements() {
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [editOrg, setEditOrg] = useState<AdminOrganization | null>(null);
+  const [giftEmail, setGiftEmail] = useState("");
+  const [giftEffectif, setGiftEffectif] = useState("1-5");
+  const [giftDuration, setGiftDuration] = useState("1");
+  const [giftSendEmail, setGiftSendEmail] = useState(true);
+  const [giftLink, setGiftLink] = useState("");
+  const [giftError, setGiftError] = useState("");
+  const [giftBusy, setGiftBusy] = useState(false);
+  const [giftInvites, setGiftInvites] = useState<Array<{id:number;email:string;offerName:string;durationMonths:number|null;expiresAt:string;claimedAt:string|null;revokedAt:string|null}>>([]);
 
   const { data: orgs, isLoading, refetch } = useListAdminOrganizations({
     query: { queryKey: getListAdminOrganizationsQueryKey() },
   });
+
+  const refreshGiftInvites = async () => {
+    try { setGiftInvites(await customFetch<typeof giftInvites>("/api/admin/gift-invitations")); }
+    catch { setGiftError("Impossible de charger les invitations."); }
+  };
+  useEffect(() => { void refreshGiftInvites(); }, []);
+
+  const createGiftInvite = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setGiftBusy(true);
+    setGiftError("");
+    try {
+      const result = await customFetch<{url:string;emailSent:boolean}>("/api/admin/gift-invitations", {
+        method: "POST",
+        body: JSON.stringify({
+          email: giftEmail,
+          effectifKey: giftEffectif,
+          durationMonths: giftDuration === "unlimited" ? null : Number(giftDuration),
+          sendEmail: giftSendEmail,
+        }),
+      });
+      setGiftLink(result.url);
+      setGiftEmail("");
+      await refreshGiftInvites();
+      if (giftSendEmail && !result.emailSent) setGiftError("Invitation créée, mais l’e-mail n’a pas pu être envoyé. Copiez le lien.");
+    } catch { setGiftError("Impossible de créer l’invitation. Vérifiez l’adresse e-mail et réessayez."); }
+    finally { setGiftBusy(false); }
+  };
+
+  const revokeGiftInvite = async (id: number) => {
+    try {
+      await customFetch(`/api/admin/gift-invitations/${id}`, { method: "DELETE" });
+      await refreshGiftInvites();
+    } catch { setGiftError("Cette invitation ne peut plus être révoquée."); }
+  };
 
   const filtered = useMemo(() => {
     if (!orgs) return [];
@@ -579,6 +623,36 @@ export function AdminAbonnements() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Invitation à une offre gratuite</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={createGiftInvite} className="grid gap-3 md:grid-cols-5">
+              <Input type="email" required value={giftEmail} onChange={(e) => setGiftEmail(e.target.value)} placeholder="E-mail vérifié du bénéficiaire" />
+              <Select value={giftEffectif} onValueChange={setGiftEffectif}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{["1-5","6-10","11-25","26-50","51-100","101-250","250+"].map((v) => <SelectItem key={v} value={v}>{v} salariés</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={giftDuration} onValueChange={setGiftDuration}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{[["1","1 mois"],["3","3 mois"],["6","6 mois"],["12","12 mois"],["unlimited","Illimitée"]].map(([v,label]) => <SelectItem key={v} value={v}>{label}</SelectItem>)}</SelectContent>
+              </Select>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={giftSendEmail} onChange={(e) => setGiftSendEmail(e.target.checked)} />Envoyer par e-mail</label>
+              <Button disabled={giftBusy}>{giftBusy ? "Création…" : "Créer l’invitation"}</Button>
+            </form>
+            <p className="text-xs text-muted-foreground">Les liens expirent après 30 jours. L’offre démarre lorsque le bénéficiaire l’active.</p>
+            {giftLink && <div className="flex flex-wrap items-center gap-2 text-sm"><span className="break-all">{giftLink}</span><Button type="button" variant="outline" size="sm" onClick={() => void navigator.clipboard.writeText(giftLink)}>Copier le lien</Button></div>}
+            {giftError && <p role="alert" className="text-sm text-destructive">{giftError}</p>}
+            <div className="space-y-2">
+              {giftInvites.map((invite) => {
+                const status = invite.revokedAt ? "Révoquée" : invite.claimedAt ? "Utilisée" : new Date(invite.expiresAt) <= new Date() ? "Expirée" : "En attente";
+                return <div key={invite.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2 text-sm">
+                  <span>{invite.email} · {invite.offerName} · {invite.durationMonths ? `${invite.durationMonths} mois` : "illimitée"} · {status}</span>
+                  {!invite.claimedAt && !invite.revokedAt && status === "En attente" && <Button variant="ghost" size="sm" onClick={() => void revokeGiftInvite(invite.id)}>Révoquer</Button>}
+                </div>;
+              })}
+            </div>
+          </CardContent>
+        </Card>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

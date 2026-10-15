@@ -112,6 +112,22 @@ test("un nouvel utilisateur avec une intention d'abonnement commence l'onboardin
   );
 });
 
+test("une invitation en attente reprend après Clerk même pour un compte déjà existant", () => {
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 1,
+      hasSubscriptionIntent: false,
+      hasGiftInvitation: true,
+      onboardingStatus: "completed",
+      hasPrimaryOrganization: true,
+    }),
+    {
+      path: "/offre",
+      clearSubscriptionIntent: false,
+    },
+  );
+});
+
 test("un nouvel utilisateur sans intention d'abonnement arrive au dashboard", () => {
   assert.deepEqual(
     resolvePostAuthRedirect({
@@ -127,7 +143,7 @@ test("un nouvel utilisateur sans intention d'abonnement arrive au dashboard", ()
 
 test("le branchement Clerk/React Query envoie un compte configuré au dashboard", () => {
   const navigationCalls: Array<{
-    path: "/dashboard" | "/onboarding";
+    path: "/dashboard" | "/onboarding" | "/offre";
     options: { replace: true };
   }> = [];
   let onboardingSessionCleared = false;

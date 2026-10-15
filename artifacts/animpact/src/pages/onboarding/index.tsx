@@ -127,6 +127,7 @@ export function Onboarding() {
 
     let org = createdOrg;
     let createdDuringAttempt = false;
+    const giftToken = sessionStorage.getItem("cocci_gift_invitation");
     try {
       const effectifKey = onboarding?.effectifKey ?? readEffectifSelection();
       if (effectifKey && onboarding?.status !== "completed") {
@@ -185,6 +186,20 @@ export function Onboarding() {
       setError("L’organisation n’a pas pu être créée. Réessayez.");
       return;
     }
+    if (giftToken) {
+      try {
+        await customFetch("/api/gift-invitations/claim", {
+          method: "POST",
+          body: JSON.stringify({ token: giftToken }),
+        });
+        sessionStorage.removeItem("cocci_gift_invitation");
+        clearOnboardingChoices();
+      } catch {
+        hasSubmittedRef.current = false;
+        setError("L’invitation n’a pas pu être activée. Vérifiez que vous êtes connecté avec l’adresse e-mail invitée puis réessayez.");
+        return;
+      }
+    }
     // Mettre à jour immédiatement le cache avant de changer de route.
     // L'invalidation seule peut laisser WorkspaceGuard voir [] si la query
     // n'a plus d'observateur actif pendant l'onboarding.
@@ -202,7 +217,9 @@ export function Onboarding() {
     sessionStorage.removeItem(CREATED_ORG_SESSION_KEY);
     setCurrentOrg(org.id);
 
-    if (readSubscriptionIntent()) {
+    if (giftToken) {
+      setLocation("/dashboard");
+    } else if (readSubscriptionIntent()) {
       // L'utilisateur a explicitement demandé Checkout avant de créer son
       // organisation : récapituler la formule avant le Checkout.
       setLocation("/onboarding/abonnement");
