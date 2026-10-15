@@ -10,6 +10,23 @@ export function isGiftInvitationEmailVerified(inviteEmail: string, verifiedEmail
   return verifiedEmails.some((email) => email.trim().toLowerCase() === normalizedInviteEmail);
 }
 
+export function isGiftInvitationBeneficiary(input: {
+  authenticatedClerkId: string;
+  databaseClerkId: string | null | undefined;
+  userId: number;
+  primaryOrganizationId: number | null | undefined;
+  organizationId: number;
+  firstMemberUserId: number | null | undefined;
+  firstMemberStatus: string | null | undefined;
+  firstMemberArchived: boolean;
+}): boolean {
+  return input.authenticatedClerkId === input.databaseClerkId
+    && input.primaryOrganizationId === input.organizationId
+    && input.firstMemberUserId === input.userId
+    && input.firstMemberStatus === "active"
+    && !input.firstMemberArchived;
+}
+
 export function decideGiftInvitationClaim(input: {
   invite: {
     email: string;
@@ -21,6 +38,7 @@ export function decideGiftInvitationClaim(input: {
   } | null;
   verifiedEmails: string[];
   organizationId: number;
+  isBeneficiaryAccount?: boolean;
   existingSubscription?: { mode: string; offerName: string | null } | null;
   now?: Date;
 }): GiftClaimDecision {
@@ -29,6 +47,7 @@ export function decideGiftInvitationClaim(input: {
   if (!isGiftInvitationEmailVerified(invite.email, input.verifiedEmails)) return "email_mismatch";
   if (invite.claimedAt) {
     return invite.organizationId === input.organizationId
+      && input.isBeneficiaryAccount === true
       && input.existingSubscription?.mode === "free"
       && input.existingSubscription.offerName === invite.offerName
       ? "already_claimed"

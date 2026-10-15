@@ -129,6 +129,22 @@ export function Onboarding() {
     let createdDuringAttempt = false;
     const giftToken = sessionStorage.getItem("cocci_gift_invitation");
     try {
+      if (giftToken) {
+        try {
+          await customFetch("/api/gift-invitations/verify", {
+            method: "POST",
+            body: JSON.stringify({ token: giftToken }),
+          });
+        } catch (verificationError: any) {
+          hasSubmittedRef.current = false;
+          const isEmailMismatch = verificationError?.status === 403
+            || verificationError?.message?.includes("403");
+          setError(isEmailMismatch
+            ? "Cette invitation est nominative. Connectez-vous avec l’adresse e-mail invitée et vérifiez-la dans Clerk."
+            : "Cette invitation n’est plus disponible. Vérifiez le lien ou contactez la personne qui vous l’a envoyée.");
+          return;
+        }
+      }
       const effectifKey = onboarding?.effectifKey ?? readEffectifSelection();
       if (effectifKey && onboarding?.status !== "completed") {
         const saved = await updateProgress.mutateAsync({

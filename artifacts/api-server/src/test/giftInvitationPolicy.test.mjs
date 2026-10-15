@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decideGiftInvitationClaim, isGiftInvitationEmailVerified } from "../lib/giftInvitationPolicy.ts";
+import {
+  decideGiftInvitationClaim,
+  isGiftInvitationBeneficiary,
+  isGiftInvitationEmailVerified,
+} from "../lib/giftInvitationPolicy.ts";
 
 const now = new Date("2026-10-15T12:00:00Z");
 const invite = (overrides = {}) => ({
@@ -16,6 +20,7 @@ const input = (overrides = {}) => ({
   invite: invite(),
   verifiedEmails: ["client@example.com"],
   organizationId: 41,
+  isBeneficiaryAccount: true,
   now,
   ...overrides,
 });
@@ -31,6 +36,31 @@ test("une invitation valide pour une adresse vérifiée peut être activée", ()
 
 test("une adresse non vérifiée ou différente ne peut pas utiliser l'invitation", () => {
   assert.equal(decideGiftInvitationClaim(input({ verifiedEmails: [] })), "email_mismatch");
+});
+
+test("une invitation utilisée ne peut pas être transférée à un autre compte même dans la même organisation", () => {
+  assert.equal(decideGiftInvitationClaim(input({
+    invite: invite({ claimedAt: now, organizationId: 41 }),
+    isBeneficiaryAccount: false,
+    existingSubscription: { mode: "free", offerName: "1 à 5 salariés" },
+  })), "invalid_invitation");
+});
+
+test("l’identité bénéficiaire doit être le compte Clerk lié au propriétaire initial de l’organisation", () => {
+  const identity = {
+    authenticatedClerkId: "user_original",
+    databaseClerkId: "user_original",
+    userId: 7,
+    primaryOrganizationId: 41,
+    organizationId: 41,
+    firstMemberUserId: 7,
+    firstMemberStatus: "active",
+    firstMemberArchived: false,
+  };
+  assert.equal(isGiftInvitationBeneficiary(identity), true);
+  assert.equal(isGiftInvitationBeneficiary({ ...identity, authenticatedClerkId: "user_other" }), false);
+  assert.equal(isGiftInvitationBeneficiary({ ...identity, firstMemberUserId: 8 }), false);
+  assert.equal(isGiftInvitationBeneficiary({ ...identity, organizationId: 42 }), false);
 });
 
 test("une invitation expirée ou révoquée est refusée", () => {

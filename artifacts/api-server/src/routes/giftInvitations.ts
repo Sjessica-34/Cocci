@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { clerkClient } from "@clerk/express";
 import {
-  db, giftInvitationsTable, subscriptionsTable, usersTable,
+  db, giftInvitationsTable, membersTable, subscriptionsTable, usersTable,
   onboardingProgressTable,
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -12,7 +12,11 @@ import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
 import { getOrCreateUser } from "../lib/auth";
 import { sendGiftInvitationEmail } from "../lib/email";
 import { getPublicAppUrl } from "../appUrl";
-import { decideGiftInvitationClaim, isGiftInvitationEmailVerified } from "../lib/giftInvitationPolicy";
+import {
+  decideGiftInvitationClaim,
+  isGiftInvitationBeneficiary,
+  isGiftInvitationEmailVerified,
+} from "../lib/giftInvitationPolicy";
 
 const router = Router();
 const giftKeys = ["1-5", "6-10", "11-25", "26-50", "51-100", "101-250", "250+"] as const;
@@ -112,6 +116,34 @@ router.post("/gift-invitations/validate", async (req, res): Promise<void> => {
   });
 });
 
+router.post("/gift-invitations/verify", requireAuth, async (req, res): Promise<void> => {
+  const parsed = z.object({ token: z.string().min(32).max(128) }).safeParse(req.body);
+  if (!parsed.success) { res.status(404).json({ error: "Invitation indisponible." }); return; }
+  const clerkUser = await clerkClient.users.getUser(req.clerkUserId!);
+  const verifiedEmails = clerkUser.emailAddresses
+    .filter((address) => address.verification?.status === "verified")
+    .map((address) => address.emailAddress.trim().toLowerCase());
+  const [invite] = await db.select({
+    email: giftInvitationsTable.email,
+    expiresAt: giftInvitationsTable.expiresAt,
+    claimedAt: giftInvitationsTable.claimedAt,
+    revokedAt: giftInvitationsTable.revokedAt,
+  }).from(giftInvitationsTable)
+    .where(eq(giftInvitationsTable.tokenHash, hashToken(parsed.data.token))).limit(1);
+  if (!invite || invite.claimedAt || invite.revokedAt || invite.expiresAt <= new Date()) {
+    res.status(409).json({ error: "Cette invitation a expiré, a été révoquée ou a déjà été utilisée." });
+    return;
+  }
+  if (!isGiftInvitationEmailVerified(invite.email, verifiedEmails)) {
+    res.status(403).json({
+      error: "Cette invitation est nominative. Connectez-vous avec l’adresse e-mail invitée et vérifiez-la dans Clerk.",
+    });
+    return;
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ verified: true });
+});
+
 router.post("/gift-invitations/claim", requireAuth, async (req, res): Promise<void> => {
   const parsed = z.object({ token: z.string().min(32).max(128) }).safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invitation invalide" }); return; }
@@ -147,10 +179,35 @@ router.post("/gift-invitations/claim", requireAuth, async (req, res): Promise<vo
         offerName: subscriptionsTable.offerName,
         endAt: subscriptionsTable.endAt,
       }).from(subscriptionsTable).where(eq(subscriptionsTable.organizationId, user.primaryOrganizationId!)).limit(1);
+      const [lockedUser] = await tx.select({
+        clerkId: usersTable.clerkId,
+        primaryOrganizationId: usersTable.primaryOrganizationId,
+      }).from(usersTable).where(eq(usersTable.id, user.id)).for("update").limit(1);
+      const [initialMembership] = await tx.select({
+        userId: membersTable.userId,
+        status: membersTable.status,
+        archivedAt: membersTable.archivedAt,
+      }).from(membersTable)
+        .where(eq(membersTable.organizationId, user.primaryOrganizationId!))
+        .orderBy(asc(membersTable.id))
+        .for("update")
+        .limit(1);
+      const isBeneficiaryAccount = isGiftInvitationBeneficiary({
+        authenticatedClerkId: clerkUserId,
+        databaseClerkId: lockedUser?.clerkId,
+        userId: user.id,
+        primaryOrganizationId: lockedUser?.primaryOrganizationId,
+        organizationId: user.primaryOrganizationId!,
+        firstMemberUserId: initialMembership?.userId,
+        firstMemberStatus: initialMembership?.status,
+        firstMemberArchived: initialMembership?.archivedAt !== null,
+      });
+      if (!isBeneficiaryAccount) throw new Error("INVITATION_ACCOUNT_MISMATCH");
       const decision = decideGiftInvitationClaim({
         invite: invite ?? null,
         verifiedEmails,
         organizationId: user.primaryOrganizationId!,
+        isBeneficiaryAccount,
         existingSubscription: existingSub ?? null,
       });
       if (decision === "email_mismatch") throw new Error("INVITATION_EMAIL_MISMATCH");
@@ -199,6 +256,7 @@ router.post("/gift-invitations/claim", requireAuth, async (req, res): Promise<vo
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (code === "INVITATION_EMAIL_MISMATCH") { res.status(403).json({ error: "L’adresse e-mail invitée doit être vérifiée dans Clerk et correspondre au compte connecté." }); return; }
+    if (code === "INVITATION_ACCOUNT_MISMATCH") { res.status(403).json({ error: "Cette invitation est déjà liée à un autre compte ou à une autre organisation." }); return; }
     if (code === "INVITATION_INVALID") { res.status(409).json({ error: "Invitation expirée, révoquée ou déjà utilisée." }); return; }
     if (code === "EXISTING_NON_FREE_SUBSCRIPTION") { res.status(409).json({ error: "Une souscription non gratuite existe déjà. Aucun changement n'a été effectué." }); return; }
     throw error;
