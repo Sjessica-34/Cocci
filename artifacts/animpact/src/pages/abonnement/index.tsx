@@ -175,6 +175,10 @@ export function Abonnement() {
       setLoadingPlanKey(null);
       const checkoutError =
         error instanceof ApiError ? (error.data as CheckoutError | null) : null;
+      if (checkoutError?.code === "SUBSCRIPTION_RECOVERY_REQUIRED") {
+        alert("Votre abonnement existe toujours. Utilisez « Régulariser mon prélèvement » pour régler la situation sans créer un nouvel abonnement.");
+        return;
+      }
       if (checkoutError?.code === "PLAN_TOO_SMALL") {
         const count = checkoutError.employeeCount;
         alert(
@@ -221,6 +225,12 @@ export function Abonnement() {
   };
 
   const hasAnyActive = subscription?.status === "active";
+  const isSuspendedStripeSubscription =
+    subscription?.mode === "stripe" && subscription.status === "suspended";
+  const canOpenSubscriptionPortal =
+    subscription?.mode === "stripe"
+    && Boolean(subscription.stripe_customer_id)
+    && ["active", "trial", "suspended"].includes(subscription.status ?? "");
   const cancelled = searchParams.get("cancelled") === "1";
   const employeeCount =
     organization?.employeeCount ?? workforce?.data?.totalHeadcount ?? null;
@@ -268,16 +278,31 @@ export function Abonnement() {
                 </span>
                 <Badge variant={hasAnyActive ? "default" : "secondary"}
                   className={hasAnyActive ? "bg-green-100 text-green-800 border-0" : ""}>
-                  {subscription?.status === "active" ? "Actif" : subscription?.status === "trial" ? "Essai" : subscription?.status ?? "—"}
+                  {subscription?.status === "active"
+                    ? "Actif"
+                    : subscription?.status === "trial"
+                      ? subscription.mode === "stripe" ? "Prélèvement en attente" : "Essai"
+                      : subscription?.status ?? "—"}
                 </Badge>
               </div>
             </div>
-            {isActive && (
+            {canOpenSubscriptionPortal && (
               <Button variant="outline" size="sm" onClick={handlePortal} disabled={portalLoading} className="gap-2">
                 {portalLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                Gérer mon abonnement
+                {isSuspendedStripeSubscription ? "Régulariser mon prélèvement" : "Gérer mon abonnement"}
               </Button>
             )}
+          </div>
+        )}
+        {isSuspendedStripeSubscription && (
+          <div
+            role="alert"
+            className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          >
+            <p className="font-semibold">Votre accès est suspendu après un prélèvement rejeté ou retourné.</p>
+            <p className="mt-1">
+              Vos données sont conservées. Régularisez l’abonnement existant depuis le portail Stripe pour rétablir votre accès.
+            </p>
           </div>
         )}
 

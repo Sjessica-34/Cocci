@@ -1,13 +1,14 @@
 import { QueryClient, QueryCache, MutationCache } from "@tanstack/react-query";
 import { ApiError } from "@workspace/api-client-react";
+import { getSubscriptionRecoveryUrl } from "./subscriptionRecovery";
 
 function handle402(error: unknown): void {
   if (error instanceof ApiError && error.status === 402) {
     // Rediriger vers la page d'abonnement avec un message explicatif
-    const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-    const url = new URL(`${basePath}/abonnement`, window.location.origin);
-    url.searchParams.set("reason", "subscription_required");
-    window.location.href = url.toString();
+    window.location.href = getSubscriptionRecoveryUrl(
+      import.meta.env.BASE_URL,
+      window.location.origin,
+    );
   }
 }
 

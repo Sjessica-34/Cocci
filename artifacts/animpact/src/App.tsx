@@ -81,6 +81,7 @@ import {
   hasActiveOrganizationSubscription,
   useOrganizationSubscription,
 } from "@/hooks/useOrganizationSubscription";
+import { SUBSCRIPTION_RECOVERY_PATH } from "@/lib/subscriptionRecovery";
 import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import { runPostAuthRedirect } from "@/lib/authRedirect";
@@ -536,7 +537,7 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
     )
     && (onboarding.status === "completed" || onboarding.status === "payment_pending")
   ) {
-    return <Redirect to="/abonnement?reason=subscription_required" />;
+    return <Redirect to={SUBSCRIPTION_RECOVERY_PATH} />;
   }
   if (!onboardingAllowsWorkspace) return <Redirect to="/onboarding" />;
 

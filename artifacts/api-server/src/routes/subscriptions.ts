@@ -13,6 +13,10 @@ import {
   createPendingCheckoutAttempt,
   getStripeObjectId,
 } from "../stripeCheckoutAttempts";
+import {
+  shouldBlockNewStripeCheckout,
+  STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES,
+} from "../stripeSubscriptionTransitions";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -112,16 +116,37 @@ router.post(
         return;
       }
 
-      const currentSubscription = await pool.query<{ mode: string | null; status: string | null }>(
-        "SELECT mode, status FROM subscriptions WHERE organization_id = $1 LIMIT 1",
+      const stripe = await getUncachableStripeClient();
+      const currentSubscription = await pool.query<{
+        mode: string | null;
+        status: string | null;
+        stripe_subscription_id: string | null;
+      }>(
+        "SELECT mode, status, stripe_subscription_id FROM subscriptions WHERE organization_id = $1 LIMIT 1",
         [billingOrgId],
       );
-      const hasActiveStripeSubscription = currentSubscription.rows[0]?.mode === "stripe"
-        && currentSubscription.rows[0]?.status === "active";
-      if (hasActiveStripeSubscription) {
+      const current = currentSubscription.rows[0];
+      let stripeSubscriptionStatus: string | null = null;
+      if (
+        current?.mode === "stripe"
+        && current.status === "suspended"
+        && current.stripe_subscription_id
+      ) {
+        const stripeSubscription = await stripe.subscriptions.retrieve(current.stripe_subscription_id);
+        stripeSubscriptionStatus = stripeSubscription.status;
+      }
+      if (shouldBlockNewStripeCheckout({
+        mode: current?.mode,
+        localStatus: current?.status,
+        stripeSubscriptionId: current?.stripe_subscription_id,
+        stripeSubscriptionStatus,
+      })) {
+        const recoveryRequired = current?.status === "suspended";
         res.status(409).json({
-          error: "An active Stripe subscription already exists",
-          code: "ACTIVE_SUBSCRIPTION_EXISTS",
+          error: recoveryRequired
+            ? "Régularisez l’abonnement Stripe existant avant de souscrire à nouveau"
+            : "An active Stripe subscription already exists",
+          code: recoveryRequired ? "SUBSCRIPTION_RECOVERY_REQUIRED" : "ACTIVE_SUBSCRIPTION_EXISTS",
         });
         return;
       }
@@ -161,7 +186,6 @@ router.post(
       }
 
       const baseUrl = getPublicAppUrl();
-      const stripe = await getUncachableStripeClient();
       // Vérification de cohérence côté Stripe : la configuration serveur doit
       // pointer vers un prix actif rattaché au produit Cocci attendu.
       const price = await stripe.prices.retrieve(offer.priceId);
@@ -199,8 +223,8 @@ router.post(
        try {
          const session = await stripe.checkout.sessions.create({
            customer: customerId,
-           // Activer SEPA Direct Debit (prélèvement IBAN) + carte bancaire
-           payment_method_types: ["card", "sepa_debit"],
+            // Cocci accepte exclusivement le prélèvement SEPA.
+            payment_method_types: [...STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES],
            line_items: [{ price: offer.priceId, quantity: 1 }],
            mode: "subscription",
            // Pour SEPA, Stripe demande un mandat de prélèvement — on l'accepte automatiquement

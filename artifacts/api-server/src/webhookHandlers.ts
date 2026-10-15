@@ -5,6 +5,7 @@ import { logger } from "./lib/logger";
 import { sendSubscriptionConfirmation } from "./lib/email";
 import { getPublicAppUrl } from "./appUrl";
 import { getStripeObjectId } from "./stripeCheckoutAttempts";
+import { decideStripeAccessTransition, getInitialStripeSubscriptionStatus } from "./stripeSubscriptionTransitions";
 
 type InvoiceSubscriptionReference = {
   subscription?: string | { id: string } | null;
@@ -68,7 +69,9 @@ async function syncCurrentSubscriptionFromStripe(opts: {
 async function suspendSubscriptionByStripeSubId(stripeSubscriptionId: string): Promise<void> {
   const result = await pool.query(
     `UPDATE subscriptions SET status = 'suspended', updated_at = NOW()
-     WHERE stripe_subscription_id = $1`,
+     WHERE stripe_subscription_id = $1
+       AND status IN ('active', 'trial')
+     RETURNING organization_id`,
     [stripeSubscriptionId],
   );
   if (result.rowCount) {
@@ -262,7 +265,7 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
         const checkoutAttemptId = session.metadata?.checkoutAttemptId;
         if (!orgId || !customerId || !subscriptionId || !checkoutAttemptId) break;
 
-        const internalStatus = session.payment_status === "paid" ? "active" : "trial";
+        const internalStatus = getInitialStripeSubscriptionStatus(session.payment_status);
         const offerName = session.metadata?.offerName ?? null;
         const maxEmployees = session.metadata?.maxEmployees
           ? parseInt(session.metadata.maxEmployees)
@@ -339,21 +342,47 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       }
 
       case "invoice.payment_succeeded": {
-        const invoice = event.data.object as unknown as InvoiceSubscriptionReference;
+        const invoice = event.data.object as unknown as InvoiceSubscriptionReference & {
+          paid?: boolean;
+          status?: string | null;
+        };
         const invoiceSubId = getInvoiceSubscriptionId(invoice);
         if (!invoiceSubId) break;
-        const row = await pool.query<{ organization_id: number }>(
-          "SELECT organization_id FROM subscriptions WHERE stripe_subscription_id = $1 LIMIT 1",
+        const row = await pool.query<{
+          organization_id: number;
+          status: string;
+          stripe_subscription_id: string;
+        }>(
+          "SELECT organization_id, status, stripe_subscription_id FROM subscriptions WHERE stripe_subscription_id = $1 LIMIT 1",
           [invoiceSubId],
         );
         if (!row.rows[0]) break;
-        await pool.query(
+        const stripe = await getUncachableStripeClient();
+        const stripeSubscription = await stripe.subscriptions.retrieve(invoiceSubId);
+        const transition = decideStripeAccessTransition({
+          type: event.type,
+          subscriptionId: invoiceSubId,
+          currentSubscriptionId: row.rows[0].stripe_subscription_id,
+          localStatus: row.rows[0].status,
+          invoicePaid: invoice.paid === true || invoice.status === "paid",
+          stripeSubscriptionStatus: stripeSubscription.status,
+        });
+        if (transition !== "activate") {
+          logger.info(
+            { sub: invoiceSubId, localStatus: row.rows[0].status, stripeStatus: stripeSubscription.status },
+            "Ignoring invoice payment success that does not confirm the current subscription",
+          );
+          break;
+        }
+        const activated = await pool.query<{ organization_id: number }>(
           `UPDATE subscriptions SET status = 'active', updated_at = NOW()
            WHERE organization_id = $1
              AND stripe_subscription_id = $2
-             AND status = 'trial'`,
+             AND status IN ('trial', 'suspended')
+           RETURNING organization_id`,
           [row.rows[0].organization_id, invoiceSubId],
         );
+        if (!activated.rows[0]) break;
         await pool.query(
           `UPDATE onboarding_progress p
            SET status = 'completed', completed_at = COALESCE(p.completed_at, NOW()), updated_at = NOW()
@@ -361,18 +390,86 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
            WHERE p.user_id = u.id
              AND u.primary_organization_id = $1
              AND p.status <> 'completed'`,
-          [row.rows[0].organization_id],
+          [activated.rows[0].organization_id],
         );
         logger.info({ sub: invoiceSubId }, "Subscription activated after payment_succeeded");
         break;
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as unknown as InvoiceSubscriptionReference;
+        const invoice = event.data.object as unknown as InvoiceSubscriptionReference & {
+          id?: string;
+        };
         const failedSubId = getInvoiceSubscriptionId(invoice);
-        if (!failedSubId) break;
+        if (!failedSubId || !invoice.id) break;
+        const stripe = await getUncachableStripeClient();
+        // Stripe may deliver a failure notification after the same invoice has
+        // already been paid through the customer portal. Verify the current
+        // invoice state before suspending access; errors are retried by Stripe.
+        const latestInvoice = await stripe.invoices.retrieve(invoice.id);
+        const row = await pool.query<{
+          status: string;
+          stripe_subscription_id: string;
+        }>(
+          "SELECT status, stripe_subscription_id FROM subscriptions WHERE stripe_subscription_id = $1 LIMIT 1",
+          [failedSubId],
+        );
+        if (!row.rows[0]) break;
+        const transition = decideStripeAccessTransition({
+          type: event.type,
+          subscriptionId: failedSubId,
+          currentSubscriptionId: row.rows[0].stripe_subscription_id,
+          localStatus: row.rows[0].status,
+          invoicePaid: latestInvoice.status === "paid",
+        });
+        if (transition !== "suspend") {
+          logger.info(
+            { sub: failedSubId, invoice: invoice.id, invoiceStatus: latestInvoice.status },
+            "Ignoring stale or non-current invoice payment failure",
+          );
+          break;
+        }
         await suspendSubscriptionByStripeSubId(failedSubId);
         logger.info({ sub: failedSubId }, "Subscription suspended after payment_failed");
+        break;
+      }
+
+      case "charge.dispute.created": {
+        const dispute = event.data.object as Stripe.Dispute;
+        const chargeId = getStripeObjectId(dispute.charge);
+        if (!chargeId) break;
+        const stripe = await getUncachableStripeClient();
+        const charge = await stripe.charges.retrieve(chargeId);
+        if (charge.payment_method_details?.type !== "sepa_debit") break;
+        const invoiceId = getStripeObjectId(
+          (charge as unknown as { invoice?: string | { id: string } | null }).invoice,
+        );
+        if (!invoiceId) break;
+        const invoice = await stripe.invoices.retrieve(invoiceId);
+        const disputedSubId = getInvoiceSubscriptionId(invoice as unknown as InvoiceSubscriptionReference);
+        if (!disputedSubId) break;
+        const row = await pool.query<{
+          status: string;
+          stripe_subscription_id: string;
+        }>(
+          "SELECT status, stripe_subscription_id FROM subscriptions WHERE stripe_subscription_id = $1 LIMIT 1",
+          [disputedSubId],
+        );
+        if (!row.rows[0]) break;
+        const transition = decideStripeAccessTransition({
+          type: event.type,
+          subscriptionId: disputedSubId,
+          currentSubscriptionId: row.rows[0].stripe_subscription_id,
+          localStatus: row.rows[0].status,
+          isSepaDebit: true,
+        });
+        if (transition === "suspend") {
+          await suspendSubscriptionByStripeSubId(disputedSubId);
+          logger.info(
+            { dispute: dispute.id, charge: chargeId, sub: disputedSubId },
+            "Subscription suspended after SEPA debit return",
+          );
+        }
         break;
       }
 
