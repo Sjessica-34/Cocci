@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useClerk, useOrganization } from "@clerk/react";
 import {
   customFetch,
   useCreateOrganization,
   getListOrganizationsQueryKey,
   useListOrganizations,
-  useAttachOrganizationLogo,
   useGetOnboardingProgress,
   useUpdateOnboardingProgress,
   getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
 import type { OnboardingProgress, Organization } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Building, Network, Loader2, Upload } from "lucide-react";
+import { ArrowLeft, Building, LogOut, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OrganizationLogo } from "@/components/OrganizationLogo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,22 +34,20 @@ import {
   saveOrganizationTypeDraft,
 } from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
-import { useStorageUpload } from "@/hooks/useStorageUpload";
 import { resolveOnboardingStepPath } from "@/lib/onboardingNavigation";
 
 // Version des documents légaux en vigueur
 const LEGAL_VERSION = "2025-01";
 const CREATED_ORG_SESSION_KEY = "cocci_onboarding_created_org";
-const PENDING_LOGO_SESSION_KEY = "cocci_onboarding_pending_logo";
 
 export function Onboarding() {
   useDebugMount("Onboarding");
   const [location, setLocation] = useLocation();
+  const { signOut } = useClerk();
+  const { organization: clerkOrganization, isLoaded: isClerkOrganizationLoaded } = useOrganization();
   const qc = useQueryClient();
   const createOrg = useCreateOrganization();
-  const attachLogo = useAttachOrganizationLogo();
   const updateProgress = useUpdateOnboardingProgress();
-  const { uploadFile, isUploading } = useStorageUpload();
   const { data: organizations, isLoading: organizationsLoading } = useListOrganizations(undefined, {
     query: {
       queryKey: getListOrganizationsQueryKey(),
@@ -62,26 +61,23 @@ export function Onboarding() {
     },
   });
   const hasSubmittedRef = useRef(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
+  const nameEditedRef = useRef(false);
 
   const [name, setName] = useState(readOrganizationNameDraft);
   const [type, setType] = useState<"entreprise" | "groupe">(readOrganizationTypeDraft);
   const [createdOrg, setCreatedOrg] = useState<Organization | null>(null);
-  const [pendingLogoUpload, setPendingLogoUpload] = useState<{ objectPath: string; fileUrl: string } | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!logoFile) {
-      setLogoPreviewUrl(null);
-      return;
-    }
-    const previewUrl = URL.createObjectURL(logoFile);
-    setLogoPreviewUrl(previewUrl);
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [logoFile]);
+    const clerkName = clerkOrganization?.name.trim();
+    if (!clerkName || nameEditedRef.current) return;
+    setName((currentName) => {
+      if (currentName.trim()) return currentName;
+      saveOrganizationNameDraft(clerkName);
+      return clerkName;
+    });
+  }, [clerkOrganization?.name]);
 
   useEffect(() => {
     if (organizationsLoading || onboardingLoading || !onboarding || hasSubmittedRef.current) return;
@@ -100,17 +96,6 @@ export function Onboarding() {
       if (location === "/onboarding" && root && resumableOrgId === root.id) {
         setCreatedOrg(root);
         setConsentChecked(true);
-        const savedUpload = sessionStorage.getItem(PENDING_LOGO_SESSION_KEY);
-        if (savedUpload) {
-          try {
-            const parsed = JSON.parse(savedUpload) as { organizationId: number; objectPath: string; fileUrl: string };
-            if (parsed.organizationId === root.id) {
-              setPendingLogoUpload({ objectPath: parsed.objectPath, fileUrl: parsed.fileUrl });
-            }
-          } catch {
-            sessionStorage.removeItem(PENDING_LOGO_SESSION_KEY);
-          }
-        }
         return;
       }
       const effectifKey = onboarding.effectifKey ?? readEffectifSelection();
@@ -129,6 +114,10 @@ export function Onboarding() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isClerkOrganizationLoaded) {
+      setError("Chargement des informations Clerk en cours. Réessayez dans un instant.");
+      return;
+    }
     if (name.trim().length < 2) {
       setError("Le nom doit contenir au moins 2 caractères.");
       return;
@@ -155,7 +144,11 @@ export function Onboarding() {
       }
       if (!org) {
         org = await createOrg.mutateAsync({
-          data: { name: name.trim(), type },
+          data: {
+            name: name.trim(),
+            type,
+            logoUrl: clerkOrganization?.imageUrl || undefined,
+          },
         });
         createdDuringAttempt = true;
         setCreatedOrg(org);
@@ -174,30 +167,6 @@ export function Onboarding() {
         }
       }
 
-      let logoUpload = pendingLogoUpload;
-      if (logoFile && !logoUpload) {
-        const uploaded = await uploadFile(logoFile, org.id);
-        if (!uploaded) {
-          setError("Le logo n’a pas pu être envoyé. Vérifiez le fichier puis réessayez.");
-          return;
-        }
-        logoUpload = uploaded;
-        setPendingLogoUpload(uploaded);
-        sessionStorage.setItem(PENDING_LOGO_SESSION_KEY, JSON.stringify({
-          organizationId: org.id,
-          objectPath: uploaded.objectPath,
-          fileUrl: uploaded.fileUrl,
-        }));
-      }
-      if (logoUpload) {
-        const attached = await attachLogo.mutateAsync({
-          id: org.id,
-          data: logoUpload,
-        });
-        if (!attached.success) throw new Error("Logo attachment was not confirmed");
-        setPendingLogoUpload(null);
-        sessionStorage.removeItem(PENDING_LOGO_SESSION_KEY);
-      }
     } catch (err: any) {
       if (!createdOrg && !createdDuringAttempt && (err?.status === 409 || err?.message?.includes("409"))) {
         // Une autre requête a terminé la création : reprendre l'état serveur.
@@ -211,7 +180,7 @@ export function Onboarding() {
       }
       if (!createdOrg && !createdDuringAttempt) hasSubmittedRef.current = false;
       setError(createdOrg || createdDuringAttempt
-        ? "L’entreprise est créée, mais le logo n’a pas pu être rattaché. Réessayez sans recréer l’organisation."
+        ? "L’organisation Cocci existe déjà. Reprenez le parcours; elle ne sera pas recréée."
         : "Une erreur est survenue. Veuillez réessayer.");
       return;
     }
@@ -235,7 +204,6 @@ export function Onboarding() {
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
     clearOrganizationNameDraft();
     sessionStorage.removeItem(CREATED_ORG_SESSION_KEY);
-    sessionStorage.removeItem(PENDING_LOGO_SESSION_KEY);
     setCurrentOrg(org.id);
 
     if (readSubscriptionIntent()) {
@@ -251,6 +219,11 @@ export function Onboarding() {
     return <RouteLoadingFallback message="Préparation de votre parcours…" />;
   }
 
+  const existingNeonLogo = createdOrg?.logoUrl
+    ?? organizations?.find((organization) => organization.parentId == null)?.logoUrl
+    ?? null;
+  const organizationLogoUrl = existingNeonLogo || clerkOrganization?.imageUrl || null;
+
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#f4f8f8] px-4 py-10">
       {/* Logo */}
@@ -265,7 +238,7 @@ export function Onboarding() {
           </h1>
           <p className="text-muted-foreground text-base">
             {createdOrg
-              ? "Votre entreprise est créée. Vous pouvez terminer l’envoi du logo."
+              ? "Votre organisation Cocci est créée. Vous pouvez reprendre le parcours."
               : "Entrez les détails de votre organisation pour continuer"}
           </p>
         </div>
@@ -279,6 +252,7 @@ export function Onboarding() {
               placeholder="Mon Entreprise"
               value={name}
               onChange={(e) => {
+                nameEditedRef.current = true;
                 setName(e.target.value);
                 saveOrganizationNameDraft(e.target.value);
                 setError("");
@@ -289,58 +263,37 @@ export function Onboarding() {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="organization-logo">Logo</Label>
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded border bg-slate-50">
-                {logoPreviewUrl
-                  ? <img src={logoPreviewUrl} alt="Aperçu du logo" className="h-full w-full object-contain p-1" />
-                  : <Upload className="h-5 w-5 text-muted-foreground" aria-hidden="true" />}
-              </div>
-              <div className="flex flex-col items-center gap-2 sm:items-start">
-                <input
-                  ref={logoInputRef}
-                  id="organization-logo"
-                  type="file"
-                  className="sr-only"
-                  accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    if (file && file.size > 10 * 1024 * 1024) {
-                      setError("Le logo doit faire 10 Mo maximum.");
-                      event.target.value = "";
-                      setLogoFile(null);
-                      return;
-                    }
-                    const extension = file?.name.split(".").pop()?.toLowerCase();
-                    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-                    const allowedExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
-                    if (file && !allowedTypes.includes(file.type) && !allowedExtensions.includes(extension ?? "")) {
-                      setError("Formats acceptés : JPG, PNG, GIF et WEBP.");
-                      event.target.value = "";
-                      setLogoFile(null);
-                      return;
-                    }
-                    setLogoFile(file);
-                    setError("");
-                  }}
-                  data-testid="input-organization-logo"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!!pendingLogoUpload}
-                  onClick={() => logoInputRef.current?.click()}
-                >
-                  {pendingLogoUpload ? "Logo envoyé" : "Télécharger une image"}
-                </Button>
-                <p className="text-center text-sm text-muted-foreground sm:text-left">
-                  JPG, PNG, GIF ou WEBP — 10 Mo maximum
-                </p>
-                {logoFile && <p className="max-w-full truncate text-xs text-muted-foreground">{logoFile.name}</p>}
-              </div>
+          <div className="flex items-center gap-4 rounded-md border border-border bg-slate-50/70 p-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded border bg-white">
+              <OrganizationLogo
+                src={organizationLogoUrl}
+                alt={`Logo de ${name || "l’organisation"}`}
+                className="h-full w-full object-contain p-1"
+                fallback={<Building className="h-6 w-6 text-muted-foreground" aria-hidden="true" />}
+              />
+            </div>
+            <div className="min-w-0">
+              <Label>Logo de l’organisation</Label>
+              <p className="text-sm text-muted-foreground">
+                {organizationLogoUrl
+                  ? existingNeonLogo
+                    ? "Logo Cocci enregistré"
+                    : "Logo récupéré depuis Clerk"
+                  : "Aucun logo disponible dans Clerk pour le moment."}
+              </p>
             </div>
           </div>
+          {isClerkOrganizationLoaded && !clerkOrganization && (
+            <p role="status" className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              L’organisation Clerk n’est pas accessible dans cette session. Vous pouvez saisir le nom et continuer;
+              Cocci ne tentera pas de recréer votre organisation Clerk.
+            </p>
+          )}
+          {!isClerkOrganizationLoaded && (
+            <p role="status" className="text-sm text-muted-foreground">
+              Chargement de l’organisation et de son logo depuis Clerk…
+            </p>
+          )}
 
           {/* Type */}
           <div className="space-y-2">
@@ -431,12 +384,56 @@ export function Onboarding() {
           <Button
             type="submit"
             className="mt-2 h-12 w-full rounded-sm bg-[#0b514b] text-base font-semibold hover:bg-[#08443f]"
-            disabled={createOrg.isPending || attachLogo.isPending || updateProgress.isPending || isUploading || !consentChecked}
+            disabled={
+              createOrg.isPending
+              || updateProgress.isPending
+              || !consentChecked
+              || !isClerkOrganizationLoaded
+            }
             data-testid="button-create-organization"
           >
-            {(createOrg.isPending || attachLogo.isPending || updateProgress.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {(createOrg.isPending || updateProgress.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {createdOrg ? "Réessayer et continuer" : "Continuer"}
           </Button>
+
+          <div className="flex flex-col-reverse items-center justify-between gap-3 pt-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-muted-foreground"
+              onClick={() => {
+                setError("");
+                setLocation(readSubscriptionIntent()
+                  ? "/onboarding/abonnement"
+                  : "/onboarding/effectif");
+              }}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Retour à ma formule
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-muted-foreground"
+              disabled={createOrg.isPending || updateProgress.isPending}
+              onClick={async () => {
+                try {
+                  const homeUrl = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+                  await signOut({ redirectUrl: homeUrl });
+                } catch {
+                  setError("La déconnexion a échoué. Vos informations sont conservées; réessayez.");
+                }
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              {createdOrg ? "Quitter et reprendre plus tard" : "Annuler l’inscription"}
+            </Button>
+          </div>
+          {createdOrg && (
+            <p className="text-center text-xs text-muted-foreground">
+              L’organisation déjà créée ne sera pas supprimée; vous pourrez reprendre sa configuration plus tard.
+            </p>
+          )}
         </form>
       </div>
     </div>
