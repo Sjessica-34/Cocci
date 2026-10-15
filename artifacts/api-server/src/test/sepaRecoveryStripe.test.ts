@@ -3,6 +3,8 @@ import test from "node:test";
 import type Stripe from "stripe";
 import {
   createRecoverySetupCheckout,
+  getRecoverySetupPaymentMethod,
+  getRecoverySetupSessionReferences,
   payExistingRecoveryInvoice,
 } from "../sepaRecoveryStripe";
 
@@ -35,6 +37,70 @@ test("recovery creates setup Checkout only; it never creates a subscription", as
   assert.deepEqual(checkoutParams?.payment_method_types, ["sepa_debit"]);
   assert.match(String(checkoutParams?.success_url), /sepaRecoverySession=\{CHECKOUT_SESSION_ID\}/);
   assert.equal((checkoutParams?.metadata as Record<string, string>).subscription_id, "sub_existing");
+});
+
+test("a completed setup Checkout can be resumed later, but an incomplete or foreign session is rejected", () => {
+  const expected = {
+    customerId: "cus_existing",
+    organizationId: 23,
+    subscriptionId: "sub_existing",
+  };
+  const completed = {
+    mode: "setup",
+    status: "complete",
+    customer: "cus_existing",
+    setup_intent: "seti_done",
+    metadata: {
+      cocci_flow: "sepa_recovery",
+      organization_id: "23",
+      subscription_id: "sub_existing",
+      invoice_id: "in_open",
+    },
+    // A completed session remains resumable from its success URL later.
+    expires_at: 1,
+  } as unknown as Stripe.Checkout.Session;
+  assert.deepEqual(getRecoverySetupSessionReferences(completed, expected), {
+    invoiceId: "in_open",
+    setupIntentId: "seti_done",
+  });
+  assert.equal(getRecoverySetupSessionReferences({
+    ...completed,
+    status: "open",
+  } as Stripe.Checkout.Session, expected), null);
+  assert.equal(getRecoverySetupSessionReferences({
+    ...completed,
+    customer: "cus_other",
+  } as Stripe.Checkout.Session, expected), null);
+});
+
+test("the returned SetupIntent must be succeeded and bound to the same invoice", () => {
+  const expected = {
+    customerId: "cus_existing",
+    organizationId: 23,
+    subscriptionId: "sub_existing",
+    invoiceId: "in_open",
+  };
+  const setupIntent = {
+    id: "seti_done",
+    status: "succeeded",
+    customer: "cus_existing",
+    payment_method: "pm_sepa_new",
+    metadata: {
+      cocci_flow: "sepa_recovery",
+      organization_id: "23",
+      subscription_id: "sub_existing",
+      invoice_id: "in_open",
+    },
+  } as unknown as Stripe.SetupIntent;
+  assert.equal(getRecoverySetupPaymentMethod(setupIntent, expected), "pm_sepa_new");
+  assert.equal(getRecoverySetupPaymentMethod({
+    ...setupIntent,
+    status: "processing",
+  } as Stripe.SetupIntent, expected), null);
+  assert.equal(getRecoverySetupPaymentMethod({
+    ...setupIntent,
+    metadata: { ...setupIntent.metadata, invoice_id: "in_other" },
+  } as Stripe.SetupIntent, expected), null);
 });
 
 test("a processing SEPA payment is not sent to invoices.pay again on a later return", async () => {
