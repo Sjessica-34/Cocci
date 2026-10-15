@@ -1,0 +1,71 @@
+Le commit `140f66f` est prêt, mais nous n'avons pas encore terminé les corrections Stripe identifiées lors de ton audit.
+
+Je souhaite maintenant que tu travailles sur ces corrections, directement sur la branche `preprod`.
+
+**IMPORTANT : je ne veux pas de refonte de Stripe. Tu dois préserver les fonctionnalités existantes qui fonctionnent déjà.**
+
+### 1. Paiement exclusivement SEPA
+
+Dans Stripe Checkout, supprimer la possibilité de payer par carte bancaire et conserver uniquement `sepa_debit`.
+
+Ne modifie aucun tarif, produit ou abonnement Stripe existant.
+
+### 2. Après validation du mandat SEPA
+
+Conserver le fonctionnement prévu :
+- Accès au tableau de bord dès que la souscription est confirmée côté serveur, sans attendre plusieurs jours le prélèvement bancaire.
+- Affichage « Prélèvement en attente » pendant le traitement.
+- Accès maintenu lorsque le paiement est confirmé.
+
+Ne pas confondre mandat validé et paiement réellement encaissé.
+
+### 3. Rejet de prélèvement : NE PAS CASSER L'EXISTANT
+
+Le système possède déjà une logique de gestion des rejets.
+
+Je veux impérativement conserver :
+- La détection du rejet.
+- La suspension de l'accès à Cocci.
+- La redirection vers la page d'abonnement/régularisation existante.
+- Les messages et actions déjà présents sur cette page.
+- La conservation de toutes les données de l'entreprise.
+
+Ne crée pas une nouvelle page si celle qui existe peut être réutilisée.
+
+### 4. Régularisation
+
+Corrige les anomalies détectées dans ton audit :
+
+- Permettre la régularisation d'un abonnement suspendu sans créer de deuxième abonnement.
+- Rétablir automatiquement l'accès après confirmation de la régularisation.
+- Empêcher qu'un webhook de paiement échoué reçu en retard suspende un abonnement déjà régularisé.
+- Vérifier le traitement des rejets et retours bancaires SEPA.
+
+### 5. Préserver les autres fonctionnalités
+
+Ne modifie pas :
+- Le parcours d'inscription Clerk et le préremplissage.
+- Les logos.
+- Les formules et tarifs.
+- Le placeholder « Maison mère / Siège social ».
+- Les droits existants, sauf les corrections indispensables aux statuts Stripe.
+
+### 6. Tests et livraison
+
+Avant toute modification, identifie les mécanismes déjà existants pour éviter toute régression.
+
+Ajoute des tests ciblés avec événements Stripe simulés, couvrant notamment la redirection après rejet, la régularisation et les événements tardifs.
+
+Ne déclenche aucun paiement réel ni écriture dans Neon pour les tests.
+
+Conserve le commit `140f66f` et travaille directement sur `preprod`, sans utiliser `preprod-app-only`.
+
+Ne touche pas à `main` ni à `prod-infomaniak`.
+
+**Aucun commit ni push sans mon autorisation.**
+
+Présente-moi ensuite un bilan distinguant précisément :
+- Les mécanismes conservés.
+- Les corrections effectuées.
+- Les tests réussis.
+- Les points restant à vérifier réellement sur Render et Stripe.
