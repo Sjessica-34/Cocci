@@ -11,3 +11,15 @@ export function onboardingAfterOrganizationCreated(
     primaryOrganizationId: organizationId,
   };
 }
+
+export function onboardingAfterGiftInvitationClaim(
+  current: OnboardingProgress | undefined,
+  organizationId: number,
+): OnboardingProgress {
+  return {
+    status: "completed",
+    effectifKey: current?.effectifKey ?? null,
+    completedAt: current?.completedAt ?? null,
+    primaryOrganizationId: organizationId,
+  };
+}

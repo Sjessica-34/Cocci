@@ -21,7 +21,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { setCurrentOrg } from "@/hooks/useCurrentOrganization";
-import { onboardingAfterOrganizationCreated } from "@/lib/onboardingCache";
+import {
+  onboardingAfterGiftInvitationClaim,
+  onboardingAfterOrganizationCreated,
+} from "@/lib/onboardingCache";
 import { RouteLoadingFallback } from "@/components/route-loading";
 import {
   clearOnboardingChoices,
@@ -127,6 +130,7 @@ export function Onboarding() {
 
     let org = createdOrg;
     let createdDuringAttempt = false;
+    let giftClaimSucceeded = false;
     const giftToken = sessionStorage.getItem("cocci_gift_invitation");
     try {
       if (giftToken) {
@@ -208,6 +212,7 @@ export function Onboarding() {
           method: "POST",
           body: JSON.stringify({ token: giftToken }),
         });
+        giftClaimSucceeded = true;
         sessionStorage.removeItem("cocci_gift_invitation");
         clearOnboardingChoices();
       } catch {
@@ -226,8 +231,20 @@ export function Onboarding() {
     });
     qc.setQueryData<OnboardingProgress>(
       getGetOnboardingProgressQueryKey(),
-      (current) => onboardingAfterOrganizationCreated(current, org.id),
+      (current) => giftClaimSucceeded
+        ? onboardingAfterGiftInvitationClaim(current, org.id)
+        : onboardingAfterOrganizationCreated(current, org.id),
     );
+    if (giftClaimSucceeded) {
+      const onboardingQueryKey = getGetOnboardingProgressQueryKey();
+      await qc.invalidateQueries({ queryKey: onboardingQueryKey, refetchType: "active" });
+      // La réponse du serveur doit être completed. Réappliquer cet état local
+      // garantit que le guard ne lit pas un ancien état pendant la navigation.
+      qc.setQueryData<OnboardingProgress>(
+        onboardingQueryKey,
+        (current) => onboardingAfterGiftInvitationClaim(current, org.id),
+      );
+    }
     await qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
     clearOrganizationNameDraft();
     sessionStorage.removeItem(CREATED_ORG_SESSION_KEY);
