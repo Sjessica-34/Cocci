@@ -36,9 +36,11 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
   const { currentOrgId } = useCurrentOrganization();
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<Error | null>(null);
 
   const uploadFile = useCallback(
     async (file: File, organizationId?: number | null): Promise<UploadResult | null> => {
+      setError(null);
       setIsUploading(true);
       setProgress(10);
       try {
@@ -75,6 +77,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
         return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Upload échoué");
+        setError(error);
         options.onError?.(error);
         return null;
       } finally {
@@ -86,5 +89,11 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
     [currentOrgId],
   );
 
-  return { uploadFile, isUploading, progress };
+  return {
+    uploadFile,
+    isUploading,
+    progress,
+    error,
+    clearError: () => setError(null),
+  };
 }

@@ -114,10 +114,6 @@ export function Onboarding() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isClerkOrganizationLoaded) {
-      setError("Chargement des informations Clerk en cours. Réessayez dans un instant.");
-      return;
-    }
     if (name.trim().length < 2) {
       setError("Le nom doit contenir au moins 2 caractères.");
       return;
