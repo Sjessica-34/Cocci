@@ -1215,6 +1215,35 @@ paths:
         "404":
           description: Not found
 
+  /admin/organizations/{id}/stripe-diagnosis:
+    get:
+      operationId: diagnoseAdminOrganizationStripeAccess
+      tags: [admin]
+      summary: Diagnose blockers keeping a Stripe subscription suspended (superadmin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Privacy-safe Stripe access diagnosis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStripeAccessDiagnosis"
+        "400":
+          description: Invalid organization ID
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Organization or subscription not found
+        "409":
+          description: Subscription is not a suspended Stripe subscription
+
   /admin/alerts:
     get:
       operationId: listAdminAlerts
@@ -3857,6 +3886,20 @@ components:
           type: integer
           minimum: 1
           maximum: 1000
+
+    AdminStripeAccessDiagnosis:
+      type: object
+      required: [status, hasUnpaidInvoice, hasPendingPayment, hasUnresolvedDispute]
+      properties:
+        status:
+          type: string
+          enum: [checked, unavailable]
+        hasUnpaidInvoice:
+          type: boolean
+        hasPendingPayment:
+          type: boolean
+        hasUnresolvedDispute:
+          type: boolean
 
     AdminUser:
       type: object

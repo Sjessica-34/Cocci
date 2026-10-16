@@ -34,6 +34,7 @@ import type {
   AdminReportGenerationGrant,
   AdminReportGenerationQuota,
   AdminStats,
+  AdminStripeAccessDiagnosis,
   AdminSubscription,
   AdminSubscriptionUpsert,
   AdminUser,
@@ -3784,6 +3785,83 @@ export const useReactivateAdminOrganization = <TError = ErrorType<void>,
       > => {
       return useMutation(getReactivateAdminOrganizationMutationOptions(options));
     }
+
+export const getDiagnoseAdminOrganizationStripeAccessUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/organizations/${id}/stripe-diagnosis`
+}
+
+/**
+ * @summary Diagnose blockers keeping a Stripe subscription suspended (superadmin)
+ */
+export const diagnoseAdminOrganizationStripeAccess = async (id: number, options?: RequestInit): Promise<AdminStripeAccessDiagnosis> => {
+
+  return customFetch<AdminStripeAccessDiagnosis>(getDiagnoseAdminOrganizationStripeAccessUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDiagnoseAdminOrganizationStripeAccessQueryKey = (id: number,) => {
+    return [
+    `/api/admin/organizations/${id}/stripe-diagnosis`
+    ] as const;
+    }
+
+
+export const getDiagnoseAdminOrganizationStripeAccessQueryOptions = <TData = Awaited<ReturnType<typeof diagnoseAdminOrganizationStripeAccess>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof diagnoseAdminOrganizationStripeAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDiagnoseAdminOrganizationStripeAccessQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof diagnoseAdminOrganizationStripeAccess>>> = ({ signal }) => diagnoseAdminOrganizationStripeAccess(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof diagnoseAdminOrganizationStripeAccess>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DiagnoseAdminOrganizationStripeAccessQueryResult = NonNullable<Awaited<ReturnType<typeof diagnoseAdminOrganizationStripeAccess>>>
+export type DiagnoseAdminOrganizationStripeAccessQueryError = ErrorType<void>
+
+
+/**
+ * @summary Diagnose blockers keeping a Stripe subscription suspended (superadmin)
+ */
+
+export function useDiagnoseAdminOrganizationStripeAccess<TData = Awaited<ReturnType<typeof diagnoseAdminOrganizationStripeAccess>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof diagnoseAdminOrganizationStripeAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDiagnoseAdminOrganizationStripeAccessQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListAdminAlertsUrl = () => {
 

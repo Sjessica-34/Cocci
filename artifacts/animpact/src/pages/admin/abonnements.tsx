@@ -10,7 +10,7 @@ import {
   getGetAdminSubscriptionQueryKey,
   getGetAdminOrganizationQueryKey,
 } from "@workspace/api-client-react";
-import type { AdminOrganization } from "@workspace/api-client-react";
+import type { AdminOrganization, AdminStripeAccessDiagnosis } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,12 +39,15 @@ import {
   Clock,
   Ban,
   CreditCard,
+  CircleAlert,
+  CircleCheck,
   Gift,
   Monitor,
   FileText,
   Building2,
   ArrowUpRight,
   RefreshCw,
+  ShieldQuestion,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -359,6 +362,10 @@ function QuickSelect({ orgId, field, value, disabled, onSaved }: QuickSelectProp
 // ─── Row ──────────────────────────────────────────────────────────────────────
 
 function OrgSubRow({ org, onEdit }: { org: AdminOrganization; onEdit: (org: AdminOrganization) => void }) {
+  const [diagnosisOpen, setDiagnosisOpen] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<AdminStripeAccessDiagnosis | null>(null);
+  const [diagnosisLoading, setDiagnosisLoading] = useState(false);
+  const [diagnosisError, setDiagnosisError] = useState("");
   const sub = org.subscription;
   const mode = sub?.mode ?? "free";
   const status = sub?.status ?? "active";
@@ -381,7 +388,24 @@ function OrgSubRow({ org, onEdit }: { org: AdminOrganization; onEdit: (org: Admi
     trialDaysLeft = Math.ceil((new Date(sub.trialEndAt).getTime() - Date.now()) / 86400000);
   }
 
+  async function openStripeDiagnosis() {
+    setDiagnosisOpen(true);
+    setDiagnosis(null);
+    setDiagnosisError("");
+    setDiagnosisLoading(true);
+    try {
+      setDiagnosis(await customFetch<AdminStripeAccessDiagnosis>(
+        `/api/admin/organizations/${org.id}/stripe-diagnosis`,
+      ));
+    } catch {
+      setDiagnosisError("Le diagnostic n’a pas pu être chargé. Le compte reste suspendu.");
+    } finally {
+      setDiagnosisLoading(false);
+    }
+  }
+
   return (
+    <>
     <tr className="border-b border-border/50 hover:bg-muted/20 transition-colors group">
       {/* Organisation */}
       <td className="px-5 py-3">
@@ -474,7 +498,7 @@ function OrgSubRow({ org, onEdit }: { org: AdminOrganization; onEdit: (org: Admi
 
       {/* Actions */}
       <td className="px-4 py-3">
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
           <Button
             size="sm"
             variant="ghost"
@@ -483,6 +507,17 @@ function OrgSubRow({ org, onEdit }: { org: AdminOrganization; onEdit: (org: Admi
           >
             Modifier
           </Button>
+          {status === "suspended" && isStripe && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2.5 text-xs"
+              onClick={() => void openStripeDiagnosis()}
+            >
+              <ShieldQuestion className="mr-1 h-3.5 w-3.5" />
+              Diagnostic
+            </Button>
+          )}
           <Link href={`/admin/organizations/${org.id}`}>
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -491,6 +526,53 @@ function OrgSubRow({ org, onEdit }: { org: AdminOrganization; onEdit: (org: Admi
         </div>
       </td>
     </tr>
+    <Dialog open={diagnosisOpen} onOpenChange={setDiagnosisOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Pourquoi ce compte est-il suspendu&nbsp;?</DialogTitle>
+          <p className="text-sm text-muted-foreground">{org.name} · Vérification Stripe</p>
+        </DialogHeader>
+        <div className="space-y-3 py-2 text-sm" aria-live="polite">
+          {diagnosisLoading && <p className="text-muted-foreground">Vérification en cours…</p>}
+          {diagnosisError && <p role="alert" className="text-destructive">{diagnosisError}</p>}
+          {diagnosis?.status === "unavailable" && (
+            <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+              Stripe n’a pas permis de confirmer la situation. Le compte reste suspendu jusqu’à une vérification fiable.
+            </p>
+          )}
+          {diagnosis?.status === "checked" && (
+            <>
+              {[
+                ["Facture impayée", diagnosis.hasUnpaidInvoice],
+                ["Paiement en attente", diagnosis.hasPendingPayment],
+                ["Litige non résolu", diagnosis.hasUnresolvedDispute],
+              ].map(([label, blocked]) => (
+                <div key={String(label)} className="flex items-center gap-2">
+                  {blocked
+                    ? <CircleAlert className="h-4 w-4 shrink-0 text-rose-600" />
+                    : <CircleCheck className="h-4 w-4 shrink-0 text-emerald-600" />}
+                  <span>{String(label)} : {blocked ? "signalé par Stripe" : "aucun détecté"}</span>
+                </div>
+              ))}
+              {!diagnosis.hasUnpaidInvoice
+                && !diagnosis.hasPendingPayment
+                && !diagnosis.hasUnresolvedDispute && (
+                  <p role="status" className="rounded-lg border bg-muted/40 p-3 text-muted-foreground">
+                    Aucun blocage de paiement n’est actuellement détecté. L’accès reste suspendu tant qu’une confirmation fiable de règlement n’a pas été reçue.
+                  </p>
+                )}
+            </>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Ce diagnostic n’affiche ni montant, ni moyen de paiement, ni détail de litige et ne modifie pas l’accès.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDiagnosisOpen(false)}>Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

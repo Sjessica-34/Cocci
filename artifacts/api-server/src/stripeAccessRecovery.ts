@@ -26,6 +26,106 @@ export function getInvoicePaymentIntentId(invoice: Stripe.Invoice): string | nul
     ?? getStripeObjectId(value.payments?.data?.[0]?.payment?.payment_intent);
 }
 
+function getInvoicePaymentIntentIds(invoice: Stripe.Invoice): string[] {
+  const value = invoice as InvoiceReference;
+  return [...new Set([
+    getStripeObjectId(value.payment_intent),
+    ...(value.payments?.data ?? []).map((payment) =>
+      getStripeObjectId(payment.payment?.payment_intent),
+    ),
+  ].filter((id): id is string => id !== null))];
+}
+
+export type StripeAccessDiagnosis = {
+  hasUnpaidInvoice: boolean;
+  hasPendingPayment: boolean;
+  hasUnresolvedDispute: boolean;
+};
+
+const PENDING_PAYMENT_INTENT_STATUSES = new Set([
+  "processing",
+  "requires_action",
+  "requires_confirmation",
+  "requires_capture",
+]);
+const RESOLVED_DISPUTE_STATUSES = new Set([
+  "won",
+  "lost",
+  "warning_closed",
+  "prevented",
+]);
+
+/**
+ * Read-only, privacy-safe summary of outstanding Stripe blockers for the
+ * subscription currently linked to an organization. Never return Stripe
+ * objects, identifiers, payment details, amounts, or dispute metadata.
+ */
+export async function diagnoseStripeAccessRecovery(
+  stripe: Stripe,
+  customerId: string,
+  subscriptionId: string,
+): Promise<StripeAccessDiagnosis> {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  if (getStripeObjectId(subscription.customer) !== customerId) {
+    throw new Error("Stripe subscription does not match the linked customer");
+  }
+
+  const relevantInvoices: Stripe.Invoice[] = [];
+  let invoicePage = await stripe.invoices.list({
+    customer: customerId,
+    subscription: subscriptionId,
+    limit: 100,
+  });
+  while (true) {
+    for (const invoice of invoicePage.data) {
+      if (
+        getStripeObjectId(invoice.customer) === customerId
+        && getInvoiceSubscriptionId(invoice) === subscriptionId
+      ) {
+        relevantInvoices.push(invoice);
+      }
+    }
+    if (!invoicePage.has_more) break;
+
+    const lastInvoice = invoicePage.data.at(-1);
+    if (!lastInvoice) {
+      throw new Error("Stripe returned an incomplete invoice page");
+    }
+    invoicePage = await stripe.invoices.list({
+      customer: customerId,
+      subscription: subscriptionId,
+      limit: 100,
+      starting_after: lastInvoice.id,
+    });
+  }
+
+  const paymentIntentIds = new Set(relevantInvoices.flatMap(getInvoicePaymentIntentIds));
+  const paymentChecks = await Promise.all([...paymentIntentIds].map(async (paymentIntentId) => {
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const chargeId = getStripeObjectId(paymentIntent.latest_charge);
+    if (!chargeId) {
+      return {
+        pending: PENDING_PAYMENT_INTENT_STATUSES.has(paymentIntent.status),
+        unresolvedDispute: false,
+      };
+    }
+
+    const disputes = await stripe.disputes.list({ charge: chargeId, limit: 10 });
+    return {
+      pending: PENDING_PAYMENT_INTENT_STATUSES.has(paymentIntent.status),
+      unresolvedDispute: disputes.data.some(
+        (dispute) => !RESOLVED_DISPUTE_STATUSES.has(dispute.status),
+      ),
+    };
+  }));
+
+  return {
+    hasUnpaidInvoice: relevantInvoices.some((invoice) => invoice.status === "open"),
+    hasPendingPayment: paymentChecks.some((payment) => payment.pending),
+    hasUnresolvedDispute: paymentChecks.some((payment) => payment.unresolvedDispute),
+  };
+}
+
 export async function hasUnresolvedSepaDispute(
   stripe: Stripe,
   invoice: Stripe.Invoice,

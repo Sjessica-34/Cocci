@@ -33,6 +33,8 @@ export * from './adminOrgUpdate';
 export * from './adminReportGenerationGrant';
 export * from './adminReportGenerationQuota';
 export * from './adminStats';
+export * from './adminStripeAccessDiagnosis';
+export * from './adminStripeAccessDiagnosisStatus';
 export * from './adminSubscription';
 export * from './adminSubscriptionMode';
 export * from './adminSubscriptionStatus';

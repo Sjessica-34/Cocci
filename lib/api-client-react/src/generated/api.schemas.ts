@@ -465,6 +465,21 @@ export interface AdminReportGenerationGrant {
   generations: number;
 }
 
+export type AdminStripeAccessDiagnosisStatus = typeof AdminStripeAccessDiagnosisStatus[keyof typeof AdminStripeAccessDiagnosisStatus];
+
+
+export const AdminStripeAccessDiagnosisStatus = {
+  checked: 'checked',
+  unavailable: 'unavailable',
+} as const;
+
+export interface AdminStripeAccessDiagnosis {
+  status: AdminStripeAccessDiagnosisStatus;
+  hasUnpaidInvoice: boolean;
+  hasPendingPayment: boolean;
+  hasUnresolvedDispute: boolean;
+}
+
 export interface AdminUser {
   id: number;
   clerkId: string;

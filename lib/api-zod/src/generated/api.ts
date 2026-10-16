@@ -1388,6 +1388,21 @@ export const ReactivateAdminOrganizationResponse = zod.object({
 
 
 /**
+ * @summary Diagnose blockers keeping a Stripe subscription suspended (superadmin)
+ */
+export const DiagnoseAdminOrganizationStripeAccessParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DiagnoseAdminOrganizationStripeAccessResponse = zod.object({
+  "status": zod.enum(['checked', 'unavailable']),
+  "hasUnpaidInvoice": zod.boolean(),
+  "hasPendingPayment": zod.boolean(),
+  "hasUnresolvedDispute": zod.boolean()
+})
+
+
+/**
  * @summary List all platform alerts (superadmin)
  */
 export const ListAdminAlertsResponseItem = zod.object({

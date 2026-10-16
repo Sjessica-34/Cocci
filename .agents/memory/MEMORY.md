@@ -20,3 +20,4 @@
 - [Frontière numeric Drizzle](drizzle-numeric-boundary.md) — convertir les numeric en chaînes à l’insertion et en nombres avant les calculs métier.
 - [Hébergement Infomaniak de Cocci](infomaniak-deployment.md) — garder PostgreSQL externe et utiliser les APIs OpenAI/Anthropic directement hors Replit.
 - [Redirections React avec Wouter](wouter-effect-navigation.md) — les effets d’onboarding doivent comparer la route courante avant chaque setLocation pour éviter les boucles de history.replaceState.
+- [Diagnostic Stripe admin](stripe-admin-diagnosis.md) — les indicateurs de blocage sont en lecture seule; un diagnostic Stripe indisponible n’est jamais interprété comme un règlement confirmé.
