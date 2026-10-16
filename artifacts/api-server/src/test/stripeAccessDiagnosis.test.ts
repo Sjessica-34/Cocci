@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type Stripe from "stripe";
-import { diagnoseStripeAccessRecovery } from "../stripeAccessRecovery";
+import {
+  diagnoseStripeAccessRecovery,
+  getSuccessfulInvoicePaymentIntent,
+} from "../stripeAccessRecovery";
 
 function makeStripe(overrides: Record<string, unknown> = {}): Stripe {
   const invoice = {
@@ -185,4 +188,32 @@ test("diagnosis detects a pending payment among partial invoice payments", async
   const result = await diagnoseStripeAccessRecovery(stripe, "cus_current", "sub_current");
   assert.deepEqual(inspectedPaymentIntents.sort(), ["pi_paid", "pi_processing"]);
   assert.equal(result.hasPendingPayment, true);
+});
+
+test("recovery selects the successful payment when the invoice has an earlier failed attempt", async () => {
+  const invoice = {
+    id: "in_current",
+    customer: "cus_current",
+    subscription: "sub_current",
+    status: "paid",
+    payment_intent: "pi_failed",
+    payments: {
+      data: [
+        { payment: { payment_intent: "pi_failed" } },
+        { payment: { payment_intent: { id: "pi_succeeded" } } },
+      ],
+    },
+  };
+  const stripe = makeStripe({
+    paymentIntents: {
+      retrieve: async (id: string) => ({
+        id,
+        status: id === "pi_succeeded" ? "succeeded" : "requires_payment_method",
+        latest_charge: null,
+      }),
+    },
+  });
+
+  const result = await getSuccessfulInvoicePaymentIntent(stripe, invoice as unknown as Stripe.Invoice);
+  assert.equal(result?.id, "pi_succeeded");
 });

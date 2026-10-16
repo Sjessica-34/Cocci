@@ -6,7 +6,10 @@ import { sendSubscriptionConfirmation } from "./lib/email";
 import { getPublicAppUrl } from "./appUrl";
 import { getStripeObjectId } from "./stripeCheckoutAttempts";
 import { decideStripeAccessTransition, getInitialStripeSubscriptionStatus } from "./stripeSubscriptionTransitions";
-import { getInvoicePaymentIntentId, hasUnresolvedSepaDispute } from "./stripeAccessRecovery";
+import {
+  getSuccessfulInvoicePaymentIntent,
+  hasUnresolvedSepaDispute,
+} from "./stripeAccessRecovery";
 
 type InvoiceSubscriptionReference = {
   subscription?: string | { id: string } | null;
@@ -367,13 +370,13 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
         const stripe = await getUncachableStripeClient();
         // Never trust a stale paid snapshot: check the invoice, remaining
         // outstanding invoices, and any SEPA return before restoring access.
-        const currentInvoice = await stripe.invoices.retrieve(invoice.id);
-        const paymentIntentId = getInvoicePaymentIntentId(currentInvoice);
-        if (!paymentIntentId) break;
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        const currentInvoice = await stripe.invoices.retrieve(invoice.id, {
+          expand: ["payment_intent", "payments.data.payment.payment_intent"],
+        });
+        const paymentIntent = await getSuccessfulInvoicePaymentIntent(stripe, currentInvoice);
         if (
           currentInvoice.status !== "paid"
-          || paymentIntent.status !== "succeeded"
+          || !paymentIntent
           || getInvoiceSubscriptionId(currentInvoice as unknown as InvoiceSubscriptionReference) !== invoiceSubId
         ) {
           break;
@@ -595,11 +598,10 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
               (currentSub.status === "active" || currentSub.status === "trialing")
               && latestInvoiceId
             ) {
-              const latestInvoice = await stripe.invoices.retrieve(latestInvoiceId);
-              const paymentIntentId = getInvoicePaymentIntentId(latestInvoice);
-              const paymentIntent = paymentIntentId
-                ? await stripe.paymentIntents.retrieve(paymentIntentId)
-                : null;
+              const latestInvoice = await stripe.invoices.retrieve(latestInvoiceId, {
+                expand: ["payment_intent", "payments.data.payment.payment_intent"],
+              });
+              const paymentIntent = await getSuccessfulInvoicePaymentIntent(stripe, latestInvoice);
               const invoiceMatchesSub =
                 getInvoiceSubscriptionId(latestInvoice as unknown as InvoiceSubscriptionReference) === sub.id;
               const openInvoices = await stripe.invoices.list({

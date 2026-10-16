@@ -84,7 +84,13 @@ for (const recoveryCase of recoveryCases) {
           customer: "cus_recovery_test",
           subscription: "sub_recovery_test",
           status: "paid",
-          payment_intent: "pi_recovery_paid",
+          payment_intent: "pi_recovery_failed",
+          payments: {
+            data: [
+              { payment: { payment_intent: "pi_recovery_failed" } },
+              { payment: { payment_intent: { id: "pi_recovery_paid" } } },
+            ],
+          },
         }),
         list: async () => ({
           data: recoveryCase.outstandingInvoice
@@ -97,10 +103,10 @@ for (const recoveryCase of recoveryCases) {
         }),
       },
       paymentIntents: {
-        retrieve: async () => ({
-          id: "pi_recovery_paid",
-          status: "succeeded",
-          latest_charge: "ch_recovery_sepa",
+        retrieve: async (id: string) => ({
+          id,
+          status: id === "pi_recovery_paid" ? "succeeded" : "requires_payment_method",
+          latest_charge: id === "pi_recovery_paid" ? "ch_recovery_sepa" : null,
         }),
       },
       charges: {
