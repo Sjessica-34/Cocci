@@ -36,6 +36,22 @@ function getInvoicePaymentIntentIds(invoice: Stripe.Invoice): string[] {
   ].filter((id): id is string => id !== null))];
 }
 
+async function retrieveInvoicePaymentIntents(
+  stripe: Stripe,
+  invoice: Stripe.Invoice,
+): Promise<Stripe.PaymentIntent[]> {
+  const paymentIntentIds = getInvoicePaymentIntentIds(invoice);
+  return Promise.all(paymentIntentIds.map((id) => stripe.paymentIntents.retrieve(id)));
+}
+
+export async function getSuccessfulInvoicePaymentIntent(
+  stripe: Stripe,
+  invoice: Stripe.Invoice,
+): Promise<Stripe.PaymentIntent | null> {
+  const paymentIntents = await retrieveInvoicePaymentIntents(stripe, invoice);
+  return paymentIntents.find((paymentIntent) => paymentIntent.status === "succeeded") ?? null;
+}
+
 export type StripeAccessDiagnosis = {
   hasUnpaidInvoice: boolean;
   hasPendingPayment: boolean;
@@ -130,15 +146,23 @@ export async function hasUnresolvedSepaDispute(
   stripe: Stripe,
   invoice: Stripe.Invoice,
 ): Promise<boolean> {
-  const paymentIntentId = getInvoicePaymentIntentId(invoice);
-  if (!paymentIntentId) return false;
-  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-  const chargeId = getStripeObjectId(paymentIntent.latest_charge);
-  if (!chargeId) return false;
-  const charge = await stripe.charges.retrieve(chargeId);
-  if (charge.payment_method_details?.type !== "sepa_debit") return false;
-  const disputes = await stripe.disputes.list({ charge: chargeId, limit: 10 });
-  return disputes.data.some((dispute) => dispute.status !== "won");
+  const paymentIntents = await retrieveInvoicePaymentIntents(stripe, invoice);
+  return hasUnresolvedSepaDisputeForPaymentIntents(stripe, paymentIntents);
+}
+
+async function hasUnresolvedSepaDisputeForPaymentIntents(
+  stripe: Stripe,
+  paymentIntents: Stripe.PaymentIntent[],
+): Promise<boolean> {
+  for (const paymentIntent of paymentIntents) {
+    const chargeId = getStripeObjectId(paymentIntent.latest_charge);
+    if (!chargeId) continue;
+    const charge = await stripe.charges.retrieve(chargeId);
+    if (charge.payment_method_details?.type !== "sepa_debit") continue;
+    const disputes = await stripe.disputes.list({ charge: chargeId, limit: 10 });
+    if (disputes.data.some((dispute) => dispute.status !== "won")) return true;
+  }
+  return false;
 }
 
 /**
@@ -160,16 +184,20 @@ export async function activateRecoveredSubscriptionIfSettled(input: {
 
   const invoiceId = input.invoiceId ?? getStripeObjectId(subscription.latest_invoice);
   if (!invoiceId) return false;
-  const invoice = await input.stripe.invoices.retrieve(invoiceId, { expand: ["payment_intent"] });
+  const invoice = await input.stripe.invoices.retrieve(invoiceId, {
+    expand: ["payment_intent", "payments.data.payment.payment_intent"],
+  });
   if (
     invoice.status !== "paid"
     || getStripeObjectId(invoice.customer) !== input.customerId
     || getInvoiceSubscriptionId(invoice) !== input.subscriptionId
   ) return false;
 
-  const paymentIntentId = getInvoicePaymentIntentId(invoice);
-  if (!paymentIntentId) return false;
-  const paymentIntent = await input.stripe.paymentIntents.retrieve(paymentIntentId);
+  const paymentIntents = await retrieveInvoicePaymentIntents(input.stripe, invoice);
+  const successfulPaymentIntent = paymentIntents.find(
+    (paymentIntent) => paymentIntent.status === "succeeded",
+  );
+  if (!successfulPaymentIntent) return false;
   const openInvoices = await input.stripe.invoices.list({
     customer: input.customerId,
     status: "open",
@@ -179,7 +207,7 @@ export async function activateRecoveredSubscriptionIfSettled(input: {
     getInvoiceSubscriptionId(openInvoice) === input.subscriptionId
     && openInvoice.amount_remaining > 0
   );
-  const hasDispute = await hasUnresolvedSepaDispute(input.stripe, invoice);
+  const hasDispute = await hasUnresolvedSepaDisputeForPaymentIntents(input.stripe, paymentIntents);
 
   const local = await pool.query<{ mode: string; status: string; stripe_subscription_id: string }>(
     `SELECT mode, status, stripe_subscription_id
@@ -201,7 +229,7 @@ export async function activateRecoveredSubscriptionIfSettled(input: {
     currentSubscriptionId: current.stripe_subscription_id,
     localStatus: current.status,
     invoicePaid: true,
-    paymentIntentStatus: paymentIntent.status,
+    paymentIntentStatus: successfulPaymentIntent.status,
     stripeSubscriptionStatus: subscription.status,
     hasOutstandingInvoice,
     hasUnresolvedSepaDispute: hasDispute,
