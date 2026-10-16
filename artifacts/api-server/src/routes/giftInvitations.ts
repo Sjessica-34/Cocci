@@ -214,6 +214,12 @@ router.post("/gift-invitations/claim", requireAuth, async (req, res): Promise<vo
       if (decision === "invalid_invitation") throw new Error("INVITATION_INVALID");
       if (decision === "existing_non_free_subscription") throw new Error("EXISTING_NON_FREE_SUBSCRIPTION");
       if (decision === "already_claimed") {
+        const completedAt = new Date();
+        await tx.update(onboardingProgressTable).set({
+          status: "completed",
+          completedAt,
+          updatedAt: completedAt,
+        }).where(eq(onboardingProgressTable.userId, user.id));
         return { organizationId: user.primaryOrganizationId, endAt: existingSub.endAt };
       }
       const endDate = invite.durationMonths === null ? null : (() => {
@@ -248,7 +254,7 @@ router.post("/gift-invitations/claim", requireAuth, async (req, res): Promise<vo
         claimedAt: new Date(), organizationId: user.primaryOrganizationId!,
       }).where(eq(giftInvitationsTable.id, invite.id));
       await tx.update(onboardingProgressTable).set({
-        status: "completed", updatedAt: new Date(),
+        status: "completed", completedAt: new Date(), updatedAt: new Date(),
       }).where(eq(onboardingProgressTable.userId, user.id));
       return { organizationId: user.primaryOrganizationId, endAt: endDate };
     });

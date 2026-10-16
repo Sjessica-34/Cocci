@@ -4,6 +4,7 @@ import {
   decideGiftInvitationClaim,
   isGiftInvitationBeneficiary,
   isGiftInvitationEmailVerified,
+  shouldCompleteOnboardingForClaimedGift,
 } from "../lib/giftInvitationPolicy.ts";
 
 const now = new Date("2026-10-15T12:00:00Z");
@@ -32,6 +33,24 @@ test("la création d'une invitation ne dépend pas de l'existence d'un compte Cl
 
 test("une invitation valide pour une adresse vérifiée peut être activée", () => {
   assert.equal(decideGiftInvitationClaim(input()), "eligible");
+});
+
+test("une invitation réclamée répare l'onboarding au retour, seulement pour son organisation", () => {
+  assert.equal(shouldCompleteOnboardingForClaimedGift({
+    onboardingStatus: "organization_created",
+    primaryOrganizationId: 41,
+    claimedInvitationOrganizationId: 41,
+  }), true);
+  assert.equal(shouldCompleteOnboardingForClaimedGift({
+    onboardingStatus: "completed",
+    primaryOrganizationId: 41,
+    claimedInvitationOrganizationId: 41,
+  }), false);
+  assert.equal(shouldCompleteOnboardingForClaimedGift({
+    onboardingStatus: "organization_created",
+    primaryOrganizationId: 41,
+    claimedInvitationOrganizationId: 42,
+  }), false);
 });
 
 test("une adresse non vérifiée ou différente ne peut pas utiliser l'invitation", () => {

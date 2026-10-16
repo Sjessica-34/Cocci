@@ -5,6 +5,16 @@ export type GiftClaimDecision =
   | "email_mismatch"
   | "existing_non_free_subscription";
 
+export function shouldCompleteOnboardingForClaimedGift(input: {
+  onboardingStatus: string | null | undefined;
+  primaryOrganizationId: number | null | undefined;
+  claimedInvitationOrganizationId: number | null | undefined;
+}): boolean {
+  return input.onboardingStatus !== "completed"
+    && input.primaryOrganizationId != null
+    && input.claimedInvitationOrganizationId === input.primaryOrganizationId;
+}
+
 export function isGiftInvitationEmailVerified(inviteEmail: string, verifiedEmails: string[]): boolean {
   const normalizedInviteEmail = inviteEmail.trim().toLowerCase();
   return verifiedEmails.some((email) => email.trim().toLowerCase() === normalizedInviteEmail);
