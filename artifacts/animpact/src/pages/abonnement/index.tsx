@@ -94,6 +94,7 @@ export function Abonnement() {
     subscription,
     isLoading: subscriptionLoading,
     isActive,
+    refresh: refreshSubscription,
   } = useOrganizationSubscription(currentOrgId);
   const {
     data: organization,
@@ -132,7 +133,10 @@ export function Abonnement() {
       try {
         const token = await getToken({ skipCache: true });
         if (!token) throw new Error("Authentication token unavailable");
-        const result = await customFetch<{ status: "paid" | "processing" }>(
+        const result = await customFetch<{
+          status: "paid" | "processing";
+          accessActivated?: boolean;
+        }>(
           `/api/organizations/${currentOrgId}/stripe/recovery/complete`,
           {
             method: "POST",
@@ -143,9 +147,12 @@ export function Abonnement() {
         if (!cancelled) {
           setRecoveryMessage(
             result.status === "paid"
-              ? "La facture est réglée. Stripe confirme votre accès automatiquement."
+              ? result.accessActivated
+                ? "La facture est réglée et votre accès Cocci est réactivé."
+                : "La facture est réglée. Stripe doit encore confirmer les conditions de réactivation de votre accès."
               : "Le nouveau mandat est enregistré. Le prélèvement est en cours de traitement; votre accès reste suspendu jusqu'à la confirmation de Stripe.",
           );
+          refreshSubscription();
         }
       } catch (error) {
         if (!cancelled) {
@@ -160,7 +167,7 @@ export function Abonnement() {
     return () => {
       cancelled = true;
     };
-  }, [currentOrgId, getToken, recoverySessionId]);
+  }, [currentOrgId, getToken, recoverySessionId, refreshSubscription]);
 
   // Charger plans + statut en parallèle
   useEffect(() => {
@@ -278,23 +285,32 @@ export function Abonnement() {
     try {
       const token = await getToken({ skipCache: true });
       if (!token) throw new Error("Authentication token unavailable");
-      const { url } = await customFetch<{ url: string }>(
+      const result = await customFetch<{ url?: string; status?: "active" }>(
         `/api/organizations/${currentOrgId}/stripe/recovery/setup`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      if (!url) throw new Error("URL de régularisation manquante");
+      if (result.status === "active") {
+        recoveryWindow?.close();
+        setRecoveryMessage("Stripe confirme que la facture est réglée. Votre accès Cocci est réactivé.");
+        refreshSubscription();
+        return;
+      }
+      if (!result.url) throw new Error("URL de régularisation manquante");
       if (recoveryWindow && !recoveryWindow.closed) {
-        recoveryWindow.location.href = url;
+        recoveryWindow.location.href = result.url;
       } else {
-        (window.top ?? window).location.href = url;
+        (window.top ?? window).location.href = result.url;
       }
     } catch (error) {
       recoveryWindow?.close();
+      const serverMessage = error instanceof ApiError
+        ? (error.data as { error?: string } | null)?.error
+        : null;
       const message = error instanceof ApiError && error.status === 409
-        ? "Stripe ne confirme pas actuellement une souscription en retard avec une facture ouverte. Aucun paiement n'a été lancé."
+        ? `${serverMessage ?? "Stripe ne confirme pas actuellement une souscription récupérable."} Aucun paiement n'a été lancé.`
         : "Impossible de préparer la régularisation. Aucun nouveau paiement n'a été lancé.";
       setRecoveryMessage(message);
     } finally {

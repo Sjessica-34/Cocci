@@ -6,6 +6,7 @@ import { sendSubscriptionConfirmation } from "./lib/email";
 import { getPublicAppUrl } from "./appUrl";
 import { getStripeObjectId } from "./stripeCheckoutAttempts";
 import { decideStripeAccessTransition, getInitialStripeSubscriptionStatus } from "./stripeSubscriptionTransitions";
+import { getInvoicePaymentIntentId, hasUnresolvedSepaDispute } from "./stripeAccessRecovery";
 
 type InvoiceSubscriptionReference = {
   subscription?: string | { id: string } | null;
@@ -22,32 +23,6 @@ export function getInvoiceSubscriptionId(
   const reference =
     invoice.subscription ?? invoice.parent?.subscription_details?.subscription;
   return typeof reference === "string" ? reference : reference?.id ?? null;
-}
-
-function getInvoicePaymentIntentId(invoice: Stripe.Invoice): string | null {
-  const payment = invoice as Stripe.Invoice & {
-    payment_intent?: string | Stripe.PaymentIntent | null;
-    payments?: {
-      data?: Array<{ payment?: { payment_intent?: string | Stripe.PaymentIntent | null } }>;
-    };
-  };
-  return getStripeObjectId(payment.payment_intent)
-    ?? getStripeObjectId(payment.payments?.data?.[0]?.payment?.payment_intent);
-}
-
-async function hasUnresolvedSepaDispute(
-  stripe: Stripe,
-  invoice: Stripe.Invoice,
-): Promise<boolean> {
-  const paymentIntentId = getInvoicePaymentIntentId(invoice);
-  if (!paymentIntentId) return false;
-  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-  const chargeId = getStripeObjectId(paymentIntent.latest_charge);
-  if (!chargeId) return false;
-  const charge = await stripe.charges.retrieve(chargeId);
-  if (charge.payment_method_details?.type !== "sepa_debit") return false;
-  const disputes = await stripe.disputes.list({ charge: chargeId, limit: 10 });
-  return disputes.data.some((dispute) => dispute.status !== "won");
 }
 
 async function syncCurrentSubscriptionFromStripe(opts: {

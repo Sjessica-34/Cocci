@@ -17,6 +17,7 @@ import {
   shouldBlockNewStripeCheckout,
   STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES,
 } from "../stripeSubscriptionTransitions";
+import { activateRecoveredSubscriptionIfSettled } from "../stripeAccessRecovery";
 import {
   createRecoverySetupCheckout,
   getRecoverySetupPaymentMethod,
@@ -354,7 +355,26 @@ router.post(
 
       const stripe = await getUncachableStripeClient();
       const sub = await stripe.subscriptions.retrieve(current.stripe_subscription_id);
-      if (sub.customer !== current.stripe_customer_id || sub.status !== "past_due") {
+      if (getStripeObjectId(sub.customer) !== current.stripe_customer_id) {
+        res.status(409).json({
+          error: "La souscription Stripe n'est pas rattachée au client Cocci",
+          code: "SUBSCRIPTION_CUSTOMER_MISMATCH",
+        });
+        return;
+      }
+      if (sub.status !== "past_due") {
+        if (["active", "trialing"].includes(sub.status)) {
+          const accessActivated = await activateRecoveredSubscriptionIfSettled({
+            stripe,
+            organizationId: billingOrgId,
+            customerId: current.stripe_customer_id,
+            subscriptionId: sub.id,
+          });
+          if (accessActivated) {
+            res.json({ status: "active" });
+            return;
+          }
+        }
         res.status(409).json({
           error: "La souscription Stripe n'est pas dans un état récupérable",
           code: "SUBSCRIPTION_NOT_PAST_DUE",
@@ -371,6 +391,18 @@ router.post(
         return getInvoiceSubscriptionReference(invoice) === sub.id && invoice.amount_remaining > 0;
       });
       if (unpaid.length !== 1) {
+        if (unpaid.length === 0 && ["active", "trialing"].includes(sub.status)) {
+          const accessActivated = await activateRecoveredSubscriptionIfSettled({
+            stripe,
+            organizationId: billingOrgId,
+            customerId: current.stripe_customer_id,
+            subscriptionId: sub.id,
+          });
+          if (accessActivated) {
+            res.json({ status: "active" });
+            return;
+          }
+        }
         res.status(409).json({
           error: unpaid.length
             ? "Plusieurs factures impayées doivent être vérifiées avant la régularisation"
@@ -482,7 +514,14 @@ router.post(
         return;
       }
       if (invoice.status === "paid" && sub.status === "active") {
-        res.json({ status: "paid" });
+        const accessActivated = await activateRecoveredSubscriptionIfSettled({
+          stripe,
+          organizationId: billingOrgId,
+          customerId: current.stripe_customer_id,
+          subscriptionId: sub.id,
+          invoiceId,
+        });
+        res.json({ status: "paid", accessActivated });
         return;
       }
       if (sub.status !== "past_due" || current.status !== "suspended") {
@@ -503,7 +542,15 @@ router.post(
         paymentMethodId,
         setupIntentId,
       });
-      res.json({ status });
+      const accessActivated = status === "paid"
+        && await activateRecoveredSubscriptionIfSettled({
+          stripe,
+          organizationId: billingOrgId,
+          customerId: current.stripe_customer_id,
+          subscriptionId: sub.id,
+          invoiceId,
+        });
+      res.json({ status, accessActivated });
     } catch (err) {
       logger.error({ err }, "stripe SEPA recovery completion error");
       res.status(500).json({ error: "Le paiement de la facture n'a pas pu être lancé" });
