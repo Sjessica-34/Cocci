@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db, onboardingProgressTable, pool } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership, requireOrgRole } from "../middlewares/exerciseScope";
@@ -86,11 +86,14 @@ router.get("/stripe/plans", async (_req, res): Promise<void> => {
 });
 
 // ── GET /api/organizations/:orgId/subscription — statut actuel ───────────────
-router.get(
-  "/organizations/:orgId/subscription",
-  requireAuth,
-  requireOrgMembership,
-  async (req, res): Promise<void> => {
+export function createSubscriptionStatusHandler(dependencies: {
+  getStripeClient?: typeof getUncachableStripeClient;
+  recoverSubscription?: typeof activateRecoveredSubscriptionIfSettled;
+} = {}) {
+  const getStripeClient = dependencies.getStripeClient ?? getUncachableStripeClient;
+  const recoverSubscription = dependencies.recoverSubscription ?? activateRecoveredSubscriptionIfSettled;
+
+  return async (req: Request, res: Response): Promise<void> => {
     const orgId = req.orgId!;
     try {
       const billingOrgId = await getBillingOrganizationId(orgId);
@@ -108,8 +111,8 @@ router.get(
           && sub.stripe_subscription_id
         ) {
           try {
-            const stripe = await getUncachableStripeClient();
-            const accessActivated = await activateRecoveredSubscriptionIfSettled({
+            const stripe = await getStripeClient();
+            const accessActivated = await recoverSubscription({
               stripe,
               organizationId: billingOrgId,
               customerId: sub.stripe_customer_id,
@@ -147,7 +150,14 @@ router.get(
       logger.error({ err }, "subscription status error");
       res.status(500).json({ error: "Internal server error" });
     }
-  },
+  };
+}
+
+router.get(
+  "/organizations/:orgId/subscription",
+  requireAuth,
+  requireOrgMembership,
+  createSubscriptionStatusHandler(),
 );
 
 // ── POST /api/organizations/:orgId/stripe/checkout ────────────────────────────
