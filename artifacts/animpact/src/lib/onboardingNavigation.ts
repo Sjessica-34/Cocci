@@ -17,6 +17,10 @@ export type OnboardingStepPath =
   | "/onboarding/abonnement"
   | "/dashboard";
 
+export function resolveEffectifContinuePath(hasGiftInvitation: boolean): "/offre" | "/onboarding/abonnement" {
+  return hasGiftInvitation ? "/offre" : "/onboarding/abonnement";
+}
+
 export function resolveOnboardingStepPath({
   status,
   organizations,

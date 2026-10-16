@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { ApiError, customFetch } from "@workspace/api-client-react";
-import { useAuth } from "@clerk/react";
+import { useAuth, useClerk } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,10 +12,12 @@ export const GIFT_INVITATION_SESSION_KEY = "cocci_gift_invitation";
 export function GiftInvitationPage() {
   const [, setLocation] = useLocation();
   const { getToken, isSignedIn } = useAuth();
+  const { signOut } = useClerk();
   const [details, setDetails] = useState<{ email: string; offerName: string; effectifKey: EffectifKey; durationMonths: number | null } | null>(null);
   const [effectif, setEffectif] = useState<EffectifKey>("1-5");
   const [error, setError] = useState("");
   const [claiming, setClaiming] = useState(false);
+  const [showAccountSwitch, setShowAccountSwitch] = useState(false);
 
   useEffect(() => {
     const token = window.location.hash.slice(1)
@@ -50,6 +52,7 @@ export function GiftInvitationPage() {
     if (!token) return;
     setClaiming(true);
     setError("");
+    setShowAccountSwitch(false);
     try {
       const authToken = await getToken({ skipCache: true });
       if (!authToken) throw new Error("Reconnectez-vous pour activer cette offre.");
@@ -69,10 +72,18 @@ export function GiftInvitationPage() {
         setLocation("/onboarding");
         return;
       }
-      setError(apiError?.error ?? (cause instanceof Error ? cause.message : "Impossible d’activer l’offre."));
+      const message = apiError?.error ?? (cause instanceof Error ? cause.message : "Impossible d’activer l’offre.");
+      setError(message);
+      setShowAccountSwitch(message.includes("adresse e-mail invitée doit être vérifiée"));
     } finally {
       setClaiming(false);
     }
+  }
+
+  async function switchToInvitedAccount() {
+    const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+    const signUpUrl = `${window.location.origin}${basePath}/sign-up`;
+    await signOut({ redirectUrl: signUpUrl });
   }
 
   return <main className="min-h-[100dvh] bg-muted/30 flex items-center justify-center p-4">
@@ -93,6 +104,16 @@ export function GiftInvitationPage() {
             : "Créez votre compte avec cette adresse e-mail. Elle devra être vérifiée dans Clerk."}
         </p>
         {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
+        {showAccountSwitch && (
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3 w-full"
+            onClick={() => void switchToInvitedAccount()}
+          >
+            Se déconnecter et créer le compte invité
+          </Button>
+        )}
         <Button
           className="mt-6 w-full"
           disabled={claiming}

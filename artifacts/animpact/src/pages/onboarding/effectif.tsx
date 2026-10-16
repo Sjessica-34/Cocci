@@ -14,12 +14,14 @@ import { Users } from "lucide-react";
 import {
   EFFECTIF_OPTIONS,
   readEffectifSelection,
-  readSubscriptionIntent,
   saveEffectifSelection,
   saveSubscriptionIntent,
   type EffectifKey,
 } from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
+import { resolveEffectifContinuePath } from "@/lib/onboardingNavigation";
+
+const GIFT_INVITATION_SESSION_KEY = "cocci_gift_invitation";
 
 export function OnboardingEffectif() {
   useDebugMount("OnboardingEffectif");
@@ -53,9 +55,16 @@ export function OnboardingEffectif() {
     }
 
     saveEffectifSelection(selected);
-    if (readSubscriptionIntent()) {
-      saveSubscriptionIntent(selected);
+    const nextPath = resolveEffectifContinuePath(
+      Boolean(sessionStorage.getItem(GIFT_INVITATION_SESSION_KEY)),
+    );
+    if (nextPath === "/offre") {
+      setLocation(nextPath);
+      return;
     }
+    // Le bouton annonce explicitement la formule : enregistrer l'intention
+    // permet à la garde de laisser passer les organisations déjà créées.
+    saveSubscriptionIntent(selected);
     if (isAuthLoaded && isSignedIn) {
       try {
         const savedStatus = onboarding?.status === "organization_created"
@@ -80,7 +89,7 @@ export function OnboardingEffectif() {
         return;
       }
     }
-    setLocation("/onboarding/abonnement");
+    setLocation(nextPath);
   }
 
   return (
