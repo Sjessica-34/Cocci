@@ -38,6 +38,10 @@ import {
 } from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
 import { resolveOnboardingStepPath } from "@/lib/onboardingNavigation";
+import {
+  clearGiftInvitationToken,
+  readGiftInvitationToken,
+} from "@/lib/giftInvitationStorage";
 
 // Version des documents légaux en vigueur
 const LEGAL_VERSION = "2025-01";
@@ -131,7 +135,7 @@ export function Onboarding() {
     let org = createdOrg;
     let createdDuringAttempt = false;
     let giftClaimSucceeded = false;
-    const giftToken = sessionStorage.getItem("cocci_gift_invitation");
+    const giftToken = readGiftInvitationToken();
     try {
       if (giftToken) {
         try {
@@ -213,7 +217,7 @@ export function Onboarding() {
           body: JSON.stringify({ token: giftToken }),
         });
         giftClaimSucceeded = true;
-        sessionStorage.removeItem("cocci_gift_invitation");
+        clearGiftInvitationToken();
         clearOnboardingChoices();
       } catch {
         hasSubmittedRef.current = false;

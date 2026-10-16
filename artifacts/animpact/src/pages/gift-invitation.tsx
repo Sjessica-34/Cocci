@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { ApiError, customFetch } from "@workspace/api-client-react";
 import { useAuth, useClerk } from "@clerk/react";
+import {
+  clearGiftInvitationToken,
+  readGiftInvitationToken,
+  saveGiftInvitationToken,
+} from "@/lib/giftInvitationStorage";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { clearOnboardingChoices, EFFECTIF_OPTIONS, saveEffectifSelection, type EffectifKey } from "./onboarding/plans";
-
-export const GIFT_INVITATION_SESSION_KEY = "cocci_gift_invitation";
 
 export function GiftInvitationPage() {
   const [, setLocation] = useLocation();
@@ -20,15 +23,13 @@ export function GiftInvitationPage() {
   const [showAccountSwitch, setShowAccountSwitch] = useState(false);
 
   useEffect(() => {
-    const token = window.location.hash.slice(1)
-      || sessionStorage.getItem(GIFT_INVITATION_SESSION_KEY)
-      || "";
+    const token = window.location.hash.slice(1) || readGiftInvitationToken() || "";
     if (!token) {
-      sessionStorage.removeItem(GIFT_INVITATION_SESSION_KEY);
+      clearGiftInvitationToken();
       setError("Le lien d’invitation est incomplet.");
       return;
     }
-    sessionStorage.setItem(GIFT_INVITATION_SESSION_KEY, token);
+    saveGiftInvitationToken(token);
     customFetch<{ email: string; offerName: string; effectifKey: EffectifKey; durationMonths: number | null }>("/api/gift-invitations/validate", {
       method: "POST",
       body: JSON.stringify({ token }),
@@ -36,7 +37,7 @@ export function GiftInvitationPage() {
       setDetails(invite);
       setEffectif(invite.effectifKey);
     }).catch(() => {
-      sessionStorage.removeItem(GIFT_INVITATION_SESSION_KEY);
+      clearGiftInvitationToken();
       setError("Cette invitation est invalide, expirée ou déjà utilisée.");
     });
   }, []);
@@ -48,7 +49,7 @@ export function GiftInvitationPage() {
   }
 
   async function continueWithExistingAccount() {
-    const token = sessionStorage.getItem(GIFT_INVITATION_SESSION_KEY);
+    const token = readGiftInvitationToken();
     if (!token) return;
     setClaiming(true);
     setError("");
@@ -61,7 +62,7 @@ export function GiftInvitationPage() {
         body: JSON.stringify({ token }),
         headers: { Authorization: `Bearer ${authToken}` },
       });
-      sessionStorage.removeItem(GIFT_INVITATION_SESSION_KEY);
+      clearGiftInvitationToken();
       clearOnboardingChoices();
       setLocation("/dashboard");
     } catch (cause) {

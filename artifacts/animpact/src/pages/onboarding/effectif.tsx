@@ -20,8 +20,7 @@ import {
 } from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
 import { resolveEffectifContinuePath } from "@/lib/onboardingNavigation";
-
-const GIFT_INVITATION_SESSION_KEY = "cocci_gift_invitation";
+import { readGiftInvitationToken } from "@/lib/giftInvitationStorage";
 
 export function OnboardingEffectif() {
   useDebugMount("OnboardingEffectif");
@@ -56,7 +55,7 @@ export function OnboardingEffectif() {
 
     saveEffectifSelection(selected);
     const nextPath = resolveEffectifContinuePath(
-      Boolean(sessionStorage.getItem(GIFT_INVITATION_SESSION_KEY)),
+      Boolean(readGiftInvitationToken()),
     );
     if (nextPath === "/offre") {
       setLocation(nextPath);

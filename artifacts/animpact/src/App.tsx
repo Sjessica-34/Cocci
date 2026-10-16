@@ -12,7 +12,7 @@ import {
   useGetOnboardingProgress,
   getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
-import { GIFT_INVITATION_SESSION_KEY } from "@/pages/gift-invitation";
+import { readGiftInvitationToken } from "@/lib/giftInvitationStorage";
 
 import NotFound from "@/pages/not-found";
 import { Home } from "@/pages/home";
@@ -275,7 +275,7 @@ function usePostAuthRedirect() {
         organizationsLoading,
         organizationsFetching,
         hasSubscriptionIntent: Boolean(readSubscriptionIntent()),
-        hasGiftInvitation: Boolean(sessionStorage.getItem(GIFT_INVITATION_SESSION_KEY)),
+        hasGiftInvitation: Boolean(readGiftInvitationToken()),
         onboardingStatus: onboarding?.status,
         hasPrimaryOrganization: onboarding?.primaryOrganizationId != null,
         onboardingLoading,
