@@ -88,6 +88,7 @@ import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import { runPostAuthRedirect } from "@/lib/authRedirect";
 import {
+  onboardingAllowsWorkspace,
   resolveOnboardingStepPath,
   type OnboardingStepPath,
 } from "@/lib/onboardingNavigation";
@@ -264,6 +265,14 @@ function usePostAuthRedirect() {
       meta: { debugLabel: "usePostAuthRedirect:onboarding" },
     },
   });
+  const {
+    subscription: postAuthSubscription,
+    isLoading: postAuthSubscriptionLoading,
+  } = useOrganizationSubscription(
+    onboarding?.status === "payment_pending"
+      ? onboarding.primaryOrganizationId ?? null
+      : null,
+  );
 
   useEffect(() => {
     runPostAuthRedirect(
@@ -278,8 +287,10 @@ function usePostAuthRedirect() {
         hasGiftInvitation: Boolean(readGiftInvitationToken()),
         onboardingStatus: onboarding?.status,
         hasPrimaryOrganization: onboarding?.primaryOrganizationId != null,
+        hasActiveSubscription: hasActiveOrganizationSubscription(postAuthSubscription),
         onboardingLoading,
         onboardingFetching,
+        subscriptionLoading: postAuthSubscriptionLoading,
       },
       {
         navigate: setLocation,
@@ -299,6 +310,8 @@ function usePostAuthRedirect() {
     onboarding,
     onboardingFetching,
     onboardingLoading,
+    postAuthSubscription,
+    postAuthSubscriptionLoading,
     setLocation,
   ]);
 }
@@ -511,13 +524,10 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
     error: subscriptionError,
   } = useOrganizationSubscription(subscriptionOrgId);
   const hasWorkspaceSubscription = hasActiveOrganizationSubscription(subscription);
-  const onboardingAllowsWorkspace =
-    onboarding?.status === "completed"
-    || (
-      onboarding?.status === "payment_pending"
-      && subscription?.status === "trial"
-      && hasWorkspaceSubscription
-    );
+  const canEnterWorkspaceFromOnboarding = onboardingAllowsWorkspace(
+    onboarding?.status ?? "",
+    hasWorkspaceSubscription,
+  );
 
   if (!isAuthLoaded) return <RouteLoadingFallback />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
@@ -542,7 +552,7 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
   ) {
     return <Redirect to={SUBSCRIPTION_RECOVERY_PATH} />;
   }
-  if (!onboardingAllowsWorkspace) return <Redirect to="/onboarding" />;
+  if (!canEnterWorkspaceFromOnboarding) return <Redirect to="/onboarding" />;
 
   return (
     <>

@@ -4,6 +4,7 @@ export type PostAuthRedirectInput = {
   hasGiftInvitation?: boolean;
   onboardingStatus?: string | null;
   hasPrimaryOrganization?: boolean;
+  hasActiveSubscription?: boolean;
 };
 
 export type PostAuthRedirect = {
@@ -22,8 +23,10 @@ export type PostAuthRedirectRuntimeState = {
   hasGiftInvitation?: boolean;
   onboardingStatus?: string | null;
   hasPrimaryOrganization?: boolean;
+  hasActiveSubscription?: boolean;
   onboardingLoading?: boolean;
   onboardingFetching?: boolean;
+  subscriptionLoading?: boolean;
 };
 
 export type PostAuthRedirectEffects = {
@@ -50,15 +53,20 @@ export function resolvePostAuthRedirect({
   hasGiftInvitation,
   onboardingStatus,
   hasPrimaryOrganization,
+  hasActiveSubscription,
 }: PostAuthRedirectInput): PostAuthRedirect {
   if (hasGiftInvitation) {
     return { path: "/offre", clearSubscriptionIntent: false };
   }
   if (onboardingStatus !== undefined || hasPrimaryOrganization !== undefined) {
-    const isComplete = onboardingStatus === "completed" && hasPrimaryOrganization === true;
+    const canEnterWorkspace = hasPrimaryOrganization === true
+      && (
+        onboardingStatus === "completed"
+        || (onboardingStatus === "payment_pending" && hasActiveSubscription === true)
+      );
     return {
-      path: isComplete ? "/dashboard" : "/onboarding",
-      clearSubscriptionIntent: isComplete,
+      path: canEnterWorkspace ? "/dashboard" : "/onboarding",
+      clearSubscriptionIntent: canEnterWorkspace,
     };
   }
 
@@ -91,6 +99,7 @@ export function runPostAuthRedirect(
     || state.organizationsFetching
     || state.onboardingLoading
     || state.onboardingFetching
+    || state.subscriptionLoading
     || !state.organizations
   ) {
     return false;
@@ -102,6 +111,7 @@ export function runPostAuthRedirect(
     hasGiftInvitation: state.hasGiftInvitation,
     onboardingStatus: state.onboardingStatus,
     hasPrimaryOrganization: state.hasPrimaryOrganization,
+    hasActiveSubscription: state.hasActiveSubscription,
   });
 
   if (redirect.clearSubscriptionIntent) {

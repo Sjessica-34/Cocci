@@ -13,7 +13,10 @@ import {
   shouldRedirectOnboardingToDashboard,
 } from "@/lib/authRedirect";
 import { onboardingAfterOrganizationCreated } from "@/lib/onboardingCache";
-import { resolveOnboardingStepPath } from "@/lib/onboardingNavigation";
+import {
+  onboardingAllowsWorkspace,
+  resolveOnboardingStepPath,
+} from "@/lib/onboardingNavigation";
 import {
   isCurrentClerkUser,
   SUPER_ADMIN_QUERY_STALE_TIME_MS,
@@ -83,6 +86,41 @@ test("un abonnement actif ou trial est reconnu comme accès workspace", () => {
       end_at: null,
     }),
     true,
+  );
+});
+
+test("un abonnement actif permet de sortir de payment_pending vers le workspace", () => {
+  assert.equal(onboardingAllowsWorkspace("payment_pending", true), true);
+  assert.equal(onboardingAllowsWorkspace("payment_pending", false), false);
+  assert.equal(onboardingAllowsWorkspace("completed", false), true);
+});
+
+test("un compte payment_pending avec abonnement actif revient au dashboard après authentification", () => {
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 1,
+      hasSubscriptionIntent: true,
+      onboardingStatus: "payment_pending",
+      hasPrimaryOrganization: true,
+      hasActiveSubscription: true,
+    }),
+    {
+      path: "/dashboard",
+      clearSubscriptionIntent: true,
+    },
+  );
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 1,
+      hasSubscriptionIntent: true,
+      onboardingStatus: "payment_pending",
+      hasPrimaryOrganization: true,
+      hasActiveSubscription: false,
+    }),
+    {
+      path: "/onboarding",
+      clearSubscriptionIntent: false,
+    },
   );
 });
 
