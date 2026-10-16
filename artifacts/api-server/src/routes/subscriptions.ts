@@ -100,7 +100,32 @@ router.get(
          FROM subscriptions WHERE organization_id = $1 LIMIT 1`,
         [billingOrgId],
       );
-       const sub = row.rows[0] ?? null;
+        const sub = row.rows[0] ?? null;
+        if (
+          sub?.mode === "stripe"
+          && sub.status === "suspended"
+          && sub.stripe_customer_id
+          && sub.stripe_subscription_id
+        ) {
+          try {
+            const stripe = await getUncachableStripeClient();
+            const accessActivated = await activateRecoveredSubscriptionIfSettled({
+              stripe,
+              organizationId: billingOrgId,
+              customerId: sub.stripe_customer_id,
+              subscriptionId: sub.stripe_subscription_id,
+            });
+            if (accessActivated) sub.status = "active";
+          } catch (err) {
+            // Stripe reconciliation must not make the local subscription
+            // status endpoint unavailable. Access remains suspended until
+            // Stripe can positively confirm settlement.
+            logger.warn(
+              { err, organizationId: billingOrgId },
+              "subscription recovery reconciliation unavailable",
+            );
+          }
+        }
        if (
          sub?.mode === "free"
          && sub.end_at
