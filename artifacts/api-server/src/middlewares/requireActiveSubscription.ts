@@ -2,6 +2,7 @@ import { getAuth } from "@clerk/express";
 import { pool } from "@workspace/db";
 import type { Request, Response, NextFunction } from "express";
 import { getBillingOrganizationId } from "../lib/billingOrganization";
+import { hasSubscriptionAccess, isFreeSubscriptionExpired } from "../lib/freeSubscriptionExpiry";
 
 export function hasActiveSubscriptionStatus(status: string | null | undefined): boolean {
   return status === "active" || status === "trial";
@@ -51,15 +52,28 @@ export async function requireActiveSubscription(
     }
 
     const billingOrgId = await getBillingOrganizationId(orgId);
-    const subRow = await pool.query<{ status: string }>(
-      "SELECT status FROM subscriptions WHERE organization_id = $1 LIMIT 1",
+    const subRow = await pool.query<{ status: string; mode: string; end_at: string | null }>(
+      "SELECT status, mode, end_at::text FROM subscriptions WHERE organization_id = $1 LIMIT 1",
       [billingOrgId],
     );
     const status = subRow.rows[0]?.status;
+    const endAt = subRow.rows[0]?.end_at;
+    const endedFreeSubscription = isFreeSubscriptionExpired(subRow.rows[0]?.mode, endAt);
 
-    if (hasActiveSubscriptionStatus(status)) {
+    if (hasSubscriptionAccess({
+      mode: subRow.rows[0]?.mode,
+      status,
+      endAt,
+    })) {
       next();
       return;
+    }
+
+    if (endedFreeSubscription && status !== "expired") {
+      await pool.query(
+        "UPDATE subscriptions SET status = 'expired', updated_at = NOW() WHERE organization_id = $1 AND mode = 'free' AND end_at < CURRENT_DATE AND status IN ('active', 'trial')",
+        [billingOrgId],
+      );
     }
 
     // suspended ou expired → 402

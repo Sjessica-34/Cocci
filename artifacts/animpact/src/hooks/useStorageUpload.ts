@@ -15,6 +15,19 @@ interface UseStorageUploadOptions {
   onError?: (error: Error) => void;
 }
 
+function getUploadContentType(file: File): string {
+  if (file.type) return file.type;
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  const byExtension: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+  };
+  return byExtension[extension ?? ""] ?? "application/octet-stream";
+}
+
 /**
  * Two-step presigned-URL upload that uses the generated `customFetch`
  * (with the Clerk Bearer token) for step 1, then PUTs directly to GCS.
@@ -23,18 +36,21 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
   const { currentOrgId } = useCurrentOrganization();
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<Error | null>(null);
 
   const uploadFile = useCallback(
-    async (file: File): Promise<UploadResult | null> => {
+    async (file: File, organizationId?: number | null): Promise<UploadResult | null> => {
+      setError(null);
       setIsUploading(true);
       setProgress(10);
       try {
+        const contentType = getUploadContentType(file);
         // Step 1 – get presigned URL (uses customFetch → Clerk Bearer token)
         const { uploadURL, objectPath } = await requestUploadUrl({
           name: file.name,
           size: file.size,
-          contentType: file.type || "application/octet-stream",
-          organizationId: currentOrgId ?? undefined,
+          contentType,
+          organizationId: organizationId === undefined ? currentOrgId ?? undefined : organizationId ?? undefined,
         });
 
         setProgress(40);
@@ -43,7 +59,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
         const putRes = await fetch(uploadURL, {
           method: "PUT",
           body: file,
-          headers: { "Content-Type": file.type || "application/octet-stream" },
+          headers: { "Content-Type": contentType },
         });
 
         if (!putRes.ok) throw new Error("Échec de l'envoi vers le stockage.");
@@ -61,6 +77,7 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
         return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Upload échoué");
+        setError(error);
         options.onError?.(error);
         return null;
       } finally {
@@ -72,5 +89,11 @@ export function useStorageUpload(options: UseStorageUploadOptions = {}) {
     [currentOrgId],
   );
 
-  return { uploadFile, isUploading, progress };
+  return {
+    uploadFile,
+    isUploading,
+    progress,
+    error,
+    clearError: () => setError(null),
+  };
 }

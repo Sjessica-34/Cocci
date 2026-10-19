@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -12,6 +12,7 @@ import {
   useGetOnboardingProgress,
   getGetOnboardingProgressQueryKey,
 } from "@workspace/api-client-react";
+import { readGiftInvitationToken } from "@/lib/giftInvitationStorage";
 
 import NotFound from "@/pages/not-found";
 import { Home } from "@/pages/home";
@@ -63,9 +64,12 @@ import { Onboarding } from "@/pages/onboarding/index";
 import { OnboardingFiliales } from "@/pages/onboarding/filiales";
 import { OnboardingEffectif } from "@/pages/onboarding/effectif";
 import { OnboardingAbonnement } from "@/pages/onboarding/abonnement";
+import { GiftInvitationPage } from "@/pages/gift-invitation";
 import {
   ONBOARDING_CONTINUATION_SESSION_KEY,
-  SUBSCRIPTION_INTENT_SESSION_KEY,
+  clearOnboardingChoices,
+  readEffectifSelection,
+  readSubscriptionIntent,
 } from "@/pages/onboarding/plans";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -79,16 +83,21 @@ import {
   hasActiveOrganizationSubscription,
   useOrganizationSubscription,
 } from "@/hooks/useOrganizationSubscription";
+import { SUBSCRIPTION_RECOVERY_PATH } from "@/lib/subscriptionRecovery";
 import { setAuthTokenGetter, setBaseUrl, setExerciseIdGetter } from "@workspace/api-client-react";
 import { getCurrentExerciseId } from "@/hooks/useCurrentExercise";
 import { runPostAuthRedirect } from "@/lib/authRedirect";
+import {
+  onboardingAllowsWorkspace,
+  resolveOnboardingStepPath,
+  type OnboardingStepPath,
+} from "@/lib/onboardingNavigation";
 import { useDebugMount } from "@/lib/requestDebug";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
 );
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function stripBase(path: string): string {
@@ -144,13 +153,29 @@ function ClerkUserScopedState() {
   return null;
 }
 
-function ClerkAuthTokenSetup() {
-  const { getToken } = useAuth();
+function ClerkAuthTokenSetup({ children }: { children: React.ReactNode }) {
+  const { getToken, isLoaded } = useAuth();
+  const [ready, setReady] = useState(false);
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+
   useEffect(() => {
-    setAuthTokenGetter(() => getToken());
+    if (!isLoaded) {
+      setAuthTokenGetter(null);
+      setReady(false);
+      return;
+    }
+
+    setAuthTokenGetter(() => getTokenRef.current());
+    setReady(true);
     return () => setAuthTokenGetter(null);
-  }, [getToken]);
-  return null;
+  }, [isLoaded]);
+
+  if (!isLoaded || !ready) {
+    return <RouteLoadingFallback message="Préparation de votre session…" />;
+  }
+
+  return <>{children}</>;
 }
 
 const clerkAppearance = {
@@ -213,7 +238,7 @@ function AuthBrand() {
 
 function usePostAuthRedirect() {
   useDebugMount("usePostAuthRedirect");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
   const {
     data: organizations,
@@ -240,32 +265,43 @@ function usePostAuthRedirect() {
       meta: { debugLabel: "usePostAuthRedirect:onboarding" },
     },
   });
+  const {
+    subscription: postAuthSubscription,
+    isLoading: postAuthSubscriptionLoading,
+  } = useOrganizationSubscription(
+    onboarding?.status === "payment_pending"
+      ? onboarding.primaryOrganizationId ?? null
+      : null,
+  );
 
   useEffect(() => {
     runPostAuthRedirect(
       {
+        currentPath: location,
         isLoaded,
         isSignedIn,
         organizations,
         organizationsLoading,
         organizationsFetching,
-        hasSubscriptionIntent: Boolean(
-          sessionStorage.getItem(SUBSCRIPTION_INTENT_SESSION_KEY),
-        ),
+        hasSubscriptionIntent: Boolean(readSubscriptionIntent()),
+        hasGiftInvitation: Boolean(readGiftInvitationToken()),
         onboardingStatus: onboarding?.status,
         hasPrimaryOrganization: onboarding?.primaryOrganizationId != null,
+        hasActiveSubscription: hasActiveOrganizationSubscription(postAuthSubscription),
         onboardingLoading,
         onboardingFetching,
+        subscriptionLoading: postAuthSubscriptionLoading,
       },
       {
         navigate: setLocation,
         clearOnboardingSession: () => {
-          sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+          clearOnboardingChoices();
           sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
         },
       },
     );
   }, [
+    location,
     isLoaded,
     isSignedIn,
     organizations,
@@ -274,6 +310,8 @@ function usePostAuthRedirect() {
     onboarding,
     onboardingFetching,
     onboardingLoading,
+    postAuthSubscription,
+    postAuthSubscriptionLoading,
     setLocation,
   ]);
 }
@@ -326,36 +364,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
-type OnboardingStepPath =
-  | "/onboarding"
-  | "/onboarding/filiales"
-  | "/onboarding/effectif"
-  | "/onboarding/abonnement"
-  | "/dashboard";
-
-function resolveOnboardingStepPath(
-  status: string,
-  organizations: readonly { parentId?: number | null; type?: string | null }[],
-): OnboardingStepPath {
-  if (status === "completed") return "/dashboard";
-
-  const rootOrganization = organizations.find((organization) => !organization.parentId);
-  if (status === "organization_created" && rootOrganization?.type === "groupe") {
-    return "/onboarding/filiales";
-  }
-  if (status === "organization_created" || status === "subsidiaries_configured") {
-    return "/onboarding/effectif";
-  }
-  if (
-    status === "workforce_completed"
-    || status === "subscription_selected"
-    || status === "payment_pending"
-  ) {
-    return "/onboarding/abonnement";
-  }
-  return "/onboarding";
-}
-
 /**
  * Protects the secondary onboarding URLs from reopening setup for an existing
  * account. The continuation marker is set immediately after the first
@@ -400,8 +408,20 @@ function OnboardingStepGuard({
     },
   });
 
+  const sessionEffectifKey = readEffectifSelection();
+  const subscriptionIntent = readSubscriptionIntent();
+  const hasEffectifSelection = Boolean(onboarding?.effectifKey || sessionEffectifKey);
+  const hasMatchingSubscriptionIntent = Boolean(
+    subscriptionIntent
+    && (subscriptionIntent === onboarding?.effectifKey || subscriptionIntent === sessionEffectifKey),
+  );
   const targetPath = onboarding && orgs
-    ? resolveOnboardingStepPath(onboarding.status, orgs)
+    ? resolveOnboardingStepPath({
+        status: onboarding.status,
+        organizations: orgs,
+        hasEffectifSelection,
+        hasMatchingSubscriptionIntent,
+      })
     : null;
 
   useEffect(() => {
@@ -416,11 +436,16 @@ function OnboardingStepGuard({
       || !onboarding
     ) return;
 
-    const nextPath = resolveOnboardingStepPath(onboarding.status, orgs);
+    const nextPath = resolveOnboardingStepPath({
+      status: onboarding.status,
+      organizations: orgs,
+      hasEffectifSelection,
+      hasMatchingSubscriptionIntent,
+    });
     if (nextPath === stepPath) return;
 
     if (nextPath === "/dashboard") {
-      sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+      clearOnboardingChoices();
       sessionStorage.removeItem(ONBOARDING_CONTINUATION_SESSION_KEY);
     }
     setLocation(nextPath, { replace: true });
@@ -433,6 +458,8 @@ function OnboardingStepGuard({
     onboardingFetching,
     onboardingLoading,
     orgs,
+    hasEffectifSelection,
+    hasMatchingSubscriptionIntent,
     setLocation,
     stepPath,
   ]);
@@ -497,13 +524,10 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
     error: subscriptionError,
   } = useOrganizationSubscription(subscriptionOrgId);
   const hasWorkspaceSubscription = hasActiveOrganizationSubscription(subscription);
-  const onboardingAllowsWorkspace =
-    onboarding?.status === "completed"
-    || (
-      onboarding?.status === "payment_pending"
-      && subscription?.status === "trial"
-      && hasWorkspaceSubscription
-    );
+  const canEnterWorkspaceFromOnboarding = onboardingAllowsWorkspace(
+    onboarding?.status ?? "",
+    hasWorkspaceSubscription,
+  );
 
   if (!isAuthLoaded) return <RouteLoadingFallback />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
@@ -526,9 +550,9 @@ function WorkspaceGuard({ component: Component }: { component: React.ComponentTy
     )
     && (onboarding.status === "completed" || onboarding.status === "payment_pending")
   ) {
-    return <Redirect to="/abonnement?reason=subscription_required" />;
+    return <Redirect to={SUBSCRIPTION_RECOVERY_PATH} />;
   }
-  if (!onboardingAllowsWorkspace) return <Redirect to="/onboarding" />;
+  if (!canEnterWorkspaceFromOnboarding) return <Redirect to="/onboarding" />;
 
   return (
     <>
@@ -557,7 +581,6 @@ function ClerkProviderWithRoutes() {
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       localization={clerkLocalization}
       signInUrl={`${basePath}/sign-in`}
@@ -566,15 +589,16 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
-        <ClerkQueryClientCacheInvalidator />
-        <ClerkUserScopedState />
-        <ClerkAuthTokenSetup />
-        <TooltipProvider>
-          <Switch>
+        <ClerkAuthTokenSetup>
+          <ClerkQueryClientCacheInvalidator />
+          <ClerkUserScopedState />
+          <TooltipProvider>
+            <Switch>
             <Route path="/" component={HomeRedirect} />
             <Route path="/demo"><Demo /></Route>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/offre" component={GiftInvitationPage} />
 
             {/* Onboarding — first-time setup (no AppLayout) */}
             <Route path="/onboarding">
@@ -649,9 +673,10 @@ function ClerkProviderWithRoutes() {
             <Route path="/echanges"><WorkspaceGuard component={EchangesCocci} /></Route>
 
             <Route component={NotFound} />
-          </Switch>
-          <Toaster />
-        </TooltipProvider>
+            </Switch>
+            <Toaster />
+          </TooltipProvider>
+        </ClerkAuthTokenSetup>
       </QueryClientProvider>
     </ClerkProvider>
   );

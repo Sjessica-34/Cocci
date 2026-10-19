@@ -1,6 +1,7 @@
+import { Readable } from "node:stream";
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, pool, publicLinksTable } from "@workspace/db";
+import { db, pool, publicLinksTable, organizationsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import {
   requireOrgMembership,
@@ -11,8 +12,63 @@ import {
 import { logger } from "../lib/logger";
 import { ALL_SUBCATEGORIES, COMPLETENESS_THRESHOLD, getMaturityLabel } from "@workspace/rse-referentials";
 import crypto from "crypto";
+import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 
 const router = Router();
+const objectStorageService = new ObjectStorageService();
+
+function privateLogoObjectPath(logoUrl: string | null): string | null {
+  if (!logoUrl) return null;
+  try {
+    const pathname = new URL(logoUrl, "http://cocci.local").pathname;
+    const marker = "/api/storage/objects/";
+    const index = pathname.lastIndexOf(marker);
+    return index >= 0 ? pathname.slice(index + "/api/storage".length) : null;
+  } catch {
+    return null;
+  }
+}
+
+router.get("/public/rse/:token/logo", async (req, res): Promise<void> => {
+  try {
+    const [link] = await db
+      .select({ organizationId: publicLinksTable.organizationId })
+      .from(publicLinksTable)
+      .where(eq(publicLinksTable.token, req.params.token))
+      .limit(1);
+    if (!link) {
+      res.status(404).json({ error: "Logo not found" });
+      return;
+    }
+    const [org] = await db
+      .select({ logoUrl: organizationsTable.logoUrl })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, link.organizationId))
+      .limit(1);
+    const objectPath = privateLogoObjectPath(org?.logoUrl ?? null);
+    if (!objectPath) {
+      res.status(404).json({ error: "Logo not found" });
+      return;
+    }
+    const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+    const response = await objectStorageService.downloadObject(objectFile);
+    res.status(response.status);
+    response.headers.forEach((value, key) => res.setHeader(key, value));
+    res.setHeader("Cache-Control", "private, no-store");
+    if (response.body) {
+      Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(res);
+    } else {
+      res.end();
+    }
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) {
+      res.status(404).json({ error: "Logo not found" });
+      return;
+    }
+    req.log.error({ err: error }, "Failed to serve report logo");
+    res.status(500).json({ error: "Failed to serve logo" });
+  }
+});
 
 // ── Calcul des scores par axe E/S/G ───────────────────────────────────────────
 
@@ -409,7 +465,12 @@ router.get("/public/rse/:token", async (req, res): Promise<void> => {
     };
 
     res.json({
-      organization: { name: org.name, logoUrl: org.logo_url, sector: org.sector, size: org.size },
+      organization: {
+        name: org.name,
+        logoUrl: privateLogoObjectPath(org.logo_url) ? `/api/public/rse/${token}/logo` : org.logo_url,
+        sector: org.sector,
+        size: org.size,
+      },
       exercise: { year: exercise.year },
       updatedAt: (reportDraft?.updated_at ?? new Date()).toISOString(),
       scores,

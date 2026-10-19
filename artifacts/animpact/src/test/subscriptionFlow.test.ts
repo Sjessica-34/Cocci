@@ -7,10 +7,20 @@ import {
   isSubscriptionCheckoutButtonDisabled,
 } from "@/hooks/useOrganizationSubscription";
 import {
+  isNavigationTargetCurrent,
   resolvePostAuthRedirect,
   runPostAuthRedirect,
   shouldRedirectOnboardingToDashboard,
 } from "@/lib/authRedirect";
+import { onboardingAfterOrganizationCreated } from "@/lib/onboardingCache";
+import {
+  onboardingAllowsWorkspace,
+  resolveOnboardingStepPath,
+} from "@/lib/onboardingNavigation";
+import {
+  isCurrentClerkUser,
+  SUPER_ADMIN_QUERY_STALE_TIME_MS,
+} from "@/lib/superAdminQueryPolicy";
 
 test("une réponse subscription: null laisse le bouton Souscrire utilisable", () => {
   const subscriptionReady = isOrganizationSubscriptionReady(42, null, false);
@@ -79,6 +89,41 @@ test("un abonnement actif ou trial est reconnu comme accès workspace", () => {
   );
 });
 
+test("un abonnement actif permet de sortir de payment_pending vers le workspace", () => {
+  assert.equal(onboardingAllowsWorkspace("payment_pending", true), true);
+  assert.equal(onboardingAllowsWorkspace("payment_pending", false), false);
+  assert.equal(onboardingAllowsWorkspace("completed", false), true);
+});
+
+test("un compte payment_pending avec abonnement actif revient au dashboard après authentification", () => {
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 1,
+      hasSubscriptionIntent: true,
+      onboardingStatus: "payment_pending",
+      hasPrimaryOrganization: true,
+      hasActiveSubscription: true,
+    }),
+    {
+      path: "/dashboard",
+      clearSubscriptionIntent: true,
+    },
+  );
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 1,
+      hasSubscriptionIntent: true,
+      onboardingStatus: "payment_pending",
+      hasPrimaryOrganization: true,
+      hasActiveSubscription: false,
+    }),
+    {
+      path: "/onboarding",
+      clearSubscriptionIntent: false,
+    },
+  );
+});
+
 test("un compte existant reprend toujours le dashboard après authentification", () => {
   assert.deepEqual(
     resolvePostAuthRedirect({
@@ -105,6 +150,22 @@ test("un nouvel utilisateur avec une intention d'abonnement commence l'onboardin
   );
 });
 
+test("une invitation en attente reprend après Clerk même pour un compte déjà existant", () => {
+  assert.deepEqual(
+    resolvePostAuthRedirect({
+      organizationCount: 1,
+      hasSubscriptionIntent: false,
+      hasGiftInvitation: true,
+      onboardingStatus: "completed",
+      hasPrimaryOrganization: true,
+    }),
+    {
+      path: "/offre",
+      clearSubscriptionIntent: false,
+    },
+  );
+});
+
 test("un nouvel utilisateur sans intention d'abonnement arrive au dashboard", () => {
   assert.deepEqual(
     resolvePostAuthRedirect({
@@ -120,7 +181,7 @@ test("un nouvel utilisateur sans intention d'abonnement arrive au dashboard", ()
 
 test("le branchement Clerk/React Query envoie un compte configuré au dashboard", () => {
   const navigationCalls: Array<{
-    path: "/dashboard" | "/onboarding";
+    path: "/dashboard" | "/onboarding" | "/offre";
     options: { replace: true };
   }> = [];
   let onboardingSessionCleared = false;
@@ -150,6 +211,124 @@ test("le branchement Clerk/React Query envoie un compte configuré au dashboard"
   assert.notEqual(navigationCalls[0]?.path, "/onboarding");
 });
 
+test("la redirection post-auth ne remplace pas la route déjà affichée", () => {
+  const navigationCalls: string[] = [];
+  const redirected = runPostAuthRedirect(
+    {
+      currentPath: "/dashboard/",
+      isLoaded: true,
+      isSignedIn: true,
+      organizations: [{ id: "org_existing" }],
+      organizationsLoading: false,
+      organizationsFetching: false,
+      hasSubscriptionIntent: false,
+      onboardingLoading: false,
+      onboardingFetching: false,
+    },
+    {
+      navigate: (path) => navigationCalls.push(path),
+      clearOnboardingSession: () => {},
+    },
+  );
+
+  assert.equal(redirected, false);
+  assert.deepEqual(navigationCalls, []);
+  assert.equal(isNavigationTargetCurrent("/dashboard?tab=overview", "/dashboard"), true);
+});
+
+test("la création d'une organisation met à jour le cache onboarding sans perdre l'effectif", () => {
+  assert.deepEqual(
+    onboardingAfterOrganizationCreated(
+      {
+        status: "not_started",
+        effectifKey: "11-25",
+        completedAt: null,
+        primaryOrganizationId: null,
+      },
+      42,
+    ),
+    {
+      status: "organization_created",
+      effectifKey: "11-25",
+      completedAt: null,
+      primaryOrganizationId: 42,
+    },
+  );
+});
+
+test("une intention de forfait correspondante reprend directement l'abonnement après la création de l'espace", () => {
+  assert.equal(
+    resolveOnboardingStepPath({
+      status: "organization_created",
+      organizations: [{ id: 42, type: "entreprise", parentId: null }],
+      hasEffectifSelection: true,
+      hasMatchingSubscriptionIntent: true,
+    }),
+    "/onboarding/abonnement",
+  );
+  assert.equal(
+    resolveOnboardingStepPath({
+      status: "organization_created",
+      organizations: [{ id: 42, type: "entreprise", parentId: null }],
+      hasEffectifSelection: false,
+      hasMatchingSubscriptionIntent: false,
+    }),
+    "/onboarding/effectif",
+  );
+});
+
+test("les groupes passent par le récapitulatif avant Checkout et un forfait sans effectif revient à la sélection", () => {
+  assert.equal(
+    resolveOnboardingStepPath({
+      status: "organization_created",
+      organizations: [{ id: 42, type: "groupe", parentId: null }],
+      hasEffectifSelection: true,
+      hasMatchingSubscriptionIntent: true,
+    }),
+    "/onboarding/abonnement",
+  );
+  assert.equal(
+    resolveOnboardingStepPath({
+      status: "workforce_completed",
+      organizations: [{ id: 42, type: "entreprise", parentId: null }],
+      hasEffectifSelection: false,
+      hasMatchingSubscriptionIntent: false,
+    }),
+    "/onboarding/effectif",
+  );
+});
+
+test("la reprise d'onboarding suit la dernière étape persistée sans ressaisir l'effectif", () => {
+  const org = [{ id: 42, type: "entreprise", parentId: null }];
+  const group = [{ id: 43, type: "groupe", parentId: null }];
+  const route = (
+    status: string,
+    organizations: typeof org,
+    hasEffectifSelection: boolean,
+    hasMatchingSubscriptionIntent: boolean,
+  ) => resolveOnboardingStepPath({
+    status,
+    organizations,
+    hasEffectifSelection,
+    hasMatchingSubscriptionIntent,
+  });
+
+  assert.equal(route("subsidiaries_configured", org, true, false), "/onboarding/effectif");
+  assert.equal(route("subsidiaries_configured", org, true, true), "/onboarding/abonnement");
+  assert.equal(route("workforce_completed", org, true, false), "/onboarding/abonnement");
+  assert.equal(route("subscription_selected", org, true, false), "/onboarding/abonnement");
+  assert.equal(route("payment_pending", org, true, false), "/onboarding/abonnement");
+  assert.equal(route("completed", org, true, false), "/dashboard");
+  assert.equal(route("organization_created", group, true, true), "/onboarding/abonnement");
+});
+
+test("les droits superadmin ont une fraîcheur bornée et le changement de son propre rôle est détecté", () => {
+  assert.equal(SUPER_ADMIN_QUERY_STALE_TIME_MS, 2 * 60 * 1000);
+  assert.equal(isCurrentClerkUser("clerk_user_1", "clerk_user_1"), true);
+  assert.equal(isCurrentClerkUser("clerk_user_2", "clerk_user_1"), false);
+  assert.equal(isCurrentClerkUser(undefined, "clerk_user_1"), false);
+});
+
 test("la redirection post-auth attend que Clerk et les organisations soient prêts", () => {
   const navigatedTo: string[] = [];
   const effects = {
@@ -166,6 +345,22 @@ test("la redirection post-auth attend que Clerk et les organisations soient prê
         organizationsLoading: true,
         organizationsFetching: false,
         hasSubscriptionIntent: true,
+      },
+      effects,
+    ),
+    false,
+  );
+  assert.deepEqual(navigatedTo, []);
+
+  assert.equal(
+    runPostAuthRedirect(
+      {
+        isLoaded: true,
+        isSignedIn: false,
+        organizations: undefined,
+        organizationsLoading: false,
+        organizationsFetching: false,
+        hasSubscriptionIntent: false,
       },
       effects,
     ),

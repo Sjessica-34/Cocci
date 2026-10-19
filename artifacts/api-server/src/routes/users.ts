@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { and, eq, desc, ne, sql } from "drizzle-orm";
+import { and, eq, desc, isNotNull, ne, sql } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { z } from "zod";
 import {
   db,
   usersTable,
+  giftInvitationsTable,
   membersTable,
   organizationsTable,
   userConsentsTable,
@@ -14,6 +15,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { sensitiveLimiter } from "../middlewares/rateLimit";
 import { getOrCreateUser } from "../lib/auth";
 import { logAuditEvent } from "../lib/audit";
+import { shouldCompleteOnboardingForClaimedGift } from "../lib/giftInvitationPolicy";
 import { GetMeResponse, UpdateMeBody, UpdateMeResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -109,11 +111,35 @@ router.patch("/users/me", requireAuth, async (req, res): Promise<void> => {
 router.get("/users/me/onboarding", requireAuth, async (req, res): Promise<void> => {
   res.setHeader("Cache-Control", "no-store");
   const user = await getOrCreateUser(req.clerkUserId!);
-  const [progress] = await db
+  let [progress] = await db
     .select()
     .from(onboardingProgressTable)
     .where(eq(onboardingProgressTable.userId, user.id))
     .limit(1);
+
+  if (progress?.status !== "completed" && user.primaryOrganizationId != null) {
+    const [claimedGift] = await db
+      .select({ organizationId: giftInvitationsTable.organizationId })
+      .from(giftInvitationsTable)
+      .where(and(
+        eq(giftInvitationsTable.organizationId, user.primaryOrganizationId),
+        isNotNull(giftInvitationsTable.claimedAt),
+      ))
+      .limit(1);
+    if (shouldCompleteOnboardingForClaimedGift({
+      onboardingStatus: progress?.status,
+      primaryOrganizationId: user.primaryOrganizationId,
+      claimedInvitationOrganizationId: claimedGift?.organizationId,
+    })) {
+      const completedAt = new Date();
+      const [repairedProgress] = await db
+        .update(onboardingProgressTable)
+        .set({ status: "completed", completedAt, updatedAt: completedAt })
+        .where(eq(onboardingProgressTable.userId, user.id))
+        .returning();
+      progress = repairedProgress ?? progress;
+    }
+  }
 
   res.json({
     status: progress?.status ?? "not_started",

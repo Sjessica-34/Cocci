@@ -29,6 +29,7 @@ import echangesRouter from "./echanges";
 import auditRouter from "./audit";
 import publicRseRouter from "./publicRse";
 import subscriptionsRouter from "./subscriptions";
+import giftInvitationsRouter from "./giftInvitations";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership } from "../middlewares/exerciseScope";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
@@ -48,8 +49,10 @@ function requireActiveSubscriptionExceptOrganizationSetup(
     && req.body
     && Object.keys(req.body).length === 1
     && Object.prototype.hasOwnProperty.call(req.body, "groupMode");
+  const isOrganizationLogoSetup =
+    req.method === "POST" && req.path === "/logo";
 
-  if (isGroupModeSetupUpdate) {
+  if (isGroupModeSetupUpdate || isOrganizationLogoSetup) {
     next();
     return;
   }
@@ -64,6 +67,7 @@ router.use(usersRouter);
 // suspendu doit pouvoir consulter son statut et accéder au checkout/portail Stripe
 // pour se réabonner. Ces routes ont leurs propres gardes requireAuth + requireOrgMembership.
 router.use(subscriptionsRouter);
+router.use(giftInvitationsRouter);
 
 // Paywall : toutes les routes /organizations/:orgId/* nécessitent un abonnement actif.
 // La chaîne complète : auth → vérification d'appartenance → vérification d'abonnement.

@@ -18,6 +18,16 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Serve an organization's private logo through its public RSE link
+ */
+export const GetPublicRseLogoParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicRseLogoResponse = zod.unknown()
+
+
+/**
  * Returns the authenticated user's profile (JIT-provisioned from Clerk)
  * @summary Get current user profile
  */
@@ -137,7 +147,8 @@ export const CreateOrganizationBody = zod.object({
   "type": zod.enum(['entreprise', 'groupe']).optional(),
   "parentId": zod.number().optional().describe('ID of the parent group. Only valid when type=\'entreprise\'.'),
   "groupMode": zod.enum(['manual', 'auto']).optional(),
-  "exerciseOpeningMonth": zod.number().min(1).max(createOrganizationBodyExerciseOpeningMonthMax).optional()
+  "exerciseOpeningMonth": zod.number().min(1).max(createOrganizationBodyExerciseOpeningMonthMax).optional(),
+  "logoUrl": zod.string().optional()
 })
 
 export const createOrganizationResponseTypeDefault = `entreprise`;
@@ -236,6 +247,26 @@ export const UpdateOrganizationResponse = zod.object({
   "exerciseOpeningMonth": zod.number().min(1).max(updateOrganizationResponseExerciseOpeningMonthMax).optional().describe('Month (1-12) from which \"Clôturer et créer l\'exercice suivant\" becomes available. Defaults to 12 (Décembre).\n'),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Attach a privately uploaded logo to an organization
+ */
+export const AttachOrganizationLogoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const attachOrganizationLogoBodyObjectPathRegExp = new RegExp('^/objects');
+
+
+export const AttachOrganizationLogoBody = zod.object({
+  "objectPath": zod.string().regex(attachOrganizationLogoBodyObjectPathRegExp),
+  "fileUrl": zod.string()
+})
+
+export const AttachOrganizationLogoResponse = zod.object({
+  "success": zod.boolean()
 })
 
 
@@ -1109,6 +1140,92 @@ export const UpsertAdminSubscriptionResponse = zod.object({
 
 
 /**
+ * @summary List gift invitations for superadmins
+ */
+export const ListGiftInvitationsResponseItem = zod.object({
+  "id": zod.number(),
+  "email": zod.string().email(),
+  "offerName": zod.string(),
+  "effectifKey": zod.string(),
+  "durationMonths": zod.number().nullable(),
+  "expiresAt": zod.coerce.date(),
+  "claimedAt": zod.coerce.date().nullish(),
+  "revokedAt": zod.coerce.date().nullish(),
+  "organizationId": zod.number().nullish()
+})
+export const ListGiftInvitationsResponse = zod.array(ListGiftInvitationsResponseItem)
+
+
+/**
+ * @summary Create a secure complimentary subscription invitation
+ */
+export const createGiftInvitationBodySendEmailDefault = false;
+
+export const CreateGiftInvitationBody = zod.object({
+  "email": zod.string().email(),
+  "effectifKey": zod.enum(['1-5', '6-10', '11-25', '26-50', '51-100', '101-250', '250+']),
+  "durationMonths": zod.union([zod.literal(1),zod.literal(3),zod.literal(6),zod.literal(12),zod.literal(null)]).nullable(),
+  "sendEmail": zod.boolean().default(createGiftInvitationBodySendEmailDefault)
+})
+
+export const CreateGiftInvitationResponse = zod.object({
+  "id": zod.number(),
+  "url": zod.string().url(),
+  "expiresAt": zod.coerce.date(),
+  "emailSent": zod.boolean()
+})
+
+
+/**
+ * @summary Revoke an unused invitation
+ */
+export const RevokeGiftInvitationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RevokeGiftInvitationResponse = zod.void()
+
+
+/**
+ * @summary Validate an invitation token before signup
+ */
+export const validateGiftInvitationBodyTokenMin = 32;
+export const validateGiftInvitationBodyTokenMax = 128;
+
+
+
+export const ValidateGiftInvitationBody = zod.object({
+  "token": zod.string().min(validateGiftInvitationBodyTokenMin).max(validateGiftInvitationBodyTokenMax)
+})
+
+export const ValidateGiftInvitationResponse = zod.object({
+  "email": zod.string().email(),
+  "effectifKey": zod.string(),
+  "offerName": zod.string(),
+  "durationMonths": zod.number().nullish(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Claim a gift invitation for the authenticated user's organization
+ */
+export const claimGiftInvitationBodyTokenMin = 32;
+export const claimGiftInvitationBodyTokenMax = 128;
+
+
+
+export const ClaimGiftInvitationBody = zod.object({
+  "token": zod.string().min(claimGiftInvitationBodyTokenMin).max(claimGiftInvitationBodyTokenMax)
+})
+
+export const ClaimGiftInvitationResponse = zod.object({
+  "organizationId": zod.number(),
+  "endAt": zod.coerce.date().nullable()
+})
+
+
+/**
  * @summary Get RSE report generation quotas by exercise (superadmin)
  */
 export const GetAdminReportGenerationQuotasParams = zod.object({
@@ -1267,6 +1384,21 @@ export const ReactivateAdminOrganizationResponse = zod.object({
   "overflow": zod.number().nullish()
 }).optional(),
   "healthScore": zod.number().describe('Score 0–100 calculé automatiquement')
+})
+
+
+/**
+ * @summary Diagnose blockers keeping a Stripe subscription suspended (superadmin)
+ */
+export const DiagnoseAdminOrganizationStripeAccessParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DiagnoseAdminOrganizationStripeAccessResponse = zod.object({
+  "status": zod.enum(['checked', 'unavailable']),
+  "hasUnpaidInvoice": zod.boolean(),
+  "hasPendingPayment": zod.boolean(),
+  "hasUnresolvedDispute": zod.boolean()
 })
 
 

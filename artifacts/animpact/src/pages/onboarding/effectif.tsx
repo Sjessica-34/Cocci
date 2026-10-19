@@ -11,17 +11,27 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
-import { EFFECTIF_OPTIONS, EFFECTIF_SESSION_KEY, type EffectifKey } from "./plans";
+import {
+  EFFECTIF_OPTIONS,
+  readEffectifSelection,
+  saveEffectifSelection,
+  saveSubscriptionIntent,
+  type EffectifKey,
+} from "./plans";
 import { useDebugMount } from "@/lib/requestDebug";
+import { resolveEffectifContinuePath } from "@/lib/onboardingNavigation";
+import { readGiftInvitationToken } from "@/lib/giftInvitationStorage";
 
 export function OnboardingEffectif() {
   useDebugMount("OnboardingEffectif");
   const [, setLocation] = useLocation();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [selected, setSelected] = useState<EffectifKey | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { data: onboarding } = useGetOnboardingProgress({
     query: {
       queryKey: getGetOnboardingProgressQueryKey(),
+      enabled: isAuthLoaded && isSignedIn,
       meta: { debugLabel: "OnboardingEffectif:onboarding" },
     },
   });
@@ -29,35 +39,43 @@ export function OnboardingEffectif() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    const key = onboarding?.effectifKey as EffectifKey | null | undefined;
-    if (key && EFFECTIF_OPTIONS.some((option) => option.key === key)) {
-      setSelected(key);
-    }
+    setSelected((onboarding?.effectifKey as EffectifKey | null | undefined) ?? readEffectifSelection());
   }, [onboarding?.effectifKey]);
 
   async function handleContinue() {
     if (!selected) return;
+    setError(null);
 
     if (isAuthLoaded && isSignedIn) {
       if (onboarding?.status === "completed") {
         setLocation("/dashboard", { replace: true });
         return;
       }
-      if (
-        onboarding?.status === "subscription_selected"
-        || onboarding?.status === "payment_pending"
-      ) {
-        setLocation("/onboarding/abonnement", { replace: true });
-        return;
-      }
     }
 
-    sessionStorage.setItem(EFFECTIF_SESSION_KEY, selected);
+    saveEffectifSelection(selected);
+    const nextPath = resolveEffectifContinuePath(
+      Boolean(readGiftInvitationToken()),
+    );
+    if (nextPath === "/offre") {
+      setLocation(nextPath);
+      return;
+    }
+    // Le bouton annonce explicitement la formule : enregistrer l'intention
+    // permet à la garde de laisser passer les organisations déjà créées.
+    saveSubscriptionIntent(selected);
     if (isAuthLoaded && isSignedIn) {
       try {
-        await updateProgress.mutateAsync({
-          data: { status: "workforce_completed", effectifKey: selected },
+        const savedStatus = onboarding?.status === "organization_created"
+          || onboarding?.status === "subsidiaries_configured"
+          || onboarding?.status === "subscription_selected"
+          || onboarding?.status === "payment_pending"
+          ? onboarding.status
+          : "workforce_completed";
+        const updatedOnboarding = await updateProgress.mutateAsync({
+          data: { status: savedStatus, effectifKey: selected },
         });
+        qc.setQueryData(getGetOnboardingProgressQueryKey(), updatedOnboarding);
       } catch (error: any) {
         if (error?.status === 409 || error?.message?.includes("409")) {
           await qc.invalidateQueries({
@@ -66,10 +84,11 @@ export function OnboardingEffectif() {
           setLocation("/onboarding", { replace: true });
           return;
         }
+        setError("Impossible d’enregistrer cette étape. Vérifiez votre connexion puis réessayez.");
         return;
       }
     }
-    setLocation("/onboarding/abonnement");
+    setLocation(nextPath);
   }
 
   return (
@@ -101,7 +120,11 @@ export function OnboardingEffectif() {
             <button
               key={opt.key}
               type="button"
-              onClick={() => setSelected(opt.key)}
+              onClick={() => {
+                setSelected(opt.key);
+                saveEffectifSelection(opt.key);
+              }}
+              data-testid={`button-effectif-${opt.key}`}
               className={cn(
                 "w-full text-left px-4 py-3 rounded-xl border transition-colors text-sm font-medium",
                 selected === opt.key
@@ -121,6 +144,11 @@ export function OnboardingEffectif() {
         >
           Voir ma formule →
         </Button>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );
