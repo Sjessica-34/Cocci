@@ -94,6 +94,7 @@ export function Abonnement() {
     subscription,
     isLoading: subscriptionLoading,
     isActive,
+    refresh: refreshSubscription,
   } = useOrganizationSubscription(currentOrgId);
   const {
     data: organization,
@@ -119,7 +120,54 @@ export function Abonnement() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+  const recoverySessionId = searchParams.get("sepaRecoverySession");
+  const recoveryCancelled = searchParams.get("recoveryCancelled") === "1";
+
+  useEffect(() => {
+    if (!currentOrgId || !recoverySessionId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const token = await getToken({ skipCache: true });
+        if (!token) throw new Error("Authentication token unavailable");
+        const result = await customFetch<{
+          status: "paid" | "processing";
+          accessActivated?: boolean;
+        }>(
+          `/api/organizations/${currentOrgId}/stripe/recovery/complete`,
+          {
+            method: "POST",
+            body: JSON.stringify({ sessionId: recoverySessionId }),
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        if (!cancelled) {
+          setRecoveryMessage(
+            result.status === "paid"
+              ? result.accessActivated
+                ? "La facture est réglée et votre accès Cocci est réactivé."
+                : "La facture est réglée. Stripe doit encore confirmer les conditions de réactivation de votre accès."
+              : "Le nouveau mandat est enregistré. Le prélèvement est en cours de traitement; votre accès reste suspendu jusqu'à la confirmation de Stripe.",
+          );
+          refreshSubscription();
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setRecoveryMessage(
+            error instanceof ApiError && error.status === 409
+              ? "La facture ou la souscription a changé d'état. Rechargez la page ou contactez le support avant de réessayer."
+              : "La régularisation n'a pas abouti. Votre accès reste suspendu; vous pouvez réessayer.",
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentOrgId, getToken, recoverySessionId, refreshSubscription]);
 
   // Charger plans + statut en parallèle
   useEffect(() => {
@@ -175,6 +223,10 @@ export function Abonnement() {
       setLoadingPlanKey(null);
       const checkoutError =
         error instanceof ApiError ? (error.data as CheckoutError | null) : null;
+      if (checkoutError?.code === "SUBSCRIPTION_RECOVERY_REQUIRED") {
+        alert("Votre abonnement existe toujours. Utilisez « Régulariser mon prélèvement » pour régler la situation sans créer un nouvel abonnement.");
+        return;
+      }
       if (checkoutError?.code === "PLAN_TOO_SMALL") {
         const count = checkoutError.employeeCount;
         alert(
@@ -220,7 +272,59 @@ export function Abonnement() {
     }
   };
 
+  const handleSepaRecovery = async () => {
+    if (!currentOrgId) return;
+    setRecoveryLoading(true);
+    const recoveryWindow = window.open("about:blank", "cocci-sepa-recovery");
+    if (recoveryWindow) {
+      recoveryWindow.document.title = "Régularisation SEPA Cocci";
+      recoveryWindow.document.body.style.cssText =
+        "margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;color:#163028;background:#f8faf9";
+      recoveryWindow.document.body.textContent = "Vérification de la facture et redirection sécurisée…";
+    }
+    try {
+      const token = await getToken({ skipCache: true });
+      if (!token) throw new Error("Authentication token unavailable");
+      const result = await customFetch<{ url?: string; status?: "active" }>(
+        `/api/organizations/${currentOrgId}/stripe/recovery/setup`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (result.status === "active") {
+        recoveryWindow?.close();
+        setRecoveryMessage("Stripe confirme que la facture est réglée. Votre accès Cocci est réactivé.");
+        refreshSubscription();
+        return;
+      }
+      if (!result.url) throw new Error("URL de régularisation manquante");
+      if (recoveryWindow && !recoveryWindow.closed) {
+        recoveryWindow.location.href = result.url;
+      } else {
+        (window.top ?? window).location.href = result.url;
+      }
+    } catch (error) {
+      recoveryWindow?.close();
+      const serverMessage = error instanceof ApiError
+        ? (error.data as { error?: string } | null)?.error
+        : null;
+      const message = error instanceof ApiError && error.status === 409
+        ? `${serverMessage ?? "Stripe ne confirme pas actuellement une souscription récupérable."} Aucun paiement n'a été lancé.`
+        : "Impossible de préparer la régularisation. Aucun nouveau paiement n'a été lancé.";
+      setRecoveryMessage(message);
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
   const hasAnyActive = subscription?.status === "active";
+  const isSuspendedStripeSubscription =
+    subscription?.mode === "stripe" && subscription.status === "suspended";
+  const canOpenSubscriptionPortal =
+    subscription?.mode === "stripe"
+    && Boolean(subscription.stripe_customer_id)
+    && ["active", "trial", "suspended"].includes(subscription.status ?? "");
   const cancelled = searchParams.get("cancelled") === "1";
   const employeeCount =
     organization?.employeeCount ?? workforce?.data?.totalHeadcount ?? null;
@@ -251,6 +355,16 @@ export function Abonnement() {
             <p className="text-sm text-amber-800">Paiement annulé. Votre abonnement n'a pas été modifié.</p>
           </div>
         )}
+        {recoveryCancelled && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Régularisation annulée. Votre abonnement n&apos;a pas été modifié.
+          </div>
+        )}
+        {recoveryMessage && (
+          <div role="status" className="mb-6 rounded-xl border border-[#d8e7df] bg-[#f3f8f5] p-4 text-sm text-[#163028]">
+            {recoveryMessage}
+          </div>
+        )}
 
         {/* ── Statut actuel ── */}
         {subscriptionLoading && currentOrgId && (
@@ -268,16 +382,37 @@ export function Abonnement() {
                 </span>
                 <Badge variant={hasAnyActive ? "default" : "secondary"}
                   className={hasAnyActive ? "bg-green-100 text-green-800 border-0" : ""}>
-                  {subscription?.status === "active" ? "Actif" : subscription?.status === "trial" ? "Essai" : subscription?.status ?? "—"}
+                  {subscription?.status === "active"
+                    ? "Actif"
+                    : subscription?.status === "trial"
+                      ? subscription.mode === "stripe" ? "Prélèvement en attente" : "Essai"
+                      : subscription?.status ?? "—"}
                 </Badge>
               </div>
             </div>
-            {isActive && (
-              <Button variant="outline" size="sm" onClick={handlePortal} disabled={portalLoading} className="gap-2">
-                {portalLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                Gérer mon abonnement
+            {canOpenSubscriptionPortal && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={isSuspendedStripeSubscription ? handleSepaRecovery : handlePortal}
+                disabled={portalLoading || recoveryLoading}
+                className="gap-2"
+              >
+                {portalLoading || recoveryLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                {isSuspendedStripeSubscription ? "Régulariser mon prélèvement" : "Gérer mon abonnement"}
               </Button>
             )}
+          </div>
+        )}
+        {isSuspendedStripeSubscription && (
+          <div
+            role="alert"
+            className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          >
+            <p className="font-semibold">Votre accès est suspendu après un prélèvement rejeté ou retourné.</p>
+            <p className="mt-1">
+              Vos données sont conservées. Ajoutez un nouvel IBAN et signez son mandat; Cocci vérifiera la facture avant de relancer le prélèvement sur le même abonnement.
+            </p>
           </div>
         )}
 
@@ -380,6 +515,39 @@ export function Abonnement() {
             })}
           </div>
         )}
+
+        {/* Fonctionnalité annoncée pour une version ultérieure : aucun flux d'invitation ni de paiement ici. */}
+        <section
+          aria-labelledby="collaborator-invitation-title"
+          className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 sm:p-6"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 id="collaborator-invitation-title" className="text-base font-semibold text-gray-700">
+                  Invitations de collaborateurs
+                </h2>
+                <Badge className="border-0 bg-amber-100 text-amber-800 hover:bg-amber-100">
+                  Bientôt disponible
+                </Badge>
+              </div>
+              <p className="mt-1 text-sm font-medium text-gray-600">
+                3 € TTC / mois / collaborateur
+              </p>
+            </div>
+            <Button
+              type="button"
+              disabled
+              aria-describedby="collaborator-invitation-price"
+              className="w-full cursor-not-allowed bg-gray-200 text-gray-500 shadow-none hover:bg-gray-200 sm:w-auto"
+            >
+              Inviter un collaborateur
+            </Button>
+          </div>
+          <span id="collaborator-invitation-price" className="sr-only">
+            3 € TTC / mois / collaborateur. Bientôt disponible.
+          </span>
+        </section>
 
         {/* ── Footer ── */}
         <p className="text-center text-xs text-gray-400 mt-10">

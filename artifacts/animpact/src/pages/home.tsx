@@ -289,6 +289,9 @@ const features = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function Home() {
+  const appHost =
+    new URL(import.meta.env.VITE_APP_URL || window.location.origin).host;
+
   return (
     <div className="min-h-screen bg-white flex flex-col text-gray-900">
 
@@ -447,7 +450,7 @@ export function Home() {
                 <Leaf className="h-6 w-6 text-green-300" />
               </div>
               <div className="text-center">
-                <p className="text-[10px] text-gray-400 font-mono truncate max-w-[140px]">cocci.app/p/abc123</p>
+                <p className="text-[10px] text-gray-400 font-mono truncate max-w-[140px]">{appHost}/p/abc123</p>
                 <p className="text-xs font-semibold text-gray-700 mt-1">Votre page RSE publique</p>
               </div>
               <div className="flex items-center gap-1.5 bg-green-100 text-green-800 text-[11px] font-medium px-3 py-1 rounded-full">

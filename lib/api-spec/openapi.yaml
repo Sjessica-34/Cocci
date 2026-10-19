@@ -54,6 +54,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /public/rse/{token}/logo:
+    get:
+      operationId: getPublicRseLogo
+      tags: [resources]
+      summary: Serve an organization's private logo through its public RSE link
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The organization's logo; access is scoped to the public RSE link token.
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Invalid link or logo not found
+
   # ─── USER PROFILE ────────────────────────────────────────────────────────────
   /users/me:
     get:
@@ -226,6 +248,37 @@ paths:
           description: Forbidden
         "404":
           description: Not found
+
+  /organizations/{id}/logo:
+    post:
+      operationId: attachOrganizationLogo
+      tags: [organizations]
+      summary: Attach a privately uploaded logo to an organization
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationLogoInput"
+      responses:
+        "200":
+          description: Logo attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationLogoResult"
+        "400":
+          description: Invalid upload or logo payload
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
 
   /organizations/{id}/subsidiaries:
     get:
@@ -951,6 +1004,107 @@ paths:
         "403":
           description: Forbidden
 
+  /admin/gift-invitations:
+    get:
+      operationId: listGiftInvitations
+      tags: [admin]
+      summary: List gift invitations for superadmins
+      responses:
+        "200":
+          description: Gift invitation records without token material
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GiftInvitation"
+        "403":
+          description: Forbidden
+    post:
+      operationId: createGiftInvitation
+      tags: [admin]
+      summary: Create a secure complimentary subscription invitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiftInvitationInput"
+      responses:
+        "201":
+          description: Created invitation and one-time URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftInvitationCreated"
+        "400":
+          description: Invalid input
+        "403":
+          description: Forbidden
+
+  /admin/gift-invitations/{id}:
+    delete:
+      operationId: revokeGiftInvitation
+      tags: [admin]
+      summary: Revoke an unused invitation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Invitation revoked
+        "403":
+          description: Forbidden
+        "409":
+          description: Invitation is already consumed or unavailable
+
+  /gift-invitations/validate:
+    post:
+      operationId: validateGiftInvitation
+      tags: [subscriptions]
+      summary: Validate an invitation token before signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiftInvitationToken"
+      responses:
+        "200":
+          description: Invitation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftInvitationDetails"
+        "404":
+          description: Invitation unavailable
+
+  /gift-invitations/claim:
+    post:
+      operationId: claimGiftInvitation
+      tags: [subscriptions]
+      summary: Claim a gift invitation for the authenticated user's organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiftInvitationToken"
+      responses:
+        "200":
+          description: Offer activated without Stripe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftInvitationClaim"
+        "403":
+          description: Verified Clerk email does not match the invitation
+        "409":
+          description: Invitation unavailable or organization not configured
+
   /admin/organizations/{id}/report-generations:
     get:
       operationId: getAdminReportGenerationQuotas
@@ -1060,6 +1214,35 @@ paths:
           description: Forbidden
         "404":
           description: Not found
+
+  /admin/organizations/{id}/stripe-diagnosis:
+    get:
+      operationId: diagnoseAdminOrganizationStripeAccess
+      tags: [admin]
+      summary: Diagnose blockers keeping a Stripe subscription suspended (superadmin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Privacy-safe Stripe access diagnosis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStripeAccessDiagnosis"
+        "400":
+          description: Invalid organization ID
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Organization or subscription not found
+        "409":
+          description: Subscription is not a suspended Stripe subscription
 
   /admin/alerts:
     get:
@@ -3508,6 +3691,8 @@ components:
           type: integer
           minimum: 1
           maximum: 12
+        logoUrl:
+          type: string
 
     OrganizationUpdate:
       type: object
@@ -3536,6 +3721,23 @@ components:
           type: integer
           minimum: 1
           maximum: 12
+
+    OrganizationLogoInput:
+      type: object
+      required: [objectPath, fileUrl]
+      properties:
+        objectPath:
+          type: string
+          pattern: "^/objects/"
+        fileUrl:
+          type: string
+
+    OrganizationLogoResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
 
     # ─── MEMBER ────────────────────────────────────────────────────────────────
     Member:
@@ -3684,6 +3886,20 @@ components:
           type: integer
           minimum: 1
           maximum: 1000
+
+    AdminStripeAccessDiagnosis:
+      type: object
+      required: [status, hasUnpaidInvoice, hasPendingPayment, hasUnresolvedDispute]
+      properties:
+        status:
+          type: string
+          enum: [checked, unavailable]
+        hasUnpaidInvoice:
+          type: boolean
+        hasPendingPayment:
+          type: boolean
+        hasUnresolvedDispute:
+          type: boolean
 
     AdminUser:
       type: object
@@ -6260,3 +6476,57 @@ components:
       properties:
         content:
           type: string
+
+    GiftInvitation:
+      type: object
+      required: [id, email, offerName, effectifKey, durationMonths, expiresAt]
+      properties:
+        id: { type: integer }
+        email: { type: string, format: email }
+        offerName: { type: string }
+        effectifKey: { type: string }
+        durationMonths: { type: ["integer", "null"] }
+        expiresAt: { type: string, format: date-time }
+        claimedAt: { type: ["string", "null"], format: date-time }
+        revokedAt: { type: ["string", "null"], format: date-time }
+        organizationId: { type: ["integer", "null"] }
+    GiftInvitationInput:
+      type: object
+      required: [email, effectifKey, durationMonths]
+      properties:
+        email: { type: string, format: email }
+        effectifKey:
+          type: string
+          enum: ["1-5", "6-10", "11-25", "26-50", "51-100", "101-250", "250+"]
+        durationMonths:
+          type: ["integer", "null"]
+          enum: [1, 3, 6, 12, null]
+        sendEmail: { type: boolean, default: false }
+    GiftInvitationCreated:
+      type: object
+      required: [id, url, expiresAt, emailSent]
+      properties:
+        id: { type: integer }
+        url: { type: string, format: uri }
+        expiresAt: { type: string, format: date-time }
+        emailSent: { type: boolean }
+    GiftInvitationToken:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 32, maxLength: 128 }
+    GiftInvitationDetails:
+      type: object
+      required: [email, effectifKey, offerName, expiresAt]
+      properties:
+        email: { type: string, format: email }
+        effectifKey: { type: string }
+        offerName: { type: string }
+        durationMonths: { type: ["integer", "null"] }
+        expiresAt: { type: string, format: date-time }
+    GiftInvitationClaim:
+      type: object
+      required: [organizationId, endAt]
+      properties:
+        organizationId: { type: integer }
+        endAt: { type: ["string", "null"], format: date }

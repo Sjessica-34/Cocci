@@ -46,7 +46,7 @@ export const PLANS: Record<EffectifKey, Plan> = {
   "250+":    { effectifLabel: "Plus de 250 salariés", pricePerMonth: null,   maxEmployees: null },
 };
 
-/** Clé sessionStorage utilisée pour transmettre la tranche entre les étapes. */
+/** Clé historique conservée pour migrer les choix sessionStorage vers localStorage. */
 export const EFFECTIF_SESSION_KEY = "cocci_onboarding_effectif";
 
 /**
@@ -59,6 +59,104 @@ export const SUBSCRIPTION_INTENT_SESSION_KEY = "cocci_subscription_intent_effect
 
 /** Marque la continuation immédiate du parcours après la création de l'organisation. */
 export const ONBOARDING_CONTINUATION_SESSION_KEY = "cocci_onboarding_continuation";
+export const ORGANIZATION_NAME_DRAFT_KEY = "cocci_onboarding_organization_name";
+export const ORGANIZATION_TYPE_DRAFT_KEY = "cocci_onboarding_organization_type";
+
+function readPersistentValue(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const persistent = window.localStorage.getItem(key);
+    if (persistent) return persistent;
+  } catch {
+    // Fall back to the current tab when persistent storage is unavailable.
+  }
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writePersistentValue(key: string, value: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Preserve the flow for this tab if local storage is unavailable.
+  }
+  try {
+    window.sessionStorage.setItem(key, value);
+  } catch {
+    // Session storage may also be disabled by browser policy.
+  }
+}
+
+function removePersistentValue(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Continue clearing the other storage backend.
+  }
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Storage may be disabled by browser policy.
+  }
+}
+
+export function readEffectifSelection(): EffectifKey | null {
+  const value = readPersistentValue(EFFECTIF_SESSION_KEY);
+  return EFFECTIF_OPTIONS.some((option) => option.key === value)
+    ? value as EffectifKey
+    : null;
+}
+
+export function saveEffectifSelection(key: EffectifKey): void {
+  writePersistentValue(EFFECTIF_SESSION_KEY, key);
+}
+
+export function readSubscriptionIntent(): EffectifKey | null {
+  const value = readPersistentValue(SUBSCRIPTION_INTENT_SESSION_KEY);
+  return EFFECTIF_OPTIONS.some((option) => option.key === value)
+    ? value as EffectifKey
+    : null;
+}
+
+export function saveSubscriptionIntent(key: EffectifKey): void {
+  saveEffectifSelection(key);
+  writePersistentValue(SUBSCRIPTION_INTENT_SESSION_KEY, key);
+}
+
+export function clearOnboardingChoices(): void {
+  removePersistentValue(EFFECTIF_SESSION_KEY);
+  removePersistentValue(SUBSCRIPTION_INTENT_SESSION_KEY);
+  removePersistentValue(ONBOARDING_CONTINUATION_SESSION_KEY);
+  removePersistentValue(ORGANIZATION_NAME_DRAFT_KEY);
+  removePersistentValue(ORGANIZATION_TYPE_DRAFT_KEY);
+}
+
+export function readOrganizationNameDraft(): string {
+  return readPersistentValue(ORGANIZATION_NAME_DRAFT_KEY) ?? "";
+}
+
+export function saveOrganizationNameDraft(name: string): void {
+  if (name.trim()) writePersistentValue(ORGANIZATION_NAME_DRAFT_KEY, name);
+  else removePersistentValue(ORGANIZATION_NAME_DRAFT_KEY);
+}
+
+export function clearOrganizationNameDraft(): void {
+  removePersistentValue(ORGANIZATION_NAME_DRAFT_KEY);
+  removePersistentValue(ORGANIZATION_TYPE_DRAFT_KEY);
+}
+
+export function readOrganizationTypeDraft(): "entreprise" | "groupe" {
+  return readPersistentValue(ORGANIZATION_TYPE_DRAFT_KEY) === "groupe" ? "groupe" : "entreprise";
+}
+
+export function saveOrganizationTypeDraft(type: "entreprise" | "groupe"): void {
+  writePersistentValue(ORGANIZATION_TYPE_DRAFT_KEY, type);
+}
 
 /** Retourne la formule correspondant à une clé d'effectif. */
 export function effectifToPlan(key: EffectifKey): Plan {

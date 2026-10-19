@@ -22,7 +22,12 @@ export function isActiveStripeSubscription(
 export function hasActiveOrganizationSubscription(
   subscription: OrganizationSubscription | undefined,
 ) {
-  return subscription?.status === "active" || subscription?.status === "trial";
+  if (subscription?.status !== "active" && subscription?.status !== "trial") return false;
+  if (subscription.mode === "free" && subscription.end_at) {
+    const today = new Date().toISOString().slice(0, 10);
+    return subscription.end_at.slice(0, 10) >= today;
+  }
+  return true;
 }
 
 export function isOrganizationSubscriptionReady(

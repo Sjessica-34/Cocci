@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useOrganization } from "@clerk/react";
 import {
   useListOrganizations,
   useCreateOrganization,
@@ -19,6 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OrganizationLogo } from "@/components/OrganizationLogo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCurrentOrganization, setCurrentOrg } from "@/hooks/useCurrentOrganization";
 import { useAdminViewOrg, setAdminViewOrg } from "@/hooks/useAdminView";
+import { resolveOrganizationLogoUrl } from "@/lib/organizationLogo";
 import { cn } from "@/lib/utils";
 
 // ── Group mode dialog ──────────────────────────────────────────────────────
@@ -216,6 +219,7 @@ function AddSubsidiaryDialog({
 
 export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
   const { currentOrgId } = useCurrentOrganization();
+  const { organization: clerkOrganization } = useOrganization();
   const adminViewOrgId = useAdminViewOrg();
   const { data: orgs = [], isLoading } = useListOrganizations(
     adminViewOrgId ? { viewAs: adminViewOrgId } : undefined,
@@ -227,6 +231,13 @@ export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
   // Root = top-level org (no parent) — there should be exactly 1
   const rootOrg = orgs.find((o) => !o.parentId) ?? null;
   const subsidiaries = orgs.filter((o) => rootOrg && o.parentId === rootOrg.id);
+  const activeOrg = orgs.find((organization) => organization.id === currentOrgId) ?? rootOrg;
+  const organizationLogoUrl = resolveOrganizationLogoUrl({
+    selectedOrganization: activeOrg,
+    rootOrganizationId: rootOrg?.id ?? null,
+    clerkOrganizationImageUrl: clerkOrganization?.imageUrl,
+    isAdminView: Boolean(adminViewOrgId),
+  });
 
   // Auto-initialize / validate currentOrgId when orgs load or admin view changes.
   useEffect(() => {
@@ -256,7 +267,12 @@ export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
   if (rootOrg.type === "entreprise") {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded-md">
-        <Building className="h-4 w-4 text-primary/70 shrink-0" />
+        <OrganizationLogo
+          src={organizationLogoUrl}
+          alt={`Logo de ${activeOrg?.name ?? rootOrg.name}`}
+          className="h-[30px] w-[30px] shrink-0 object-contain"
+          fallback={<Building className="h-4 w-4 text-primary/70 shrink-0" />}
+        />
         <span className={cn("text-sm font-semibold truncate flex-1", mobile ? "text-foreground" : "text-sidebar-foreground")}>
           {rootOrg.name}
         </span>
@@ -298,7 +314,14 @@ export function GroupSwitcher({ mobile = false }: { mobile?: boolean } = {}) {
                 : "hover:bg-sidebar-accent/60 text-sidebar-foreground",
             )}
           >
-            <Network className="h-4 w-4 mr-2 text-primary/70 shrink-0" />
+            <OrganizationLogo
+              src={organizationLogoUrl}
+              alt={`Logo de ${activeOrg?.name ?? rootOrg.name}`}
+              className="mr-2 h-[30px] w-[30px] shrink-0 object-contain"
+              fallback={activeOrg?.type === "entreprise"
+                ? <Building className="h-4 w-4 mr-2 text-primary/70 shrink-0" />
+                : <Network className="h-4 w-4 mr-2 text-primary/70 shrink-0" />}
+            />
             <div className="flex-1 text-left min-w-0">
               <div className={cn(
                 "text-[10px] uppercase tracking-wide truncate leading-none mb-0.5",

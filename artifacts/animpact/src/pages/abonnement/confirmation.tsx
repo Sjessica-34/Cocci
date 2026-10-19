@@ -14,7 +14,7 @@ import {
 } from "@/hooks/useOrganizationSubscription";
 import {
   PLANS,
-  SUBSCRIPTION_INTENT_SESSION_KEY,
+  clearOnboardingChoices,
   type EffectifKey,
 } from "@/pages/onboarding/plans";
 
@@ -71,7 +71,7 @@ export function SubscriptionConfirmation() {
   useEffect(() => {
     // Une intention de paiement déjà satisfaite ne doit jamais relancer Checkout
     // après le retour depuis Stripe.
-    sessionStorage.removeItem(SUBSCRIPTION_INTENT_SESSION_KEY);
+    clearOnboardingChoices();
   }, []);
 
   useEffect(() => {

@@ -25,4 +25,5 @@ export interface OrganizationInput {
      * @maximum 12
      */
   exerciseOpeningMonth?: number;
+  logoUrl?: string;
 }

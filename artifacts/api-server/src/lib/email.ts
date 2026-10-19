@@ -11,6 +11,9 @@ function getResend(): Resend | null {
 
 const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL ?? "Cocci <noreply@cocci.app>";
+const GIFT_INVITATION_FROM_EMAIL =
+  process.env.RESEND_GIFT_INVITATION_FROM_EMAIL
+  ?? "Cocci <invitations@cocci-rse.fr>";
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -110,5 +113,34 @@ export async function sendSubscriptionConfirmation(opts: {
     logger.error({ error, to: opts.to }, "Failed to send subscription confirmation email");
   } else {
     logger.info({ emailId: data?.id, to: opts.to }, "Subscription confirmation email sent");
+  }
+}
+
+export async function sendGiftInvitationEmail(opts: {
+  to: string;
+  organizationOffer: string;
+  url: string;
+  expiresAt: Date;
+}): Promise<boolean> {
+  const client = getResend();
+  if (!client) {
+    logger.warn("RESEND_API_KEY not set — skipping gift invitation email");
+    return false;
+  }
+  try {
+    const { error } = await client.emails.send({
+      from: GIFT_INVITATION_FROM_EMAIL,
+      to: opts.to,
+      subject: "Votre invitation à découvrir Cocci",
+      html: `<p>Vous êtes invité à découvrir Cocci avec l’offre ${opts.organizationOffer}.</p><p><a href="${opts.url}">Créer mon espace Cocci</a></p><p>Ce lien expire le ${opts.expiresAt.toLocaleDateString("fr-FR")} et ne peut être utilisé qu’une seule fois.</p>`,
+    });
+    if (error) {
+      logger.error({ error, to: opts.to }, "Failed to send gift invitation email");
+      return false;
+    }
+    return true;
+  } catch (error) {
+    logger.error({ error, to: opts.to }, "Failed to send gift invitation email");
+    return false;
   }
 }

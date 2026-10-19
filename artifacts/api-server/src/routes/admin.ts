@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { clerkClient } from "@clerk/express";
 import {
   db,
@@ -16,6 +16,9 @@ import { eq, desc, count, max, and, isNull, isNotNull, ne, sql, avg } from "driz
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
 import { MAX_REPORT_GENERATIONS } from "@workspace/rse-referentials";
+import { getUncachableStripeClient } from "../stripeClient";
+import { diagnoseStripeAccessRecovery } from "../stripeAccessRecovery";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -501,6 +504,78 @@ router.get("/admin/organizations/:id/subscription", async (req, res): Promise<vo
   if (!sub) { res.status(204).end(); return; }
   res.json(mapSub(sub));
 });
+
+// ─── GET /admin/organizations/:id/stripe-diagnosis ────────────────────────────
+export function createAdminStripeAccessDiagnosisHandler(dependencies: {
+  getStripeClient?: typeof getUncachableStripeClient;
+} = {}) {
+  const getStripeClient = dependencies.getStripeClient ?? getUncachableStripeClient;
+
+  return async (req: Request, res: Response): Promise<void> => {
+    const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const orgId = Number(rawId);
+    if (!Number.isSafeInteger(orgId) || orgId <= 0) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+
+    const [org] = await db
+      .select({ id: organizationsTable.id })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId));
+    if (!org) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    const [subscription] = await db
+      .select()
+      .from(subscriptionsTable)
+      .where(eq(subscriptionsTable.organizationId, orgId));
+    if (!subscription) {
+      res.status(404).json({ error: "Subscription not found" });
+      return;
+    }
+    if (subscription.mode !== "stripe" || subscription.status !== "suspended") {
+      res.status(409).json({ error: "Only suspended Stripe subscriptions can be diagnosed" });
+      return;
+    }
+    if (!subscription.stripeCustomerId || !subscription.stripeSubscriptionId) {
+      res.json({
+        status: "unavailable",
+        hasUnpaidInvoice: false,
+        hasPendingPayment: false,
+        hasUnresolvedDispute: false,
+      });
+      return;
+    }
+
+    try {
+      const stripe = await getStripeClient();
+      const diagnosis = await diagnoseStripeAccessRecovery(
+        stripe,
+        subscription.stripeCustomerId,
+        subscription.stripeSubscriptionId,
+      );
+      res.json({ status: "checked", ...diagnosis });
+    } catch {
+      // Do not expose Stripe errors or payment data. A failed check is unknown,
+      // never evidence that access should be restored.
+      logger.warn({ organizationId: orgId }, "admin Stripe access diagnosis unavailable");
+      res.json({
+        status: "unavailable",
+        hasUnpaidInvoice: false,
+        hasPendingPayment: false,
+        hasUnresolvedDispute: false,
+      });
+    }
+  };
+}
+
+router.get(
+  "/admin/organizations/:id/stripe-diagnosis",
+  createAdminStripeAccessDiagnosisHandler(),
+);
 
 // ─── PUT /admin/organizations/:id/subscription ─────────────────────────────────
 router.put("/admin/organizations/:id/subscription", async (req, res): Promise<void> => {

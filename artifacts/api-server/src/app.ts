@@ -9,18 +9,21 @@ import { clerkMiddleware } from "@clerk/express";
 import { generalLimiter } from "./middlewares/rateLimit";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { isProduction } from "./lib/runtimeEnv";
 import { WebhookHandlers } from "./webhookHandlers";
 
 // ─── Origines autorisées ──────────────────────────────────────────────────────
 // En développement : Replit dev-domains + localhost
 // En production    : ALLOWED_ORIGINS (CSV) obligatoire
 function buildCorsOrigin(): cors.CorsOptions["origin"] {
-  const isProd = process.env.NODE_ENV === "production";
-
   const extra: string[] = (process.env.ALLOWED_ORIGINS ?? "")
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean);
+  const appUrl = process.env.APP_URL?.trim();
+  if (appUrl) {
+    extra.push(new URL(appUrl).origin);
+  }
 
   const devPatterns: RegExp[] = [
     /^https?:\/\/localhost(:\d+)?$/,
@@ -31,13 +34,13 @@ function buildCorsOrigin(): cors.CorsOptions["origin"] {
 
   return (origin, callback) => {
     // Requêtes sans header Origin (server-to-server, curl en dev)
-    if (!origin) return callback(null, !isProd);
+    if (!origin) return callback(null, !isProduction);
 
     // Origines explicitement listées
     if (extra.includes(origin)) return callback(null, true);
 
     // En dev : accepter les domaines Replit et localhost
-    if (!isProd && devPatterns.some((p) => p.test(origin))) {
+    if (!isProduction && devPatterns.some((p) => p.test(origin))) {
       return callback(null, true);
     }
 
@@ -45,11 +48,9 @@ function buildCorsOrigin(): cors.CorsOptions["origin"] {
   };
 }
 
-const isProduction = process.env.NODE_ENV === "production";
 const app: Express = express();
 if (isProduction) {
-  // Infomaniak exposes the visitor IP through one reverse-proxy hop.
-  // express-rate-limit reads this Express setting; it is not a limiter option.
+  // Both hosting platforms run behind a single trusted reverse-proxy hop.
   app.set("trust proxy", 1);
 }
 
@@ -144,9 +145,8 @@ app.use("/api", generalLimiter);
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api", router);
 
-// Infomaniak runs one Node.js process per site. Serve the built SPA from the
-// same origin as the API so browser requests, Clerk redirects, and deep links
-// do not depend on Replit's artifact proxy.
+// In a single-origin deployment, serve the built SPA from the API process so
+// browser requests, Clerk redirects, and deep links need no external proxy.
 const frontendDistDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../animpact/dist/public",

@@ -1,6 +1,7 @@
 import { useAuth } from "@clerk/react";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useDebugMount } from "@/lib/requestDebug";
+import { SUPER_ADMIN_QUERY_STALE_TIME_MS } from "@/lib/superAdminQueryPolicy";
 
 /**
  * Retourne true si l'utilisateur connecté est superadmin.
@@ -15,6 +16,8 @@ export function useIsSuperAdmin(): { isSuperAdmin: boolean; isLoading: boolean }
     query: {
       enabled: isLoaded && isSignedIn,
       queryKey: getGetMeQueryKey(),
+      staleTime: SUPER_ADMIN_QUERY_STALE_TIME_MS,
+      refetchOnMount: true,
       meta: { debugLabel: "useIsSuperAdmin:getMe" },
     },
   });

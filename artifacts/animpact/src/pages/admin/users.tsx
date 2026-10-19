@@ -3,6 +3,7 @@ import { AdminLayout } from "./layout";
 import {
   useListAdminUsers,
   getListAdminUsersQueryKey,
+  getGetMeQueryKey,
   useUpdateUserSuperAdmin,
 } from "@workspace/api-client-react";
 import type { AdminUser } from "@workspace/api-client-react";
@@ -27,6 +28,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Users, Search, Shield, ShieldOff, Clock, Building2 } from "lucide-react";
 import { useUser } from "@clerk/react";
+import { isCurrentClerkUser } from "@/lib/superAdminQueryPolicy";
 
 function formatRelative(dateStr: string): string {
   const date = new Date(dateStr);
@@ -67,6 +69,13 @@ export function AdminUsers() {
             description: `${email} a été mis à jour.`,
           });
           queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
+          const targetClerkId = users?.find((user) => user.id === userId)?.clerkId;
+          if (isCurrentClerkUser(targetClerkId, clerkUser?.id)) {
+            void queryClient.invalidateQueries({
+              queryKey: getGetMeQueryKey(),
+              exact: true,
+            });
+          }
         },
         onError: () => {
           toast({ variant: "destructive", title: "Erreur lors de la mise à jour." });
