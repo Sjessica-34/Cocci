@@ -9,6 +9,12 @@ Conserver l’intention explicite de souscrire séparément de la simple formule
 
 **How to apply:** propager l’intention à travers connexion, inscription et onboarding ; la consommer quand Checkout est effectivement créé ; l’effacer si un abonnement Stripe actif est détecté. Ne pas reprendre Checkout après une simple consultation de formule.
 
+Conserver la tranche choisie avant l’authentification dans un stockage durable du navigateur, la synchroniser avec la progression serveur après authentification, puis reprendre directement la bonne étape. La formule reste déterminée par la tranche et ne doit pas être demandée une seconde fois. Après l’inscription, créer une seule organisation Cocci dans Neon à partir du formulaire nom/logo/type, afficher un récapitulatif éditable avant Checkout, puis configurer les filiales dans Cocci après l’accès.
+
+**Why:** l’utilisateur a confirmé l’ordre définitif effectif → formule → Clerk → organisation → récapitulatif → Stripe → Cocci, sans ressaisie ni configuration de filiales pendant l’inscription.
+
+**How to apply:** utiliser la progression serveur dès qu’un compte existe et le stockage local uniquement pour les choix pré-authentification ; ne jamais créer de tenant d’organisation Clerk en parallèle de l’organisation Cocci dans Neon ; ne lancer Checkout qu’après validation explicite du récapitulatif.
+
 Pour les contrôles d’abonnement exécutés immédiatement après l’authentification Clerk, demander un jeton frais dans l’appel concerné et relancer une seule fois un `401` transitoire.
 
 **Why:** juste après la création de compte, le fournisseur de jeton global peut ne pas être encore prêt ; le statut est alors refusé et bloque la reprise sûre de Checkout.

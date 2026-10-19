@@ -1,0 +1,118 @@
+Request URL
+https://content-airedale-8053.clerk.accounts.dev/v1/client/sign_ups?__clerk_api_version=2026-05-12&_clerk_js_version=6.39.0&__clerk_db_jwt=dvb_3KgnO7L97AGPC3eKkFaG3WAgwP5
+Request method
+POST
+Status code
+422 Unprocessable Content
+Remote address
+[2a06:98c1:3100::6812:2292]:443
+Referrer policy
+strict-origin-when-cross-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+https://cocci-1.onrender.com
+access-control-expose-headers
+Authorization, X-Country, Retry-After, Clerk-Cookie, Clerk-Db-Jwt
+cache-control
+no-store
+cf-cache-status
+DYNAMIC
+cf-ray
+a4a87201093ee232-MRS
+clerk-api-version
+2026-05-12
+clerk-db-jwt
+dvb_3KgnO7L97AGPC3eKkFaG3WAgwP5
+content-length
+1306
+content-security-policy
+default-src 'none'; frame-ancestors 'none'
+content-type
+application/json
+date
+Wed, 14 Oct 2026 17:53:45 GMT
+expires
+0
+nel
+{"report_to":"cf-nel","success_fraction":0.01,"max_age":604800}
+permissions-policy
+camera=(), microphone=(), geolocation=(), usb=()
+pragma
+no-cache
+referrer-policy
+strict-origin-when-cross-origin
+report-to
+{"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=dOfTOkAMSM1yRTZVCTJCR5IyjCQy%2FVUlCF0L%2FF0ACRLi3CrZN4mPxzMjPbFB0udGfsn6kev2U9S9fF%2FzCB4rSJ%2BnmHYXToT5zfi%2BOCQri679vPRzBrhwZVkyVX09xd7NEOnzrTh%2BUp4gwXn5XUAfzO7Ev3Md9V88T%2FR6Wubi2dy%2FOpCHVRE%3D"}]}
+server
+cloudflare
+set-cookie
+__cf_bm=7WuGsA9hh7GhSHkMJtCyLfPbm79jjwbdoDCWwo2XGCs-1792000425.1291542-1.0.1.1-pZ3wwZETfLhq9m5mUTUm7cZMJRAcvsngDU_6nvuzLwOEHTkx7XqWslUTSQMFV_fVbo96wwgSWlxuNR0BotsaXs4vZZ3YSVq.xzLh76zz0bZJXuVHHLdy721iNMDlcUVd; HttpOnly; SameSite=None; Secure; Path=/; Domain=content-airedale-8053.clerk.accounts.dev; Expires=Wed, 14 Oct 2026 18:23:45 GMT
+strict-transport-security
+max-age=63072000;
+vary
+Origin
+via
+1.1 google
+x-cfworker
+1
+x-clerk-instance-id
+ins_3J3tvBO2p0gd8CZVanKPja5VaEv
+x-clerk-trace-id
+49ed7434c8184d48fde324899ebfda81
+x-cloud-trace-context
+149b51360a4697baaeae883f3077790e
+x-content-type-options
+nosniff
+x-country
+FR
+x-frame-options
+DENY
+x-robots-tag
+noindex, nofollow
+:authority
+content-airedale-8053.clerk.accounts.dev
+:method
+POST
+:path
+/v1/client/sign_ups?__clerk_api_version=2026-05-12&_clerk_js_version=6.39.0&__clerk_db_jwt=dvb_3KgnO7L97AGPC3eKkFaG3WAgwP5
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7,fr-CH;q=0.6
+cache-control
+no-cache
+content-length
+956
+content-type
+application/x-www-form-urlencoded
+cookie
+_cfuvid=1l8GY9fuHU3fPK4rXbRtHr4m_D3Yp2eUZOh94QWzwpg-1791965261.4145713-1.0.1.1-lm5Wnkj3V.e0LAXvKvIyh0QCOpfBEQ.ZfaNoE_VFhCg; __cf_bm=AmCvJMb9MjuSNVbi6N.MqpIJEhynzH29sEXrs4r8xkg-1792000384.4356208-1.0.1.1-jIzDxA7sIGRSI5bUdUD4seq_mwuAfqyVQTRB6clOTkhywoRmIZXPnBJe8DdxZWjRvPOTivdZPKnnRzufndtPGpKo66ujDYwy81OocA84ekS.H3qfXY8ixX6uB9wSm.2X
+origin
+https://cocci-1.onrender.com
+pragma
+no-cache
+priority
+u=1, i
+referer
+https://cocci-1.onrender.com/
+sec-ch-ua
+"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+cross-site
+sec-fetch-storage-access
+active
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36
