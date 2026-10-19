@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,10 @@ import {
   useGetDiagnosticScores,
   useGetDashboardSummary,
   useGetImpactScoreResult,
+  useGetIssues,
+  useListBarometreCampaigns,
+  useGetCaptationCarbone,
+  useGetReportDraft,
   ApiError,
   type DiagnosticSubcategoryScore,
   type DashboardSummary,
@@ -261,6 +266,29 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   const { data: labels,  isLoading: labelsLoading  } = useListLabels(orgId);
   const { data: actions, isLoading: actionsLoading } = useListActionPlan(orgId);
   const { data: planSlots, isLoading: slotsLoading } = useListPlanSlots(orgId);
+  const { data: issuesData, isLoading: issuesLoading } = useGetIssues(orgId, {
+    query: { queryKey: [`/api/organizations/${orgId}/issues`] },
+  });
+  const { data: barometreData, isLoading: barometreLoading } = useListBarometreCampaigns(orgId);
+  const { data: captationCarbone, isLoading: captationLoading } = useGetCaptationCarbone(orgId, {
+    query: { queryKey: [`/api/organizations/${orgId}/captation-carbone`] },
+  });
+  const { data: reportDraft, isLoading: reportLoading } = useGetReportDraft(orgId);
+  const {
+    data: publicLink,
+    isLoading: publicLinkLoading,
+  } = useQuery<{ token: string } | null>({
+    queryKey: [`/api/organizations/${orgId}/public-link`],
+    queryFn: async ({ signal }) => {
+      const response = await fetch(`/api/organizations/${orgId}/public-link`, {
+        credentials: "include",
+        signal,
+      });
+      if (!response.ok) throw new Error("Impossible de vérifier la page publique RSE");
+      return response.json();
+    },
+    enabled: orgId > 0,
+  });
 
   // ── Ligne 2 : scores diagnostic ───────────────────────────────────────────
   const { data: diagScores, isLoading: diagLoading } = useGetDiagnosticScores(orgId);
@@ -380,14 +408,134 @@ export function DashboardBody({ orgId }: { orgId: number }) {
   });
 
   // ── Prochaine étape recommandée ───────────────────────────────────────────
-  const isDataLoaded = !diagLoading && !actionsLoading && !carbonLoading && !nrLoading && !bioLoading && !stakeLoading && !suppLoading && !empLoading;
+  const isDataLoaded = !diagLoading
+    && !actionsLoading
+    && !carbonLoading
+    && !nrLoading
+    && !bioLoading
+    && !stakeLoading
+    && !suppLoading
+    && !empLoading
+    && !labelsLoading
+    && !impactLoading
+    && !issuesLoading
+    && !barometreLoading
+    && !captationLoading
+    && !reportLoading
+    && !publicLinkLoading;
 
   const nextStep: NextStep | null = (() => {
     if (!isDataLoaded) return null;
 
     const candidates: NextStep[] = [];
 
-    // Diagnostic RSE : basé sur le % de complétion global
+    // Les recommandations suivent l'ordre des modules dans le menu.
+    // Comprendre mes enjeux
+    if ((stakeholders?.length ?? 0) === 0) {
+      candidates.push({
+        href: "/parties-prenantes",
+        icon: "👥",
+        title: "Identifier vos parties prenantes",
+        hint: "Cartographiez les personnes et organisations concernées",
+        completionPct: 0,
+      });
+    }
+
+    const issueItems = issuesData?.items ?? [];
+    const ratedIssues = issueItems.filter(
+      (item) => item.stakeholderScore != null && item.companyScore != null,
+    ).length;
+    const materialityTarget = Math.min(12, issueItems.length);
+    if (materialityTarget > 0 && ratedIssues < materialityTarget) {
+      candidates.push({
+        href: "/enjeux",
+        icon: "🎯",
+        title: "Compléter la matrice de matérialité",
+        hint: `${ratedIssues} / ${materialityTarget} enjeux prioritaires évalués`,
+        completionPct: Math.round((ratedIssues / materialityTarget) * 100),
+      });
+    }
+
+    // Collecter mes données
+    if (bioItems.length === 0) {
+      candidates.push({
+        href: "/biodiversite",
+        icon: "🌿",
+        title: "Cartographier vos dépendances biodiversité",
+        hint: "Identifiez vos ressources, activités et lieux impactés",
+        completionPct: 0,
+      });
+    }
+
+    if (allSuppliers.length === 0) {
+      candidates.push({
+        href: "/achats-responsables",
+        icon: "🤝",
+        title: "Référencer vos fournisseurs",
+        hint: "Évaluez la démarche RSE de vos partenaires",
+        completionPct: 0,
+      });
+    }
+
+    if (!carbon) {
+      candidates.push({
+        href: "/bilan-carbone",
+        icon: "🌍",
+        title: "Saisir le Bilan Carbone",
+        hint: "Calculez vos émissions sur les 3 scopes",
+        completionPct: 0,
+      });
+    }
+
+    if ((nrData?.responses.length ?? 0) === 0) {
+      candidates.push({
+        href: "/numerique-responsable",
+        icon: "💻",
+        title: "Renseigner le Numérique Responsable",
+        hint: "Évaluez l'impact numérique de votre organisation",
+        completionPct: 0,
+      });
+    } else if (nrChecked < nrTotal) {
+      candidates.push({
+        href: "/numerique-responsable",
+        icon: "💻",
+        title: "Compléter le Numérique Responsable",
+        hint: `${nrChecked} / ${nrTotal} critères cochés`,
+        completionPct: nrScore,
+      });
+    }
+
+    if ((barometreData?.items?.length ?? 0) === 0) {
+      candidates.push({
+        href: "/barometre-social",
+        icon: "😊",
+        title: "Lancer le Baromètre Social",
+        hint: "Créez une campagne pour recueillir la parole des équipes",
+        completionPct: 0,
+      });
+    }
+
+    if (!employment?.workforce && !employment?.training) {
+      candidates.push({
+        href: "/capital-humain",
+        icon: "👤",
+        title: "Renseigner les données Capital Humain",
+        hint: "Effectif, formation, parité et indicateurs sociaux",
+        completionPct: 0,
+      });
+    }
+
+    if (!captationCarbone) {
+      candidates.push({
+        href: "/captation-carbone",
+        icon: "🌳",
+        title: "Renseigner la captation carbone",
+        hint: "Ajoutez vos données de séquestration carbone",
+        completionPct: 0,
+      });
+    }
+
+    // Évaluer ma démarche
     if (overallCounts.total > 0) {
       const pct = overallCounts.total > 0
         ? Math.round((overallCounts.answered / overallCounts.total) * 100)
@@ -412,72 +560,70 @@ export function DashboardBody({ orgId }: { orgId: number }) {
       });
     }
 
-    // Numérique responsable
-    if (nrData && nrTotal > 0 && nrChecked < nrTotal) {
+    if (!impactData?.result) {
       candidates.push({
-        href: "/numerique-responsable",
-        icon: "💻",
-        title: "Compléter le Numérique Responsable",
-        hint: `${nrChecked} / ${nrTotal} critères cochés`,
-        completionPct: nrScore,
-      });
-    } else if (!nrData) {
-      candidates.push({
-        href: "/numerique-responsable",
-        icon: "💻",
-        title: "Renseigner le Numérique Responsable",
-        hint: "Évaluez l'impact numérique de votre organisation",
+        href: "/impact-score",
+        icon: "✨",
+        title: "Calculer votre Impact Score",
+        hint: "Visualisez votre niveau de maturité RSE",
         completionPct: 0,
       });
     }
 
-    // Bilan carbone
-    if (!carbon) {
+    if (obtainedLabels === 0) {
       candidates.push({
-        href: "/bilan-carbone",
-        icon: "🌍",
-        title: "Saisir le Bilan Carbone",
-        hint: "Calculez vos émissions sur les 3 scopes",
+        href: "/mes-labels",
+        icon: "🏅",
+        title: "Renseigner vos labels",
+        hint: inProgressLabels > 0
+          ? `${inProgressLabels} label${inProgressLabels > 1 ? "s" : ""} à finaliser`
+          : "Ajoutez les labels et certifications de votre organisation",
         completionPct: 0,
       });
     }
 
-    // Achats responsables
-    if (allSuppliers.length === 0) {
+    // Passer à l'action
+    if (totalActions === 0) {
       candidates.push({
-        href: "/achats-responsables",
-        icon: "🤝",
-        title: "Référencer vos fournisseurs",
-        hint: "Évaluez la démarche RSE de vos partenaires",
+        href: "/mes-actions",
+        icon: "📋",
+        title: "Créer votre plan d'actions RSE",
+        hint: "Transformez vos priorités en actions concrètes",
+        completionPct: 0,
+      });
+    } else if (doneActions < totalActions) {
+      candidates.push({
+        href: "/mes-actions",
+        icon: "📋",
+        title: "Poursuivre votre plan d'actions RSE",
+        hint: `${doneActions} / ${totalActions} actions réalisées`,
+        completionPct: actionRate,
+      });
+    }
+
+    // Communiquer
+    if ((reportDraft?.generationCount ?? 0) === 0) {
+      candidates.push({
+        href: "/rapport-rse",
+        icon: "📄",
+        title: "Préparer votre rapport RSE",
+        hint: "Générez votre premier rapport annuel",
         completionPct: 0,
       });
     }
 
-    // Biodiversité
-    if (bioItems.length === 0) {
+    if (!publicLink?.token) {
       candidates.push({
-        href: "/biodiversite",
-        icon: "🌿",
-        title: "Cartographier vos dépendances biodiversité",
-        hint: "Identifiez vos ressources, activités et lieux impactés",
+        href: "/page-publique-rse",
+        icon: "🌐",
+        title: "Créer votre page publique RSE",
+        hint: "Partagez votre démarche avec vos parties prenantes",
         completionPct: 0,
       });
     }
 
-    // Capital humain
-    if (!employment?.workforce && !employment?.training) {
-      candidates.push({
-        href: "/capital-humain",
-        icon: "👤",
-        title: "Renseigner les données Capital Humain",
-        hint: "Effectif, formation, parité et indicateurs sociaux",
-        completionPct: 0,
-      });
-    }
-
-    // Sélectionner le candidat le moins avancé (pct le plus bas), en priorité ceux à 0%
-    if (candidates.length === 0) return null;
-    return candidates.sort((a, b) => a.completionPct - b.completionPct)[0];
+    // Le premier élément ajouté est le premier module incomplet dans le menu.
+    return candidates[0] ?? null;
   })();
 
   return (
