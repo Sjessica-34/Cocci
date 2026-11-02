@@ -248,8 +248,11 @@ export function Home() {
             <h1 className="text-[2.1rem] font-extrabold leading-[1.14] tracking-[-0.035em] text-[#26332b] sm:text-4xl xl:text-[2.9rem]">
               Construisez votre démarche RSE <span className="text-[#218047]">de A à Z</span>, même en <span className="text-[#218047]">partant de zéro</span>. Suivez vos engagements et mesurez <span className="text-[#218047]">votre impact</span>.
             </h1>
-            <p className="mt-6 max-w-[520px] text-[15px] leading-7 text-[#657269]">
-              Vous souhaitez engager votre entreprise dans une démarche RSE, mais vous ne savez pas par où commencer ? Cocci vous guide étape par étape pour identifier vos enjeux, construire votre stratégie, mesurer vos impacts et valoriser vos engagements. Le tout en autonomie, sans expertise préalable.
+            <p className="mt-5 max-w-[520px] text-[15px] font-semibold leading-6 text-[#286444]">
+              La RSE, même si vous n'y connaissez rien :
+            </p>
+            <p className="mt-2 max-w-[520px] text-[15px] leading-7 text-[#657269]">
+              Vous souhaitez engager votre entreprise dans une démarche RSE, mais vous ne savez pas par où commencer ? Cocci vous accompagne pas à pas pour identifier vos enjeux, construire votre démarche, mesurer vos impacts et valoriser vos engagements. Aucune connaissance préalable nécessaire : Cocci vous guide à chaque étape, en toute autonomie et à votre rythme.
             </p>
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-3 text-[13px] font-medium text-[#435249]">
               {["Simple", "Complet", "Pensé pour les PME comme pour les groupes"].map((item) => (
