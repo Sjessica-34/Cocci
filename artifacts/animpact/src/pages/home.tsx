@@ -119,7 +119,7 @@ const questions = [
 
 function AppMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-[390px] select-none">
+    <div className="relative mx-auto w-full max-w-[500px] select-none">
       <div className="absolute -inset-6 rounded-[2.5rem] bg-[#e8f3eb]/70 blur-2xl" />
       <div className="relative overflow-hidden rounded-2xl border border-[#dce7df] bg-white shadow-[0_28px_80px_-36px_rgba(22,48,40,0.48)]">
         <img
