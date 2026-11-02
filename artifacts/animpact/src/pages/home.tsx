@@ -13,7 +13,6 @@ import {
   Layers,
   Leaf,
   Network,
-  Plus,
   QrCode,
   Sprout,
   Star,
@@ -120,7 +119,7 @@ const questions = [
 
 function AppMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-[440px] select-none">
+    <div className="relative mx-auto w-full max-w-[390px] select-none">
       <div className="absolute -inset-6 rounded-[2.5rem] bg-[#e8f3eb]/70 blur-2xl" />
       <div className="relative overflow-hidden rounded-2xl border border-[#dce7df] bg-white shadow-[0_28px_80px_-36px_rgba(22,48,40,0.48)]">
         <img
@@ -268,32 +267,26 @@ export function Home() {
           <div className="flex justify-center px-2 py-4 sm:px-8 lg:px-0"><AppMockup /></div>
         </section>
 
-        <section id="fonctionnalites" className="scroll-mt-28 px-5 pb-24 sm:px-8 lg:pb-28">
-          <div className="mx-auto max-w-7xl rounded-[1.75rem] bg-[#f1f7f2] px-5 py-12 sm:px-9 sm:py-14 lg:px-12 lg:py-16">
+        <section id="fonctionnalites" className="scroll-mt-28 px-5 pb-14 sm:px-8 sm:pb-16">
+          <div className="mx-auto max-w-7xl rounded-[1.5rem] bg-[#f4f8f4] px-5 py-8 sm:px-7 sm:py-9 lg:px-9 lg:py-10">
             <div className="mx-auto max-w-3xl text-center">
-              <span className="inline-flex rounded-full border border-[#d8e8dc] bg-white/80 px-4 py-2 text-xs font-semibold text-[#286444]">Nos fonctionnalités clés</span>
-              <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#26332b] sm:text-3xl">Ce qui distingue Cocci</h2>
-              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#657269]">Des analyses et des outils avancés pour construire une démarche RSE solide et obtenir des résultats concrets.</p>
+              <h2 className="text-2xl font-bold tracking-tight text-[#26332b] sm:text-3xl">Nos fonctionnalités clés</h2>
+              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[#657269]">Des outils qui font la différence, pour une RSE qui avance.</p>
             </div>
-            <div className="mt-9 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {keyFeatures.map(({ icon: Icon, title, body }) => (
-                <article key={title} className="rounded-xl border border-[#e5ece6] bg-white p-5 sm:p-6">
-                  <div className="flex items-center gap-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#edf6ef] text-[#286444]"><Icon className="h-[18px] w-[18px]" /></span>
+                <article key={title} className="rounded-xl border border-[#e9eee9] bg-white p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#edf6ef] text-[#286444]"><Icon className="h-4 w-4" /></span>
                     <h3 className="text-base font-bold leading-snug text-[#26332b]">{title}</h3>
                   </div>
-                  <p className="mt-4 text-sm leading-6 text-[#69766d]">{body}</p>
+                  <p className="mt-3 text-sm leading-6 text-[#69766d]">{body}</p>
                 </article>
               ))}
             </div>
-            <div className="mt-8 border-t border-[#dce8de] pt-7">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e1f0e5] text-[#286444]"><Plus className="h-4 w-4" /></span>
-                <div>
-                  <h3 className="text-sm font-bold text-[#26332b]">Et ce n'est pas tout !</h3>
-                  <p className="mt-2 text-xs leading-6 text-[#657269] sm:text-sm">{complementaryFeatures}</p>
-                </div>
-              </div>
+            <div className="mt-5 border-t border-[#e0e9e1] pt-4 sm:flex sm:items-start sm:gap-3">
+              <h3 className="shrink-0 text-sm font-bold text-[#26332b]">Et ce n'est pas tout !</h3>
+              <p className="mt-1 text-xs leading-5 text-[#657269] sm:mt-0 sm:text-sm">{complementaryFeatures}</p>
             </div>
           </div>
         </section>
