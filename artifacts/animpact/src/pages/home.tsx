@@ -270,8 +270,8 @@ export function Home() {
         <section id="fonctionnalites" className="scroll-mt-28 px-5 pb-14 sm:px-8 sm:pb-16">
           <div className="mx-auto max-w-7xl rounded-[1.5rem] bg-[#f4f8f4] px-5 py-8 sm:px-7 sm:py-9 lg:px-9 lg:py-10">
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className="text-2xl font-bold tracking-tight text-[#26332b] sm:text-3xl">Nos fonctionnalités clés</h2>
-              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[#657269]">Des outils qui font la différence, pour une RSE qui avance.</p>
+              <h2 className="text-2xl font-bold tracking-tight text-[#218047] sm:text-3xl">Les fonctionnalités qui font la différence</h2>
+              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[#657269]">Des fonctionnalités complémentaires que l'on ne retrouve pas toujours réunies, pour une démarche RSE plus complète.</p>
             </div>
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {keyFeatures.map(({ icon: Icon, title, body }) => (
