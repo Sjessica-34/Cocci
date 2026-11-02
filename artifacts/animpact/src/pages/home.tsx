@@ -136,7 +136,7 @@ const questions = [
 
 function AppMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-[570px] select-none">
+    <div className="relative mx-auto w-full max-w-[460px] select-none">
       <div className="absolute -inset-6 rounded-[2.5rem] bg-[#e8f3eb]/70 blur-2xl" />
       <div className="relative overflow-hidden rounded-2xl border border-[#dce7df] bg-white shadow-[0_28px_80px_-36px_rgba(22,48,40,0.48)]">
         <img
@@ -270,47 +270,47 @@ export function Home() {
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto grid max-w-7xl items-center gap-14 px-5 pb-28 pt-20 sm:px-8 lg:grid-cols-[1fr_1.02fr] lg:gap-16 lg:pb-32 lg:pt-28">
-          <div className="max-w-[590px]">
+        <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-24 pt-16 sm:px-8 lg:grid-cols-[1fr_1.02fr] lg:gap-12 lg:pb-24 lg:pt-20">
+          <div className="max-w-[550px]">
             <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-[#d8e9dc] bg-[#f1f8f2] px-4 py-2 text-xs font-semibold text-[#286444] sm:text-sm">
               <span className="h-2 w-2 shrink-0 rounded-full bg-[#4b9a64]" />
               La plateforme RSE des TPE, PME et ETI françaises
             </div>
-            <h1 className="text-[2.45rem] font-extrabold leading-[1.12] tracking-[-0.035em] text-[#26332b] sm:text-5xl xl:text-[3.45rem]">
+            <h1 className="text-[2.1rem] font-extrabold leading-[1.14] tracking-[-0.035em] text-[#26332b] sm:text-4xl xl:text-[2.9rem]">
               Construisez votre démarche RSE <span className="text-[#218047]">de A à Z</span>, même en <span className="text-[#218047]">partant de zéro</span>. Suivez vos engagements et mesurez <span className="text-[#218047]">votre impact</span>.
             </h1>
-            <p className="mt-7 max-w-[540px] text-base leading-8 text-[#657269]">
+            <p className="mt-6 max-w-[520px] text-[15px] leading-7 text-[#657269]">
               Vous souhaitez engager votre entreprise dans une démarche RSE, mais vous ne savez pas par où commencer ? Cocci vous guide étape par étape pour identifier vos enjeux, construire votre stratégie, mesurer vos impacts et valoriser vos engagements. Le tout en autonomie, sans expertise préalable.
             </p>
-            <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-[#435249]">
+            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-3 text-[13px] font-medium text-[#435249]">
               {["Simple", "Complet", "Pensé pour les PME comme pour les groupes"].map((item) => (
                 <span key={item} className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-[#286444]" />{item}</span>
               ))}
             </div>
-            <div className="mt-9 flex flex-wrap items-center gap-3">
-              <Link href="/onboarding/effectif" className="inline-flex h-12 items-center justify-center rounded-lg bg-[#163028] px-7 text-sm font-semibold text-white transition-colors hover:bg-[#1e4438]">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link href="/onboarding/effectif" className="inline-flex h-11 items-center justify-center rounded-lg bg-[#163028] px-6 text-[13px] font-semibold text-white transition-colors hover:bg-[#1e4438]">
                 Commencer <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
-              <Link href="/demo" className="inline-flex h-12 items-center justify-center rounded-lg border border-[#163028] px-7 text-sm font-semibold text-[#163028] transition-colors hover:bg-[#163028]/5">Demander une démo</Link>
+              <Link href="/demo" className="inline-flex h-11 items-center justify-center rounded-lg border border-[#163028] px-6 text-[13px] font-semibold text-[#163028] transition-colors hover:bg-[#163028]/5">Demander une démo</Link>
             </div>
             <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-[#859087]"><CheckCircle2 className="h-3.5 w-3.5" />Sans engagement</p>
           </div>
-          <div className="px-2 py-4 sm:px-8 lg:px-0"><AppMockup /></div>
+          <div className="flex justify-center px-2 py-4 sm:px-8 lg:px-0"><AppMockup /></div>
         </section>
 
         <section id="fonctionnalites" className="scroll-mt-28 px-5 pb-24 sm:px-8 lg:pb-28">
-          <div className="mx-auto max-w-7xl rounded-[2rem] bg-[#f1f7f2] px-5 py-14 sm:px-10 sm:py-16 lg:px-14 lg:py-[4.5rem]">
+          <div className="mx-auto max-w-7xl rounded-[1.75rem] bg-[#f1f7f2] px-5 py-12 sm:px-9 sm:py-14 lg:px-12 lg:py-16">
             <div className="mx-auto max-w-3xl text-center">
               <span className="inline-flex rounded-full border border-[#d8e8dc] bg-white/80 px-4 py-2 text-xs font-semibold text-[#286444]">Nos fonctionnalités clés</span>
-              <h2 className="mt-5 text-3xl font-bold tracking-tight text-[#26332b] sm:text-4xl">Ce qui distingue Cocci</h2>
-              <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#657269]">Des analyses et des outils avancés pour construire une démarche RSE solide et obtenir des résultats concrets.</p>
+              <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#26332b] sm:text-3xl">Ce qui distingue Cocci</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#657269]">Des analyses et des outils avancés pour construire une démarche RSE solide et obtenir des résultats concrets.</p>
             </div>
-            <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-9 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {keyFeatures.map(({ icon: Icon, title, body }) => (
-                <article key={title} className="rounded-2xl border border-[#e5ece6] bg-white p-6 sm:p-7">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf6ef] text-[#286444]"><Icon className="h-5 w-5" /></span>
-                  <h3 className="mt-5 text-lg font-bold leading-snug text-[#26332b]">{title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#69766d]">{body}</p>
+                <article key={title} className="rounded-xl border border-[#e5ece6] bg-white p-5">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#edf6ef] text-[#286444]"><Icon className="h-[18px] w-[18px]" /></span>
+                  <h3 className="mt-4 text-base font-bold leading-snug text-[#26332b]">{title}</h3>
+                  <p className="mt-2.5 text-[13px] leading-[1.55] text-[#69766d]">{body}</p>
                 </article>
               ))}
             </div>
@@ -397,7 +397,7 @@ export function Home() {
         </section>
 
         <section className="border-t border-[#edf1ed] bg-white py-24 sm:py-28">
-          <div className="mx-auto grid max-w-7xl items-start gap-12 px-5 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+          <div className="mx-auto grid max-w-7xl items-start gap-12 px-5 sm:px-8 lg:grid-cols-2 lg:gap-16">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64816d]">Vos questions</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#26332b]">Questions fréquentes</h2>
