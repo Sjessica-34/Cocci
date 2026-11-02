@@ -105,20 +105,8 @@ const questions = [
     a: "Oui. La plateforme guide les entreprises dans leurs diagnostics, leurs priorités et leurs actions, sans nécessiter d'expertise préalable.",
   },
   {
-    q: "Quelle différence entre construire et piloter une démarche RSE ?",
-    a: "Construire consiste à identifier les enjeux et définir des priorités. Piloter, c'est suivre les objectifs, les actions et les indicateurs dans la durée.",
-  },
-  {
-    q: "Quels outils RSE sont disponibles dans Cocci ?",
-    a: "Cocci propose notamment des outils de matérialité et parties prenantes, biodiversité, baromètre social, numérique responsable, plan d'action et rapport RSE.",
-  },
-  {
     q: "Peut-on générer automatiquement un rapport RSE ?",
-    a: "Oui. Un rapport structuré peut être généré à partir des informations renseignées dans les modules. Il s'agit d'un rapport volontaire et non d'une garantie de conformité réglementaire.",
-  },
-  {
-    q: "Comment fonctionne le baromètre social anonyme ?",
-    a: "Vous créez un questionnaire et le partagez avec vos collaborateurs, notamment à l'aide d'un QR code. Les réponses sont recueillies anonymement puis analysées dans la plateforme.",
+    a: "Oui. Un rapport structuré peut être généré à partir des informations renseignées dans les modules. Il n'est pas conforme CSRD pour l'instant, mais cette évolution est en cours de développement. Il s'agit actuellement d'un rapport volontaire, sans garantie de conformité réglementaire.",
   },
   {
     q: "Cocci permet-il de réaliser un Bilan Carbone® ?",
@@ -128,15 +116,11 @@ const questions = [
     q: "Cocci convient-il aux entreprises possédant plusieurs établissements ?",
     a: "Oui. Les organisations peuvent gérer plusieurs entités, filiales ou sites et consolider leur démarche dans un espace unique.",
   },
-  {
-    q: "Combien coûte Cocci ?",
-    a: "L'offre commence à 19,99 € TTC par mois. Les fonctionnalités disponibles peuvent dépendre de l'offre choisie.",
-  },
 ];
 
 function AppMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-[460px] select-none">
+    <div className="relative mx-auto w-full max-w-[440px] select-none">
       <div className="absolute -inset-6 rounded-[2.5rem] bg-[#e8f3eb]/70 blur-2xl" />
       <div className="relative overflow-hidden rounded-2xl border border-[#dce7df] bg-white shadow-[0_28px_80px_-36px_rgba(22,48,40,0.48)]">
         <img
@@ -305,12 +289,14 @@ export function Home() {
               <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#26332b] sm:text-3xl">Ce qui distingue Cocci</h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#657269]">Des analyses et des outils avancés pour construire une démarche RSE solide et obtenir des résultats concrets.</p>
             </div>
-            <div className="mt-9 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-9 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {keyFeatures.map(({ icon: Icon, title, body }) => (
-                <article key={title} className="rounded-xl border border-[#e5ece6] bg-white p-5">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#edf6ef] text-[#286444]"><Icon className="h-[18px] w-[18px]" /></span>
-                  <h3 className="mt-4 text-base font-bold leading-snug text-[#26332b]">{title}</h3>
-                  <p className="mt-2.5 text-[13px] leading-[1.55] text-[#69766d]">{body}</p>
+                <article key={title} className="rounded-xl border border-[#e5ece6] bg-white p-5 sm:p-6">
+                  <div className="flex items-center gap-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#edf6ef] text-[#286444]"><Icon className="h-[18px] w-[18px]" /></span>
+                    <h3 className="text-base font-bold leading-snug text-[#26332b]">{title}</h3>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[#69766d]">{body}</p>
                 </article>
               ))}
             </div>
@@ -441,6 +427,18 @@ export function Home() {
                 </div>
               </div>
             </aside>
+          </div>
+        </section>
+
+        <section className="border-t border-[#e7ece8] bg-[#f8faf8] py-7">
+          <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-5 px-5 sm:px-8 md:flex-row md:items-center">
+            <div>
+              <h2 className="text-lg font-bold text-[#26332b]">Prêt à structurer et piloter votre démarche RSE ?</h2>
+              <p className="mt-1 text-sm text-[#657269]">Échangez avec nos experts et découvrez comment Cocci peut répondre à vos besoins.</p>
+            </div>
+            <Link href="/demo" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-3 rounded-lg bg-[#163028] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1e4438]">
+              Demander une démo <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </section>
       </main>
