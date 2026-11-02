@@ -135,30 +135,16 @@ function AppMockup() {
 
 function PublicPagePreview() {
   return (
-    <div className="w-full max-w-[280px] rounded-[1.4rem] border border-[#d5e6d8] bg-white p-3 shadow-[0_18px_48px_-26px_rgba(22,48,40,0.45)]">
-      <div className="overflow-hidden rounded-[1rem] border border-[#edf1ee]">
-        <div className="flex items-center justify-between border-b border-[#edf1ee] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#163028]"><Leaf className="h-3.5 w-3.5 text-emerald-300" /></span>
-            <span className="text-xs font-bold text-[#26372d]">Cocci</span>
-          </div>
-          <QrCode className="h-4 w-4 text-[#54705d]" />
-        </div>
-        <div className="space-y-3 bg-[#f8faf8] px-4 py-5">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#86938a]">Page publique personnalisée</p>
-          <div>
-            <p className="text-sm font-bold leading-snug text-[#163028]">Notre démarche RSE</p>
-            <p className="mt-1 text-[10px] leading-relaxed text-[#728077]">Une page pour présenter vos engagements et vos actions.</p>
-          </div>
-          <div className="space-y-2 rounded-lg border border-[#e5ece6] bg-white p-3">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-[#718078]">Nos engagements</p>
-            <div className="h-1.5 w-4/5 rounded-full bg-[#dcebe0]" />
-            <div className="h-1.5 w-3/5 rounded-full bg-[#e8efe9]" />
-          </div>
-          <div className="rounded-lg bg-[#edf6ef] px-3 py-2 text-[10px] font-medium text-[#42624c]">À découvrir et partager</div>
-        </div>
-      </div>
-      <p className="pt-3 text-center text-[10px] font-medium text-[#748277]">Aperçu d'une page publique Cocci</p>
+    <div className="flex min-h-[170px] w-full max-w-[206px] flex-col items-center justify-center rounded-2xl border border-[#d5e6d8] bg-white px-4 py-5 shadow-[0_14px_36px_-24px_rgba(22,48,40,0.5)]">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#163028]">
+        <Leaf className="h-6 w-6 text-emerald-300" />
+      </span>
+      <p className="mt-3 max-w-full truncate font-mono text-[10px] text-[#86938a]">cocci-rse.fr/p/abc123</p>
+      <p className="mt-1 text-xs font-semibold text-[#34443a]">Votre page RSE publique</p>
+      <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#e5f7eb] px-3 py-1 text-[10px] font-medium text-[#277344]">
+        <CheckCircle2 className="h-3 w-3" />
+        Accessible sans compte
+      </span>
     </div>
   );
 }
@@ -367,14 +353,14 @@ export function Home() {
           </div>
         </section>
 
-        <section className="border-t border-[#dce9df] bg-[#eff7f0] py-20 sm:py-24">
-          <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 sm:px-8 md:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+        <section className="border-t border-[#dce9df] bg-[#effbf3] py-16 sm:py-20">
+          <div className="mx-auto grid max-w-7xl items-center gap-8 px-5 sm:px-8 md:grid-cols-[220px_1fr] md:gap-6 lg:gap-8">
             <div className="flex justify-center md:justify-start"><PublicPagePreview /></div>
             <div className="max-w-2xl">
-              <h2 className="text-2xl font-bold leading-tight text-[#218047] sm:text-3xl">Partagez votre engagement RSE en un lien</h2>
-              <p className="mt-5 text-sm leading-7 text-[#657269]">Générez une page publique personnalisée présentant vos scores, vos engagements et votre plan d'action. Partagez-la avec vos clients, partenaires ou investisseurs en un clic via un lien ou un QR code.</p>
-              <ul className="mt-6 space-y-3 text-sm text-[#435249]">
-                {["Un lien unique, réactualisable à tout moment", "Données mises à jour automatiquement", "Texte d'introduction personnalisable"].map((item) => (
+              <h2 className="text-xl font-bold leading-tight text-[#16834b] sm:text-[21px]">Partagez votre engagement RSE en un lien</h2>
+              <p className="mt-2 text-sm leading-6 text-[#657269]">Générez une page publique personnalisée présentant vos scores, vos engagements et votre plan d'actions. Partagez-la avec vos clients, partenaires ou investisseurs sans qu'ils aient besoin d'un compte.</p>
+              <ul className="mt-4 space-y-1.5 text-sm text-[#435249]">
+                {["Un lien unique, révocable à tout moment", "Données mises à jour automatiquement", "Texte d'introduction personnalisable"].map((item) => (
                   <li key={item} className="flex items-start gap-2.5"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#286444]" />{item}</li>
                 ))}
               </ul>
@@ -423,7 +409,7 @@ export function Home() {
                   <Link href="/onboarding/effectif" className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#163028] px-4 py-3 text-center text-xs font-semibold leading-snug text-white transition-colors hover:bg-[#1e4438]">
                     Commencer ma démarche RSE <ArrowRight className="h-4 w-4 shrink-0" />
                   </Link>
-                  <p className="mt-3 text-[10px] leading-4 text-[#7b887e]">Les fonctionnalités proposées peuvent dépendre de l'offre choisie.</p>
+                  <p className="mt-3 text-[10px] leading-4 text-[#7b887e]">Les fonctionnalités sont les mêmes pour tous ; le tarif dépend du nombre d'employés.</p>
                 </div>
               </div>
             </aside>
