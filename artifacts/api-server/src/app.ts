@@ -8,6 +8,7 @@ import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { generalLimiter } from "./middlewares/rateLimit";
 import router from "./routes";
+import blogSeoRouter from "./routes/blogSeo";
 import { logger } from "./lib/logger";
 import { isProduction } from "./lib/runtimeEnv";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -144,6 +145,7 @@ app.use("/api", generalLimiter);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api", router);
+app.use(blogSeoRouter);
 
 // In a single-origin deployment, serve the built SPA from the API process so
 // browser requests, Clerk redirects, and deep links need no external proxy.
