@@ -9,6 +9,308 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List published blog posts
+ */
+export const ListPublishedBlogPostsQueryParams = zod.object({
+  "category": zod.enum(['rse_advice', 'cocci_news']).optional()
+})
+
+export const ListPublishedBlogPostsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "excerpt": zod.string(),
+  "content": zod.string(),
+  "category": zod.enum(['rse_advice', 'cocci_news']),
+  "coverImageUrl": zod.string().nullable(),
+  "coverImageAlt": zod.string(),
+  "keywords": zod.array(zod.string()),
+  "language": zod.string(),
+  "seoTitle": zod.string().nullable(),
+  "metaDescription": zod.string().nullable(),
+  "structuredData": zod.record(zod.string(), zod.unknown()).nullable(),
+  "canonicalUrl": zod.string().url().nullable(),
+  "source": zod.enum(['local', 'visia']),
+  "sourceUpdatedAt": zod.coerce.date().nullable(),
+  "manuallyEdited": zod.boolean(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListPublishedBlogPostsResponse = zod.array(ListPublishedBlogPostsResponseItem)
+
+
+/**
+ * @summary Get a published post by slug
+ */
+export const GetPublishedBlogPostParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetPublishedBlogPostResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "excerpt": zod.string(),
+  "content": zod.string(),
+  "category": zod.enum(['rse_advice', 'cocci_news']),
+  "coverImageUrl": zod.string().nullable(),
+  "coverImageAlt": zod.string(),
+  "keywords": zod.array(zod.string()),
+  "language": zod.string(),
+  "seoTitle": zod.string().nullable(),
+  "metaDescription": zod.string().nullable(),
+  "structuredData": zod.record(zod.string(), zod.unknown()).nullable(),
+  "canonicalUrl": zod.string().url().nullable(),
+  "source": zod.enum(['local', 'visia']),
+  "sourceUpdatedAt": zod.coerce.date().nullable(),
+  "manuallyEdited": zod.boolean(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List all blog posts
+ */
+export const ListAdminBlogPostsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "excerpt": zod.string(),
+  "content": zod.string(),
+  "category": zod.enum(['rse_advice', 'cocci_news']),
+  "coverImageUrl": zod.string().nullable(),
+  "coverImageAlt": zod.string(),
+  "keywords": zod.array(zod.string()),
+  "language": zod.string(),
+  "seoTitle": zod.string().nullable(),
+  "metaDescription": zod.string().nullable(),
+  "structuredData": zod.record(zod.string(), zod.unknown()).nullable(),
+  "canonicalUrl": zod.string().url().nullable(),
+  "source": zod.enum(['local', 'visia']),
+  "sourceUpdatedAt": zod.coerce.date().nullable(),
+  "manuallyEdited": zod.boolean(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminBlogPostsResponse = zod.array(ListAdminBlogPostsResponseItem)
+
+
+/**
+ * @summary Create a blog post
+ */
+export const createAdminBlogPostBodyTitleMax = 180;
+
+export const createAdminBlogPostBodySlugMax = 180;
+
+export const createAdminBlogPostBodyExcerptMax = 400;
+
+
+export const createAdminBlogPostBodyCoverImageAltMax = 250;
+
+export const createAdminBlogPostBodyKeywordsItemMax = 80;
+
+export const createAdminBlogPostBodyLanguageMax = 12;
+
+export const createAdminBlogPostBodySeoTitleMax = 180;
+
+export const createAdminBlogPostBodyMetaDescriptionMax = 400;
+
+
+
+export const CreateAdminBlogPostBody = zod.object({
+  "title": zod.string().min(1).max(createAdminBlogPostBodyTitleMax),
+  "slug": zod.string().min(1).max(createAdminBlogPostBodySlugMax),
+  "excerpt": zod.string().max(createAdminBlogPostBodyExcerptMax),
+  "content": zod.string().min(1),
+  "category": zod.enum(['rse_advice', 'cocci_news']),
+  "coverImageUrl": zod.string().url().nullish(),
+  "coverImageAlt": zod.string().max(createAdminBlogPostBodyCoverImageAltMax).optional(),
+  "keywords": zod.array(zod.string().max(createAdminBlogPostBodyKeywordsItemMax)).optional(),
+  "language": zod.string().max(createAdminBlogPostBodyLanguageMax).optional(),
+  "seoTitle": zod.string().max(createAdminBlogPostBodySeoTitleMax).nullish(),
+  "metaDescription": zod.string().max(createAdminBlogPostBodyMetaDescriptionMax).nullish()
+})
+
+export const CreateAdminBlogPostResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "excerpt": zod.string(),
+  "content": zod.string(),
+  "category": zod.enum(['rse_advice', 'cocci_news']),
+  "coverImageUrl": zod.string().nullable(),
+  "coverImageAlt": zod.string(),
+  "keywords": zod.array(zod.string()),
+  "language": zod.string(),
+  "seoTitle": zod.string().nullable(),
+  "metaDescription": zod.string().nullable(),
+  "structuredData": zod.record(zod.string(), zod.unknown()).nullable(),
+  "canonicalUrl": zod.string().url().nullable(),
+  "source": zod.enum(['local', 'visia']),
+  "sourceUpdatedAt": zod.coerce.date().nullable(),
+  "manuallyEdited": zod.boolean(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a blog post
+ */
+export const UpdateAdminBlogPostParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateAdminBlogPostBodyTitleMax = 180;
+
+export const updateAdminBlogPostBodySlugMax = 180;
+
+export const updateAdminBlogPostBodyExcerptMax = 400;
+
+
+export const updateAdminBlogPostBodyCoverImageAltMax = 250;
+
+export const updateAdminBlogPostBodyKeywordsItemMax = 80;
+
+export const updateAdminBlogPostBodyLanguageMax = 12;
+
+export const updateAdminBlogPostBodySeoTitleMax = 180;
+
+export const updateAdminBlogPostBodyMetaDescriptionMax = 400;
+
+
+
+export const UpdateAdminBlogPostBody = zod.object({
+  "title": zod.string().min(1).max(updateAdminBlogPostBodyTitleMax),
+  "slug": zod.string().min(1).max(updateAdminBlogPostBodySlugMax),
+  "excerpt": zod.string().max(updateAdminBlogPostBodyExcerptMax),
+  "content": zod.string().min(1),
+  "category": zod.enum(['rse_advice', 'cocci_news']),
+  "coverImageUrl": zod.string().url().nullish(),
+  "coverImageAlt": zod.string().max(updateAdminBlogPostBodyCoverImageAltMax).optional(),
+  "keywords": zod.array(zod.string().max(updateAdminBlogPostBodyKeywordsItemMax)).optional(),
+  "language": zod.string().max(updateAdminBlogPostBodyLanguageMax).optional(),
+  "seoTitle": zod.string().max(updateAdminBlogPostBodySeoTitleMax).nullish(),
+  "metaDescription": zod.string().max(updateAdminBlogPostBodyMetaDescriptionMax).nullish()
+})
+
+export const UpdateAdminBlogPostResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "excerpt": zod.string(),
+  "content": zod.string(),
+  "category": zod.enum(['rse_advice', 'cocci_news']),
+  "coverImageUrl": zod.string().nullable(),
+  "coverImageAlt": zod.string(),
+  "keywords": zod.array(zod.string()),
+  "language": zod.string(),
+  "seoTitle": zod.string().nullable(),
+  "metaDescription": zod.string().nullable(),
+  "structuredData": zod.record(zod.string(), zod.unknown()).nullable(),
+  "canonicalUrl": zod.string().url().nullable(),
+  "source": zod.enum(['local', 'visia']),
+  "sourceUpdatedAt": zod.coerce.date().nullable(),
+  "manuallyEdited": zod.boolean(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a blog post
+ */
+export const DeleteAdminBlogPostParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAdminBlogPostResponse = zod.void()
+
+
+/**
+ * @summary Publish or unpublish a blog post
+ */
+export const SetAdminBlogPostPublishedParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SetAdminBlogPostPublishedBody = zod.object({
+  "isPublished": zod.boolean()
+})
+
+export const SetAdminBlogPostPublishedResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "excerpt": zod.string(),
+  "content": zod.string(),
+  "category": zod.enum(['rse_advice', 'cocci_news']),
+  "coverImageUrl": zod.string().nullable(),
+  "coverImageAlt": zod.string(),
+  "keywords": zod.array(zod.string()),
+  "language": zod.string(),
+  "seoTitle": zod.string().nullable(),
+  "metaDescription": zod.string().nullable(),
+  "structuredData": zod.record(zod.string(), zod.unknown()).nullable(),
+  "canonicalUrl": zod.string().url().nullable(),
+  "source": zod.enum(['local', 'visia']),
+  "sourceUpdatedAt": zod.coerce.date().nullable(),
+  "manuallyEdited": zod.boolean(),
+  "isPublished": zod.boolean(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Read Visia sync settings
+ */
+export const GetAdminBlogSyncSettingsResponse = zod.object({
+  "visiaSyncEnabled": zod.boolean(),
+  "lastSyncAt": zod.coerce.date().nullable(),
+  "lastSyncError": zod.string().nullable(),
+  "rightsConfirmed": zod.boolean()
+})
+
+
+/**
+ * @summary Enable or disable Visia sync
+ */
+export const UpdateAdminBlogSyncSettingsBody = zod.object({
+  "visiaSyncEnabled": zod.boolean()
+})
+
+export const UpdateAdminBlogSyncSettingsResponse = zod.object({
+  "visiaSyncEnabled": zod.boolean(),
+  "lastSyncAt": zod.coerce.date().nullable(),
+  "lastSyncError": zod.string().nullable(),
+  "rightsConfirmed": zod.boolean()
+})
+
+
+/**
+ * @summary Synchronize Visia articles
+ */
+export const RunAdminBlogSyncResponse = zod.object({
+  "imported": zod.number(),
+  "updated": zod.number(),
+  "skipped": zod.number()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

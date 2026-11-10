@@ -34,6 +34,9 @@ import { AdminEchanges } from "@/pages/admin/echanges";
 import { AdminSecurite } from "@/pages/admin/securite";
 import { AdminReferentiel } from "@/pages/admin/referentiel";
 import { AdminAbonnements } from "@/pages/admin/abonnements";
+import { AdminBlog } from "@/pages/admin/blog";
+import { BlogIndex } from "@/pages/blog";
+import { BlogArticle } from "@/pages/blog-article";
 import { EchangesCocci } from "@/pages/echanges/index";
 import { Resources } from "@/pages/resources";
 import { DiagnosticRse } from "@/pages/diagnostic/index";
@@ -651,6 +654,8 @@ function ClerkProviderWithRoutes() {
             <Route path="/resources"><WorkspaceGuard component={Resources} /></Route>
             <Route path="/settings"><ProtectedRoute component={UserSettings} /></Route>
             <Route path="/legal" component={LegalPage} />
+            <Route path="/blog" component={BlogIndex} />
+            <Route path="/blog/:slug" component={BlogArticle} />
 
             {/* Org management (settings, members) */}
             <Route path="/organizations"><ProtectedRoute component={OrganizationsList} /></Route>
@@ -669,6 +674,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/admin/securite"><AdminRoute component={AdminSecurite} /></Route>
             <Route path="/admin/referentiel"><AdminRoute component={AdminReferentiel} /></Route>
             <Route path="/admin/abonnements"><AdminRoute component={AdminAbonnements} /></Route>
+            <Route path="/admin/blog"><AdminRoute component={AdminBlog} /></Route>
 
             <Route path="/echanges"><WorkspaceGuard component={EchangesCocci} /></Route>
 
