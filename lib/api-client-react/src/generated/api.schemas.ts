@@ -721,6 +721,128 @@ export interface ResourcePublishUpdate {
   isPublished: boolean;
 }
 
+export interface PublishBlogImageRequest {
+  /** @pattern ^/objects/ */
+  objectPath: string;
+}
+
+export interface PublishBlogImageResponse {
+  objectPath: string;
+}
+
+export type BlogPostCategory = typeof BlogPostCategory[keyof typeof BlogPostCategory];
+
+
+export const BlogPostCategory = {
+  rse_advice: 'rse_advice',
+  cocci_news: 'cocci_news',
+} as const;
+
+/**
+ * @nullable
+ */
+export type BlogPostStructuredData = { [key: string]: unknown } | null;
+
+export type BlogPostSource = typeof BlogPostSource[keyof typeof BlogPostSource];
+
+
+export const BlogPostSource = {
+  local: 'local',
+  visia: 'visia',
+} as const;
+
+export interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  category: BlogPostCategory;
+  /** @nullable */
+  coverImageUrl: string | null;
+  coverImageAlt: string;
+  keywords: string[];
+  language: string;
+  /** @nullable */
+  seoTitle: string | null;
+  /** @nullable */
+  metaDescription: string | null;
+  /** @nullable */
+  structuredData: BlogPostStructuredData;
+  /** @nullable */
+  canonicalUrl: string | null;
+  source: BlogPostSource;
+  /** @nullable */
+  sourceUpdatedAt: string | null;
+  manuallyEdited: boolean;
+  isPublished: boolean;
+  /** @nullable */
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BlogPostInputCategory = typeof BlogPostInputCategory[keyof typeof BlogPostInputCategory];
+
+
+export const BlogPostInputCategory = {
+  rse_advice: 'rse_advice',
+  cocci_news: 'cocci_news',
+} as const;
+
+export interface BlogPostInput {
+  /**
+     * @minLength 1
+     * @maxLength 180
+     */
+  title: string;
+  /**
+     * @minLength 1
+     * @maxLength 180
+     */
+  slug: string;
+  /** @maxLength 400 */
+  excerpt: string;
+  /** @minLength 1 */
+  content: string;
+  category: BlogPostInputCategory;
+  /** @nullable */
+  coverImageUrl?: string | null;
+  /** @maxLength 250 */
+  coverImageAlt?: string;
+  /** @items.maxLength 80 */
+  keywords?: string[];
+  /** @maxLength 12 */
+  language?: string;
+  /**
+     * @maxLength 180
+     * @nullable
+     */
+  seoTitle?: string | null;
+  /**
+     * @maxLength 400
+     * @nullable
+     */
+  metaDescription?: string | null;
+}
+
+export interface BlogSyncSettings {
+  visiaSyncEnabled: boolean;
+  /** @nullable */
+  lastSyncAt: string | null;
+  /** @nullable */
+  lastSyncError: string | null;
+  rightsConfirmed: boolean;
+}
+
+export interface BlogSyncSettingsUpdate {
+  visiaSyncEnabled: boolean;
+}
+
+export interface BlogPostPublishUpdate {
+  isPublished: boolean;
+}
+
 export interface Stakeholder {
   id: number;
   organizationId: number;
@@ -2757,6 +2879,24 @@ export interface GiftInvitationClaim {
   /** @nullable */
   endAt: string | null;
 }
+
+export type ListPublishedBlogPostsParams = {
+category?: ListPublishedBlogPostsCategory;
+};
+
+export type ListPublishedBlogPostsCategory = typeof ListPublishedBlogPostsCategory[keyof typeof ListPublishedBlogPostsCategory];
+
+
+export const ListPublishedBlogPostsCategory = {
+  rse_advice: 'rse_advice',
+  cocci_news: 'cocci_news',
+} as const;
+
+export type RunAdminBlogSync200 = {
+  imported: number;
+  updated: number;
+  skipped: number;
+};
 
 export type ListOrganizationsParams = {
 /**

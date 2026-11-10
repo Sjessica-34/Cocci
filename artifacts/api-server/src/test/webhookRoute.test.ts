@@ -13,6 +13,10 @@
 import type { Server } from "node:http";
 import Stripe from "stripe";
 import { pool } from "@workspace/db";
+import {
+  attachStripeCheckoutSession,
+  createPendingCheckoutAttempt,
+} from "../stripeCheckoutAttempts";
 
 let failures = 0;
 function assert(cond: boolean, label: string): void {
@@ -76,6 +80,15 @@ async function main() {
   );
   const orgId = org.rows[0].id;
   const subId = "sub_test_route_1";
+  const checkoutAttemptId = await createPendingCheckoutAttempt({
+    organizationId: orgId,
+    stripeCustomerId: "cus_test_route_1",
+  });
+  await attachStripeCheckoutSession({
+    attemptId: checkoutAttemptId,
+    stripeCheckoutSessionId: "cs_test_local_route_1",
+    stripeSubscriptionId: subId,
+  });
 
   const event = {
     id: "evt_test_route_1",
@@ -97,6 +110,7 @@ async function main() {
         status: "complete",
         metadata: {
           orgId: String(orgId),
+          checkoutAttemptId,
           offerName: "Cocci — 1 à 5 salariés",
           maxEmployees: "5",
         },
@@ -133,13 +147,28 @@ async function main() {
     );
 
     console.log("Événement valide mais échec d'écriture DB");
+    const failingAttemptId = await createPendingCheckoutAttempt({
+      organizationId: orgId,
+      stripeCustomerId: "cus_test_route_1",
+    });
+    await attachStripeCheckoutSession({
+      attemptId: failingAttemptId,
+      stripeCheckoutSessionId: "cs_test_route_db_error",
+      stripeSubscriptionId: "sub_test_route_db_error",
+    });
     const dbErrorEvent = {
       ...event,
       id: "evt_test_route_2",
       data: {
         object: {
           ...event.data.object,
-          metadata: { orgId: "999999999" },
+          id: "cs_test_route_db_error",
+          subscription: "sub_test_route_db_error",
+          metadata: {
+            ...event.data.object.metadata,
+            checkoutAttemptId: failingAttemptId,
+            maxEmployees: "2147483648",
+          },
         },
       },
     };
@@ -172,6 +201,9 @@ async function main() {
       delete process.env.STRIPE_WEBHOOK_SECRET;
     else process.env.STRIPE_WEBHOOK_SECRET = previousWebhookSecret;
 
+    await pool.query("DELETE FROM stripe_checkout_attempts WHERE organization_id = $1", [
+      orgId,
+    ]);
     await pool.query("DELETE FROM subscriptions WHERE organization_id = $1", [
       orgId,
     ]);

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useModuleContext } from "@/hooks/useModuleContext";
 import {
@@ -52,9 +52,14 @@ export function NumeriqueResponsable() {
 
   const [responses, setResponses] = useState<Record<string, boolean>>({});
   const [comments,  setComments]  = useState<Record<string, string>>({});
+  const skipNrHydrationRef = useRef(false);
 
   useEffect(() => {
     if (!nrData) return;
+    if (skipNrHydrationRef.current) {
+      skipNrHydrationRef.current = false;
+      return;
+    }
     const r: Record<string, boolean> = {};
     const c: Record<string, string>  = {};
     for (const item of nrData.responses) {
@@ -73,12 +78,13 @@ export function NumeriqueResponsable() {
   });
   const { mutateAsync: createLabelAsync } = useCreateLabel();
 
-  const { mutate: upsertNr } = useUpsertNrData({
+  const { mutate: upsertNr, mutateAsync: upsertNrAsync } = useUpsertNrData({
     mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: getGetNrDataQueryKey(effectiveOrgId ?? 0),
-        });
+      onSuccess: (savedData, variables) => {
+        queryClient.setQueryData(
+          getGetNrDataQueryKey(variables.orgId),
+          savedData,
+        );
       },
     },
   });
@@ -118,14 +124,24 @@ export function NumeriqueResponsable() {
     setComments((prev) => ({ ...prev, [criterionId]: comment }));
   }, []);
 
-  const handleSaveEvaluation = useCallback(() => {
+  const handleSaveEvaluation = useCallback(async (): Promise<void> => {
+    if (!effectiveOrgId) return;
     const items = Object.entries(responses).map(([criterionId, checked]) => ({
       criterionId,
       checked,
       comment: comments[criterionId] ?? null,
     }));
-    handleSave({ responses: items });
-  }, [responses, comments, handleSave]);
+    skipNrHydrationRef.current = true;
+    try {
+      await upsertNrAsync({
+        orgId: effectiveOrgId,
+        data: { responses: items },
+      });
+    } catch (error) {
+      skipNrHydrationRef.current = false;
+      throw error;
+    }
+  }, [effectiveOrgId, responses, comments, upsertNrAsync]);
 
   const scores = computeScores(responses);
 
