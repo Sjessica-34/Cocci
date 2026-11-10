@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap');
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 @import '@clerk/themes/shadcn.css';
@@ -239,4 +240,46 @@
     height: 0;
     width: 0;
   }
+
+.blog-font-body {
+  font-family: 'DM Sans', sans-serif;
+}
+
+.blog-article-content h2,
+.blog-article-content h3 {
+  margin: 2rem 0 0.75rem;
+  color: #253d30;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.blog-article-content h2 { font-size: 1.65rem; }
+.blog-article-content h3 { font-size: 1.3rem; }
+.blog-article-content p,
+.blog-article-content ul,
+.blog-article-content ol,
+.blog-article-content blockquote { margin: 0.9rem 0; }
+.blog-article-content ul,
+.blog-article-content ol { padding-left: 1.5rem; }
+.blog-article-content ul { list-style: disc; }
+.blog-article-content ol { list-style: decimal; }
+.blog-article-content blockquote {
+  border-left: 3px solid #a9c8b0;
+  padding-left: 1rem;
+  color: #5d7063;
+}
+.blog-article-content a {
+  color: #176347;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.blog-article-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+}
+
+.blog-font-display {
+  font-family: 'Newsreader', Georgia, serif;
+}
 }
