@@ -12,7 +12,8 @@
  * Usage : pnpm --filter @workspace/api-server exec tsx src/test/webhookEvents.test.ts
  */
 import { pool } from "@workspace/db";
-import type Stripe from "stripe";
+import Stripe from "stripe";
+import type StripeType from "stripe";
 import {
   attachStripeCheckoutSession,
   createPendingCheckoutAttempt,
@@ -30,6 +31,73 @@ function assert(cond: boolean, label: string): void {
 
 function makeEvent(type: string, object: object): Stripe.Event {
   return { id: `evt_test_${type}`, type, data: { object } } as unknown as Stripe.Event;
+}
+
+type InvoiceFixture = {
+  subscriptionId: string;
+  customerId: string;
+  status: "paid" | "open";
+  paymentIntentId: string;
+};
+
+const invoiceFixtures = new Map<string, InvoiceFixture>();
+const stripeProbe = new Stripe("sk_test_webhook_fixture");
+
+function mockStripeResource(
+  resource: object,
+  method: string,
+  implementation: (...args: unknown[]) => Promise<unknown>,
+): () => void {
+  const prototype = Object.getPrototypeOf(resource) as Record<string, unknown>;
+  const original = prototype[method];
+  Object.defineProperty(prototype, method, {
+    configurable: true,
+    value: implementation,
+  });
+  return () => {
+    Object.defineProperty(prototype, method, {
+      configurable: true,
+      value: original,
+    });
+  };
+}
+
+const restoreStripeMocks = [
+  mockStripeResource(stripeProbe.invoices, "retrieve", async (id) => {
+    const invoiceId = String(id);
+    const fixture = invoiceFixtures.get(invoiceId);
+    if (!fixture) throw new Error(`Unexpected Stripe invoice retrieval: ${invoiceId}`);
+    return {
+      id: invoiceId,
+      status: fixture.status,
+      customer: fixture.customerId,
+      parent: { subscription_details: { subscription: fixture.subscriptionId } },
+      payment_intent: fixture.paymentIntentId,
+    };
+  }),
+  mockStripeResource(stripeProbe.invoices, "list", async () => ({ data: [], has_more: false })),
+  mockStripeResource(stripeProbe.subscriptions, "retrieve", async (id) => ({
+    id: String(id),
+    customer: "cus_test_attempts",
+    status: "active",
+    latest_invoice: null,
+  })),
+  mockStripeResource(stripeProbe.paymentIntents, "retrieve", async (id) => ({
+    id: String(id),
+    status: "succeeded",
+    latest_charge: null,
+  })),
+];
+
+function makeInvoiceEvent(
+  type: "invoice.payment_succeeded" | "invoice.payment_failed",
+  invoiceId: string,
+  subscriptionId: string,
+): StripeType.Event {
+  return makeEvent(type, {
+    id: invoiceId,
+    parent: { subscription_details: { subscription: subscriptionId } },
+  }) as StripeType.Event;
 }
 
 function makeCheckoutSession(opts: {
@@ -136,9 +204,17 @@ async function main() {
     assert((await getAttempt(initialAttemptId))?.status === "completed", "tentative initiale consommée");
 
     // 2. SEPA confirmé : seul invoice.payment_succeeded fait trial → active.
-    await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
-      parent: { subscription_details: { subscription: initialSubscriptionId } },
-    }));
+    invoiceFixtures.set("in_test_initial_paid", {
+      subscriptionId: initialSubscriptionId,
+      customerId: customerId,
+      status: "paid",
+      paymentIntentId: "pi_test_initial_paid",
+    });
+    await handleStripeEvent(makeInvoiceEvent(
+      "invoice.payment_succeeded",
+      "in_test_initial_paid",
+      initialSubscriptionId,
+    ));
     sub = await getSub(orgId);
     assert(sub?.status === "active", "trial → active après invoice.payment_succeeded");
     const onboarding = await pool.query<{ status: string; completed_at: Date | null }>(
@@ -152,9 +228,17 @@ async function main() {
       "UPDATE subscriptions SET status = 'trial' WHERE organization_id = $1",
       [orgId],
     );
-    await handleStripeEvent(makeEvent("invoice.payment_failed", {
-      subscription: initialSubscriptionId,
-    }));
+    invoiceFixtures.set("in_test_initial_failed", {
+      subscriptionId: initialSubscriptionId,
+      customerId,
+      status: "open",
+      paymentIntentId: "pi_test_initial_failed",
+    });
+    await handleStripeEvent(makeInvoiceEvent(
+      "invoice.payment_failed",
+      "in_test_initial_failed",
+      initialSubscriptionId,
+    ));
     sub = await getSub(orgId);
     assert(sub?.status === "suspended", "échec de la tentative initiale → suspended");
 
@@ -317,12 +401,22 @@ async function main() {
       paymentIntentId: "pi_test_attempt_success",
       paymentStatus: "unpaid",
     })));
-    await handleStripeEvent(makeEvent("invoice.payment_succeeded", {
-      subscription: successfulSubscriptionId,
-    }));
+    invoiceFixtures.set("in_test_final_paid", {
+      subscriptionId: successfulSubscriptionId,
+      customerId,
+      status: "paid",
+      paymentIntentId: "pi_test_final_paid",
+    });
+    await handleStripeEvent(makeInvoiceEvent(
+      "invoice.payment_succeeded",
+      "in_test_final_paid",
+      successfulSubscriptionId,
+    ));
     sub = await getSub(orgId);
     assert(sub?.status === "active", "nouvelle tentative réussie → active");
   } finally {
+    restoreStripeMocks.forEach((restore) => restore());
+    invoiceFixtures.clear();
     await pool.query("DELETE FROM stripe_checkout_attempts WHERE organization_id = $1", [orgId]);
     await pool.query("DELETE FROM subscriptions WHERE organization_id = $1", [orgId]);
     await pool.query("DELETE FROM users WHERE id = $1", [userId]);

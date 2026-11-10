@@ -52,6 +52,7 @@ const NAV_ITEMS = [
   { href: "/admin/securite", label: "Sécurité & journalisation", icon: Shield, exact: false },
   { href: null, label: "Factures", icon: CreditCard },
   { href: "/admin/abonnements", label: "Abonnements", icon: Receipt, exact: false },
+  { href: "/admin/blog", label: "Journal Cocci", icon: BookOpen, exact: false },
   { href: null, label: "Analytics", icon: BarChart3 },
   { href: null, label: "Paramètres", icon: Settings },
 ];
@@ -225,9 +226,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden bg-background md:flex-row">
       {/* ── Sidebar ─────────────────────────────── */}
-      <aside className="w-60 shrink-0 bg-sidebar flex flex-col h-full">
+      <aside className="hidden w-60 shrink-0 bg-sidebar md:flex md:h-full md:flex-col">
         {/* Logo */}
         <div className="h-14 flex items-center gap-2.5 px-5 shrink-0">
           <div className="h-7 w-7 rounded-md bg-destructive/90 flex items-center justify-center shrink-0">
@@ -259,8 +260,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               ? location === item.href
               : location.startsWith(item.href);
             return (
-              <Link key={item.href} href={item.href}>
-                <button
+              <Link
+                  key={item.href}
+                  href={item.href}
+                  data-testid={`link-admin-nav-${item.href.split("/").pop() || "home"}`}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-colors",
                     active
@@ -275,7 +278,6 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                       {newFeedbackCount}
                     </span>
                   )}
-                </button>
               </Link>
             );
           })}
@@ -327,7 +329,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* ── Main area ───────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Header */}
         <header className="h-14 shrink-0 bg-background border-b border-border flex items-center gap-4 px-6">
           {/* Search bar */}
@@ -380,6 +382,26 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
+
+        <nav aria-label="Navigation administrateur" className="flex shrink-0 gap-1 overflow-x-auto border-b border-border bg-background px-3 py-2 md:hidden">
+          {NAV_ITEMS.filter((item) => item.href).map((item) => {
+            const active = item.exact ? location === item.href : location.startsWith(item.href!);
+            return (
+              <Link
+                key={item.href}
+                href={item.href!}
+                data-testid={`link-admin-mobile-${item.href!.split("/").pop() || "home"}`}
+                className={cn(
+                  "inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md px-3 text-xs font-medium transition-colors",
+                  active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-muted/30">

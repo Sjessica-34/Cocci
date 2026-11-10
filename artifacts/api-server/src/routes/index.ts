@@ -30,6 +30,7 @@ import auditRouter from "./audit";
 import publicRseRouter from "./publicRse";
 import subscriptionsRouter from "./subscriptions";
 import giftInvitationsRouter from "./giftInvitations";
+import blogRouter from "./blog";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireOrgMembership } from "../middlewares/exerciseScope";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
@@ -68,6 +69,7 @@ router.use(usersRouter);
 // pour se réabonner. Ces routes ont leurs propres gardes requireAuth + requireOrgMembership.
 router.use(subscriptionsRouter);
 router.use(giftInvitationsRouter);
+router.use(blogRouter);
 
 // Paywall : toutes les routes /organizations/:orgId/* nécessitent un abonnement actif.
 // La chaîne complète : auth → vérification d'appartenance → vérification d'abonnement.
