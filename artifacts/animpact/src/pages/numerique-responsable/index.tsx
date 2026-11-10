@@ -73,12 +73,13 @@ export function NumeriqueResponsable() {
   });
   const { mutateAsync: createLabelAsync } = useCreateLabel();
 
-  const { mutate: upsertNr } = useUpsertNrData({
+  const { mutate: upsertNr, mutateAsync: upsertNrAsync } = useUpsertNrData({
     mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: getGetNrDataQueryKey(effectiveOrgId ?? 0),
-        });
+      onSuccess: (savedData, variables) => {
+        queryClient.setQueryData(
+          getGetNrDataQueryKey(variables.orgId),
+          savedData,
+        );
       },
     },
   });
@@ -118,14 +119,18 @@ export function NumeriqueResponsable() {
     setComments((prev) => ({ ...prev, [criterionId]: comment }));
   }, []);
 
-  const handleSaveEvaluation = useCallback(() => {
+  const handleSaveEvaluation = useCallback(async () => {
+    if (!effectiveOrgId) return;
     const items = Object.entries(responses).map(([criterionId, checked]) => ({
       criterionId,
       checked,
       comment: comments[criterionId] ?? null,
     }));
-    handleSave({ responses: items });
-  }, [responses, comments, handleSave]);
+    await upsertNrAsync({
+      orgId: effectiveOrgId,
+      data: { responses: items },
+    });
+  }, [effectiveOrgId, responses, comments, upsertNrAsync]);
 
   const scores = computeScores(responses);
 
