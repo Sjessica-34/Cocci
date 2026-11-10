@@ -126,6 +126,30 @@ paths:
           description: Forbidden
         "409":
           description: Slug already exists
+  /admin/blog/images/publish:
+    post:
+      operationId: publishAdminBlogImage
+      tags: [admin]
+      summary: Make an uploaded blog image publicly readable
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishBlogImageRequest"
+      responses:
+        "200":
+          description: Image is available for public articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishBlogImageResponse"
+        "400":
+          description: Invalid image
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
   /admin/blog/posts/{id}:
     patch:
       operationId: updateAdminBlogPost
@@ -4372,6 +4396,19 @@ components:
         isPublished:
           type: boolean
 
+    PublishBlogImageRequest:
+      type: object
+      required: [objectPath]
+      properties:
+        objectPath:
+          type: string
+          pattern: "^/objects/"
+    PublishBlogImageResponse:
+      type: object
+      required: [objectPath]
+      properties:
+        objectPath:
+          type: string
     BlogPost:
       type: object
       required: [id, title, slug, excerpt, content, category, coverImageUrl, coverImageAlt, keywords, language, seoTitle, metaDescription, structuredData, canonicalUrl, source, sourceUpdatedAt, manuallyEdited, isPublished, publishedAt, createdAt, updatedAt]

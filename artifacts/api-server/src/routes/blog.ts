@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
+import { getAuth } from "@clerk/express";
 import {
   CreateAdminBlogPostBody,
   CreateAdminBlogPostResponse,
@@ -20,9 +21,47 @@ import { db, blogPostsTable, blogSyncSettingsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireSuperAdmin } from "../middlewares/requireSuperAdmin";
 import { sanitizeBlogHtml } from "../lib/blogContent";
+import { ObjectPermission } from "../lib/objectAcl";
+import { ObjectStorageService } from "../lib/objectStorage";
 
 const router = Router();
+const objectStorageService = new ObjectStorageService();
 router.use("/admin/blog", requireAuth, requireSuperAdmin);
+
+router.post("/admin/blog/images/publish", async (req, res): Promise<void> => {
+  const auth = getAuth(req);
+  const objectPath = req.body?.objectPath;
+  if (!auth?.userId || typeof objectPath !== "string" || !objectPath.startsWith("/objects/")) {
+    res.status(400).json({ error: "Image ou session invalide." });
+    return;
+  }
+  try {
+    const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+    const [metadata] = await objectFile.getMetadata();
+    if (!/^image\/(jpeg|png|webp|gif)$/i.test(metadata.contentType ?? "") || (metadata.size ?? 0) > 10 * 1024 * 1024) {
+      res.status(400).json({ error: "Format ou taille d’image non autorisé." });
+      return;
+    }
+    const canAccess = await objectStorageService.canAccessObjectEntity({
+      userId: auth.userId,
+      objectFile,
+      requestedPermission: ObjectPermission.READ,
+    });
+    if (!canAccess) {
+      res.status(403).json({ error: "Image non autorisée." });
+      return;
+    }
+    await objectStorageService.trySetObjectEntityAclPolicy(objectPath, {
+      owner: auth.userId,
+      visibility: "public",
+      aclRules: [],
+    });
+    res.json({ objectPath });
+  } catch (error) {
+    req.log.error({ err: error }, "Failed to publish blog image");
+    res.status(500).json({ error: "Impossible de préparer cette image." });
+  }
+});
 
 function isUniqueSlugViolation(error: unknown): boolean {
   return typeof error === "object"

@@ -241,22 +241,18 @@ router.get(
 router.get('/storage/objects/*path', async (req: Request, res: Response) => {
   try {
     const auth = getAuth(req);
-    if (!auth?.userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join('/') : raw;
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile =
       await objectStorageService.getObjectEntityFile(objectPath);
     const canAccess = await objectStorageService.canAccessObjectEntity({
-      userId: auth.userId,
+      userId: auth?.userId ?? undefined,
       objectFile,
       requestedPermission: ObjectPermission.READ,
     });
     if (!canAccess) {
-      res.status(403).json({ error: 'Forbidden' });
+      res.status(auth?.userId ? 403 : 401).json({ error: auth?.userId ? 'Forbidden' : 'Unauthorized' });
       return;
     }
 
