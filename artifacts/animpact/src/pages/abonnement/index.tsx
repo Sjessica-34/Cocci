@@ -553,7 +553,7 @@ export function Abonnement() {
         <p className="text-center text-xs text-gray-400 mt-10">
           Paiement sécurisé par Stripe. Résiliable à tout moment depuis le portail client.
           <br />Vous avez une question ?{" "}
-          <a href="mailto:bonjour@cocci.app" className="underline hover:text-gray-600">bonjour@cocci.app</a>
+          <a href="mailto:bonjour@a-nim-pact.fr" className="underline hover:text-gray-600">bonjour@a-nim-pact.fr</a>
         </p>
       </div>
     </AppLayout>
