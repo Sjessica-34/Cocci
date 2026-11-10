@@ -130,6 +130,8 @@ import type {
   PublicBarometreQuestionnaire,
   PublicBarometreSubmission,
   PublicBarometreSubmissionAck,
+  PublishBlogImageRequest,
+  PublishBlogImageResponse,
   ReportAiSectionInput,
   ReportAiSectionResponse,
   ReportDraft,
@@ -487,6 +489,76 @@ export const useCreateAdminBlogPost = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateAdminBlogPostMutationOptions(options));
+    }
+
+export const getPublishAdminBlogImageUrl = () => {
+
+
+
+
+  return `/api/admin/blog/images/publish`
+}
+
+/**
+ * @summary Make an uploaded blog image publicly readable
+ */
+export const publishAdminBlogImage = async (publishBlogImageRequest: PublishBlogImageRequest, options?: RequestInit): Promise<PublishBlogImageResponse> => {
+
+  return customFetch<PublishBlogImageResponse>(getPublishAdminBlogImageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(publishBlogImageRequest)
+  }
+);}
+
+
+
+
+export const getPublishAdminBlogImageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishAdminBlogImage>>, TError,{data: BodyType<PublishBlogImageRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishAdminBlogImage>>, TError,{data: BodyType<PublishBlogImageRequest>}, TContext> => {
+
+const mutationKey = ['publishAdminBlogImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishAdminBlogImage>>, {data: BodyType<PublishBlogImageRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  publishAdminBlogImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishAdminBlogImageMutationResult = NonNullable<Awaited<ReturnType<typeof publishAdminBlogImage>>>
+    export type PublishAdminBlogImageMutationBody = BodyType<PublishBlogImageRequest>
+    export type PublishAdminBlogImageMutationError = ErrorType<void>
+
+    /**
+ * @summary Make an uploaded blog image publicly readable
+ */
+export const usePublishAdminBlogImage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishAdminBlogImage>>, TError,{data: BodyType<PublishBlogImageRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof publishAdminBlogImage>>,
+        TError,
+        {data: BodyType<PublishBlogImageRequest>},
+        TContext
+      > => {
+      return useMutation(getPublishAdminBlogImageMutationOptions(options));
     }
 
 export const getUpdateAdminBlogPostUrl = (id: number,) => {

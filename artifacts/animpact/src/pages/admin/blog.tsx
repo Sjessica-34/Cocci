@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import {
@@ -20,6 +20,7 @@ import {
   useDeleteAdminBlogPost,
   useGetAdminBlogSyncSettings,
   useListAdminBlogPosts,
+  usePublishAdminBlogImage,
   useRunAdminBlogSync,
   useSetAdminBlogPostPublished,
   useUpdateAdminBlogSyncSettings,
@@ -27,6 +28,11 @@ import {
 } from "@workspace/api-client-react";
 import type { BlogPost, BlogPostCategory, BlogPostInput } from "@workspace/api-client-react";
 import { AdminLayout } from "./layout";
+import { useStorageUpload } from "@/hooks/useStorageUpload";
+
+const BlogRichTextEditor = lazy(() =>
+  import("@/components/BlogRichTextEditor").then(({ BlogRichTextEditor }) => ({ default: BlogRichTextEditor })),
+);
 import {
   Form,
   FormControl,
@@ -77,18 +83,28 @@ function errorText(error: unknown) {
   return "Une erreur est survenue. Vérifiez les champs puis réessayez.";
 }
 
+function hasRichContent(value: string) {
+  return value
+    .replace(/<img\b[^>]*>/gi, " image ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .trim().length > 0;
+}
+
 function categoryName(category: BlogPostCategory) {
   return category === "rse_advice" ? "Conseils RSE" : "Nouvelles de Cocci";
 }
 
 export function AdminBlog() {
   const queryClient = useQueryClient();
+  const { uploadFile } = useStorageUpload();
   const { data: posts, isLoading, isError, refetch, isFetching } = useListAdminBlogPosts({
     query: { queryKey: getListAdminBlogPostsQueryKey() },
   });
   const createPost = useCreateAdminBlogPost();
   const updatePost = useUpdateAdminBlogPost();
   const deletePost = useDeleteAdminBlogPost();
+  const publishBlogImage = usePublishAdminBlogImage();
   const setPostPublished = useSetAdminBlogPostPublished();
   const syncSettings = useGetAdminBlogSyncSettings();
   const updateSyncSettings = useUpdateAdminBlogSyncSettings();
@@ -121,6 +137,19 @@ export function AdminBlog() {
   const publishedCount = (posts ?? []).filter((post) => post.isPublished).length;
   const draftCount = (posts ?? []).length - publishedCount;
   const isSaving = createPost.isPending || updatePost.isPending;
+
+  async function uploadArticleImage(file: File): Promise<string> {
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      throw new Error("Formats acceptés : JPEG, PNG, WebP ou GIF.");
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error("L’image ne peut pas dépasser 10 Mo.");
+    }
+    const uploaded = await uploadFile(file, null);
+    if (!uploaded) throw new Error("L’envoi de l’image a échoué.");
+    await publishBlogImage.mutateAsync({ data: { objectPath: uploaded.objectPath } });
+    return uploaded.fileUrl;
+  }
 
   useEffect(() => {
     if (!editorOpen) {
@@ -212,7 +241,7 @@ export function AdminBlog() {
       seoTitle: values.seoTitle.trim() || null,
       metaDescription: values.metaDescription.trim() || null,
     };
-    if (!input.title || !input.slug || !input.content.trim()) {
+    if (!input.title || !input.slug || !hasRichContent(input.content)) {
       setFormError("Le titre, le slug et le contenu sont obligatoires.");
       return;
     }
@@ -512,15 +541,23 @@ export function AdminBlog() {
                       name="content"
                       rules={{
                         required: "Le contenu est obligatoire.",
-                        validate: (value) => Boolean(value.trim()) || "Le contenu est obligatoire.",
+                        validate: (value) => hasRichContent(value) || "Le contenu est obligatoire.",
                       }}
                       render={({ field }) => (
                         <FormItem className="space-y-1.5 sm:col-span-2">
-                          <FormLabel className="text-xs font-semibold text-foreground">Contenu HTML <span className="text-destructive">*</span></FormLabel>
+                          <FormLabel className="text-xs font-semibold text-foreground">Contenu de l’article <span className="text-destructive">*</span></FormLabel>
                           <FormControl>
-                            <textarea {...field} required rows={11} className="min-h-52 w-full resize-y rounded-md border border-input bg-background px-3 py-2.5 text-sm leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring" data-testid="textarea-blog-content" />
+                            <Suspense fallback={<div className="min-h-56 animate-pulse rounded-md bg-muted/20 sm:min-h-72" aria-label="Chargement de l’éditeur" />}>
+                              <BlogRichTextEditor
+                                value={field.value}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                onUploadImage={uploadArticleImage}
+                                disabled={isSaving}
+                              />
+                            </Suspense>
                           </FormControl>
-                          <FormDescription className="text-[11px]">Les éléments HTML non autorisés sont retirés automatiquement.</FormDescription>
+                          <FormDescription className="text-[11px]">Collez un texte depuis Word ou le web, puis mettez-le en forme avec la barre d’outils.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -604,7 +641,7 @@ export function AdminBlog() {
                   </div>
                   <footer className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
                     <button type="button" onClick={() => setEditorOpen(false)} disabled={isSaving} className="h-10 rounded-md border border-input px-4 text-sm font-medium hover:bg-muted disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-testid="button-cancel-blog-editor">Annuler</button>
-                    <button type="submit" disabled={isSaving || !titleValue.trim() || !slugValue.trim() || !contentValue.trim()} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" data-testid="button-save-blog-post">
+                    <button type="submit" disabled={isSaving || !titleValue.trim() || !slugValue.trim() || !hasRichContent(contentValue)} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" data-testid="button-save-blog-post">
                       {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}{isSaving ? "Enregistrement…" : editingPost ? "Enregistrer" : "Créer le brouillon"}
                     </button>
                   </footer>

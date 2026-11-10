@@ -721,6 +721,15 @@ export interface ResourcePublishUpdate {
   isPublished: boolean;
 }
 
+export interface PublishBlogImageRequest {
+  /** @pattern ^/objects/ */
+  objectPath: string;
+}
+
+export interface PublishBlogImageResponse {
+  objectPath: string;
+}
+
 export type BlogPostCategory = typeof BlogPostCategory[keyof typeof BlogPostCategory];
 
 

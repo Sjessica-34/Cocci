@@ -15,7 +15,7 @@ interface Props {
   comments:         Record<string, string>;
   onResponseChange: (criterionId: string, checked: boolean) => void;
   onCommentChange:  (criterionId: string, comment: string)  => void;
-  onSave:           () => void;
+  onSave:           () => Promise<void>;
 }
 
 // Pre-index pillars by id for O(1) lookup
@@ -26,6 +26,7 @@ export function TabEvaluation({
 }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [openDocs, setOpenDocs] = useState<string | null>(null);
 
   const [collapsedMacro,   setCollapsedMacro]   = useState<Record<string, boolean>>({});
@@ -33,14 +34,37 @@ export function TabEvaluation({
   const [collapsedSections,setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const executeSaveRef = useRef<() => void>(() => {});
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveInFlight = useRef(false);
+  const queuedSave = useRef(false);
+  const executeSaveRef = useRef<() => Promise<void>>(async () => {});
 
-  const executeSave = useCallback(() => {
+  const executeSave = useCallback(async () => {
     if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+    if (saveInFlight.current) {
+      queuedSave.current = true;
+      return;
+    }
+
+    saveInFlight.current = true;
     setSaving(true);
     setSaved(false);
-    onSave();
-    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2500); }, 600);
+    setSaveError(false);
+    try {
+      await onSave();
+      setSaved(true);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      savedTimer.current = setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setSaveError(true);
+    } finally {
+      saveInFlight.current = false;
+      setSaving(false);
+      if (queuedSave.current) {
+        queuedSave.current = false;
+        void executeSaveRef.current();
+      }
+    }
   }, [onSave]);
 
   useEffect(() => {
@@ -49,10 +73,22 @@ export function TabEvaluation({
 
   const scheduleAutoSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => executeSaveRef.current(), 800);
+    setSaved(false);
+    setSaveError(false);
+    saveTimer.current = setTimeout(() => { void executeSaveRef.current(); }, 300);
   }, []);
 
-  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
+  const flushPendingSave = useCallback(() => {
+    if (!saveTimer.current) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    void executeSaveRef.current();
+  }, []);
+
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+  }, []);
 
   const handleCheck   = (cid: string, v: boolean) => { onResponseChange(cid, v); scheduleAutoSave(); };
   const handleComment = (cid: string, v: string)  => { onCommentChange(cid, v);  scheduleAutoSave(); };
@@ -92,7 +128,7 @@ export function TabEvaluation({
         <p className="text-xs text-muted-foreground">
           Cochez les critères mis en œuvre. Sauvegarde automatique active.
         </p>
-        <SaveIndicator saving={saving} saved={saved} />
+        <SaveIndicator saving={saving} saved={saved} error={saveError} />
       </div>
 
       {/* 5 macro-pillars */}
@@ -206,6 +242,7 @@ export function TabEvaluation({
                                           docOpen={openDocs === criterion.id}
                                           onCheck={(v) => handleCheck(criterion.id, v)}
                                           onComment={(v) => handleComment(criterion.id, v)}
+                                          onBlur={flushPendingSave}
                                           onToggleDocs={() =>
                                             setOpenDocs((p) => (p === criterion.id ? null : criterion.id))
                                           }
@@ -274,8 +311,11 @@ export function TabEvaluation({
 
 // ── Save indicator ─────────────────────────────────────────────────────────────
 
-function SaveIndicator({ saving, saved }: { saving: boolean; saved: boolean }) {
-  if (!saving && !saved) return <span className="min-w-24" />;
+function SaveIndicator({ saving, saved, error }: { saving: boolean; saved: boolean; error: boolean }) {
+  if (!saving && !saved && !error) return <span className="min-w-24" />;
+  if (error) {
+    return <span role="status" className="text-xs font-medium text-destructive">Échec de la sauvegarde</span>;
+  }
   return (
     <div className="flex items-center gap-1.5 text-xs min-w-24 justify-end">
       {saving && <><Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /><span className="text-muted-foreground">Sauvegarde…</span></>}
@@ -294,10 +334,11 @@ interface CriterionProps {
   docOpen:      boolean;
   onCheck:      (v: boolean) => void;
   onComment:    (v: string)  => void;
+  onBlur:       () => void;
   onToggleDocs: () => void;
 }
 
-function CriterionRow({ orgId, criterion, checked, comment, docOpen, onCheck, onComment, onToggleDocs }: CriterionProps) {
+function CriterionRow({ orgId, criterion, checked, comment, docOpen, onCheck, onComment, onBlur, onToggleDocs }: CriterionProps) {
   const [showComment, setShowComment] = useState(!!comment);
   const isSpecial = criterion.isSpecial;
 
@@ -314,6 +355,7 @@ function CriterionRow({ orgId, criterion, checked, comment, docOpen, onCheck, on
           id={criterion.id}
           checked={checked}
           onCheckedChange={(v) => onCheck(!!v)}
+          onBlur={onBlur}
           className={cn(
             "mt-0.5 shrink-0",
             isSpecial && "border-muted-foreground/40",

@@ -201,6 +201,8 @@ export * from './publicBarometreQuestionnaireMode';
 export * from './publicBarometreQuestionType';
 export * from './publicBarometreSubmission';
 export * from './publicBarometreSubmissionAck';
+export * from './publishBlogImageRequest';
+export * from './publishBlogImageResponse';
 export * from './reportAiSectionInput';
 export * from './reportAiSectionInputData';
 export * from './reportAiSectionResponse';

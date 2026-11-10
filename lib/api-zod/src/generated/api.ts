@@ -164,6 +164,21 @@ export const CreateAdminBlogPostResponse = zod.object({
 
 
 /**
+ * @summary Make an uploaded blog image publicly readable
+ */
+export const publishAdminBlogImageBodyObjectPathRegExp = new RegExp('^/objects');
+
+
+export const PublishAdminBlogImageBody = zod.object({
+  "objectPath": zod.string().regex(publishAdminBlogImageBodyObjectPathRegExp)
+})
+
+export const PublishAdminBlogImageResponse = zod.object({
+  "objectPath": zod.string()
+})
+
+
+/**
  * @summary Update a blog post
  */
 export const UpdateAdminBlogPostParams = zod.object({
