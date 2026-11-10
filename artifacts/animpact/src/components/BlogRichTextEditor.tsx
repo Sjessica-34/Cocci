@@ -5,6 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
+import { getEditorHtmlOrNull } from "@/lib/blogEditorHtml";
 import {
   Bold,
   Heading2,
@@ -116,13 +117,17 @@ export function BlogRichTextEditor({
         "data-testid": "editor-blog-content",
       },
     },
-    onUpdate: ({ editor: currentEditor }) => onChange(currentEditor.getHTML()),
+    onUpdate: ({ editor: currentEditor }) => {
+      const html = getEditorHtmlOrNull(currentEditor);
+      if (html !== null) onChange(html);
+    },
     onBlur: () => onBlur?.(),
   });
 
   useEffect(() => {
-    if (!editor) return;
-    if (editor.getHTML() !== (value || "")) {
+    const currentHtml = getEditorHtmlOrNull(editor);
+    if (currentHtml === null) return;
+    if (currentHtml !== (value || "")) {
       editor.commands.setContent(value || "", { emitUpdate: false });
     }
   }, [editor, value]);
