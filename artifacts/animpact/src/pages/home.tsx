@@ -224,6 +224,7 @@ export function Home() {
             <a href="#tarifs" className="text-sm font-medium text-[#516057] transition-colors hover:text-[#163028]">Tarifs</a>
             <a href="#ressources" className="text-sm font-medium text-[#516057] transition-colors hover:text-[#163028]">Ressources</a>
             <a href="#a-propos" className="text-sm font-medium text-[#516057] transition-colors hover:text-[#163028]">À propos</a>
+            <Link href="/blog" className="text-sm font-medium text-[#516057] transition-colors hover:text-[#163028]" data-testid="link-blog">Le journal</Link>
           </nav>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <Link href="/sign-in" className="rounded-lg px-3 py-2 text-sm font-medium text-[#536159] transition-colors hover:bg-[#f4f7f4] hover:text-[#163028]">Se connecter</Link>
@@ -235,6 +236,7 @@ export function Home() {
           <a href="#tarifs" className="shrink-0 text-xs font-medium text-[#516057]">Tarifs</a>
           <a href="#ressources" className="shrink-0 text-xs font-medium text-[#516057]">Ressources</a>
           <a href="#a-propos" className="shrink-0 text-xs font-medium text-[#516057]">À propos</a>
+          <Link href="/blog" className="shrink-0 text-xs font-medium text-[#516057]" data-testid="link-blog-mobile">Le journal</Link>
         </nav>
       </header>
 
@@ -430,6 +432,7 @@ export function Home() {
           <Link href="/" aria-label="Cocci, accueil"><img src={`${import.meta.env.BASE_URL}logo-dark.png`} alt="Cocci" className="h-5 w-auto" /></Link>
           <p className="text-xs text-[#859087]">© {new Date().getFullYear()} A-NIM-PACT SAS. Tous droits réservés.</p>
           <Link href="/legal" className="text-xs text-[#859087] underline transition-colors hover:text-[#435249]">Mentions légales</Link>
+          <Link href="/blog" className="text-xs text-[#859087] underline transition-colors hover:text-[#435249]" data-testid="link-blog-footer">Le journal</Link>
         </div>
       </footer>
     </div>
